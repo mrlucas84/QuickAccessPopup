@@ -20,9 +20,20 @@ BUGS
 TO-DO
 
 LATER
+-----
+HELP
 * Update links to QAP website in Help
 * Update links to QAP reviews in Donate
+
+LANGUAGE
 * Replace or update occurences of "FoldersPopup" in language files
+
+GUI
+* update CleanUpBeforeExit to save current position
+
+
+Version 6.0.2 alpha (2015-05-??)
+
 
 Version: 6.0.1 alpha (2015-05-11)
 * Replace "FoldersPopup" with "QuickAccessPopup"
@@ -102,4 +113,94 @@ SetWorkingDir, %A_ScriptDir%
 ListLines, On
 ; / End of code for developement enviuronment only - won't be compiled
 ;@Ahk2Exe-IgnoreEnd
+
+OnExit, CleanUpBeforeExit ; must be positioned before InitFileInstall to ensure deletion of temporary files
+
+Gosub, InitFileInstall
+
+###_D(1)
+
+return
+
+
+;-----------------------------------------------------------
+InitFileInstall:
+;-----------------------------------------------------------
+
+g_strTempDir := A_WorkingDir . "\_temp"
+FileCreateDir, %g_strTempDir%
+
+FileInstall, FileInstall\QuickAccessPopup_LANG_DE.txt, %g_strTempDir%\QuickAccessPopup_LANG_DE.txt, 1
+FileInstall, FileInstall\QuickAccessPopup_LANG_FR.txt, %g_strTempDir%\QuickAccessPopup_LANG_FR.txt, 1
+FileInstall, FileInstall\QuickAccessPopup_LANG_NL.txt, %g_strTempDir%\QuickAccessPopup_LANG_NL.txt, 1
+FileInstall, FileInstall\QuickAccessPopup_LANG_KO.txt, %g_strTempDir%\QuickAccessPopup_LANG_KO.txt, 1
+FileInstall, FileInstall\QuickAccessPopup_LANG_SV.txt, %g_strTempDir%\QuickAccessPopup_LANG_SV.txt, 1
+FileInstall, FileInstall\QuickAccessPopup_LANG_IT.txt, %g_strTempDir%\QuickAccessPopup_LANG_IT.txt, 1
+FileInstall, FileInstall\QuickAccessPopup_LANG_ES.txt, %g_strTempDir%\QuickAccessPopup_LANG_ES.txt, 1
+FileInstall, FileInstall\QuickAccessPopup_LANG_PT-BR.txt, %g_strTempDir%\QuickAccessPopup_LANG_PT-BR.txt, 1
+
+FileInstall, FileInstall\default_browser_icon.html, %g_strTempDir%\default_browser_icon.html, 1
+
+FileInstall, FileInstall\about-32.png, %g_strTempDir%\about-32.png
+FileInstall, FileInstall\add_property-48.png, %g_strTempDir%\add_property-48.png
+FileInstall, FileInstall\delete_property-48.png, %g_strTempDir%\delete_property-48.png
+FileInstall, FileInstall\channel_mosaic-48.png, %g_strTempDir%\channel_mosaic-48.png
+FileInstall, FileInstall\separator-26.png, %g_strTempDir%\separator-26.png
+FileInstall, FileInstall\column-26.png, %g_strTempDir%\column-26.png
+FileInstall, FileInstall\down_circular-26.png, %g_strTempDir%\down_circular-26.png
+FileInstall, FileInstall\edit_property-48.png, %g_strTempDir%\edit_property-48.png
+FileInstall, FileInstall\generic_sorting2-26-grey.png, %g_strTempDir%\generic_sorting2-26-grey.png
+FileInstall, FileInstall\help-32.png, %g_strTempDir%\help-32.png
+FileInstall, FileInstall\left-12.png, %g_strTempDir%\left-12.png
+FileInstall, FileInstall\settings-32.png, %g_strTempDir%\settings-32.png
+FileInstall, FileInstall\up-12.png, %g_strTempDir%\up-12.png
+FileInstall, FileInstall\up_circular-26.png, %g_strTempDir%\up_circular-26.png
+
+FileInstall, FileInstall\thumbs_up-32.png, %g_strTempDir%\thumbs_up-32.png
+FileInstall, FileInstall\solutions-32.png, %g_strTempDir%\solutions-32.png
+FileInstall, FileInstall\handshake-32.png, %g_strTempDir%\handshake-32.png
+FileInstall, FileInstall\conference-32.png, %g_strTempDir%\conference-32.png
+FileInstall, FileInstall\gift-32.png, %g_strTempDir%\gift-32.png
+
+return
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
+CleanUpBeforeExit:
+;-----------------------------------------------------------
+
+FileRemoveDir, %g_strTempDir%, 1 ; Remove all files and subdirectories
+
+if (g_blnDiagMode)
+{
+	MsgBox, 52, %g_strAppNameText%, % L(lDiagModeExit, g_strAppNameText, g_strDiagFile) . "`n`n" . lDiagModeIntro . "`n`n" . lDiagModeSee
+	IfMsgBox, Yes
+		Run, %g_strDiagFile%
+}
+ExitApp
+;-----------------------------------------------------------
+
+
+
+;========================================================================================================================
+; VARIOUS FUNCTIONS
+;========================================================================================================================
+
+;------------------------------------------------
+L(strMessage, objVariables*)
+;------------------------------------------------
+{
+	Loop
+	{
+		if InStr(strMessage, "~" . A_Index . "~")
+			StringReplace, strMessage, strMessage, ~%A_Index%~, % objVariables[A_Index], A
+ 		else
+			break
+	}
+	
+	return strMessage
+}
+;------------------------------------------------
+
 
