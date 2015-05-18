@@ -142,6 +142,24 @@ global g_strMenuPathSeparator := ">"
 global g_strGuiMenuSeparator := "----------------"
 global g_strGuiMenuColumnBreak := "==="
 
+if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
+; if the app runs from a zip file, the script directory is created under the system Temp folder
+{
+	Oops(lOopsZipFileError, g_strAppNameFile)
+	ExitApp
+}
+
+;@Ahk2Exe-IgnoreBegin
+; Start of code for developement environment only - won't be compiled
+if (A_ComputerName = "JEAN-PC") ; for my home PC
+	g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . "-HOME.ini"
+else if InStr(A_ComputerName, "STIC") ; for my work hotkeys
+	g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . "-WORK.ini"
+; / End of code for developement environment only - won't be compiled
+;@Ahk2Exe-IgnoreEnd
+
+; Keep gosubs in this order
+Gosub, InitSystemArrays
 
 ###_D(1)
 
@@ -200,6 +218,60 @@ InitLanguageVariables:
 ;-----------------------------------------------------------
 
 #Include %A_ScriptDir%\QuickAccessPopup_LANG.ahk
+
+return
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
+InitSystemArrays:
+;-----------------------------------------------------------
+
+; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
+strIniKeyNames := "LaunchHotkeyMouse|LaunchHotkeyKeyboard|NavigateHotkeyMouse|NavigateHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard|SettingsHotkey"
+StringSplit, g_arrIniKeyNames, strIniKeyNames, |
+strHotkeyDefaults := "MButton|#a|+MButton|+#a|!MButton|!#a|+^s"
+StringSplit, g_arrHotkeyDefaults, strHotkeyDefaults, |
+; in QAP, strHotkeyLabels and g_arrHotkeyLabels = strIniKeyNames and g_arrIniKeyNames
+
+g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|WheelDown|WheelLeft|WheelRight|"
+; leave last | to enable default value on the last item
+StringSplit, g_arrMouseButtons, g_strMouseButtons, |
+
+; Icon files and index tested on Win 7 and Win 8.1. Not tested on Win 10.
+strIconsMenus := "lMenuDesktop|lMenuDocuments|lMenuPictures|lMenuMyComputer|lMenuNetworkNeighborhood|lMenuControlPanel|lMenuRecycleBin"
+	. "|menuRecentFolders|menuGroupDialog|menuGroupExplorer|lMenuSpecialFolders|lMenuGroup|lMenuFoldersInExplorer"
+	. "|lMenuRecentFolders|lMenuSettings|lMenuAddThisFolder|lDonateMenu|Submenu|Network|UnknownDocument|Folder"
+	. "|menuGroupSave|menuGroupLoad|lMenuDownloads|Templates|MyMusic|MyVideo|History|Favorites|Temporary|Winver"
+	. "|Fonts|Application|Clipboard"
+strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
+			. "|imageres|imageres|imageres|imageres|shell32|imageres"
+			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
+			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
+			. "|shell32|shell32|shell32"
+strIconsIndex := "106|189|68|105|115|23|50"
+			. "|113|176|203|203|99|176"
+			. "|113|110|217|208|298|29|1|4"
+			. "|297|46|176|55|104|179|240|87|153|1"
+			. "|39|304|261"
+
+StringSplit, arrIconsFile, strIconsFile, |
+StringSplit, arrIconsIndex, strIconsIndex, |
+
+Loop, Parse, strIconsMenus, |
+{
+	g_objIconsFile[A_LoopField] := A_WinDir . "\System32\" . arrIconsFile%A_Index% . (arrIconsFile%A_Index% = "winver" ? ".exe" : ".dll")
+	g_objIconsIndex[A_LoopField] := arrIconsIndex%A_Index%
+}
+; example: g_objIconsFile["lMenuPictures"] and g_objIconsIndex["lMenuPictures"]
+
+strIniKeyNames := ""
+strHotkeyDefaults := ""
+strIconsMenus := ""
+strIconsFile := ""
+strIconsIndex := ""
+arrIconsFile := ""
+arrIconsIndex := ""
 
 return
 ;-----------------------------------------------------------
