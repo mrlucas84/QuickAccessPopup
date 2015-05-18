@@ -1,0 +1,310 @@
+lAboutText1	~1~ ~2~ (~3~ bits)
+lAboutText2	~1~ est développé par Jean Lalonde`nsur la plateforme <a href="http://ahkscript.org/">AutoHotkey</a>.`n`nTraduction française: Jean Lalonde`nTraduction allemande: Edgar "Fast Edi" Hoffmann`nTraduction néerlandaise: Pieter Dejonghe`nTraduction coréenne: Om Il-Sung`nTraduction suédoise: Åke Engelbrektson`nTraduction italienne: Riccardo Leone`nTraduction espagnole: kiketrucker`nTraduction en portugais brésilien: Igor Ruckert`nRévision anglaise: (aide bienvenue)`n`nIcônes par: <a href="http://www.visualpharm.com">Visual Pharm</a>`nInstallateur: <a href="http://www.jrsoftware.org/isinfo.php">Inno Setup</a> par jrsoftware.org`nSources AutoHotkey_L v1.1: <a href="https://github.com/JnLlnd/FoldersPopup">GitHub</a>
+lAboutText3	~1~ Jean Lalonde 2013-2014. Gratuiciel.
+lAboutText4	Soutien en ligne: <a href="http://code.jeanlalonde.ca/folderspopup">www.code.jeanlalonde.ca</a>
+lAboutTitle	À propos - ~1~ ~2~
+lAppTagline	Navigez en un clin d'oeil parmi vos dossiers et documents favoris!
+lDiagModeCaution	~1~ roule en mode de diagnostique.`n`nDes renseignements à propos de l'exécution de cette application seront colligées dans le fichier:`n~2~`n`nAucune information ne sera transmise sans votre consentement.`n`nVoulez-vous rester en mode diagnostique?
+lDiagModeExit	~1~ a colligé des renseignements à des fins de diagnostique dans le fichier ~2~.
+lDiagModeIntro	Envoyez ce fichier à ahk@jeanlalonde.ca avec une description de la situation nécessitant un diasnostique.
+lDiagModeSee	Voulez-vous consulter le fichier de diagnostique?
+lDialogAdd	Ajouter
+lDialogAddEditFavoriteTitle	~1~ un favori - ~2~ ~3~
+lDialogAddFileSelect	Choisir un nouveau document:
+lDialogAddFolderManuallyPrompt	Désolé, nous ne pouvons détecter automatiquement le dossier actif dans ce type de fenêtre.`n`nVoulez-vous ajouter ce dossier manuellement?
+lDialogAddFolderManuallyTitle	Ajouter un dossier - ~1~ ~2~
+lDialogAddFolderSelect	Choisir ou créer un nouveau dossier:
+lDialogApplicationLabel	Application
+lDialogApplicationShortName	Nom de l'application (pour les menus)
+lDialogArgumentsLabel	Paramètres
+lDialogBrowseButton	Parcourir
+lDialogCancelButton	Annuler
+lDialogCancelPrompt	Annuler les changements?
+lDialogCancelTitle	Annuler - ~1~ ~2~
+lDialogEdit	Modifier
+lDialogEndOfMenu	fin du menu
+lDialogFavoriteDoesNotExistPrompt	Le favori "~1~" n'existe pas ou n'est pas disponible.`n`nSi ce favori réside sur un lecteur réseau, veuillez essayer à nouveau après l'authentification réseau.`n`nSi un favori est un lien vers une page web, choisissez l'option "Lien (URL)" lorsque vous ajoutez le favori.
+lDialogFavoriteDoesNotExistTitle	Favori introuvable - ~1~
+lDialogFavoriteLocationEmpty	L'emplacement est vide. Veuillez indiquer l'emplacement du dossier.
+lDialogFavoriteMenuPosition	Insérer le nouveau favoris avant cet item
+lDialogFavoriteNameEmpty	Le nom du favori est vide. Veuillez indiquer un nom court pour ce favori.
+lDialogFavoriteNameNoColumnBreak	Le nom du sous-menu ne peut débuter par les caractères réservés "~1~" utilisés comme indicateur de saut de colonne.
+lDialogFavoriteNameNoPipe	Le nom du favori ou du sous-menu ne doit pas inclure le caractère réservé "|" (barre verticale).
+lDialogFavoriteNameNoSeparator	Le nom du sous-menu ne doit pas inclure le caractère réservé "~1~".
+lDialogFavoriteNameNotNew	Le nom "~1~" est déjà présent dans ce menu. Veuillez choisir un nouveau nom.
+lDialogFavoriteParentMenu	Insérer le nouveau favoris dans ce menu
+lDialogFavoriteRemovePrompt	Supprimer le sous-menu "~1~"`net TOUT son contenu (dossiers et sous-menus)?
+lDialogFavoriteRemoveTitle	Supprimer un favori - ~1~
+lDialogFavoritesParentMenuMove	Déplacer ~1~ favoris vers ce menu
+lDialogFileLabel	Document
+lDialogFileShortName	Nom du document (pour les menus)
+lDialogFolderLabel	Dossier
+lDialogFolderShortName	Nom court du dossier (pour les menus)
+lDialogGroupDelete	Supprimer
+lDialogGroupDeleteError	supprimer
+lDialogGroupDeletePrompt	Supprimer le groupe "~1~"?
+lDialogGroupDeleteTitle	Supprimer un groupe - ~1~
+lDialogGroupEdit	Modifier
+lDialogGroupEditError	modifier
+lDialogGroupLoad	Restaurer
+lDialogGroupManageAbout	À propos des groupes
+lDialogGroupManageCannotSave	Attention: Il n'y a aucun dossier à enregistrer dans un groupe. Ouvrez au moins une fenêtre de l'Explorateur de fichiers ou de Directory Opus et essayez à nouveau d'enregistrer un groupe.
+lDialogGroupManageCreatingPrompt	Pour créer un groupe, cliquez le bouton "~1~" ou sélectionnez le menu "~2~" à tout moment.
+lDialogGroupManageCreatingTitle	Créer un groupe
+lDialogGroupManageGroupsTitle	Gérer les groupes - ~1~ ~2~
+lDialogGroupManageIntro	Avec les "Groupes", vous pouvez enregistrer et rétablir votre environnement de travail en basculant efficacement d'une session de travail à l'autre. Les "Groupes" mémorisent le dossier, la taille, la position et l'état (normal, minimisé ou maximisé) des fenêtres de l'Explorateur de fichiers et de Directory Opus (soutien de Total Commander à venir).
+lDialogGroupManageManagingTitle	Gestion des groupes
+lDialogGroupNew	Enregistrer un nouveau groupe
+lDialogGroups	Groupes
+lDialogGroupSelect	Sélectionnez un groupe
+lDialogGroupSelectError	Veuillez sélectionner le groupe à ~1~.
+lDialogIcon	Icône
+lDialogInvalidHotkey	Avec votre configuration actuelle de clavier, la touche de raccourci "~1~" ne peut être utilisée comme un déclencheur pour le menu popup.`n`nVeuillez ouvrir la fenêtre "Paramètres de ~2~" dans la zone de notification et cliquez sur "Options". Dans cette boîte de dialogue, choisissez une autre touche de raccourci pour "~3~".
+lDialogMaximized	Maximisé
+lDialogMenuNotMoveUnderItself	Le menu "~1~" ne peut être déplacé sous lui-même.
+lDialogMinimized	Minimisée
+lDialogMoveFavoritesTitle	Déplacer des favoris - ~1~ ~2~
+lDialogNormal	Normal
+lDialogOpenThisMenu	Ouvrir ce menu
+lDialogRemoveMultipleFavorites	Voulez-vous vraiement supprimer ~1~ favoris ou sous-menus?
+lDialogSave	Enregistrer
+lDialogSelectItemToEdit	Veuillez sélectionner l'item à modifier.
+lDialogSelectItemToRemove	Veuillez sélectionner l'item à supprimer.
+lDialogSpecialLabel	Dossier spécial
+lDialogSubmenuLabel	Sous-menu
+lDialogSubmenuNameEmpty	Le nom du sous-menu est vide. Veuillez indiquer un nom court pour ce dossier.
+lDialogSubmenuParentMenu	Menu contenant ce sous-menu
+lDialogSubmenuShortName	Nom du sous-menu (pour les menus)
+lDialogTabNext	Suite
+lDialogThirdPartyDetected	~1~ a détecté que ~2~ est installé sur votre ordinateur.`n`nVoulez-vous activer l'intégration avec ~2~?
+lDialogURLLabel	Lien (URL)
+lDialogURLShortName	Nom de ce lien (pour les menus)
+lDialogWorkingDirLabel	Démarrer dans
+lDonateButton	Soutenez ce gratuiciel!
+lDonateCheckPrompt	Vous aimez ~1~?`n`n~1~ n'est pas seulement GRATUIT mais aussi distribué SANS ces attrapes publicitaires dont on ne sait jamais si elles transportent des virus ou encore des logiciels espions ou malveillants.`n`nCela fait maintenant ~2~ fois que ~1~ est appelé pour faciliter votre travail quotidien. Que diriez-vous de soutenir ce gratuiciel à votre tour?
+lDonateCheckTitle	~1~ fois! - ~2~
+lDonateMenu	Soutenez ce gratuiciel!
+lDonatePlatformComment1	La façon la plus flexible avec votre compte PayPal ou votre carte de crédit
+lDonatePlatformComment2	Recevez une facture officielle si vous en avez besoin pour un remboursement
+lDonatePlatformName1	Avec Paypal
+lDonatePlatformName2	Avec Share-it
+lDonateReviewNameLeft1	Download.com
+lDonateReviewNameLeft2	PortableFreeware.com
+lDonateReviewNameLeft3	Softpedia.com
+lDonateReviewNameRight1	BetaNews.com
+lDonateReviewNameRight2	FileCluster.com
+lDonateReviewNameRight3	Freewares && Tutos (FR)
+lDonateText1	Soutenez le développement de ~1~ !
+lDonateText2	<a href="~1~">Pourquoi soutenir ce gratuiciel?</a>
+lDonateText3	... ou soutenez ce gratuiciel gratuitement !
+lDonateText4	Rédigez un avis favorable à ~1~ sur :
+lDonateText5	Envoyez-moi votre lien
+lDonateThankyou	Merci pour cette marque d'appréciation!
+lDonateTitle	Soutenez ce gratuiciel! - ~1~ ~2~
+lGui2Close	Fermer
+lGuiAbout	À propos
+lGuiAddFavorite	Ajouter
+lGuiCancel	Annuler
+lGuiClose	Fermer
+lGuiDonate	Soutien
+lGuiDropFilesHelp	Aide glisser-déposer
+lGuiDropFilesIncentive	Vous pouvez "glisser-déposer" les types de favoris`nsuivants sur la fenpêtre de ~1~:`n`n- ~2~`n- ~3~
+lGuiEditFavorite	Modifier
+lGuiGroupClosing	Fermeture des fenêtres
+lGuiGroupOf	de
+lGuiGroupSaveAddWindowsLabel	Ajouter aux fenêtres existantes
+lGuiGroupSaved	Le groupe "~1~" a été enregistré.`n`nCliquez le menu "~2~" pour restaurer ce groupe.
+lGuiGroupSaveDeselectAll	Désélectionner tout
+lGuiGroupSaveEditPrompt	~1~ ce groupe
+lGuiGroupSaveEditTitle	~1~ ce groupe - ~2~ ~3~
+lGuiGroupSaveLvHeader	Dossier|Application|État|Gauche|Haut|Largeur|Hauteur|Côté
+lGuiGroupSaveNameEmpty	Le nom du groupe est vide. Veuillez indiquer le nom deu groupe.
+lGuiGroupSaveNewGroup	Nouveau groupe
+lGuiGroupSaveReplaceGroup	Le groupe "~1~" existe. Voulez-vous le remplacer?
+lGuiGroupSaveReplaceWindowsLabel	Remplacer les fenêtres existantes
+lGuiGroupSaveRestoreOption	Lors de la restauration du groupe:
+lGuiGroupSaveSelect	Sélectionnez les dossiers à enregistrer dans ce groupe
+lGuiGroupSaveSelectAll	Sélectionner tout
+lGuiGroupSaveSelectExisting	ou choisissez un groupe à remplacer:
+lGuiGroupSaveShortName	Nom du groupe (pour les menus)
+lGuiHelp	Aide
+lGuiHotkeysHelp	Aide sur les raccourcis des favoris
+lGuiHotkeysHelpText	Flèche Bas: Sélectioner le prochain favoris`nFlèche Haut: Sélectioner le favoris précédent`nCtrl-N: Ajouter un nouveau favoris`nEntrée: Modifier un favoris`n`nMaj-Haut/Bas: Sélectionner des favoris contigus`nCtrl-Clic: Sélectionner des favoris non-contigus`nCtrl-A: Sélectionner tous les favoris`n`nCtrl-Bas: Déplacer un ou des favoris vers le bas`nCtrl-Haut: Déplacer un ou des favoris vers le haut`nSuppr: Supprimer un ou des favoris`n`nCtrl-Droite: Ouvrir un sous-menu`nCtrl-Gauche: Ouvrir le sous-menu contenant ce menu
+lGuiLvFavoritesHeader	Nom|Emplacement
+lGuiMove	Déplacer
+lGuiOptions	Options
+lGuiRemoveFavorite	Supprimer
+lGuiResetDefault	Restaurer le déclencheur par défaut
+lGuiSave	Enregistrer
+lGuiSubmenuDropdownLabel	Menu à modifier:
+lGuiSubmenuLocation	>
+lGuiSubmenuSeparator	>
+lGuiTitle	Paramètres - ~1~ ~2~
+lHelpTabAddingFavorite	Ajouter des favoris
+lHelpTabGettingStarted	Premier pas
+lHelpTabTitlesTipsAndTricks	Trucs et astuces
+lHelpText1	Au lancement de FoldersPopup, une icône attend vos ordres dans la zone de Notifications. Lorsque vous voudrez changer de dossier dans l'Explorateur de fichier Windows ou dans une boîte de dialogue de fichiers, appuyez sur le [~1~] ou appuyez sur touche [~2~] pour qu'un menu popup affiche vos dossiers préférés. Cliquez le dossier désiré et FoldersPopup vous y mènera instantanément ! Ou encore ouvrez-y rapidement un document ou une page web.
+lHelpText2	Choisissez "Paramètres" pour ouvrir la boîte de configuration de FoldersPopup où vous pourrez ajouter à votre menu des DOSSIERS, des DOCUMENTS ou des LIENS. Vous pourrez ensuite les effacer, déplacer ou renommer. Vous pourrez aussi ajouter, déplacer, renommer ou effacer des SOUS-MENUS. Choisissez le "Menu à modifier:" dans la liste déroulante. Cliquez sur "Enregistrer" pour sauvegarder vos modifications.
+lHelpText3	Pour ajouter rapidement un DOSSIER à votre menu:`n1) Allez dans un dossier fréquemment utilisé.`n2) Sur votre souris, cliquez sur le [~1~] (ou appuyez sur [~2~]) et choisissez "Ajouter ce dossier".`n3) Attribuez un nom court à ce dossier, cliquez "Ajouter", puis "Enregistrer" dans la fenêtre des paramètres.
+lHelpText4	Pour ajouter à votre menu un DOCUMENTS ou un LIEN WEB:`n1) Ouvrez le menu de Folders Popup et choisissez "Paramètres" (ou appuyez sur [~1~]).`n2) Cliquez sur le bouton "Ajouter" et choisissez l'option "Document" ou "Lien (URL)".`n3) Attribuez un nom court à ce favori, indiquez l'emplacement du document (bouton "Parcourir") ou l'adresse URL du lien, cliquez sur "Ajouter" et "Enregistrer" dans la fenêtre des paramètres.
+lHelpText5	- Dans la zone de Notifications, cliquez sur l'icône de Folders Popup avec le bouton de droite et sélectionnez "Exécuter au démarrage" pour lancer FoldersPopup au lancement de Windows.`n- Besoin d'ouvrir un dossier alors que vous travaillez dans une application? De n'importe quelle fenêtre, cliquez sur ~1~ (ou appuyez sur [~2~]) ou encore cliquez sur l'icône de Folders Popup dans la zone de Notifications, puis choisissez votre dossier favori.`n- Choisissez le menu "Emplacements récents..." (ou appuyez sur [~3~]) pour afficher une version à jour des dossiers récents de Windows.`n-Utilisez le menu "Dossiers dans l'Explorateur" (ou appuyez sur [~4~]) pour ouvrir un dossier déjà présent dans une fenêtre de l'Explorateur de fichiers ou le menu "Groupes de dossiers" (ou appuyez sur [~5~]) pour enregistrer et restaurer des groupes de dossiers.`n- Ouvrez les dossiers, fichiers ou URLs dont l'adresse est dans votre Presse-papiers avec le menu "Presse-papiers" (ou appuyez sur [~6~]) ou copiez l'emplacement d'un favori dans le Presse-papiers avec le menu "Copier l'emplacement d'un favori" (ou appuyez sur [~7~]).`n- Choisissez les combinaisons de bouton de la souris et de touches du clavier qui ouvrent le menu popup dans les  "Paramètres, Options".`n- Aussi dans les "Options": choisissez votre langue d'utilisation, la taille des icônes de menu, les couleurs des fenêtres. Décidez d'afficher le menu des Emplacements récents, les raccourcis clavier numériques ou fixez le menu popup à une position de votre choix.`n-Utilisateurs de Directory Opus, consultez <a href="http://code.jeanlalonde.ca/using-folderspopup-with-directory-opus/">cette page</a> (en anglais) pour des renseignements additionnels.`n-Utilisateurs de Total Commander, consultez <a href="http://code.jeanlalonde.ca/using-folderspopup-with-total-commander/">cette page</a> (en anglais) pour plus de renseignements.
+lHelpText6	Le soutien sur FoldersPopup est disponible à <a href="http://www.code.jeanlalonde.ca/folderspopup">www.code.jeanlalonde.ca/folderspopup</a>.
+lHelpTextLead	Avec FoldersPopup, navigez en un clin d'oeil parmi vos dossiers, pages web et documents favoris!
+lHelpTitle	Aide - ~1~ ~2~
+lMainMenuName	Principal
+lMenuAbout	À propos
+lMenuAddThisFolder	Ajouter ce dossier au menu
+lMenuAppData	Application Data
+lMenuCache	Cache
+lMenuClipboard	Presse-papiers
+lMenuColumnBreak	colonne
+lMenuCommonAppData	Application Data (commun)
+lMenuCommonDesktop	Bureau (commun)
+lMenuCommonStartMenu	Menu Démarrer (commun)
+lMenuCommonStartupMenu	Démarrage (commun)
+lMenuControlPanel	Panneau de configuration
+lMenuCookies	Cookies
+lMenuDesktop	Bureau
+lMenuDocuments	Documents
+lMenuDownloads	Téléchargements
+lMenuExitFoldersPopup	Quitter ~1~
+lMenuFavoritesInternet	Favoris (Internet)
+lMenuFoldersInExplorer	Dossiers dans l'Explorateur
+lMenuFonts	Polices
+lMenuFPMenu	~2~ ~1~
+lMenuGroup	Groupes de dossiers
+lMenuGroupAdd	ajouter
+lMenuGroupReplace	remplacer
+lMenuGroupSave	Enregistrer les Dossiers dans l'Explorateur dans un groupe
+lMenuHelp	Aide
+lMenuHistory	Historique
+lMenuMenu	Menu
+lMenuMyComputer	Ordinateur
+lMenuMyMusic	Ma musique
+lMenuMySystemMenu	Mes dossiers spéciaux
+lMenuMyVideo	Mes vidéos
+lMenuNetworkNeighborhood	Réseau
+lMenuCopyLocation	Copier l'emplacement d'un favori
+lMenuPictures	Images
+lMenuProgramFiles	Programmes
+lMenuProgramsFolderStartMenu	Dossier Programmes (menu Démarrer)
+lMenuPublicLibraries	Bibliothèques (public)
+lMenuQuickLaunch	Lancement rapide
+lMenuRecentFolders	Emplacements récents
+lMenuRecentItems	Documents récents
+lMenuRecycleBin	Corbeille
+lMenuRefreshRecent	Actualisation des dossiers récents en cours
+lMenuRunAtStartup	Exécuter au démarrage
+lMenuSeparator	----------------
+lMenuSettings	Paramètres de ~1~
+lMenuSpecialFolders	Dossiers spéciaux
+lMenuStartMenu	Menu Démarrer
+lMenuStartup	Démarrage
+lMenuSuspendHotkeys	Suspendre les déclencheurs (Hotkeys)
+lMenuSystemCertificates	Certificats système
+lMenuTemplates	Modèles
+lMenuTemporaryFiles	Fichiers temporaires
+lMenuUpdate	Vérifier la mise à jour
+lMenuUserFolder	Dossier de l'utilisateur
+lMenuUserPinned	Epinglé par l'utilisateur
+lNavigateFileError	Une erreur s'est produite lors de l'ouverture du dossier:`n~1~.
+lNavigateSpecialError	Une erreur s'est produite lors de l'ouverture du dossier spécial #~1~.
+lOopsCouldNotOpenSpecialFolder	~1~ ne peut ouvrir le dossier spécial: "~2~".
+lOopsDialogBox	La boîte de dialogue
+lOopsTitle	~1~ (~2~)
+lOopsWriteProtectedError	Il semble que ~1~ a été lancé depuis un dossier en ÉCRITURE SEULEMENT où il est impossible de créer le fichier de configuration "~1~.ini".`n`nDéplacez le fichier .EXE de ~1~ dans un dossier RÉGULIER de votre choix, puis exécutez l'application à nouveau depuis ce dossier.`n`n~1~ va être fermé.
+lOopsWrongFPconnectAppPathFilename	Chemin ou nom de fichier incorrect pour le paramètre "AppPath" dans le fichier de configuration de FPconnect:`n~1~.`n`nVérifiez le nom et le chemin du fichier .exe pour "AppPath" dans le fichier ini de FCConnect:`n~2~
+lOopsWrongThirdPartyPath	Chemin ou nom de fichier incorrect pour ~1~:`n~2~.`n`nVérifiez le fichier .exe sélectionné pour ~1~ dans les "Options", onglet "~3~".
+lOopsZipFileError	Il semble que ~1~ a été lancé directement depuis un fichier compressé (ZIP).`n`nVous devez extraire le fichier .EXE de ~1~ du fichier ZIP dans un dossier de votre choix, puis exécuter l'application à nouveau depuis ce dossier.`n`n~1~ va être fermé.
+lOptionsAlt	Alt
+lOptionsArrDescriptions1	Choisissez le bouton de la SOURIS et la touche de combinaison qui ouvrira le menu popup dans l'Explorateur de fichier de Windows ou dans des boîtes de dialogue de fichier. Par défaut, il s'agit du bouton central de la souris (MButton) sans touche de modification.
+lOptionsArrDescriptions2	Choisissez le bouton de la SOURIS et la touche de combinaison qui ouvrira le menu popup dans N'IMPORTE QUELLE fenêtre et ouvrira le dossier sélectionné dans une NOUVELLE fenêtre de l'Explorateur de fichiers. Par défaut, il s'agit du bouton central de la souris (MButton) avec la touche de modification Maj (Shift).
+lOptionsArrDescriptions3	Choisissez la combinaison de touches du CLAVIER qui ouvrira le menu popup dans l'Explorateur de fichier de Windows ou dans des boîtes de dialogue de fichier. Par défaut, il s'agit de la combinaisons Windows-A (la lettre "A" pendant que la touche Windows est pressée).
+lOptionsArrDescriptions4	Choisissez la combinaison de touches du CLAVIER qui ouvrira le menu popup dans N'IMPORTE QUELLE fenêtre et ouvrira le dossier sélectionné dans une NOUVELLE fenêtre de l'Explorateur de fichiers. Par défaut, il s'agit de la combinaisons Maj-Windows-A (la lettre A pendant que les touches Windows et Maj sont presséee).
+lOptionsArrDescriptions5	Choisissez la combinaison de touches du clavier ou le bouton de la souris qui ouvrira la boîte de dialogue "Paramètres de FoldersPopup". Par défaut, il s'agit de Maj+Contrôle+S.
+lOptionsArrDescriptions6	Choisissez la combinaison de touches du clavier ou le bouton de la souris qui ouvrira le menu "Dossiers dans l'Explorateur". Par défaut, il s'agit de Maj+Contrôle+F.
+lOptionsArrDescriptions7	Choisissez la combinaison de touches du clavier ou le bouton de la souris qui ouvrira le menu des "Groupes de dossiers". Par défaut, il s'agit de Maj+Contrôle+G.
+lOptionsArrDescriptions8	Choisissez la combinaison de touches du clavier ou le bouton de la souris qui ouvrira le menu "Emplacements récents". Par défaut, il s'agit de Maj+Contrôle+R.
+lOptionsArrDescriptions9	Choisissez la combinaison de touches du clavier ou le bouton de la souris qui ouvrira le menu "Presse-papiers". Par défaut, il s'agit de Maj+Contrôle+C.
+lOptionsArrDescriptions10	Choisissez la combinaison de touches du clavier ou le bouton de la souris qui ouvrira le menu "Copier l'emplacement d'un favori". Par défaut, il s'agit de Maj+Contrôle+V.
+lOptionsChangeHotkey	Modifier
+lOptionsChangeHotkeyTitle	Modification de déclencheur - ~1~ ~2~
+lOptionsCheck4Update	Vérifier la mise à jour
+lOptionsCtrl	Contrôle
+lOptionsCtrlShort	Ctrl
+lOptionsDirectoryOpusUseTabs	Utiliser les onglets
+lOptionsDisplayClipboardMenu	Presse-papiers
+lOptionsDisplayFoldersInExplorerMenu	Dossiers dans l'Explorateur
+lOptionsDisplayGroupMenu	Groupes de dossiers
+lOptionsDisplayIcons	Afficher les icônes des menus
+lOptionsDisplayMenus	Afficher les menus:
+lOptionsDisplayMenuShortcuts	Afficher les raccourcis numériques
+lOptionsDisplayCopyLocationMenu	Copier l'emplacement d'un favori
+lOptionsDisplayRecentFolders	Emplacements récents
+lOptionsDisplaySpecialFolders	Dossiers spéciaux
+lOptionsDisplaySpecialMenusShortcuts	Afficher ces raccourcis dans le menu principal
+lOptionsGuiTitle	Options - ~1~ ~2~
+lOptionsHotkeys	Autres déclencheurs
+lOptionsIconSize	Taille des icones de menu
+lOptionsKeyboard	Clavier
+lOptionsLanguage	Langue
+lOptionsLanguageLabels	Anglais|Français|Allemand|Néerlandais|Coréen|Suédois|Italien|Espagnol|Portugais brésilien
+lOptionsMenuActiveWindow	Dans la fenêtre active
+lOptionsMenuFixPosition	À une position fixe
+lOptionsMenuNearMouse	Près du pointeur de la souris
+lOptionsMenuPositionPrompt	Afficher le menu popup:
+lOptionsMouse	Souris
+lOptionsMouseAndKeyboard	Déclencheurs du menu
+lOptionsMouseButtonsText	Bouton de gauche de la souris|Bouton du milieu de la souris|Bouton de droite de la souris|Bouton spécial 1 de la souris|Bouton spécial 2 de la souris|Molette vers le haut|Molette vers le bas|Molette à gauche|Molette à droite|
+lOptionsMouseCheckLButton	Vous ne pouvez pas attribuer le "Bouton de gauche de la souris" sans touche de modification.
+lOptionsMouseNone	Aucun
+lOptionsOpenMenuOnTaskbar	Ouvrir le menu sur la barre des tâches
+lOptionsOtherOptions	Général
+lOptionsPopupFixPositionX	Position X:
+lOptionsPopupFixPositionY	Y:
+lOptionsRecentFolders	Emplacements récents
+lOptionsRememberSettingsPosition	Mémoriser la position de la fenêtre
+lOptionsRunAtStartup	Exécuter au démarrage
+lOptionsShift	Maj
+lOptionsSpacebar	utiliser la barre d'espace
+lOptionsTabFileManagersIntro	Pour les utilisateurs de gestionnaires de fichiers de développeurs tiers
+lOptionsTabHotkeysIntro	Choisir les boutons de la souris et les raccourcis du clavier déclenchant ces fenêtres et menus.
+lOptionsTabMouseAndKeyboardIntro	Choisir les boutons de la souris et les raccourcis du clavier déclenchant le menu principal de ~1~ (FP).
+lOptionsTabOtherOptionsIntro	Adaptez ~1~ à vos préférences!
+lOptionsTheme	Thème
+lOptionsThirdParty	Gestionnaires de fichiers
+lOptionsThirdPartyDetail	Pour activer l'intégration avec ~1~, localisez le programme .exe sous votre dossier Program Files.
+lOptionsThirdPartyDetailFPconnect	Pour activer l'intégration avec d'autres gestionnaires de fichiers, localisez le programme FPconnect.exe.
+lOptionsThirdPartyPrompt	Fichier:
+lOptionsThirdPartyTitle	Utilisateurs de ~1~
+lOptionsThirdPartyTitleFPconnect	Utilisateurs d'autres gestionnaires de fichiers avec FPconnect
+lOptionsTitles	Bouton de la souris pour le menu de FP ouvrant les dossiers dans l'Explorateur actif ou la boîte de dialogue|Bouton de la souris pour le menu de FP ouvrant les dossiers dans un nouvel Explorateur|Raccourci pour le menu ouvrant les dossiers dans la fenêtre de l'Explorateur actif ou la boîte de dialogue|Raccourci pour le menu ouvrant les dossiers dans un nouvel Explorateur|Paramêtres|Menu des Dossiers dans l'Explorateur|Menu des groupes|Menu des Emplacements récents|Menu du Presse-papiers|Copier l'emplacement d'un favori
+lOptionsTitlesSub	Ce bouton de la souris peut ouvrir le menu dans les fenêtres de l'Explorateur (et autres gestionnaires de fichiers supportés) et les boîtes de dialogue.|Ce bouton de la souris peut ouvrir le menu en cliquant n'importe où sur l'écran.|Ce raccourcis clavier peut ouvrir le menu lorsqu'une fenêtre de l'Explorateur (et autres gestionnaires de fichiers supportés) ou une boîte de dialogue est active.|Ce raccourcis clavier peut ouvrir le menu en tout temps.|(configuration du menu et options)|(liste des dossiers actuellement ouverts dans l'Explorrateur)|(liste des groupes de dossiers)|(liste des emplacements récents de Windows)|(liste des dossiers, fichiers et adresses web dans le Presse-papiers)|(copier le chemin du fichier ou l'adresse de la page web dans le Presse-papiers)
+lOptionsTotalCommanderUseTabs	Utiliser les onglets
+lOptionsTrayTip	Afficher la notification au démarrage
+lOptionsTriggerFor	Déclencheur pour:
+lOptionsWin	Windows
+lOptionsWinShort	Win
+lCopyLocationCopiedToClipboard	Emplacement copié dans le Presse-papiers
+lPickIconNoLocation	Veuillez d'abord choisisr un favori avant de sélectionner une icône.
+lPopupMenuCopyLocationTrayTip	Choisissez le favori à copier
+lReloadPrompt	Changement de ~1~ enregistré: ~2~. Voulez-vous relancer ~3~ en ~2~ maintenant? Les changements non sauvegardés dans le menu des dossiers seront perdus.
+lReloadPromptDefaultHotkey	La valeur par défaut pour ce déclencheur a été rétablie. Ceci ne sera effectif qu'après la relance de ~1~.`n`nVoulez-vous relancer ~1~ maintenant? Les changements non sauvegardés dans le menu des dossiers seront perdus.
+lTrayTipInstalledDetail	Pour afficher le menu de ~1~, appuyez sur:`n`n~2~ / ~3~`ndans un Explorateur de fichiers ou dans une boîte de dialogue`n`n~4~ / ~5~`npour ouvrir un nouvel Explorateur
+lTrayTipinstalledTitle	~1~ ~2~ est prêt!
+lTrayTipNoClipboardMenuDetail	Il n'y a aucun dossier, document, application ou adresse web (URL) dans le Presse-papiers
+lTrayTipNoClipboardMenuTitle	~1~ - Menu du Presse-papiers
+lTrayTipNoFoldersInExplorerMenuDetail	Il n'y a aucun dossier ouvert à afficher dans le menu des Dossiers dans l'Explorateur
+lTrayTipNoFoldersInExplorerMenuTitle	Dossiers dans l'Explorateur
+lTrayTipWorkingDetail	Préparation des menus
+lTrayTipWorkingDetailFinished	Le menu a été mis à jour.
+lTrayTipWorkingTitle	~1~ ~2~ se prépare...
+lUpdateButtonRemind	Rappelez-moi
+lUpdateError	Une erreur est survenue lors de la vérification du numéro de la plus récente version. La vérification de la mise à jour est interrompue.
+lUpdatePrompt	Mettre à jour ~1~ de la version v~2~ à la version v~3~?
+lUpdatePromptBeta	Il y a une nouvelle version BETA de ~1~.`n`nMettre à jour ~1~ de la version v~2~ à la version v~3~?
+lUpdatePromptBetaContinue	Désirez-vous toujours être informé des futures versions beta?
+lUpdateTitle	Mettre à jour ~1~?
+lUpdateYouHaveLatest	Vous avez la version la plus récente: ~1~.`n`nVisiter la page web de ~2~ quand même?
+lWindowIsTreeviewText	Désolé... À cause d'une limitation de Windows, ce type de boîte de dialogue (TreeView) n'est pas compatible avec ~1~ pour le moment.
+lWindowIsTreeviewTitle	Boîte de dialogue incompatible
