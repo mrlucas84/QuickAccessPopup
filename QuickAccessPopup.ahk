@@ -118,10 +118,39 @@ OnExit, CleanUpBeforeExit ; must be positioned before InitFileInstall to ensure 
 
 Gosub, InitFileInstall
 
+Gosub, InitLanguageVariables
+
+; --- Super-global variables
+
+global g_strAppNameFile := "QuickAccessPopup"
+global g_strAppNameText := "Quick Access Popup"
+global g_strCurrentVersion := "6.0.1" ; "major.minor.bugs" or "major.minor.beta.release"
+global g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
+global g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
+
+global g_blnDiagMode := False
+global g_strDiagFile := A_WorkingDir . "\" . g_strAppNameFile . "-DIAG.txt"
+global g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . ".ini"
+global g_blnMenuReady := false
+
+global g_arrSubmenuStack := Object()
+global g_arrSubmenuStackPosition := Object()
+global g_objIconsFile := Object()
+global g_objIconsIndex := Object()
+
+global g_strMenuPathSeparator := ">"
+global g_strGuiMenuSeparator := "----------------"
+global g_strGuiMenuColumnBreak := "==="
+
+
 ###_D(1)
 
 return
 
+
+;========================================================================================================================
+; INITIALIZATION
+;========================================================================================================================
 
 ;-----------------------------------------------------------
 InitFileInstall:
@@ -167,6 +196,16 @@ return
 
 
 ;-----------------------------------------------------------
+InitLanguageVariables:
+;-----------------------------------------------------------
+
+#Include %A_ScriptDir%\QuickAccessPopup_LANG.ahk
+
+return
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
 CleanUpBeforeExit:
 ;-----------------------------------------------------------
 
@@ -180,6 +219,11 @@ if (g_blnDiagMode)
 }
 ExitApp
 ;-----------------------------------------------------------
+
+
+;========================================================================================================================
+; END OF INITIALIZATION
+;========================================================================================================================
 
 
 
