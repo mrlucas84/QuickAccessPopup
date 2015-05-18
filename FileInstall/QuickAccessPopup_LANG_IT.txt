@@ -140,8 +140,6 @@ lGuiRemoveFavorite	Elimina
 lGuiResetDefault	Ripristina hotkey predefinito
 lGuiSave	&Salva
 lGuiSubmenuDropdownLabel	Menù da modificare:
-lGuiSubmenuLocation	>
-lGuiSubmenuSeparator	>
 lGuiTitle	Impostazioni - ~1~ ~2~
 lHelpTabAddingFavorite	Aggiungere Favoriti
 lHelpTabGettingStarted	Per Cominciare
@@ -198,7 +196,6 @@ lMenuRecentItems	Oggetti Recenti
 lMenuRecycleBin	&Cestino
 lMenuRefreshRecent	Aggiorna Menù delle Cartelle Recenti
 lMenuRunAtStartup	&Esegui all'Avvio
-lMenuSeparator	----------------
 lMenuSettings	Impostazioni di ~1~
 lMenuSpecialFolders	Cartelle Speciali
 lMenuStartMenu	Menù Avvio

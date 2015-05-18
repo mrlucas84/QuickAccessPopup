@@ -139,8 +139,6 @@ lGuiRemoveFavorite	Remover
 lGuiResetDefault	Redefinir tecla de atalho padrão
 lGuiSave	&Salvar
 lGuiSubmenuDropdownLabel	Menu para editar:
-lGuiSubmenuLocation	>
-lGuiSubmenuSeparator	>
 lGuiTitle	Configurações - ~1~ ~2~
 lHelpTabAddingFavorite	Adicionando Favorito
 lHelpTabGettingStarted	Começando
@@ -197,7 +195,6 @@ lMenuRecentItems	Itens Recentes
 lMenuRecycleBin	Lixei&ra
 lMenuRefreshRecent	Atualizando menu de pastas Recente
 lMenuRunAtStartup	Executa&r na Inicialização
-lMenuSeparator	----------------
 lMenuSettings	Configurações do ~1~
 lMenuSpecialFolders	Pastas Especiais
 lMenuStartMenu	Menu Iniciar

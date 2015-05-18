@@ -138,8 +138,6 @@ lGuiRemoveFavorite	Suprimir
 lGuiResetDefault	Restaurar el lanzador por defecto
 lGuiSave	Registrar
 lGuiSubmenuDropdownLabel	Menú a modificar:
-lGuiSubmenuLocation	>
-lGuiSubmenuSeparator	>
 lGuiTitle	Parámetros - ~1~ ~2~
 lHelpTabAddingFavorite	Añadir favoritos
 lHelpTabGettingStarted	Primer paso
@@ -196,7 +194,6 @@ lMenuRecentItems	Documentos recientes
 lMenuRecycleBin	Papelera
 lMenuRefreshRecent	Actualización de carpetas recientes en curso
 lMenuRunAtStartup	Ejecutar al Inicio
-lMenuSeparator	----------------
 lMenuSettings	Parámetros de ~1~
 lMenuSpecialFolders	Carpetas especiales
 lMenuStartMenu	Menú de Inicio

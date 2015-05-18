@@ -137,8 +137,6 @@ lGuiRemoveFavorite	Supprimer
 lGuiResetDefault	Restaurer le déclencheur par défaut
 lGuiSave	Enregistrer
 lGuiSubmenuDropdownLabel	Menu à modifier:
-lGuiSubmenuLocation	>
-lGuiSubmenuSeparator	>
 lGuiTitle	Paramètres - ~1~ ~2~
 lHelpTabAddingFavorite	Ajouter des favoris
 lHelpTabGettingStarted	Premier pas
@@ -195,7 +193,6 @@ lMenuRecentItems	Documents récents
 lMenuRecycleBin	Corbeille
 lMenuRefreshRecent	Actualisation des dossiers récents en cours
 lMenuRunAtStartup	Exécuter au démarrage
-lMenuSeparator	----------------
 lMenuSettings	Paramètres de ~1~
 lMenuSpecialFolders	Dossiers spéciaux
 lMenuStartMenu	Menu Démarrer

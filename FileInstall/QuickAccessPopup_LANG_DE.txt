@@ -138,8 +138,6 @@ lGuiRemoveFavorite	Entfernen
 lGuiResetDefault	Zurücksetzen des Standard-Hotkeys
 lGuiSave	&Speichern
 lGuiSubmenuDropdownLabel	Zu bearbeitendes Menü:
-lGuiSubmenuLocation	>
-lGuiSubmenuSeparator	>
 lGuiTitle	Einstellungen - ~1~ ~2~
 lHelpTabAddingFavorite	Favorit hinzufügen
 lHelpTabGettingStarted	Anfangen
@@ -195,7 +193,6 @@ lMenuRecentItems	Zuletzt verwendet
 lMenuRecycleBin	&Papierkorb
 lMenuRefreshRecent	Menü der kürzlich verwendeten Ordner wird aktualisiert
 lMenuRunAtStartup	&Beim Start von Windows ausführen
-lMenuSeparator	----------------
 lMenuSettings	~1~ Einstellungen
 lMenuSpecialFolders	Spezielle Ordner
 lMenuStartMenu	Startmenü

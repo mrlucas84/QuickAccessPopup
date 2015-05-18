@@ -139,8 +139,6 @@ lGuiRemoveFavorite	Verwijderen
 lGuiResetDefault	Zet de standaard sneltoets terug
 lGuiSave	Bewaren
 lGuiSubmenuDropdownLabel	Te wijzigen menu:
-lGuiSubmenuLocation	>
-lGuiSubmenuSeparator	>
 lGuiTitle	Instellingen - ~1~ ~2~
 lHelpTabAddingFavorite	Favoriet toevoegen
 lHelpTabGettingStarted	Er mee beginnen
@@ -197,7 +195,6 @@ lMenuRecentItems	Onlangs geopend
 lMenuRecycleBin	Prullenbak
 lMenuRefreshRecent	Vernieuwen van het menu met de recent bezochten mappen
 lMenuRunAtStartup	Uitvoe&ren bij opstarten
-lMenuSeparator	----------------
 lMenuSettings	~1~ Instellingen
 lMenuSpecialFolders	Speciale Mappen
 lMenuStartMenu	Start Menu
