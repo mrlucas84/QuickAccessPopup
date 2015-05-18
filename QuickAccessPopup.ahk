@@ -160,8 +160,11 @@ else if InStr(A_ComputerName, "STIC") ; for my work hotkeys
 
 ; Keep gosubs in this order
 Gosub, InitSystemArrays
+Gosub, InitLanguages
+Gosub, InitLanguageArrays
 
-###_D(1)
+###_D(1) ; ### REMOVE WHEN SCRIOPT PERSISTENT
+ExitApp ; ### REMOVE WHEN SCRIOPT PERSISTENT
 
 return
 
@@ -277,6 +280,76 @@ return
 ;-----------------------------------------------------------
 
 
+;------------------------------------------------------------
+InitLanguages:
+;------------------------------------------------------------
+
+IfNotExist, %g_strIniFile%
+	; read language code from ini file created by the Inno Setup script in the user data folder
+	IniRead, g_strLanguageCode, % A_WorkingDir . "\" . g_strAppNameFile . "-setup.ini", Global , LanguageCode, EN
+else
+	IniRead, g_strLanguageCode, %g_strIniFile%, Global, LanguageCode, EN
+
+strLanguageFile := g_strTempDir . "\" . g_strAppNameFile . "_LANG_" . g_strLanguageCode . ".txt"
+strReplacementForSemicolon := "!r4nd0mt3xt!" ; for non-comment semi-colons ";" escaped as ";;"
+
+if FileExist(strLanguageFile)
+{
+	FileRead, strLanguageStrings, %strLanguageFile%
+	Loop, Parse, strLanguageStrings, `n, `r
+	{
+		if (SubStr(A_LoopField, 1, 1) <> ";") ; skip comment lines
+		{
+			StringSplit, arrLanguageBit, A_LoopField, `t
+			if SubStr(arrLanguageBit1, 1, 1) = "l"
+				%arrLanguageBit1% := arrLanguageBit2
+			StringReplace, %arrLanguageBit1%, %arrLanguageBit1%, ``n, `n, All
+			
+			if InStr(%arrLanguageBit1%, ";;") ; preserve escaped ; in string
+				StringReplace, %arrLanguageBit1%, %arrLanguageBit1%, % ";;", %strReplacementForSemicolon%, A
+			if InStr(%arrLanguageBit1%, ";")
+				%arrLanguageBit1% := Trim(SubStr(%arrLanguageBit1%, 1, InStr(%arrLanguageBit1%, ";") - 1)) ; trim comment from ; and trim spaces and tabs
+			if InStr(%arrLanguageBit1%, strReplacementForSemicolon) ; restore escaped ; in string
+				StringReplace, %arrLanguageBit1%, %arrLanguageBit1%, %strReplacementForSemicolon%, % ";", A
+		}
+	}
+}
+else
+	g_strLanguageCode := "EN"
+
+strLanguageFile := ""
+strReplacementForSemicolon := ""
+strLanguageStrings := ""
+arrLanguageBit := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+InitLanguageArrays:
+;------------------------------------------------------------
+StringSplit, g_arrOptionsTitles, lOptionsTitles, |
+strOptionsLanguageCodes := "EN|FR|DE|NL|KO|SV|IT|ES|PT-BR"
+StringSplit, g_arrOptionsLanguageCodes, strOptionsLanguageCodes, |
+StringSplit, g_arrOptionsLanguageLabels, lOptionsLanguageLabels, |
+
+loop, %g_arrOptionsLanguageCodes0%
+	if (g_arrOptionsLanguageCodes%A_Index% = g_strLanguageCode)
+		{
+			g_strLanguageLabel := g_arrOptionsLanguageLabels%A_Index%
+			break
+		}
+
+lOptionsMouseButtonsText := lOptionsMouseNone . "|" . lOptionsMouseButtonsText ; use lOptionsMouseNone because this is displayed
+StringSplit, g_arrMouseButtonsText, lOptionsMouseButtonsText, |
+
+strOptionsLanguageCodes := ""
+
+return
+;------------------------------------------------------------
+
+
 ;-----------------------------------------------------------
 CleanUpBeforeExit:
 ;-----------------------------------------------------------
@@ -318,5 +391,15 @@ L(strMessage, objVariables*)
 	return strMessage
 }
 ;------------------------------------------------
+
+
+;------------------------------------------------
+Oops(strMessage, objVariables*)
+;------------------------------------------------
+{
+	Gui, 1:+OwnDialogs
+	MsgBox, 48, % L(lOopsTitle, g_strAppNameText, g_strAppVersion), % L(strMessage, objVariables*)
+}
+; ------------------------------------------------
 
 
