@@ -20,8 +20,8 @@ BUGS
 TO-DO
 
 LATER
-* Update links to FP website in Help
-* Update links to FP reviews in Donate
+* Update links to QAP website in Help
+* Update links to QAP reviews in Donate
 * Replace or update occurences of "FoldersPopup" in language files
 
 Version: 6.0.1 alpha (2015-05-11)
@@ -60,7 +60,7 @@ g_typNameOfVariable
 ; Note: prefix comma with `
 
 ;@Ahk2Exe-SetName Quick Access Popup
-;@Ahk2Exe-SetDescription Quick Access Popup (freeware) - Most handy Windows launcher!
+;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
 ;@Ahk2Exe-SetVersion 6.0.1 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
@@ -92,14 +92,14 @@ DllCall("SetErrorMode", "uint", SEM_FAILCRITICALERRORS := 1)
 if (A_WorkingDir = A_ScriptDir) and FileExist(A_WorkingDir . "\_do_not_remove_or_rename.txt")
 	SetWorkingDir, %A_AppData%\QuickAccessPopup
 
-; Force A_WorkingDir to A_ScriptDir if uncomplied (development phase)
+; Force A_WorkingDir to A_ScriptDir if uncomplied (development environment)
 ;@Ahk2Exe-IgnoreBegin
-; Start of code for development phase only - won't be compiled
+; Start of code for development environment only - won't be compiled
 ; see http://fincs.ahk4.net/Ahk2ExeDirectives.htm
 SetWorkingDir, %A_ScriptDir%
 ; to test user data directory: SetWorkingDir, %A_AppData%\QuickAccessPopup
 
 ListLines, On
-; / End of code for developement phase only - won't be compiled
+; / End of code for developement enviuronment only - won't be compiled
 ;@Ahk2Exe-IgnoreEnd
 
