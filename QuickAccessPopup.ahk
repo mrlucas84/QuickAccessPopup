@@ -133,6 +133,9 @@ global g_strDiagFile := A_WorkingDir . "\" . g_strAppNameFile . "-DIAG.txt"
 global g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . ".ini"
 global g_blnMenuReady := false
 
+global g_objMenuInGui := Object() ; object of menu currently in Gui
+global g_objMenuIndex := Object() ; index of menu path used in Gui menu dropdown list
+
 global g_arrSubmenuStack := Object()
 global g_arrSubmenuStackPosition := Object()
 global g_objIconsFile := Object()
@@ -143,6 +146,13 @@ global g_strGuiMenuSeparator := "----------------"
 global g_strGuiMenuColumnBreak := "==="
 
 global g_objGuiControls := Object()
+
+global g_strMouseButtons
+global g_arrMouseButtons
+global g_arrMouseButtonsText
+
+global g_strDirectoryOpusRtPath
+
 
 if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
 ; if the app runs from a zip file, the script directory is created under the system Temp folder
@@ -166,6 +176,7 @@ Gosub, InitLanguages
 Gosub, InitLanguageArrays
 Gosub, InitSpecialFolders
 Gosub, InitGuiControls
+Gosub, LoadIniFile
 
 ###_D(1) ; ### REMOVE WHEN SCRIOPT PERSISTENT
 ExitApp ; ### REMOVE WHEN SCRIOPT PERSISTENT
@@ -235,11 +246,10 @@ InitSystemArrays:
 ;-----------------------------------------------------------
 
 ; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
-strIniKeyNames := "LaunchHotkeyMouse|LaunchHotkeyKeyboard|NavigateHotkeyMouse|NavigateHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard|SettingsHotkey"
-StringSplit, g_arrIniKeyNames, strIniKeyNames, |
+strHotkeyNames := "LaunchHotkeyMouse|LaunchHotkeyKeyboard|NavigateHotkeyMouse|NavigateHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard|SettingsHotkey"
+StringSplit, g_arrHotkeyNames, strHotkeyNames, |
 strHotkeyDefaults := "MButton|#a|+MButton|+#a|!MButton|!#a|+^s"
 StringSplit, g_arrHotkeyDefaults, strHotkeyDefaults, |
-; in QAP, strHotkeyLabels and g_arrHotkeyLabels = strIniKeyNames and g_arrIniKeyNames
 
 g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|WheelDown|WheelLeft|WheelRight|"
 ; leave last | to enable default value on the last item
@@ -272,7 +282,7 @@ Loop, Parse, strIconsMenus, |
 }
 ; example: g_objIconsFile["lMenuPictures"] and g_objIconsIndex["lMenuPictures"]
 
-strIniKeyNames := ""
+strHotkeyNames := ""
 strHotkeyDefaults := ""
 strIconsMenus := ""
 strIconsFile := ""
@@ -851,6 +861,298 @@ InsertGuiControlPos(strControlName, intX, intY, blnCenter := false, blnDraw := f
 
 
 ;-----------------------------------------------------------
+LoadIniFile:
+;-----------------------------------------------------------
+
+; create a backup of the ini file before loading
+StringReplace, strIniBackupFile, g_strIniFile, .ini, -backup.ini
+FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
+
+; reinit after Settings save if already exist
+g_objMenuInGui := Object() ; object of menu currently in Gui
+g_objMenuIndex := Object() ; index of menu path used in Gui menu dropdown list
+g_objMainMenu := Object() ; object of menu structure entry point
+g_objMainMenu.MenuPath := "Main" ; localized name of the main menu
+
+IfNotExist, %g_strIniFile%
+{
+	strLaunchHotkeyMouseDefault := g_arrHotkeyDefaults1 ; "MButton"
+	strLaunchHotkeyKeyboard := g_arrHotkeyDefaults2 ; "#a"
+	strNavigateHotkeyMouseDefault := g_arrHotkeyDefaults3 ; "+MButton"
+	strNavigateHotkeyKeyboardDefault := g_arrHotkeyDefaults4 ; "+#a"
+	strPowerHotkeyMouseDefault := g_arrHotkeyDefaults5 ; "!MButton"
+	strPowerHotkeyKeyboardDefault := g_arrHotkeyDefaults6 ; "!#a"
+	strSettingsHotkeyDefault := g_arrHotkeyDefaults7 ; "+^s"
+	
+	g_intIconSize := 24
+	
+	FileAppend,
+		(LTrim Join`r`n
+			[Global]
+			LaunchHotkeyMouse=%strLaunchHotkeyMouseDefault%
+			LaunchHotkeyKeyboard=%strLaunchHotkeyKeyboardDefault%
+			NavigateHotkeyMouseDefault=%strNavigateHotkeyMouseDefault%
+			NavigateHotkeyKeyboardDefault=%strNavigateHotkeyKeyboardDefault%
+			PowerHotkeyMouseDefault=%strPowerHotkeyMouseDefault%
+			PowerHotkeyKeyboardDefault=%strPowerHotkeyKeyboardDefault%
+			SettingsHotkey=%strSettingsHotkeyDefault%
+			DisplayTrayTip=1
+			DisplayIcons=1
+			RecentFolders=10
+			DisplayMenuShortcuts=0
+			PopupMenuPosition=1
+			PopupFixPosition=20,20
+			DiagMode=0
+			Startups=1
+			LanguageCode=%g_strLanguageCode%
+			DirectoryOpusPath=
+			IconSize=%g_intIconSize%
+			OpenMenuOnTaskbar=1
+			[Favorites]
+			Favorite1=F|C:\|C:\
+			Favorite2=F|Windows|%A_WinDir%
+			Favorite3=F|Program Files|%A_ProgramFiles%
+			Favorite4=F|User Profile|`%USERPROFILE`%
+			Favorite5=A|Notepad|%A_WinDir%\system32\notepad.exe
+			Favorite6=U|%g_strAppNameText% web site|http://www.QuickAccessPopup.com
+
+
+)
+		, %g_strIniFile%
+}
+
+Gosub, LoadIniHotkeys
+
+IniRead, g_blnDisplayTrayTip, %g_strIniFile%, Global, DisplayTrayTip, 1
+IniRead, g_blnDisplayIcons, %g_strIniFile%, Global, DisplayIcons, 1
+g_blnDisplayIcons := (g_blnDisplayIcons and OSVersionIsWorkstation())
+IniRead, g_blnDisplaySpecialMenusShortcuts, %g_strIniFile%, Global, DisplaySpecialMenusShortcuts, 1
+IniRead, blnDisplayRecentFolders, %g_strIniFile%, Global, DisplayRecentFolders, 1
+IniRead, blnDisplayFoldersInExplorerMenu, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu, 1
+IniRead, blnDisplayGroupMenu, %g_strIniFile%, Global, DisplaySwitchMenu, 1 ; keep "Switch" in label instead of "Group" for backward compatibility
+IniRead, blnDisplayClipboardMenu, %g_strIniFile%, Global, DisplayClipboardMenu, 1
+IniRead, blnDisplayCopyLocationMenu, %g_strIniFile%, Global, DisplayCopyLocationMenu, 1
+IniRead, g_intPopupMenuPosition, %g_strIniFile%, Global, PopupMenuPosition, 1
+IniRead, strPopupFixPosition, %g_strIniFile%, Global, PopupFixPosition, 20,20
+StringSplit, g_arrPopupFixPosition, strPopupFixPosition, `,
+IniRead, g_blnDisplayMenuShortcuts, %g_strIniFile%, Global, DisplayMenuShortcuts, 0
+IniRead, g_blnDiagMode, %g_strIniFile%, Global, DiagMode, 0
+IniRead, g_intRecentFolders, %g_strIniFile%, Global, RecentFolders, 10
+IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 24
+IniRead, g_strGroups, %g_strIniFile%, Global, Groups, %A_Space% ; empty string if not found
+IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, 1
+IniRead, g_blnOpenMenuOnTaskbar, %g_strIniFile%, Global, OpenMenuOnTaskbar, 1
+IniRead, g_blnRememberSettingsPosition, %g_strIniFile%, Global, RememberSettingsPosition, 1
+
+IniRead, g_blnDonor, %g_strIniFile%, Global, Donor, 0 ; Please, be fair. Don't cheat with this.
+
+IniRead, g_strDirectoryOpusPath, %g_strIniFile%, Global, DirectoryOpusPath, %A_Space% ; empty string if not found
+IniRead, g_blnDirectoryOpusUseTabs, %g_strIniFile%, Global, DirectoryOpusUseTabs, 1 ; use tabs by default
+if StrLen(g_strDirectoryOpusPath)
+{
+	g_blnUseDirectoryOpus := FileExist(g_strDirectoryOpusPath)
+	if (g_blnUseDirectoryOpus)
+		Gosub, SetDOpusRt
+	else
+		if (g_strDirectoryOpusPath <> "NO")
+			Oops(lOopsWrongThirdPartyPath, "Directory Opus", g_strDirectoryOpusPath, lOptionsThirdParty)
+}
+else
+	if (g_strDirectoryOpusPath <> "NO")
+		Gosub, CheckDirectoryOpus
+
+IniRead, g_strTotalCommanderPath, %g_strIniFile%, Global, TotalCommanderPath, %A_Space% ; empty string if not found
+IniRead, g_blnTotalCommanderUseTabs, %g_strIniFile%, Global, TotalCommanderUseTabs, 1 ; use tabs by default
+if StrLen(g_strTotalCommanderPath)
+{
+	g_blnUseTotalCommander := FileExist(g_strTotalCommanderPath)
+	if (g_blnUseTotalCommander)
+		Gosub, SetTCCommand
+	else
+		if (g_strTotalCommanderPath <> "NO")
+			Oops(lOopsWrongThirdPartyPath, "Total Commander", g_strTotalCommanderPath, lOptionsThirdParty)
+}
+else
+	if (g_strTotalCommanderPath <> "NO")
+		Gosub, CheckTotalCommander
+
+IniRead, g_strFPconnectPath, %g_strIniFile%, Global, FPconnectPath, %A_Space% ; empty string if not found
+if StrLen(g_strFPconnectPath)
+{
+	g_blnUseFPconnect := FileExist(g_strFPconnectPath)
+	if (g_blnUseFPconnect)
+		Gosub, SetFPconnect
+	else
+		if (g_strFPconnectPath <> "NO")
+			Oops(lOopsWrongThirdPartyPath, "FPconnect", g_strFPconnectPath, lOptionsThirdParty)
+}
+else
+	if (g_strFPconnectPath <> "NO")
+		Gosub, CheckFPconnect
+
+IniRead, g_strTheme, %g_strIniFile%, Global, Theme
+if (g_strTheme = "ERROR") ; if Theme not found, we have a new ini file - add the themes to the ini file
+{
+	g_strTheme := "Windows"
+	g_strAvailableThemes := "Windows|Grey|Light Blue|Light Green|Light Red|Yellow"
+	IniWrite, %g_strTheme%, %g_strIniFile%, Global, Theme
+	IniWrite, %g_strAvailableThemes%, %g_strIniFile%, Global, AvailableThemes
+	FileAppend,
+		(LTrim Join`r`n
+			[Gui-Grey]
+			WindowColor=E0E0E0
+			TextColor=000000
+			ListviewBackground=FFFFFF
+			ListviewText=000000
+			MenuBackgroundColor=FFFFFF
+			[Gui-Yellow]
+			WindowColor=f9ffc6
+			TextColor=000000
+			ListviewBackground=fcffe0
+			ListviewText=000000
+			MenuBackgroundColor=fcffe0
+			[Gui-Light Blue]
+			WindowColor=e8e7fa
+			TextColor=000000
+			ListviewBackground=e7f0fa
+			ListviewText=000000
+			MenuBackgroundColor=e7f0fa
+			[Gui-Light Red]
+			WindowColor=fddcd7
+			TextColor=000000
+			ListviewBackground=fef1ef
+			ListviewText=000000
+			MenuBackgroundColor=fef1ef
+			[Gui-Light Green]
+			WindowColor=d6fbde
+			TextColor=000000
+			ListviewBackground=edfdf1
+			ListviewText=000000
+			MenuBackgroundColor=edfdf1
+
+)
+		, %g_strIniFile%
+}
+else
+{
+	IniRead, g_strAvailableThemes, %g_strIniFile%, Global, AvailableThemes
+	if !InStr(g_strAvailableThemes, "Windows|")
+	{
+		g_strAvailableThemes := "Windows|" . g_strAvailableThemes
+		IniWrite, %g_strAvailableThemes%, %g_strIniFile%, Global, AvailableThemes
+	}
+}
+g_blnUseColors := (g_strTheme <> "Windows")
+	
+IniRead, blnMySystemFoldersBuilt, %g_strIniFile%, Global, MySystemFoldersBuilt, 0 ; default false
+; ### if !(blnMySystemFoldersBuilt) and (A_OSVersion <> "WIN_XP")
+; 	Gosub, AddToIniMySystemFoldersMenu ; modify the ini file Folders section before reading it
+
+Loop
+{
+	IniRead, strLoadIniLine, %g_strIniFile%, Favorites, Favorite%A_Index%
+	if (strLoadIniLine = "ERROR")
+		Break
+	strLoadIniLine := strLoadIniLine . "|||" ; additional "|" to make sure we have all empty items
+	; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
+	StringSplit, arrThisFavorite, strLoadIniLine, |
+
+	objLoadIniFavorite := Object() ; new menu item
+	objLoadIniFavorite.FavoriteName := arrThisFavorite1 ; display name of this menu item
+	objLoadIniFavorite.FavoriteLocation := arrThisFavorite2 ; path for this menu item
+	objLoadIniFavorite.MenuName := lMainMenuName . arrThisFavorite3 ; parent menu of this menu item, adding main menu name
+
+	if StrLen(arrThisFavorite4)
+		objLoadIniFavorite.SubmenuFullName := lMainMenuName . arrThisFavorite4 ; full name of the submenu, adding main menu name
+	else
+		objLoadIniFavorite.SubmenuFullName := ""
+	
+	if StrLen(arrThisFavorite5)
+		
+		objLoadIniFavorite.FavoriteType := arrThisFavorite5 ; "F" folder, "D" document, "U" URL or "S" submenu
+		
+	else ; for upward compatibility from v1 and v2 ini files
+		if StrLen(objLoadIniFavorite.SubmenuFullName)
+			objLoadIniFavorite.FavoriteType := "S" ; "S" submenu
+		else ; for upward compatibility from v1 ini files
+			objLoadIniFavorite.FavoriteType := "F" ; "F" folder
+
+	objLoadIniFavorite.IconResource := arrThisFavorite6 ; icon resource in format "iconfile,iconindex"
+	objLoadIniFavorite.AppArguments := arrThisFavorite7 ; application arguments
+	objLoadIniFavorite.AppWorkingDir := arrThisFavorite8 ; application working directory
+
+	if (objLoadIniFavorite.FavoriteType = "S") ; then this is a new submenu
+	{
+		arrSubMenu := Object() ; create submenu
+		g_arrMenus.Insert(objLoadIniFavorite.SubmenuFullName, arrSubMenu) ; add this submenu to the array of menus
+	}
+	g_arrMenus[objLoadIniFavorite.MenuName].Insert(objLoadIniFavorite) ; add this menu item to parent menu
+}
+
+IfNotExist, %g_strIniFile%
+{
+	Oops(lOopsWriteProtectedError, g_strAppNameText)
+	ExitApp
+}
+
+strIniBackupFile := ""
+arrMainMenu := ""
+strPopupHotkeyMouseDefault := ""
+strPopupHotkeyMouseNewDefault := ""
+strPopupHotkeyKeyboardDefault := ""
+strPopupHotkeyKeyboardNewDefault := ""
+strSettingsHotkeyDefault := ""
+strFoldersInExplorerHotkeyDefault := ""
+strGroupsHotkeyDefault := ""
+strRecentsHotkeyDefault := ""
+strClipboardHotkeyDefault := ""
+strPopupFixPosition := ""
+blnMySystemFoldersBuilt := ""
+strLoadIniLine := ""
+arrThisFavorite := ""
+objLoadIniFavorite := ""
+arrSubMenu := ""
+
+return
+;------------------------------------------------------------
+
+
+;-----------------------------------------------------------
+LoadIniHotkeys:
+;-----------------------------------------------------------
+
+strHotkeyNoneModifiers := ">^!+#" ; right-control/atl/shift/windows impossible keys combination
+strHotkeyNoneKey := "9"
+
+; Read the values and set hotkey shortcuts
+loop, % g_arrHotkeyNames%0%
+{
+	; Prepare global arrays used by SplitHotkey function
+	IniRead, arrHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index%, % g_arrHotkeyDefaults%A_Index%
+	SplitHotkey(arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
+	; example: Hotkey, $MButton, LaunchHotkeyMouse
+	
+	###_D("g_arrHotkeyDefaults%A_Index%: " . g_arrHotkeyDefaults%A_Index% . "`n"
+		. "arrHotkeys%A_Index%: " . arrHotkeys%A_Index% . "`n"
+		. "g_arrHotkeyNames%A_Index%: " . g_arrHotkeyNames%A_Index% . "`n"
+		. "")
+	if (arrHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
+		Hotkey, % "$" . strHotkeyNoneModifiers . strHotkeyNoneKey, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
+	else
+		Hotkey, % "$" . arrHotkeys%A_Index%, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
+	if (ErrorLevel)
+		Oops(lDialogInvalidHotkey, Hotkey2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%), g_strAppNameText, g_arrOptionsTitles%A_Index%)
+}
+
+arrHotkeys := ""
+strHotkeyNoneModifiers := ""
+strHotkeyNoneKey := ""
+
+return
+;------------------------------------------------------------
+
+
+;-----------------------------------------------------------
 CleanUpBeforeExit:
 ;-----------------------------------------------------------
 
@@ -870,6 +1172,226 @@ ExitApp
 ;========================================================================================================================
 ; END OF INITIALIZATION
 ;========================================================================================================================
+
+
+
+;========================================================================================================================
+; POPUP MENU
+;========================================================================================================================
+
+LaunchHotkeyMouse:
+LaunchHotkeyKeyboard:
+return
+
+
+NavigateHotkeyMouse:
+NavigateHotkeyKeyboard:
+return
+
+
+PowerHotkeyMouse:
+PowerHotkeyKeyboard:
+return
+
+
+SettingsHotkey:
+return
+
+
+;========================================================================================================================
+; END OF POPUP MENU
+;========================================================================================================================
+
+
+
+;========================================================================================================================
+; THIRD-PARTY
+;========================================================================================================================
+
+
+;------------------------------------------------------------
+RunDOpusRt(strCommand, strLocation := "", strParam := "")
+; put A_Space at the beginning of strParam if required - some param (like ",paths") must have no space 
+;------------------------------------------------------------
+{
+	if FileExist(g_strDirectoryOpusRtPath)
+		Run, % """" . g_strDirectoryOpusRtPath . """ " . strCommand . " """ . strLocation . """" . strParam
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CheckDirectoryOpus:
+;------------------------------------------------------------
+
+g_strCheckDirectoryOpusPath := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
+
+if FileExist(g_strCheckDirectoryOpusPath)
+{
+	MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, "Directory Opus")
+	IfMsgBox, No
+		g_strDirectoryOpusPath := "NO"
+	else
+	{
+		g_strDirectoryOpusPath := g_strCheckDirectoryOpusPath
+		Gosub, SetDOpusRt
+	}
+	g_blnUseDirectoryOpus := (g_strDirectoryOpusPath <> "NO")
+	IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
+	g_blnDirectoryOpusUseTabs := 1
+	IniWrite, %g_blnDirectoryOpusUseTabs%, %g_strIniFile%, Global, DirectoryOpusUseTabs
+	; g_strDirectoryOpusNewTabOrWindow will contain "NEWTAB" to open in a new tab if DirectoryOpusUseTabs is 1 (default) or "NEW" to open in a new lister
+	g_strDirectoryOpusNewTabOrWindow := "NEWTAB"
+}
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SetDOpusRt:
+;------------------------------------------------------------
+
+IniRead, g_blnDirectoryOpusUseTabs, %g_strIniFile%, Global, DirectoryOpusUseTabs, 1 ; should be intialized here but true by default for safety
+if (g_blnDirectoryOpusUseTabs)
+	g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new tab
+else
+	g_strDirectoryOpusNewTabOrWindow := "NEW" ; open new folder in a new lister
+
+g_strDOpusTempFilePath := g_strTempDir . "\dopus-list.txt"
+StringReplace, g_strDirectoryOpusRtPath, g_strDirectoryOpusPath, \dopus.exe, \dopusrt.exe
+
+; additional icon for Directory Opus
+g_objIconsFile["DirectoryOpus"] := g_strDirectoryOpusPath
+g_objIconsIndex["DirectoryOpus"] := 1
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CheckTotalCommander:
+;------------------------------------------------------------
+####
+strCheckTotalCommanderPath := GetTotalCommanderPath()
+
+if FileExist(strCheckTotalCommanderPath)
+{
+	MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, "Total Commander")
+	IfMsgBox, No
+		g_strTotalCommanderPath := "NO"
+	else
+	{
+		g_strTotalCommanderPath := strCheckTotalCommanderPath
+		Gosub, SetTCCommand
+		
+		; disable Folders in Explorer and Group menus for TC users until the tabs issue is resolved
+		blnDisplayFoldersInExplorerMenu := 0
+		IniWrite, %blnDisplayFoldersInExplorerMenu%, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu
+		blnDisplayGroupMenu := 0
+		IniWrite, %blnDisplayGroupMenu%, %g_strIniFile%, Global, DisplaySwitchMenu
+	}
+	g_blnUseTotalCommander := (g_strTotalCommanderPath <> "NO")
+	IniWrite, %g_strTotalCommanderPath%, %g_strIniFile%, Global, TotalCommanderPath
+	g_blnTotalCommanderUseTabs := 1
+	IniWrite, %g_blnTotalCommanderUseTabs%, %g_strIniFile%, Global, TotalCommanderUseTabs
+	; strTotalCommanderNewTabOrWindow will contain "/O /T" to open in a new tab if TotalCommanderUseTabs is 1 (default) or "/N" to open in a new file list
+	strTotalCommanderNewTabOrWindow := "/O /T"
+}
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetTotalCommanderPath()
+;------------------------------------------------------------
+{
+	RegRead, strPath, HKEY_CURRENT_USER, Software\Ghisler\Total Commander\, InstallDir
+	If !StrLen(strPath)
+		RegRead, strPath, HKEY_LOCAL_MACHINE, Software\Ghisler\Total Commander\, InstallDir
+
+	if FileExist(strPath . "\TOTALCMD64.EXE")
+		strPath := strPath . "\TOTALCMD64.EXE"
+	else
+		strPath := strPath . "\TOTALCMD.EXE"
+	return strPath
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SetTCCommand:
+;------------------------------------------------------------
+
+IniRead, g_blnTotalCommanderUseTabs, %g_strIniFile%, Global, TotalCommanderUseTabs, 1 ; should be intialized here but true by default for safety
+if (g_blnTotalCommanderUseTabs)
+	strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
+else
+	strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
+
+; additional icon for TotalCommander
+g_objIconsFile["TotalCommander"] := g_strTotalCommanderPath
+g_objIconsIndex["TotalCommander"] := 1
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CheckFPconnect:
+;------------------------------------------------------------
+
+strCheckFPconnectPath := A_ScriptDir . "\FPconnect\FPconnect.exe"
+
+if FileExist(strCheckFPconnectPath)
+{
+	MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, "FPconnect")
+	IfMsgBox, No
+		g_strFPconnectPath := "NO"
+	else
+	{
+		g_strFPconnectPath := strCheckFPconnectPath
+		Gosub, SetFPconnect
+		
+		; disable Folders in Explorer and Group menus for FPconnect users
+		blnDisplayFoldersInExplorerMenu := 0
+		IniWrite, %blnDisplayFoldersInExplorerMenu%, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu
+		blnDisplayGroupMenu := 0
+		IniWrite, %blnDisplayGroupMenu%, %g_strIniFile%, Global, DisplaySwitchMenu
+	}
+	g_blnUseFPconnect := (g_strFPconnectPath <> "NO")
+	IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
+}
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SetFPconnect:
+;------------------------------------------------------------
+
+StringTrimRight, strFPconnectIniPath, g_strFPconnectPath, 4
+strFPconnectIniPath := strFPconnectIniPath . ".ini"
+
+IniRead, strFPconnectAppPathFilename, %strFPconnectIniPath%, Options, AppPath, %A_Space% ; empty by default
+g_blnUseFPconnect := FileExist(EnvVars(strFPconnectAppPathFilename))
+
+IniRead, strFPconnectTargetPathFilename, %strFPconnectIniPath%, Options, TargetPath, %A_Space% ; empty by default
+
+if (g_blnUseFPconnect)
+{
+	strFPconnectAppPathFilename := EnvVars(strFPconnectAppPathFilename)
+	SplitPath, strFPconnectAppPathFilename, strFPconnectAppPathFilename
+	strFPconnectTargetPathFilename := EnvVars(strFPconnectTargetPathFilename)
+	SplitPath, strFPconnectTargetPathFilename, strFPconnectTargetPathFilename
+}
+else
+	Oops(lOopsWrongFPconnectAppPathFilename, g_strFPconnectPath, strFPconnectIniPath)
+
+return
+;------------------------------------------------------------
 
 
 
@@ -902,5 +1424,173 @@ Oops(strMessage, objVariables*)
 	MsgBox, 48, % L(lOopsTitle, g_strAppNameText, g_strAppVersion), % L(strMessage, objVariables*)
 }
 ; ------------------------------------------------
+
+
+;------------------------------------------------------------
+OSVersionIsWorkstation()
+;------------------------------------------------------------
+{
+	return (GetOSVersionInfo() and (GetOSVersionInfo().ProductType = 1))
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetOSVersionInfo()
+; by shajul (http://www.autohotkey.com/board/topic/54639-getosversion/?p=414249)
+; reference: http://msdn.microsoft.com/en-ca/library/windows/desktop/ms724833(v=vs.85).aspx
+;------------------------------------------------------------
+{
+	static Ver
+
+	If !Ver
+	{
+		VarSetCapacity(OSVer, 284, 0)
+		NumPut(284, OSVer, 0, "UInt")
+		If !DllCall("GetVersionExW", "Ptr", &OSVer)
+		   return 0 ; GetSysErrorText(A_LastError)
+		Ver := Object()
+		Ver.MajorVersion      := NumGet(OSVer, 4, "UInt")
+		Ver.MinorVersion      := NumGet(OSVer, 8, "UInt")
+		Ver.BuildNumber       := NumGet(OSVer, 12, "UInt")
+		Ver.PlatformId        := NumGet(OSVer, 16, "UInt")
+		Ver.ServicePackString := StrGet(&OSVer+20, 128, "UTF-16")
+		Ver.ServicePackMajor  := NumGet(OSVer, 276, "UShort")
+		Ver.ServicePackMinor  := NumGet(OSVer, 278, "UShort")
+		Ver.SuiteMask         := NumGet(OSVer, 280, "UShort")
+		Ver.ProductType       := NumGet(OSVer, 282, "UChar") ; 1 = VER_NT_WORKSTATION, 2 = VER_NT_DOMAIN_CONTROLLER, 3 = VER_NT_SERVER
+		Ver.EasyVersion       := Ver.MajorVersion . "." . Ver.MinorVersion . "." . Ver.BuildNumber
+	}
+	return Ver
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SplitHotkey(strHotkey, ByRef strModifiers, ByRef strKey, ByRef strMouseButton, ByRef strMouseButtonsWithDefault)
+;------------------------------------------------------------
+{
+	if (strHotkey = "None") ; do not compare with lOptionsMouseNone because it is translated
+	{
+		strMouseButton := "None" ; do not use lOptionsMouseNone because it is translated
+		strKey := ""
+		StringReplace, strMouseButtonsWithDefault, lOptionsMouseButtonsText, % lOptionsMouseNone . "|", % lOptionsMouseNone . "||" ; use lOptionsMouseNone because this is displayed
+	}
+	else 
+	{
+		SplitModifiersFromKey(strHotkey, strModifiers, strKey)
+		if InStr(g_strMouseButtons, "|" . strKey . "|") ;  we have a mouse button
+		{
+			strMouseButton := strKey
+			strKey := ""
+			StringReplace, strMouseButtonsWithDefault, lOptionsMouseButtonsText, % GetText4MouseButton(strMouseButton) . "|", % GetText4MouseButton(strMouseButton) . "||" ; with default value
+		}
+		else ; we have a key
+			strMouseButtonsWithDefault := lOptionsMouseButtonsText ; no default value
+	}
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+Hotkey2Text(strModifiers, strMouseButton, strOptionKey, blnShort := false)
+;------------------------------------------------------------
+{
+	if (strMouseButton = "None") ; do not compare with lOptionsMouseNone because it is translated
+		str := lOptionsMouseNone ; use lOptionsMouseNone because this is displayed
+	else
+	{
+		str := ""
+		loop, parse, strModifiers
+		{
+			if (A_LoopField = "!")
+				str := str . lOptionsAlt . "+"
+			if (A_LoopField = "^")
+				str := str . (blnShort ? lOptionsCtrlShort : lOptionsCtrl) . "+"
+			if (A_LoopField = "+")
+				str := str . lOptionsShift . "+"
+			if (A_LoopField = "#")
+				str := str . (blnShort ? lOptionsWinShort : lOptionsWin) . "+"
+		}
+		if StrLen(strMouseButton)
+			str := str . GetText4MouseButton(strMouseButton)
+		if StrLen(strOptionKey)
+		{
+			StringUpper, strOptionKey, strOptionKey
+			str := str . strOptionKey
+		}
+	}
+
+	return str
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetText4MouseButton(strSource)
+; Returns the string in g_arrMouseButtonsText at the same position of strSource in g_arrMouseButtons
+;------------------------------------------------------------
+{
+	loop, %g_arrMouseButtons0%
+		if (strSource = g_arrMouseButtons%A_Index%)
+			return g_arrMouseButtonsText%A_Index%
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetMouseButton4Text(strSource)
+; Returns the string in g_arrMouseButtons at the same position of strSource in g_arrMouseButtonsText
+;------------------------------------------------------------
+{
+	loop, %g_arrMouseButtonsText0%
+		if (strSource = g_arrMouseButtonsText%A_Index%)
+			return g_arrMouseButtons%A_Index%
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SplitModifiersFromKey(strHotkey, ByRef strModifiers, ByRef strKey)
+;------------------------------------------------------------
+{
+	intModifiersEnd := GetFirstNotModifier(strHotkey)
+	StringLeft, strModifiers, strHotkey, %intModifiersEnd%
+	StringMid, strKey, strHotkey, % (intModifiersEnd + 1)
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetFirstNotModifier(strHotkey)
+;------------------------------------------------------------
+{
+	intPos := 0
+	loop, Parse, strHotkey
+		if (A_LoopField = "^") or (A_LoopField = "!") or (A_LoopField = "+") or (A_LoopField = "#")
+			intPos := intPos + 1
+		else
+			return intPos
+	return intPos
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+EnvVars(str)
+; from Lexikos http://www.autohotkey.com/board/topic/40115-func-envvars-replace-environment-variables-in-text/#entry310601
+;------------------------------------------------------------
+{
+    if sz:=DllCall("ExpandEnvironmentStrings", "uint", &str
+                    , "uint", 0, "uint", 0)
+    {
+        VarSetCapacity(dst, A_IsUnicode ? sz*2:sz)
+        if DllCall("ExpandEnvironmentStrings", "uint", &str
+                    , "str", dst, "uint", sz)
+            return dst
+    }
+    return src
+}
+;------------------------------------------------------------
 
 
