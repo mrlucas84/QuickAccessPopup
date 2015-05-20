@@ -31,6 +31,8 @@ LANGUAGE
 GUI
 * update CleanUpBeforeExit to save current position
 
+QAP FEATURES MENUS
+* Does not support Folders in Explorer and Group menus for TC and FPc users
 
 Version 6.0.2 alpha (2015-05-??)
 
@@ -151,7 +153,18 @@ global g_strMouseButtons
 global g_arrMouseButtons
 global g_arrMouseButtonsText
 
+global g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and CollectExplorers
+global g_objSpecialFolders := Object()
+global g_strSpecialFoldersList
+
+global g_blnUseDirectoryOpus
+global g_blnUseTotalCommander
+global g_blnUseFPconnect
+
 global g_strDirectoryOpusRtPath
+global g_strFPconnectPath
+global g_strFPconnectAppFilename
+global g_strFPconnectTargetFilename
 
 
 if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
@@ -377,10 +390,6 @@ InitSpecialFolders:
 
 ; Environment system variables
 ; http://en.wikipedia.org/wiki/Environment_variable#Windows
-
-global g_objClassIdOrPathByDefaultName := Object() ; also used by CollectExplorers
-global g_objSpecialFolders := Object()
-global g_strSpecialFoldersList
 
 ; InitSpecialFolderObject(strClassIdOrPath, strShellConstant, intShellConstant, strAHKConstant, strDOpusAlias, strTCCommand
 ;	, strDefaultName, strDefaultIcon
@@ -1272,7 +1281,7 @@ return
 ;------------------------------------------------------------
 CheckTotalCommander:
 ;------------------------------------------------------------
-####
+
 strCheckTotalCommanderPath := GetTotalCommanderPath()
 
 if FileExist(strCheckTotalCommanderPath)
@@ -1284,20 +1293,16 @@ if FileExist(strCheckTotalCommanderPath)
 	{
 		g_strTotalCommanderPath := strCheckTotalCommanderPath
 		Gosub, SetTCCommand
-		
-		; disable Folders in Explorer and Group menus for TC users until the tabs issue is resolved
-		blnDisplayFoldersInExplorerMenu := 0
-		IniWrite, %blnDisplayFoldersInExplorerMenu%, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu
-		blnDisplayGroupMenu := 0
-		IniWrite, %blnDisplayGroupMenu%, %g_strIniFile%, Global, DisplaySwitchMenu
 	}
 	g_blnUseTotalCommander := (g_strTotalCommanderPath <> "NO")
 	IniWrite, %g_strTotalCommanderPath%, %g_strIniFile%, Global, TotalCommanderPath
 	g_blnTotalCommanderUseTabs := 1
 	IniWrite, %g_blnTotalCommanderUseTabs%, %g_strIniFile%, Global, TotalCommanderUseTabs
-	; strTotalCommanderNewTabOrWindow will contain "/O /T" to open in a new tab if TotalCommanderUseTabs is 1 (default) or "/N" to open in a new file list
-	strTotalCommanderNewTabOrWindow := "/O /T"
+	; g_strTotalCommanderNewTabOrWindow will contain "/O /T" to open in a new tab if TotalCommanderUseTabs is 1 (default) or "/N" to open in a new file list
+	g_strTotalCommanderNewTabOrWindow := "/O /T"
 }
+
+strCheckTotalCommanderPath := ""
 
 return
 ;------------------------------------------------------------
@@ -1326,9 +1331,9 @@ SetTCCommand:
 
 IniRead, g_blnTotalCommanderUseTabs, %g_strIniFile%, Global, TotalCommanderUseTabs, 1 ; should be intialized here but true by default for safety
 if (g_blnTotalCommanderUseTabs)
-	strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
+	g_strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
 else
-	strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
+	g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
 
 ; additional icon for TotalCommander
 g_objIconsFile["TotalCommander"] := g_strTotalCommanderPath
@@ -1353,16 +1358,12 @@ if FileExist(strCheckFPconnectPath)
 	{
 		g_strFPconnectPath := strCheckFPconnectPath
 		Gosub, SetFPconnect
-		
-		; disable Folders in Explorer and Group menus for FPconnect users
-		blnDisplayFoldersInExplorerMenu := 0
-		IniWrite, %blnDisplayFoldersInExplorerMenu%, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu
-		blnDisplayGroupMenu := 0
-		IniWrite, %blnDisplayGroupMenu%, %g_strIniFile%, Global, DisplaySwitchMenu
 	}
 	g_blnUseFPconnect := (g_strFPconnectPath <> "NO")
 	IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
 }
+
+strCheckFPconnectPath := ""
 
 return
 ;------------------------------------------------------------
@@ -1383,12 +1384,15 @@ IniRead, strFPconnectTargetPathFilename, %strFPconnectIniPath%, Options, TargetP
 if (g_blnUseFPconnect)
 {
 	strFPconnectAppPathFilename := EnvVars(strFPconnectAppPathFilename)
-	SplitPath, strFPconnectAppPathFilename, strFPconnectAppPathFilename
+	SplitPath, strFPconnectAppPathFilename, g_strFPconnectAppFilename
 	strFPconnectTargetPathFilename := EnvVars(strFPconnectTargetPathFilename)
-	SplitPath, strFPconnectTargetPathFilename, strFPconnectTargetPathFilename
+	SplitPath, strFPconnectTargetPathFilename, g_strFPconnectTargetFilename
 }
 else
 	Oops(lOopsWrongFPconnectAppPathFilename, g_strFPconnectPath, strFPconnectIniPath)
+
+strFPconnectAppPathFilename := ""
+strFPconnectTargetPathFilename := ""
 
 return
 ;------------------------------------------------------------
