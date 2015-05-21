@@ -122,53 +122,54 @@ Gosub, InitFileInstall
 
 Gosub, InitLanguageVariables
 
-; --- Super-global variables
+; --- Global variables
 
-global g_strAppNameFile := "QuickAccessPopup"
-global g_strAppNameText := "Quick Access Popup"
-global g_strCurrentVersion := "6.0.1" ; "major.minor.bugs" or "major.minor.beta.release"
-global g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
-global g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
+g_strAppNameFile := "QuickAccessPopup"
+g_strAppNameText := "Quick Access Popup"
+g_strCurrentVersion := "6.0.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
+g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
-global g_blnDiagMode := False
-global g_strDiagFile := A_WorkingDir . "\" . g_strAppNameFile . "-DIAG.txt"
-global g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . ".ini"
-global g_blnMenuReady := false
+g_blnDiagMode := False
+g_strDiagFile := A_WorkingDir . "\" . g_strAppNameFile . "-DIAG.txt"
+g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . ".ini"
 
-global g_objMenuInGui := Object() ; object of menu currently in Gui
-global g_objMenuIndex := Object() ; index of menu path used in Gui menu dropdown list
+g_blnMenuReady := false
 
-global g_arrSubmenuStack := Object()
-global g_arrSubmenuStackPosition := Object()
-global g_objIconsFile := Object()
-global g_objIconsIndex := Object()
+g_objMenuInGui := Object() ; object of menu currently in Gui
+g_objMenuIndex := Object() ; index of menu path used in Gui menu dropdown list
+g_arrSubmenuStack := Object()
+g_arrSubmenuStackPosition := Object()
 
-global g_strMenuPathSeparator := ">"
-global g_strGuiMenuSeparator := "----------------"
-global g_strGuiMenuColumnBreak := "==="
+g_objIconsFile := Object()
+g_objIconsIndex := Object()
 
-global g_objGuiControls := Object()
+g_strMenuPathSeparator := ">"
+g_strGuiMenuSeparator := "----------------"
+g_strGuiMenuColumnBreak := "==="
 
-global g_strMouseButtons
-global g_arrMouseButtons
-global g_arrMouseButtonsText
+g_objGuiControls := Object()
 
-global g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and CollectExplorers
-global g_objSpecialFolders := Object()
-global g_strSpecialFoldersList
+g_strMouseButtons := ""
+g_arrMouseButtons := ""
+g_arrMouseButtonsText := ""
 
-global g_blnUseDirectoryOpus
-global g_blnUseTotalCommander
-global g_blnUseFPconnect
+g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and CollectExplorers
+g_objSpecialFolders := Object()
+g_strSpecialFoldersList := ""
 
-global g_strDirectoryOpusRtPath
-global g_strFPconnectPath
-global g_strFPconnectAppFilename
-global g_strFPconnectTargetFilename
+g_blnUseDirectoryOpus := ""
+g_blnUseTotalCommander := ""
+g_blnUseFPconnect := ""
+g_strDirectoryOpusRtPath := ""
+g_strFPconnectPath := ""
+g_strFPconnectAppFilename := ""
+g_strFPconnectTargetFilename := ""
 
 
-if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
+
 ; if the app runs from a zip file, the script directory is created under the system Temp folder
+if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
 {
 	Oops(lOopsZipFileError, g_strAppNameFile)
 	ExitApp
@@ -699,6 +700,11 @@ InitSpecialFolderObject(strClassIdOrPath, strShellConstantText, intShellConstant
 
 ;------------------------------------------------------------
 {
+	global g_objIconsFile
+	global g_objIconsIndex
+	global g_objClassIdOrPathByDefaultName
+	global g_objSpecialFolders
+	
 	objOneSpecialFolder := Object()
 	
 	blnIsClsId := (SubStr(strClassIdOrPath, 1, 1) = "{")
@@ -855,6 +861,8 @@ return
 InsertGuiControlPos(strControlName, intX, intY, blnCenter := false, blnDraw := false)
 ;------------------------------------------------------------
 {
+	global g_objGuiControls
+	
 	objGuiControl := Object()
 	objGuiControl.Name := strControlName
 	objGuiControl.X := intX
@@ -1223,6 +1231,8 @@ RunDOpusRt(strCommand, strLocation := "", strParam := "")
 ; put A_Space at the beginning of strParam if required - some param (like ",paths") must have no space 
 ;------------------------------------------------------------
 {
+	global g_strDirectoryOpusRtPath
+	
 	if FileExist(g_strDirectoryOpusRtPath)
 		Run, % """" . g_strDirectoryOpusRtPath . """ " . strCommand . " """ . strLocation . """" . strParam
 }
@@ -1424,6 +1434,9 @@ L(strMessage, objVariables*)
 Oops(strMessage, objVariables*)
 ;------------------------------------------------
 {
+	global g_strAppNameText
+	global g_strAppVersion
+	
 	Gui, 1:+OwnDialogs
 	MsgBox, 48, % L(lOopsTitle, g_strAppNameText, g_strAppVersion), % L(strMessage, objVariables*)
 }
@@ -1474,6 +1487,8 @@ GetOSVersionInfo()
 SplitHotkey(strHotkey, ByRef strModifiers, ByRef strKey, ByRef strMouseButton, ByRef strMouseButtonsWithDefault)
 ;------------------------------------------------------------
 {
+	global g_strMouseButtons
+
 	if (strHotkey = "None") ; do not compare with lOptionsMouseNone because it is translated
 	{
 		strMouseButton := "None" ; do not use lOptionsMouseNone because it is translated
@@ -1535,6 +1550,9 @@ GetText4MouseButton(strSource)
 ; Returns the string in g_arrMouseButtonsText at the same position of strSource in g_arrMouseButtons
 ;------------------------------------------------------------
 {
+	global g_arrMouseButtons
+	global g_arrMouseButtonsText
+	
 	loop, %g_arrMouseButtons0%
 		if (strSource = g_arrMouseButtons%A_Index%)
 			return g_arrMouseButtonsText%A_Index%
@@ -1547,6 +1565,9 @@ GetMouseButton4Text(strSource)
 ; Returns the string in g_arrMouseButtons at the same position of strSource in g_arrMouseButtonsText
 ;------------------------------------------------------------
 {
+	global g_arrMouseButtons
+	global g_arrMouseButtonsText
+
 	loop, %g_arrMouseButtonsText0%
 		if (strSource = g_arrMouseButtonsText%A_Index%)
 			return g_arrMouseButtons%A_Index%
