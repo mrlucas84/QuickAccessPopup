@@ -190,7 +190,13 @@ Gosub, InitLanguages
 Gosub, InitLanguageArrays
 Gosub, InitSpecialFolders
 Gosub, InitGuiControls
+
 Gosub, LoadIniFile
+; must be after LoadIniFile
+IniWrite, %g_strCurrentVersion%, %g_strIniFile%, Global, % "LastVersionUsed" .  (g_strCurrentBranch = "alpha" ? "Alpha" : (g_strCurrentBranch = "beta" ? "Beta" : "Prod"))
+
+if (g_blnDiagMode)
+	Gosub, InitDiagMode
 
 ###_D(1) ; ### REMOVE WHEN SCRIOPT PERSISTENT
 ExitApp ; ### REMOVE WHEN SCRIOPT PERSISTENT
@@ -1149,10 +1155,6 @@ loop, % g_arrHotkeyNames%0%
 	SplitHotkey(arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
 	; example: Hotkey, $MButton, LaunchHotkeyMouse
 	
-	###_D("g_arrHotkeyDefaults%A_Index%: " . g_arrHotkeyDefaults%A_Index% . "`n"
-		. "arrHotkeys%A_Index%: " . arrHotkeys%A_Index% . "`n"
-		. "g_arrHotkeyNames%A_Index%: " . g_arrHotkeyNames%A_Index% . "`n"
-		. "")
 	if (arrHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
 		Hotkey, % "$" . strHotkeyNoneModifiers . strHotkeyNoneKey, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
 	else
@@ -1164,6 +1166,45 @@ loop, % g_arrHotkeyNames%0%
 arrHotkeys := ""
 strHotkeyNoneModifiers := ""
 strHotkeyNoneKey := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+InitDiagMode:
+;------------------------------------------------------------
+
+MsgBox, 52, %g_strAppNameText%, % L(lDiagModeCaution, g_strAppNameText, g_strDiagFile)
+IfMsgBox, No
+{
+	g_blnDiagMode := False
+	IniWrite, 0, %g_strIniFile%, Global, DiagMode
+	return
+}
+	
+if !FileExist(g_strDiagFile)
+{
+	FileAppend, DateTime`tType`tData`n, %g_strDiagFile%
+	Diag("DIAGNOSTIC FILE", lDiagModeIntro)
+	Diag("AppNameFile", g_strAppNameFile)
+	Diag("AppNameText", g_strAppNameText)
+	Diag("AppVersion", g_strAppVersion)
+	Diag("A_ScriptFullPath", A_ScriptFullPath)
+	Diag("A_WorkingDir", A_WorkingDir)
+	Diag("A_AhkVersion", A_AhkVersion)
+	Diag("A_OSVersion", A_OSVersion)
+	Diag("A_Is64bitOS", A_Is64bitOS)
+	Diag("A_Language", A_Language)
+	Diag("A_IsAdmin", A_IsAdmin)
+}
+
+FileRead, strIniFileContent, %g_strIniFile%
+StringReplace, strIniFileContent, strIniFileContent, `", `"`"
+Diag("IniFile", """" . strIniFileContent . """")
+FileAppend, `n, %g_strDiagFile% ; required when the last line of the existing file ends with "
+
+strIniFileContent := ""
 
 return
 ;------------------------------------------------------------
@@ -1617,5 +1658,23 @@ EnvVars(str)
     return src
 }
 ;------------------------------------------------------------
+
+
+;------------------------------------------------
+Diag(strName, strData)
+;------------------------------------------------
+{
+	global g_strDiagFile
+	
+	FormatTime, strNow, %A_Now%, yyyyMMdd@HH:mm:ss
+	loop
+	{
+		FileAppend, %strNow%.%A_MSec%`t%strName%`t%strData%`n, %g_strDiagFile%
+		if ErrorLevel
+			Sleep, 20
+	}
+	until !ErrorLevel or (A_Index > 50) ; after 1 second (20ms x 50), we have a problem
+}
+;------------------------------------------------
 
 
