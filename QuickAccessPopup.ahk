@@ -197,6 +197,14 @@ IniWrite, %g_strCurrentVersion%, %g_strIniFile%, Global, % "LastVersionUsed" .  
 
 if (g_blnDiagMode)
 	Gosub, InitDiagMode
+if (g_blnUseColors)
+	Gosub, LoadThemeGlobal
+
+; build even if blnDisplayFoldersInExplorerMenu (etc.) are false because they could become true
+; no need to build Recent folders menu at startup since this menu is refreshed/recreated on demand
+Gosub, BuildFoldersInExplorerMenuInit ; need to be initialized here - will be updated at each call to popup menu
+Gosub, BuildGroupMenuInit
+Gosub, BuildClipboardMenuInit
 
 ###_D(1) ; ### REMOVE WHEN SCRIOPT PERSISTENT
 ExitApp ; ### REMOVE WHEN SCRIOPT PERSISTENT
@@ -1210,6 +1218,17 @@ return
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+LoadThemeGlobal:
+;------------------------------------------------------------
+
+IniRead, g_strGuiWindowColor, %g_strIniFile%, Gui-%g_strTheme%, WindowColor, E0E0E0
+IniRead, g_strMenuBackgroundColor, %g_strIniFile%, Gui-%g_strTheme%, MenuBackgroundColor, FFFFFF
+
+return
+;------------------------------------------------------------
+
+
 ;-----------------------------------------------------------
 CleanUpBeforeExit:
 ;-----------------------------------------------------------
@@ -1230,6 +1249,56 @@ ExitApp
 ;========================================================================================================================
 ; END OF INITIALIZATION
 ;========================================================================================================================
+
+
+
+;========================================================================================================================
+; BUILD
+;========================================================================================================================
+
+;------------------------------------------------------------
+BuildFoldersInExplorerMenuInit:
+BuildFoldersInExplorerMenu:
+;------------------------------------------------------------
+
+if (A_ThisLabel = "BuildFoldersInExplorerMenuInit")
+{
+	Menu, g_menuFoldersInExplorer, Add ; create the menu
+	return
+}
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+BuildGroupMenuInit:
+BuildGroupMenu:
+;------------------------------------------------------------
+
+if (A_ThisLabel = "BuildGroupMenuInit")
+{
+	Menu, g_menuGroups, Add ; create the menu
+	return
+}
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+BuildClipboardMenuInit:
+BuildClipboardMenu:
+;------------------------------------------------------------
+
+if (A_ThisLabel = "BuildClipboardMenuInit")
+{
+	Menu, g_menuClipboard, Add ; create the menu
+	return
+}
+
+return
+;------------------------------------------------------------
 
 
 
