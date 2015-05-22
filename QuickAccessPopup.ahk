@@ -138,6 +138,9 @@ g_blnMenuReady := false
 
 g_objMenuInGui := Object() ; object of menu currently in Gui
 g_objMenuIndex := Object() ; index of menu path used in Gui menu dropdown list
+
+g_objMenuColumnBreaks := Object()
+
 g_arrSubmenuStack := Object()
 g_arrSubmenuStackPosition := Object()
 
@@ -206,8 +209,10 @@ Gosub, BuildFoldersInExplorerMenuInit ; need to be initialized here - will be up
 Gosub, BuildGroupMenuInit
 Gosub, BuildClipboardMenuInit
 
-###_D(1) ; ### REMOVE WHEN SCRIOPT PERSISTENT
-ExitApp ; ### REMOVE WHEN SCRIOPT PERSISTENT
+Gosub, BuildMainMenu
+
+###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
+ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
 
 return
 
@@ -903,7 +908,7 @@ FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
 g_objMenuInGui := Object() ; object of menu currently in Gui
 g_objMenuIndex := Object() ; index of menu path used in Gui menu dropdown list
 g_objMainMenu := Object() ; object of menu structure entry point
-g_objMainMenu.MenuPath := "Main" ; localized name of the main menu
+g_objMainMenu.MenuPath := lMainMenuName ; localized name of the main menu
 
 IfNotExist, %g_strIniFile%
 {
@@ -1079,7 +1084,7 @@ IniRead, blnMySystemFoldersBuilt, %g_strIniFile%, Global, MySystemFoldersBuilt, 
 ; ### if !(blnMySystemFoldersBuilt) and (A_OSVersion <> "WIN_XP")
 ; 	Gosub, AddToIniMySystemFoldersMenu ; modify the ini file Folders section before reading it
 
-Loop
+Loop ####
 {
 	IniRead, strLoadIniLine, %g_strIniFile%, Favorites, Favorite%A_Index%
 	if (strLoadIniLine = "ERROR")
@@ -1301,6 +1306,306 @@ return
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+BuildMainMenu:
+BuildMainMenuWithStatus:
+;------------------------------------------------------------
+
+if (A_ThisLabel = "BuildMainMenuWithStatus")
+	TrayTip, % L(lTrayTipWorkingTitle, g_strAppNameText, g_strAppVersion)
+		, %lTrayTipWorkingDetail%, , 1
+
+g_blnMainIsFirstColumn := True
+
+Menu, %lMainMenuName%, Add
+Menu, %lMainMenuName%, DeleteAll
+if (g_blnUseColors)
+	Menu, %lMainMenuName%, Color, %g_strMenuBackgroundColor%
+
+BuildOneMenuRecursive(g_objMainMenu) ; recurse for submenus
+
+if !IsColumnBreak(g_arrMenus[lMainMenuName][g_arrMenus[lMainMenuName].MaxIndex()].FavoriteName)
+; column break not allowed if first item is a separator
+	Menu, %lMainMenuName%, Add
+
+/* ### later
+if (blnDisplayFoldersInExplorerMenu)
+{
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(6, lMenuFoldersInExplorer), ":g_menuFoldersInExplorer", "lMenuFoldersInExplorer")
+	if (g_blnUseColors)
+		Menu, g_menuFoldersInExplorer, Color, %g_strMenuBackgroundColor%
+}
+
+if (blnDisplayGroupMenu)
+{
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(7, lMenuGroup), ":g_menuGroups", "lMenuGroup")
+	if (g_blnUseColors)
+		Menu, g_menuGroups, Color, %g_strMenuBackgroundColor%
+}
+
+if (blnDisplayRecentFolders)
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(8, lMenuRecentFolders), "RefreshRecentFolders", "lMenuRecentFolders")
+
+if (blnDisplayClipboardMenu)
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(9, lMenuClipboard), ":g_menuClipboard", "Clipboard")
+
+if (blnDisplayRecentFolders or blnDisplayFoldersInExplorerMenu or blnDisplayGroupMenu or blnDisplayClipboardMenu)
+	Menu, %lMainMenuName%, Add
+
+AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(5, L(lMenuSettings, g_strAppNameText) . "..."), "GuiShow", "lMenuSettings")
+Menu, %lMainMenuName%, Default, %  BuildSpecialMenuItemName(5, L(lMenuSettings, g_strAppNameText) . "...")
+AddMenuIcon(lMainMenuName, lMenuAddThisFolder . "...", "AddThisFolder", "lMenuAddThisFolder")
+
+if (blnDisplayCopyLocationMenu)
+	AddMenuIcon(lMainMenuName, lMenuCopyLocation . "...", "PopupMenuCopyLocation", "Clipboard")
+*/
+
+if !(g_blnDonor)
+{
+	Menu, %lMainMenuName%, Add
+	AddMenuIcon(lMainMenuName, lDonateMenu . "...", "GuiDonate", "lDonateMenu")
+}
+
+if (A_ThisLabel = "BuildMainMenuWithStatus")
+	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
+		, %lTrayTipWorkingDetailFinished%, , 1
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+BuildOneMenuRecursive(objCurrentMenu)
+;------------------------------------------------------------
+{
+	global g_blnDisplayMenuShortcuts
+	global g_blnDisplayIcons
+	global g_intIconSize
+	global g_strMenuBackgroundColor
+	global g_objMenuColumnBreaks
+	global g_objIconsFile
+	global g_objIconsIndex
+	
+	intShortcut := 0
+	
+	; try because at first execution the strMenu menu does not exist and produces an error,
+	; but DeleteAll is required later for menu updates
+	try Menu, %strMenu%, DeleteAll
+	
+	intMenuItemsCount := 0
+	intMenuArrayItemsCount := 0
+	###_D(objCurrentMenu.MaxIndex())
+	
+	Loop, % objCurrentMenu.MaxIndex()
+	{	
+		intMenuItemsCount := intMenuItemsCount + 1
+		intMenuArrayItemsCount := intMenuArrayItemsCount + 1
+		
+		if (arrThisMenu[A_Index].FavoriteType = "S") ; this is a submenu
+		{
+			strSubMenuFullName := arrThisMenu[A_Index].SubmenuFullName
+			strSubMenuDisplayName := arrThisMenu[A_Index].FavoriteName
+			strSubMenuParent := arrThisMenu[A_Index].MenuName
+			
+			BuildOneMenuRecursive(strSubMenuFullName) ; recursive call
+			if (g_blnUseColors)
+				Try Menu, %strSubMenuParent%, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
+			
+			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strSubMenuDisplayName
+			Try Menu, %strSubMenuParent%, Add, %strMenuName%, % ":" . strSubMenuFullName
+			catch e ; when menu is empty
+			{
+				Menu, % arrThisMenu[A_Index].MenuName, Add, %strMenuName%, OpenFavorite ; will never be called because disabled
+				Menu, % arrThisMenu[A_Index].MenuName, Disable, %strMenuName%
+			}
+			Menu, % arrThisMenu[A_Index].MenuName, % (g_arrMenus[strSubMenuFullName].MaxIndex() ? "Enable" : "Disable"), %strMenuName% ; disable menu if empty
+			if (g_blnDisplayIcons and (A_OSVersion <> "WIN_XP" or blnIsFirstColumn))
+			{
+				ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex, "Submenu")
+
+				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, on
+				Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
+					, %strThisIconFile%, %intThisIconIndex% , %g_intIconSize%
+				if (ErrorLevel)
+					Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
+						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
+				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, off
+			}
+		}
+		
+		else if (arrThisMenu[A_Index].FavoriteName = g_strGuiMenuSeparator) ; this is a separator
+			
+			if IsColumnBreak(arrThisMenu[A_Index - 1].FavoriteName)
+				intMenuItemsCount := intMenuItemsCount - 1 ; separator not allowed as first item is a column, skip it
+			else
+				Menu, % arrThisMenu[A_Index].MenuName, Add
+			
+		else if IsColumnBreak(arrThisMenu[A_Index].FavoriteName)
+		{
+			blnIsFirstColumn := False
+			if (strMenu = lMainMenuName)
+				g_blnMainIsFirstColumn := False
+			intMenuItemsCount := intMenuItemsCount - 1
+			objMenuColumnBreak := Object()
+			objMenuColumnBreak.MenuName := strMenu
+			objMenuColumnBreak.MenuPosition := intMenuItemsCount
+			objMenuColumnBreak.MenuArrayPosition := intMenuArrayItemsCount
+			g_objMenuColumnBreaks.Insert(objMenuColumnBreak)
+		}
+		else ; this is a favorite (folder, document, application or URL)
+		{
+			strSubMenuDisplayName := arrThisMenu[A_Index].FavoriteName
+			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "")
+				. strSubMenuDisplayName
+			Menu, % arrThisMenu[A_Index].MenuName, Add, %strMenuName%, OpenFavorite
+
+			if (g_blnDisplayIcons and (A_OSVersion <> "WIN_XP" or blnIsFirstColumn))
+			{
+				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, on
+				if (arrThisMenu[A_Index].FavoriteType = "F") ; this is a folder
+					ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex, "Folder")
+				else if (arrThisMenu[A_Index].FavoriteType = "U") ; this is an URL
+					if StrLen(arrThisMenu[A_Index].IconResource)
+						ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex)
+					else
+						GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strThisIconFile, intThisIconIndex)
+						; not sure it is required to have a physical file with .html extension - but keep it as is by safety
+				else ; this is a document
+					if StrLen(arrThisMenu[A_Index].IconResource)
+						ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex)
+					else
+						GetIcon4Location(arrThisMenu[A_Index].FavoriteLocation, strThisIconFile, intThisIconIndex)
+					
+				ErrorLevel := 0 ; for safety clear in case Menu is not called in next if
+				if StrLen(strThisIconFile)
+					Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%, %strThisIconFile%, %intThisIconIndex%, %g_intIconSize%
+				if (!StrLen(strThisIconFile) or ErrorLevel)
+					Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
+						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
+						
+				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, off
+			}
+		}
+	}
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+NextMenuShortcut(ByRef intShortcut)
+;------------------------------------------------------------
+{
+	if (intShortcut < 10)
+		strShortcut := intShortcut ; 0 .. 9
+	else
+		strShortcut := Chr(intShortcut + 55) ; Chr(10 + 55) = "A" .. Chr(35 + 55) = "Z"
+	
+	intShortcut := intShortcut + 1
+	return strShortcut
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue)
+; strIconValue can be an item from strIconsMenus (eg: "Folder") or a "file,index" combo (eg: "imageres.dll,33")
+;------------------------------------------------------------
+{
+	global g_intIconSize
+	global g_blnDisplayIcons
+	global g_objIconsFile ; ok
+	global g_objIconsIndex ; ok
+	global g_blnMainIsFirstColumn
+
+	if !StrLen(strMenuItemName)
+		return
+	
+	; The names of menus and menu items can be up to 260 characters long.
+	if StrLen(strMenuItemName) > 260
+		strMenuItemName := SubStr(strMenuItemName, 1, 256) . "..." ; minus one for the luck ;-)
+	
+	Menu, %strMenuName%, Add, %strMenuItemName%, %strLabel%
+	if (g_blnDisplayIcons) and ((A_OSVersion <> "WIN_XP") or g_blnMainIsFirstColumn or (strMenuName <> lMainMenuName))
+		; under Win_XP, display icons in main menu only when in first column (for other menus, this fuction is not called)
+	{
+		Menu, %strMenuName%, UseErrorLevel, on
+		if InStr(strIconValue, ",")
+			ParseIconResource(strIconValue, strIconFile, intIconIndex)
+		else
+		{
+			strIconFile := g_objIconsFile[strIconValue]
+			intIconIndex := g_objIconsIndex[strIconValue]
+		}
+		
+		Menu, %strMenuName%, Icon, %strMenuItemName%, %strIconFile%, %intIconIndex%, %g_intIconSize%
+		if (ErrorLevel)
+			Menu, %strMenuName%, Icon, %strMenuItemName%
+				, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
+		Menu, %strMenuName%, UseErrorLevel, off
+	}
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+InsertColumnBreaks:
+; Based on Lexikos
+; http://www.autohotkey.com/board/topic/69553-menu-with-columns-problem-with-adding-column-separator/#entry440866
+;------------------------------------------------------------
+
+VarSetCapacity(mii, cb:=16+8*A_PtrSize, 0) ; A_PtrSize is used for 64-bit compatibility.
+NumPut(cb, mii, "uint")
+NumPut(0x100, mii, 4, "uint") ; fMask = MIIM_FTYPE
+NumPut(0x20, mii, 8, "uint") ; fType = MFT_MENUBARBREAK
+
+for intIndex, objMenuColumnBreak in g_objMenuColumnBreaks
+{
+	pMenuHandle := GetMenuHandle(objMenuColumnBreak.MenuName) 
+	DllCall("SetMenuItemInfo", "ptr", pMenuHandle, "uint", objMenuColumnBreak.MenuPosition, "int", 1, "ptr", &mii)
+}
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetMenuHandle(strMenuName)
+; from MenuIcons v2 by Lexikos
+; http://www.autohotkey.com/board/topic/20253-menu-icons-v2/
+;------------------------------------------------------------
+{
+	static pMenuDummy
+	
+	; v2.2: Check for !pMenuDummy instead of pMenuDummy="" in case init failed last time.
+	If !pMenuDummy
+	{
+		Menu, menuDummy, Add
+		Menu, menuDummy, DeleteAll
+		
+		Gui, 99:Menu, menuDummy
+		; v2.2: Use LastFound method instead of window title. [Thanks animeaime.]
+		Gui, 99:+LastFound
+		
+		pMenuDummy := DllCall("GetMenu", "uint", WinExist())
+		
+		Gui, 99:Menu
+		Gui, 99:Destroy
+		
+		; v2.2: Return only after cleaning up. [Thanks animeaime.]
+		if !pMenuDummy
+			return 0
+	}
+
+	Menu, menuDummy, Add, :%strMenuName%
+	pMenu := DllCall( "GetSubMenu", "uint", pMenuDummy, "int", 0 )
+	DllCall( "RemoveMenu", "uint", pMenuDummy, "uint", 0, "uint", 0x400 )
+	Menu, menuDummy, Delete, :%strMenuName%
+
+	return pMenu
+}
+;------------------------------------------------------------
+
+
 
 ;========================================================================================================================
 ; POPUP MENU
@@ -1328,6 +1633,73 @@ return
 ;========================================================================================================================
 ; END OF POPUP MENU
 ;========================================================================================================================
+
+
+
+;========================================================================================================================
+; ABOUT-DONATE-HELP
+;========================================================================================================================
+
+;------------------------------------------------------------
+GuiDonate:
+;------------------------------------------------------------
+
+g_intGui1WinID := WinExist("A")
+Gui, 1:Submit, NoHide
+
+Gui, 2:New, , % L(lDonateTitle, g_strAppNameText, g_strAppVersion)
+if (g_blnUseColors)
+	Gui, 2:Color, %g_strGuiWindowColor%
+Gui, 2:+Owner1
+Gui, 2:Font, s12 w700, Verdana
+Gui, 2:Add, Link, y10 w420, % L(lDonateText1, g_strAppNameText)
+Gui, 2:Font, s8 w400, Verdana
+Gui, 2:Add, Link, x175 w185 y+10, % L(lDonateText2, "http://code.jeanlalonde.ca/support-freeware/")
+loop, 2
+{
+	Gui, 2:Add, Button, % (A_Index = 1 ? "y+10 Default vbtnDonateDefault " : "") . " xm w150 gButtonDonate" . A_Index, % lDonatePlatformName%A_Index%
+	Gui, 2:Add, Link, x+10 w235 yp, % lDonatePlatformComment%A_Index%
+}
+
+Gui, 2:Font, s10 w700, Verdana
+Gui, 2:Add, Link, xm y+20 w420, %lDonateText3%
+Gui, 2:Font, s8 w400, Verdana
+Gui, 2:Add, Link, xm y+10 w420 Section, % L(lDonateText4, g_strAppNameText)
+
+strDonateReviewUrlLeft1 := "http://download.cnet.com/FoldersPopup/3000-2344_4-76062382.html"
+strDonateReviewUrlLeft2 := "http://www.portablefreeware.com/index.php?id=2557"
+strDonateReviewUrlLeft3 := "http://www.softpedia.com/get/System/OS-Enhancements/FoldersPopup.shtml"
+strDonateReviewUrlRight1 := "http://fileforum.betanews.com/detail/Folders-Popup/1385175626/1"
+strDonateReviewUrlRight2 := "http://www.filecluster.com/System-Utilities/Other-Utilities/Download-FoldersPopup.html"
+strDonateReviewUrlRight3 := "http://freewares-tutos.blogspot.fr/2013/12/folders-popup-un-logiciel-portable-pour.html"
+
+loop, 3
+	Gui, 2:Add, Link, % (A_Index = 1 ? "ys+20" : "y+5") . " x25 w150", % "<a href=""" . strDonateReviewUrlLeft%A_Index% . """>" . lDonateReviewNameLeft%A_Index% . "</a>"
+
+loop, 3
+	Gui, 2:Add, Link, % (A_Index = 1 ? "ys+20" : "y+5") . " x175 w150", % "<a href=""" . strDonateReviewUrlRight%A_Index% . """>" . lDonateReviewNameRight%A_Index% . "</a>"
+
+Gui, 2:Add, Link, y+10 x130, <a href="http://code.jeanlalonde.ca/support-freeware/">%lDonateText5%</a>
+
+Gui, 2:Font, s8 w400, Verdana
+Gui, 2:Add, Button, x175 y+20 g2GuiClose vbtnDonateClose, %lGui2Close%
+GuiCenterButtons(L(lDonateTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnDonateClose")
+
+GuiControl, Focus, btnDonateDefault
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+strDonateReviewUrlLeft1 := ""
+strDonateReviewUrlLeft2 := ""
+strDonateReviewUrlLeft3 := ""
+strDonateReviewUrlRight1 := ""
+strDonateReviewUrlRight2 := ""
+strDonateReviewUrlRight3 := ""
+
+return
+;------------------------------------------------------------
+
+
 
 
 
@@ -1745,5 +2117,131 @@ Diag(strName, strData)
 	until !ErrorLevel or (A_Index > 50) ; after 1 second (20ms x 50), we have a problem
 }
 ;------------------------------------------------
+
+
+;------------------------------------------------------------
+IsColumnBreak(strMenuName)
+;------------------------------------------------------------
+{
+	global g_strGuiMenuColumnBreak
+
+	return (SubStr(strMenuName, 1, StrLen(g_strGuiMenuColumnBreak)) = g_strGuiMenuColumnBreak)
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ParseIconResource(strIconResource, ByRef strIconFile, ByRef intIconIndex, strDefaultType := "")
+;------------------------------------------------------------
+{
+	global g_objIconsFile ; ok
+	global g_objIconsIndex ; ok
+	
+	if !StrLen(strDefaultType)
+		strDefaultType := "UnknownDocument"
+	
+	if StrLen(strIconResource)
+		If InStr(strIconResource, ",") ; this is icongroup files
+		{
+			intIconResourceCommaPosition := InStr(strIconResource, ",", , 0) ; search reverse
+			StringLeft, strIconFile, strIconResource, % intIconResourceCommaPosition - 1
+			StringRight, intIconIndex, strIconResource, % StrLen(strIconResource) - intIconResourceCommaPosition
+		}
+		else
+		{
+			strIconFile := strIconResource
+			intIconIndex := 1
+		}
+	else
+	{
+		strIconFile := g_objIconsFile[strDefaultType]
+		intIconIndex := g_objIconsIndex[strDefaultType]
+	}
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetIcon4Location(strLocation, ByRef strDefaultIcon, ByRef intDefaultIcon, blnRadioApplication := false)
+; get icon, extract from kiu http://www.autohotkey.com/board/topic/8616-kiu-icons-manager-quickly-change-icon-files/
+;------------------------------------------------------------
+{
+	global g_blnDiagMode
+	global g_objIconsFile
+	global g_objIconsIndex
+	
+	if !StrLen(strLocation)
+	{
+		if (blnRadioApplication)
+		{
+			strDefaultIcon := g_objIconsFile["Application"]
+			intDefaultIcon := g_objIconsIndex["Application"]
+		}
+		else
+		{
+			strDefaultIcon := g_objIconsFile["UnknownDocument"]
+			intDefaultIcon := g_objIconsIndex["UnknownDocument"]
+		}
+		return
+	}
+	
+	SplitPath, strLocation, , , strExtension
+	RegRead, strHKeyClassRoot, HKEY_CLASSES_ROOT, .%strExtension%
+	RegRead, strRegistryIconResource, HKEY_CLASSES_ROOT, %strHKeyClassRoot%\DefaultIcon
+	if (g_blnDiagMode)
+	{
+		Diag("BuildOneMenuIcon", strLocation)
+		Diag("strHKeyClassRoot", strHKeyClassRoot)
+		Diag("strRegistryIconResource", strRegistryIconResource)
+	}
+	
+	if (strRegistryIconResource = "%1") ; use the file itself (for executable)
+	{
+		strDefaultIcon := strLocation
+		intDefaultIcon := 1
+		return
+	}
+	
+	ParseIconResource(strRegistryIconResource, strDefaultIcon, intDefaultIcon)
+
+	if (g_blnDiagMode)
+	{
+		Diag("strDefaultIcon", strDefaultIcon)
+		Diag("intDefaultIcon", intDefaultIcon)
+	}
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiCenterButtons(strWindow, intInsideHorizontalMargin := 10, intInsideVerticalMargin := 0, intDistanceBetweenButtons := 20, arrControls*)
+; This is a variadic function. See: http://ahkscript.org/docs/Functions.htm#Variadic
+;------------------------------------------------------------
+{
+	Gui, Show, Hide ; why?
+	WinGetPos, , , intWidth, , %strWindow%
+
+	intMaxControlWidth := 0
+	intMaxControlHeight := 0
+	for intIndex, strControl in arrControls
+	{
+		GuiControlGet, arrControlPos, Pos, %strControl%
+		if (arrControlPosW > intMaxControlWidth)
+			intMaxControlWidth := arrControlPosW
+		if (arrControlPosH > intMaxControlHeight)
+			intMaxControlHeight := arrControlPosH
+	}
+	
+	intMaxControlWidth := intMaxControlWidth + intInsideHorizontalMargin
+	intButtonsWidth := (arrControls.MaxIndex() * intMaxControlWidth) + ((arrControls.MaxIndex()  - 1) * intDistanceBetweenButtons)
+	intLeftMargin := (intWidth - intButtonsWidth) // 2
+
+	for intIndex, strControl in arrControls
+		GuiControl, Move, %strControl%
+			, % "x" . intLeftMargin + ((intIndex - 1) * intMaxControlWidth) + ((intIndex - 1) * intDistanceBetweenButtons)
+			. " w" . intMaxControlWidth
+			. " h" . intMaxControlHeight + intInsideVerticalMargin
+}
+;------------------------------------------------------------
 
 
