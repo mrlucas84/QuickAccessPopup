@@ -136,9 +136,6 @@ g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . ".ini"
 
 g_blnMenuReady := false
 
-g_objMenuInGui := Object() ; object of menu currently in Gui
-g_objMenuIndex := Object() ; index of menu path used in Gui menu dropdown list
-
 g_objMenuColumnBreaks := Object()
 
 g_arrSubmenuStack := Object()
@@ -209,7 +206,7 @@ Gosub, BuildFoldersInExplorerMenuInit ; need to be initialized here - will be up
 Gosub, BuildGroupMenuInit
 Gosub, BuildClipboardMenuInit
 
-Gosub, BuildMainMenu
+; Gosub, BuildMainMenu
 
 ###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
 ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
@@ -1084,51 +1081,15 @@ IniRead, blnMySystemFoldersBuilt, %g_strIniFile%, Global, MySystemFoldersBuilt, 
 ; ### if !(blnMySystemFoldersBuilt) and (A_OSVersion <> "WIN_XP")
 ; 	Gosub, AddToIniMySystemFoldersMenu ; modify the ini file Folders section before reading it
 
-Loop ####
-{
-	IniRead, strLoadIniLine, %g_strIniFile%, Favorites, Favorite%A_Index%
-	if (strLoadIniLine = "ERROR")
-		Break
-	strLoadIniLine := strLoadIniLine . "|||" ; additional "|" to make sure we have all empty items
-	; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
-	StringSplit, arrThisFavorite, strLoadIniLine, |
-
-	objLoadIniFavorite := Object() ; new menu item
-	objLoadIniFavorite.FavoriteName := arrThisFavorite1 ; display name of this menu item
-	objLoadIniFavorite.FavoriteLocation := arrThisFavorite2 ; path for this menu item
-	objLoadIniFavorite.MenuName := lMainMenuName . arrThisFavorite3 ; parent menu of this menu item, adding main menu name
-
-	if StrLen(arrThisFavorite4)
-		objLoadIniFavorite.SubmenuFullName := lMainMenuName . arrThisFavorite4 ; full name of the submenu, adding main menu name
-	else
-		objLoadIniFavorite.SubmenuFullName := ""
-	
-	if StrLen(arrThisFavorite5)
-		
-		objLoadIniFavorite.FavoriteType := arrThisFavorite5 ; "F" folder, "D" document, "U" URL or "S" submenu
-		
-	else ; for upward compatibility from v1 and v2 ini files
-		if StrLen(objLoadIniFavorite.SubmenuFullName)
-			objLoadIniFavorite.FavoriteType := "S" ; "S" submenu
-		else ; for upward compatibility from v1 ini files
-			objLoadIniFavorite.FavoriteType := "F" ; "F" folder
-
-	objLoadIniFavorite.IconResource := arrThisFavorite6 ; icon resource in format "iconfile,iconindex"
-	objLoadIniFavorite.AppArguments := arrThisFavorite7 ; application arguments
-	objLoadIniFavorite.AppWorkingDir := arrThisFavorite8 ; application working directory
-
-	if (objLoadIniFavorite.FavoriteType = "S") ; then this is a new submenu
-	{
-		arrSubMenu := Object() ; create submenu
-		g_arrMenus.Insert(objLoadIniFavorite.SubmenuFullName, arrSubMenu) ; add this submenu to the array of menus
-	}
-	g_arrMenus[objLoadIniFavorite.MenuName].Insert(objLoadIniFavorite) ; add this menu item to parent menu
-}
-
 IfNotExist, %g_strIniFile%
 {
 	Oops(lOopsWriteProtectedError, g_strAppNameText)
 	ExitApp
+}
+else
+{
+	g_intIniLine := 1
+	###_D("RecursiveLoadMenuFromIni MAIN result: " . RecursiveLoadMenuFromIni(g_objMainMenu)) ; build menu tree
 }
 
 strIniBackupFile := ""
@@ -1148,9 +1109,81 @@ strLoadIniLine := ""
 arrThisFavorite := ""
 objLoadIniFavorite := ""
 arrSubMenu := ""
+g_intIniLine := ""
 
 return
 ;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RecursiveLoadMenuFromIni(objCurrentMenu)
+;------------------------------------------------------------
+{
+	global g_objMenuIndex
+	global g_strIniFile
+	global g_intIniLine
+	global g_strMenuPathSeparator
+	
+	###_D("Begin RecursiveLoadMenuFromIni: " . objCurrentMenu.MenuPath)
+	g_objMenuIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
+
+	Loop
+	{
+		IniRead, strLoadIniLine, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
+		g_intIniLine += 1
+
+		if (strLoadIniLine = "ERROR")
+			Return, "EOF" ; end of file - should not happen if main menu ends with a "X" type favorite as expected
+		
+		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
+		;  * 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteAppArguments, 6 FavoriteAppWorkingDir, 7 FavoritePositionSize, 8 FavoriteHotkey
+		StringSplit, arrThisFavorite, strLoadIniLine, |
+
+		if (arrThisFavorite1 = "X")
+			return, "EOM" ; end of menu
+		
+		objLoadIniFavorite := Object() ; new menu item
+		
+		if (arrThisFavorite1 = "M") ; begin a submenu
+		{
+			objNewMenu := Object() ; create the submenu object
+			objNewMenu.MenuPath := objCurrentMenu.MenuPath . " " . g_strMenuPathSeparator . " " . arrThisFavorite2
+			
+			; create a navigation entry to navigate to the parent menu
+			objNewMenuBack := Object()
+			objNewMenuBack.FavoriteType := "B" ; for Back
+			objNewMenuBack.FavoriteName := ".. (" . objCurrentMenu.MenuPath . ")" ; name is optional but it must start with ".."
+			objNewMenuBack.SubMenu := objCurrentMenu ; this is the link to the parent menu
+			objNewMenu.Insert(objNewMenuBack)
+			
+			; build the submenu
+			###_D("Going deeper for: " . objNewMenu.MenuPath)
+			strResult := RecursiveLoadMenuFromIni(objNewMenu) ; RECURSIVE
+			###_D("Coming back from : " . objNewMenu.MenuPath . "`nwith result: " . strResult)
+			
+			if (strResult = "EOF") ; end of file was encountered while building this submenu, exit recursive function
+				Return, %strResult%
+		}
+		
+		; this is a regular favorite, add it to the current menu
+		objLoadIniFavorite.FavoriteType := arrThisFavorite1 ; see Favorite Types
+		objLoadIniFavorite.FavoriteName := arrThisFavorite2 ; display name of this menu item
+		objLoadIniFavorite.FavoriteLocation := arrThisFavorite3 ; path, URL for this menu item
+		objLoadIniFavorite.FavoriteIconResource := arrThisFavorite4 ; icon resource in format "iconfile,iconindex"
+		objLoadIniFavorite.FavoriteAppArguments := arrThisFavorite5 ; application arguments
+		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
+		objLoadIniFavorite.FavoritePositionSize := arrThisFavorite7 ; Left,Top,Width,Height (comma delimited)
+		objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
+		
+		; this is a submenu favorite, link to the submenu object
+		if (arrThisFavorite1 = "M")
+			objLoadIniFavorite.SubMenu := objNewMenu
+
+		; update the current menu object
+		objCurrentMenu.Insert(objLoadIniFavorite)
+	}
+}
+;-----------------------------------------------------------
 
 
 ;-----------------------------------------------------------
@@ -1322,7 +1355,7 @@ Menu, %lMainMenuName%, DeleteAll
 if (g_blnUseColors)
 	Menu, %lMainMenuName%, Color, %g_strMenuBackgroundColor%
 
-BuildOneMenuRecursive(g_objMainMenu) ; recurse for submenus
+RecursiveBuildOneMenu(g_objMainMenu) ; recurse for submenus
 
 if !IsColumnBreak(g_arrMenus[lMainMenuName][g_arrMenus[lMainMenuName].MaxIndex()].FavoriteName)
 ; column break not allowed if first item is a separator
@@ -1375,7 +1408,7 @@ return
 
 
 ;------------------------------------------------------------
-BuildOneMenuRecursive(objCurrentMenu)
+RecursiveBuildOneMenu(objCurrentMenu)
 ;------------------------------------------------------------
 {
 	global g_blnDisplayMenuShortcuts
@@ -1407,7 +1440,7 @@ BuildOneMenuRecursive(objCurrentMenu)
 			strSubMenuDisplayName := arrThisMenu[A_Index].FavoriteName
 			strSubMenuParent := arrThisMenu[A_Index].MenuName
 			
-			BuildOneMenuRecursive(strSubMenuFullName) ; recursive call
+			RecursiveBuildOneMenu(strSubMenuFullName) ; recursive call
 			if (g_blnUseColors)
 				Try Menu, %strSubMenuParent%, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
 			
