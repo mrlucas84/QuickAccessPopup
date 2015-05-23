@@ -208,6 +208,7 @@ Gosub, BuildClipboardMenuInit
 
 Gosub, BuildMainMenu
 
+Menu, % g_objMainMenu.MenuPath, Show ; ### TEMP
 ###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
 ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
 
@@ -1350,8 +1351,6 @@ if (A_ThisLabel = "BuildMainMenuWithStatus")
 	TrayTip, % L(lTrayTipWorkingTitle, g_strAppNameText, g_strAppVersion)
 		, %lTrayTipWorkingDetail%, , 1
 
-g_blnMainIsFirstColumn := True
-
 Menu, %lMainMenuName%, Add
 Menu, %lMainMenuName%, DeleteAll
 if (g_blnUseColors)
@@ -1420,6 +1419,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	global g_objMenuColumnBreaks
 	global g_objIconsFile
 	global g_objIconsIndex
+	global g_blnUseColors
 	
 	intShortcut := 0
 	
@@ -1435,97 +1435,87 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		intMenuItemsCount += 1 ; for objMenuColumnBreak
 		intMenuArrayItemsCount += 1 ; for objMenuColumnBreak
 		
-		blnIsBackMenu := (objCurrentMenu[A_Index].FavoriteType = "B")
-		###_D(A_Index . "/" . objCurrentMenu.MaxIndex() . " " . objCurrentMenu[A_Index].FavoriteName . " (" . objCurrentMenu[A_Index].FavoriteType . ")")
-		if (blnIsBackMenu)
+		if (objCurrentMenu[A_Index].FavoriteType = "B")
 			continue
 		
-		if (objCurrentMenu[A_Index].FavoriteType = "M") and !(blnIsBackMenu)
+		if (objCurrentMenu[A_Index].FavoriteType = "M")
 		{
-			###_D("Going down in objCurrentMenu[A_Index].SubMenu.MenuPath: " . objCurrentMenu[A_Index].SubMenu.MenuPath)
 			RecursiveBuildOneMenu(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
-			###_D("Return from objCurrentMenu[A_Index].SubMenu.MenuPath: " . objCurrentMenu[A_Index].SubMenu.MenuPath
-				. "`nBack to objCurrentMenu.MenuPath: " . objCurrentMenu.MenuPath . ", objCurrentMenu[A_Index].FavoriteName: " . objCurrentMenu[A_Index].FavoriteName)
 			
 			if (g_blnUseColors)
-				Try Menu, % objCurrentMenu[A_Index].MenuPath, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
+				Try Menu, % objCurrentMenu.MenuPath, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
 			
 			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
-			Try Menu, % objCurrentMenu[A_Index].MenuPath, Add, objCurrentMenu[A_Index].FavoriteName, % ":" . objCurrentMenu[A_Index].MenuPath
+			Try Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, % ":" . objCurrentMenu[A_Index].SubMenu.MenuPath
 			catch e ; when menu is empty
 			{
 				Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, OpenFavorite ; will never be called because disabled
 				Menu, % objCurrentMenu.MenuPath, Disable, % objCurrentMenu[A_Index].FavoriteName
 			}
-			Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if empty ### ??? duplicate with catch ???
-;			if (g_blnDisplayIcons and (A_OSVersion <> "WIN_XP" or blnIsFirstColumn))
-;			{
-;				ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex, "Submenu")
-;
-;				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, on
-;				Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
-;					, %strThisIconFile%, %intThisIconIndex% , %g_intIconSize%
-;				if (ErrorLevel)
-;					Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
-;						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
-;				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, off
-;			}
+			; Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if empty ### ??? duplicate with catch ???
+			if (g_blnDisplayIcons)
+			{
+				ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "Submenu")
+
+				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, on
+				Menu, % objCurrentMenu.MenuPath, Icon, % objCurrentMenu[A_Index].FavoriteName
+					, %strThisIconFile%, %intThisIconIndex% , %g_intIconSize%
+				if (ErrorLevel)
+					Menu, % objCurrentMenu.MenuPath, Icon, % objCurrentMenu[A_Index].FavoriteName
+						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
+				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, off
+			}
 		}
 		
-;		else if (objCurrentMenu[A_Index].FavoriteName = g_strGuiMenuSeparator) ; this is a separator
-;			
-;			if IsColumnBreak(objCurrentMenu[A_Index - 1].FavoriteName)
-;				intMenuItemsCount -= 1 ; separator not allowed as first item is a column, skip it
-;			else
-;				Menu, % objCurrentMenu[A_Index].MenuPath, Add
-;			
-;		else if IsColumnBreak(objCurrentMenu[A_Index].FavoriteName)
-;		{
-;			blnIsFirstColumn := False
-;			if (strMenu = lMainMenuName)
-;				g_blnMainIsFirstColumn := False
-;			intMenuItemsCount -= 1
-;			objMenuColumnBreak := Object()
-;			objMenuColumnBreak.MenuName := strMenu
-;			objMenuColumnBreak.MenuPosition := intMenuItemsCount
-;			objMenuColumnBreak.MenuArrayPosition := intMenuArrayItemsCount
-;			g_objMenuColumnBreaks.Insert(objMenuColumnBreak)
-;		}
+		else if (objCurrentMenu[A_Index].FavoriteName = g_strGuiMenuSeparator) ; this is a separator
+			
+			if IsColumnBreak(objCurrentMenu[A_Index - 1].FavoriteName)
+				intMenuItemsCount -= 1 ; separator not allowed as first item is a column, skip it
+			else
+				Menu, % objCurrentMenu.MenuPath, Add
+			
+		else if IsColumnBreak(objCurrentMenu[A_Index].FavoriteName)
+		{
+			intMenuItemsCount -= 1
+			objMenuColumnBreak := Object()
+			objMenuColumnBreak.MenuPath := objCurrentMenu.MenuPath
+			objMenuColumnBreak.MenuPosition := intMenuItemsCount
+			objMenuColumnBreak.MenuArrayPosition := intMenuArrayItemsCount
+			g_objMenuColumnBreaks.Insert(objMenuColumnBreak)
+		}
 		else ; this is a favorite (folder, document, application or URL)
 		{
-			strSubMenuDisplayName := arrThisMenu[A_Index].FavoriteName
-/*
+			strSubMenuDisplayName := objCurrentMenu[A_Index].FavoriteName
 			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "")
 				. strSubMenuDisplayName
-			Menu, % arrThisMenu[A_Index].MenuName, Add, %strMenuName%, OpenFavorite
+			Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavorite
 
-			if (g_blnDisplayIcons and (A_OSVersion <> "WIN_XP" or blnIsFirstColumn))
+			if (g_blnDisplayIcons)
 			{
-				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, on
-				if (arrThisMenu[A_Index].FavoriteType = "F") ; this is a folder
-					ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex, "Folder")
-				else if (arrThisMenu[A_Index].FavoriteType = "U") ; this is an URL
-					if StrLen(arrThisMenu[A_Index].IconResource)
-						ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex)
+				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, on
+				if (objCurrentMenu[A_Index].FavoriteType = "F") ; this is a folder
+					ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "Folder")
+				else if (objCurrentMenu[A_Index].FavoriteType = "U") ; this is an URL
+					if StrLen(objCurrentMenu[A_Index].FavoriteIconResource)
+						ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex)
 					else
 						GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strThisIconFile, intThisIconIndex)
 						; not sure it is required to have a physical file with .html extension - but keep it as is by safety
 				else ; this is a document
-					if StrLen(arrThisMenu[A_Index].IconResource)
-						ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex)
+					if StrLen(objCurrentMenu[A_Index].FavoriteIconResource)
+						ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex)
 					else
-						GetIcon4Location(arrThisMenu[A_Index].FavoriteLocation, strThisIconFile, intThisIconIndex)
+						GetIcon4Location(objCurrentMenu[A_Index].FavoriteLocation, strThisIconFile, intThisIconIndex)
 					
 				ErrorLevel := 0 ; for safety clear in case Menu is not called in next if
 				if StrLen(strThisIconFile)
-					Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%, %strThisIconFile%, %intThisIconIndex%, %g_intIconSize%
+					Menu, % objCurrentMenu.MenuPath, Icon, %strMenuName%, %strThisIconFile%, %intThisIconIndex%, %g_intIconSize%
 				if (!StrLen(strThisIconFile) or ErrorLevel)
-					Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
+					Menu, % objCurrentMenu.MenuPath, Icon, %strMenuName%
 						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
 						
-				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, off
+				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, off
 			}
-*/
 		}
 	}
 }
@@ -1645,6 +1635,7 @@ GetMenuHandle(strMenuName)
 	return pMenu
 }
 ;------------------------------------------------------------
+
 
 
 ;========================================================================================================================
