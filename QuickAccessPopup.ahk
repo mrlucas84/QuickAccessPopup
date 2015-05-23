@@ -206,7 +206,7 @@ Gosub, BuildFoldersInExplorerMenuInit ; need to be initialized here - will be up
 Gosub, BuildGroupMenuInit
 Gosub, BuildClipboardMenuInit
 
-; Gosub, BuildMainMenu
+Gosub, BuildMainMenu
 
 ###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
 ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
@@ -215,7 +215,7 @@ return
 
 
 ;========================================================================================================================
-; INITIALIZATION
+; INITIALIZATION SUBROUTINES
 ;========================================================================================================================
 
 ;-----------------------------------------------------------
@@ -1265,6 +1265,16 @@ return
 ;------------------------------------------------------------
 
 
+
+;========================================================================================================================
+; END OF INITIALIZATION
+;========================================================================================================================
+
+
+;========================================================================================================================
+; EXIT
+;========================================================================================================================
+
 ;-----------------------------------------------------------
 CleanUpBeforeExit:
 ;-----------------------------------------------------------
@@ -1279,12 +1289,6 @@ if (g_blnDiagMode)
 }
 ExitApp
 ;-----------------------------------------------------------
-
-
-
-;========================================================================================================================
-; END OF INITIALIZATION
-;========================================================================================================================
 
 
 
@@ -1425,67 +1429,72 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	
 	intMenuItemsCount := 0
 	intMenuArrayItemsCount := 0
-	###_D(objCurrentMenu.MaxIndex())
 	
 	Loop, % objCurrentMenu.MaxIndex()
 	{	
-		intMenuItemsCount := intMenuItemsCount + 1
-		intMenuArrayItemsCount := intMenuArrayItemsCount + 1
+		intMenuItemsCount += 1 ; for objMenuColumnBreak
+		intMenuArrayItemsCount += 1 ; for objMenuColumnBreak
 		
-		if (arrThisMenu[A_Index].FavoriteType = "S") ; this is a submenu
+		blnIsBackMenu := (objCurrentMenu[A_Index].FavoriteType = "B")
+		###_D(A_Index . "/" . objCurrentMenu.MaxIndex() . " " . objCurrentMenu[A_Index].FavoriteName . " (" . objCurrentMenu[A_Index].FavoriteType . ")")
+		if (blnIsBackMenu)
+			continue
+		
+		if (objCurrentMenu[A_Index].FavoriteType = "M") and !(blnIsBackMenu)
 		{
-			strSubMenuFullName := arrThisMenu[A_Index].SubmenuFullName
-			strSubMenuDisplayName := arrThisMenu[A_Index].FavoriteName
-			strSubMenuParent := arrThisMenu[A_Index].MenuName
+			###_D("Going down in objCurrentMenu[A_Index].SubMenu.MenuPath: " . objCurrentMenu[A_Index].SubMenu.MenuPath)
+			RecursiveBuildOneMenu(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
+			###_D("Return from objCurrentMenu[A_Index].SubMenu.MenuPath: " . objCurrentMenu[A_Index].SubMenu.MenuPath
+				. "`nBack to objCurrentMenu.MenuPath: " . objCurrentMenu.MenuPath . ", objCurrentMenu[A_Index].FavoriteName: " . objCurrentMenu[A_Index].FavoriteName)
 			
-			RecursiveBuildOneMenu(strSubMenuFullName) ; recursive call
 			if (g_blnUseColors)
-				Try Menu, %strSubMenuParent%, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
+				Try Menu, % objCurrentMenu[A_Index].MenuPath, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
 			
-			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strSubMenuDisplayName
-			Try Menu, %strSubMenuParent%, Add, %strMenuName%, % ":" . strSubMenuFullName
+			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
+			Try Menu, % objCurrentMenu[A_Index].MenuPath, Add, objCurrentMenu[A_Index].FavoriteName, % ":" . objCurrentMenu[A_Index].MenuPath
 			catch e ; when menu is empty
 			{
-				Menu, % arrThisMenu[A_Index].MenuName, Add, %strMenuName%, OpenFavorite ; will never be called because disabled
-				Menu, % arrThisMenu[A_Index].MenuName, Disable, %strMenuName%
+				Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, OpenFavorite ; will never be called because disabled
+				Menu, % objCurrentMenu.MenuPath, Disable, % objCurrentMenu[A_Index].FavoriteName
 			}
-			Menu, % arrThisMenu[A_Index].MenuName, % (g_arrMenus[strSubMenuFullName].MaxIndex() ? "Enable" : "Disable"), %strMenuName% ; disable menu if empty
-			if (g_blnDisplayIcons and (A_OSVersion <> "WIN_XP" or blnIsFirstColumn))
-			{
-				ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex, "Submenu")
-
-				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, on
-				Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
-					, %strThisIconFile%, %intThisIconIndex% , %g_intIconSize%
-				if (ErrorLevel)
-					Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
-						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
-				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, off
-			}
+			Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if empty ### ??? duplicate with catch ???
+;			if (g_blnDisplayIcons and (A_OSVersion <> "WIN_XP" or blnIsFirstColumn))
+;			{
+;				ParseIconResource(arrThisMenu[A_Index].IconResource, strThisIconFile, intThisIconIndex, "Submenu")
+;
+;				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, on
+;				Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
+;					, %strThisIconFile%, %intThisIconIndex% , %g_intIconSize%
+;				if (ErrorLevel)
+;					Menu, % arrThisMenu[A_Index].MenuName, Icon, %strMenuName%
+;						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
+;				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, off
+;			}
 		}
 		
-		else if (arrThisMenu[A_Index].FavoriteName = g_strGuiMenuSeparator) ; this is a separator
-			
-			if IsColumnBreak(arrThisMenu[A_Index - 1].FavoriteName)
-				intMenuItemsCount := intMenuItemsCount - 1 ; separator not allowed as first item is a column, skip it
-			else
-				Menu, % arrThisMenu[A_Index].MenuName, Add
-			
-		else if IsColumnBreak(arrThisMenu[A_Index].FavoriteName)
-		{
-			blnIsFirstColumn := False
-			if (strMenu = lMainMenuName)
-				g_blnMainIsFirstColumn := False
-			intMenuItemsCount := intMenuItemsCount - 1
-			objMenuColumnBreak := Object()
-			objMenuColumnBreak.MenuName := strMenu
-			objMenuColumnBreak.MenuPosition := intMenuItemsCount
-			objMenuColumnBreak.MenuArrayPosition := intMenuArrayItemsCount
-			g_objMenuColumnBreaks.Insert(objMenuColumnBreak)
-		}
+;		else if (objCurrentMenu[A_Index].FavoriteName = g_strGuiMenuSeparator) ; this is a separator
+;			
+;			if IsColumnBreak(objCurrentMenu[A_Index - 1].FavoriteName)
+;				intMenuItemsCount -= 1 ; separator not allowed as first item is a column, skip it
+;			else
+;				Menu, % objCurrentMenu[A_Index].MenuPath, Add
+;			
+;		else if IsColumnBreak(objCurrentMenu[A_Index].FavoriteName)
+;		{
+;			blnIsFirstColumn := False
+;			if (strMenu = lMainMenuName)
+;				g_blnMainIsFirstColumn := False
+;			intMenuItemsCount -= 1
+;			objMenuColumnBreak := Object()
+;			objMenuColumnBreak.MenuName := strMenu
+;			objMenuColumnBreak.MenuPosition := intMenuItemsCount
+;			objMenuColumnBreak.MenuArrayPosition := intMenuArrayItemsCount
+;			g_objMenuColumnBreaks.Insert(objMenuColumnBreak)
+;		}
 		else ; this is a favorite (folder, document, application or URL)
 		{
 			strSubMenuDisplayName := arrThisMenu[A_Index].FavoriteName
+/*
 			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "")
 				. strSubMenuDisplayName
 			Menu, % arrThisMenu[A_Index].MenuName, Add, %strMenuName%, OpenFavorite
@@ -1516,6 +1525,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 						
 				Menu, % arrThisMenu[A_Index].MenuName, UseErrorLevel, off
 			}
+*/
 		}
 	}
 }
@@ -1637,6 +1647,11 @@ GetMenuHandle(strMenuName)
 ;------------------------------------------------------------
 
 
+;========================================================================================================================
+; END OF BUILD
+;========================================================================================================================
+
+
 
 ;========================================================================================================================
 ; POPUP MENU
@@ -1665,6 +1680,33 @@ return
 ; END OF POPUP MENU
 ;========================================================================================================================
 
+
+
+;========================================================================================================================
+; CLASS
+;========================================================================================================================
+
+
+;========================================================================================================================
+; END OF CLASS
+;========================================================================================================================
+
+
+
+;========================================================================================================================
+; MENU ACTIONS
+;========================================================================================================================
+
+
+;------------------------------------------------------------
+OpenFavorite:
+return
+;------------------------------------------------------------
+
+
+;========================================================================================================================
+; END OF MENU ACTIONS
+;========================================================================================================================
 
 
 ;========================================================================================================================
@@ -1730,7 +1772,9 @@ strDonateReviewUrlRight3 := ""
 return
 ;------------------------------------------------------------
 
-
+;========================================================================================================================
+; END OF ABOUT-DONATE-HELP
+;========================================================================================================================
 
 
 
@@ -1919,6 +1963,11 @@ strFPconnectTargetPathFilename := ""
 
 return
 ;------------------------------------------------------------
+
+
+;========================================================================================================================
+; END OF THIRD-PARTY
+;========================================================================================================================
 
 
 
