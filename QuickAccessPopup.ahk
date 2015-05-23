@@ -66,7 +66,7 @@ g_typNameOfVariable
 
 */ 
 ;========================================================================================================================
-; --- COMPILER DIRECTIVES ---
+010_COMPILER_DIRECTIVES:
 ;========================================================================================================================
 
 ; Doc: http://fincs.ahk4.net/Ahk2ExeDirectives.htm
@@ -79,7 +79,7 @@ g_typNameOfVariable
 
 
 ;========================================================================================================================
-; INITIALIZATION
+011_INITIALIZATION:
 ;========================================================================================================================
 
 #NoEnv
@@ -207,8 +207,9 @@ Gosub, BuildGroupMenuInit
 Gosub, BuildClipboardMenuInit
 
 Gosub, BuildMainMenu
+Gosub, BuildGui
 
-Menu, % g_objMainMenu.MenuPath, Show ; ### TEMP
+; Menu, % g_objMainMenu.MenuPath, Show ; ### TEMP
 ###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
 ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
 
@@ -216,7 +217,72 @@ return
 
 
 ;========================================================================================================================
-; INITIALIZATION SUBROUTINES
+012_HOTKEYS:
+;========================================================================================================================
+
+/*
+; Gui Hotkeys
+#If WinActive("ahk_id " . strAppHwnd)
+
+^Up::
+if (LV_GetCount("Selected") > 1)
+	Gosub, GuiMoveMultipleFavoritesUp
+else
+	Gosub, GuiMoveFavoriteUp
+return
+
+^Down::
+if (LV_GetCount("Selected") > 1)
+	Gosub, GuiMoveMultipleFavoritesDown
+else
+	Gosub, GuiMoveFavoriteDown
+return
+
+^Right::
+Gosub, HotkeyChangeMenu
+return
+
+^Left::
+GuiControlGet, blnUpMenuVisible, Visible, picUpMenu
+if (blnUpMenuVisible)
+	Gosub, GuiGotoPreviousMenu
+return
+
+^A::
+LV_Modify(0, "Select")
+return
+
+^N::
+Gosub, GuiAddFavorite
+return
+
+Enter::
+if (LV_GetCount("Selected") > 1)
+	Gosub, GuiMoveMultipleFavorites
+else
+	Gosub, GuiEditFavorite
+return
+
+Del::
+if (LV_GetCount("Selected") > 1)
+	Gosub, GuiRemoveMultipleFavorites
+else
+	Gosub, GuiRemoveFavorite
+return
+
+#If
+; End of Gui Hotkeys
+
+*/
+
+;========================================================================================================================
+; END OF HOTKEYS
+;========================================================================================================================
+
+
+
+;========================================================================================================================
+015_INITIALIZATION_SUBROUTINES:
 ;========================================================================================================================
 
 ;-----------------------------------------------------------
@@ -1273,7 +1339,7 @@ return
 
 
 ;========================================================================================================================
-; EXIT
+017_EXIT:
 ;========================================================================================================================
 
 ;-----------------------------------------------------------
@@ -1292,9 +1358,14 @@ ExitApp
 ;-----------------------------------------------------------
 
 
+;========================================================================================================================
+; END OF EXIT
+;========================================================================================================================
+
+
 
 ;========================================================================================================================
-; BUILD
+020_BUILD:
 ;========================================================================================================================
 
 ;------------------------------------------------------------
@@ -1645,7 +1716,627 @@ GetMenuHandle(strMenuName)
 
 
 ;========================================================================================================================
-; POPUP MENU
+030_FAVORITES_LIST:
+;========================================================================================================================
+
+
+;------------------------------------------------------------
+BuildGui:
+;------------------------------------------------------------
+
+IniRead, strTextColor, %g_strIniFile%, Gui-%g_strTheme%, TextColor, 000000
+IniRead, strGuiListviewBackgroundColor, %g_strIniFile%, Gui-%g_strTheme%, ListviewBackground, FFFFFF
+IniRead, strGuiListviewTextColor, %g_strIniFile%, Gui-%g_strTheme%, ListviewText, 000000
+
+lGuiFullTitle := L(lGuiTitle, g_strAppNameText, g_strAppVersion)
+Gui, 1:New, +Resize -MinimizeBox +MinSize636x538, %lGuiFullTitle%
+
+Gui, +LastFound
+strAppHwnd := WinExist()
+
+if (g_blnUseColors)
+	Gui, 1:Color, %g_strGuiWindowColor%
+
+; Order of controls important to avoid drawgins gliches when resizing
+
+Gui, 1:Font, % "s12 w700 " . (g_blnUseColors ? "c" . strTextColor : ""), Verdana
+Gui, 1:Add, Text, vlblAppName x0 y0, %g_strAppNameText% %g_strAppVersion%
+Gui, 1:Font, s9 w400, Verdana
+Gui, 1:Add, Text, vlblAppTagLine, %lAppTagline%
+
+Gui, 1:Add, Picture, vpicGuiAddFavorite gGuiAddFavorite, %g_strTempDir%\add_property-48.png ; Static3
+Gui, 1:Add, Picture, vpicGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
+Gui, 1:Add, Picture, vpicGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static5
+Gui, 1:Add, Picture, vpicGuiGroupsManage gGuiGroupsManage x+1 yp, %g_strTempDir%\channel_mosaic-48.png ; Static6
+Gui, 1:Add, Picture, vpicGuiOptions gGuiOptions x+1 yp, %g_strTempDir%\settings-32.png ; Static7
+Gui, 1:Add, Picture, vpicPreviousMenu gGuiGotoPreviousMenu hidden x+1 yp, %g_strTempDir%\left-12.png ; Static8
+Gui, 1:Add, Picture, vpicUpMenu gGuiGotoUpMenu hidden x+1 yp, %g_strTempDir%\up-12.png ; Static9
+Gui, 1:Add, Picture, vpicMoveFavoriteUp gGuiMoveFavoriteUp x+1 yp, %g_strTempDir%\up_circular-26.png ; Static10
+Gui, 1:Add, Picture, vpicMoveFavoriteDown gGuiMoveFavoriteDown x+1 yp, %g_strTempDir%\down_circular-26.png ; Static11
+Gui, 1:Add, Picture, vpicAddSeparator gGuiAddSeparator x+1 yp, %g_strTempDir%\separator-26.png ; Static12
+Gui, 1:Add, Picture, vpicAddColumnBreak gGuiAddColumnBreak x+1 yp, %g_strTempDir%\column-26.png ; Static13
+Gui, 1:Add, Picture, vpicSortFavorites gGuiSortFavorites x+1 yp, %g_strTempDir%\generic_sorting2-26-grey.png ; Static14
+Gui, 1:Add, Picture, vpicGuiAbout gGuiAbout x+1 yp, %g_strTempDir%\about-32.png ; Static15
+Gui, 1:Add, Picture, vpicGuiHelp gGuiHelp x+1 yp, %g_strTempDir%\help-32.png ; Static16
+
+Gui, 1:Font, s8 w400, Arial ; button legend
+Gui, 1:Add, Text, vlblGuiOptions gGuiOptions x0 y+20, %lGuiOptions% ; Static17
+Gui, 1:Add, Text, vlblGuiAddFavorite center gGuiAddFavorite x+1 yp, %lGuiAddFavorite% ; Static18
+Gui, 1:Add, Text, vlblGuiEditFavorite center gGuiEditFavorite x+1 yp w88, %lGuiEditFavorite% ; Static19, w88 to make room fot when multiple favorites are selected
+Gui, 1:Add, Text, vlblGuiRemoveFavorite center gGuiRemoveFavorite x+1 yp, %lGuiRemoveFavorite% ; Static20
+Gui, 1:Add, Text, vlblGuiGroupsManage center gGuiGroupsManage x+1 yp, %lDialogGroups% ; Static21
+Gui, 1:Add, Text, vlblGuiAbout center gGuiAbout x+1 yp, %lGuiAbout% ; Static22
+Gui, 1:Add, Text, vlblGuiHelp center gGuiHelp x+1 yp, %lGuiHelp% ; Static23
+
+Gui, 1:Font, s8 w400 italic, Verdana
+Gui, 1:Add, Link, vlnkGuiHotkeysHelpClicked gGuiHotkeysHelpClicked x0 y+1, <a>%lGuiHotkeysHelp%</a> ; center option not working SysLink1
+Gui, 1:Add, Link, vlnkGuiDropHelpClicked gGuiDropFilesHelpClicked right x+1 yp, <a>%lGuiDropFilesHelp%</a> ; SysLink2
+
+Gui, 1:Font, s8 w400 normal, Verdana
+Gui, 1:Add, Text, vlblSubmenuDropdownLabel x+1 yp, %lGuiSubmenuDropdownLabel%
+Gui, 1:Add, DropDownList, vdrpMenusList gGuiMenusListChanged x0 y+1
+
+; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteAppArguments, 6 FavoriteAppWorkingDir, 7 FavoritePositionSize, 8 FavoriteHotkey
+; In FP: 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
+Gui, 1:Add, ListView
+	, % "vlvFavoritesList Count32 AltSubmit NoSortHdr LV0x10 " . (g_blnUseColors ? "c" . strGuiListviewTextColor . " Background" . strGuiListviewBackgroundColor : "") . " gGuiFavoritesListEvents x+1 yp"
+	, %lGuiLvFavoritesHeader%
+
+Gui, 1:Font, s9 w600, Verdana
+Gui, 1:Add, Button, vbtnGuiSave Disabled Default gGuiSave x200 y400 w100 h50, %lGuiSave% ; Button1
+Gui, 1:Add, Button, vbtnGuiCancel gGuiCancel x350 yp w100 h50, %lGuiClose% ; Close until changes occur - Button2
+
+if !(g_blnDonor)
+{
+	strDonateButtons := "thumbs_up|solutions|handshake|conference|gift"
+	StringSplit, arrDonateButtons, strDonateButtons, |
+	Random, intDonateButton, 1, 5
+
+	Gui, 1:Add, Picture, vpicGuiDonate gGuiDonate x0 y+1, % g_strTempDir . "\" . arrDonateButtons%intDonateButton% . "-32.png" ; Static25
+	Gui, 1:Font, s8 w400, Arial ; button legend
+	Gui, 1:Add, Text, vlblGuiDonate center gGuiDonate x0 y+1, %lGuiDonate% ; Static26
+}
+
+IniRead, strSettingsPosition, %g_strIniFile%, Global, SettingsPosition, -1 ; center at minimal size
+StringSplit, arrSettingsPosition, strSettingsPosition, |
+
+Gui, 1:Show, % "Hide "
+	. (arrSettingsPosition1 = -1 or arrSettingsPosition1 = "" or arrSettingsPosition2 = ""
+	? "center w636 h538"
+	: "x" . arrSettingsPosition1 . " y" . arrSettingsPosition2)
+sleep, 100
+if (arrSettingsPosition1 <> -1)
+	WinMove, ahk_id %strAppHwnd%, , , , %arrSettingsPosition3%, %arrSettingsPosition4%
+
+strSettingsPosition := ""
+arrSettingsPosition := ""
+strTextColor := ""
+strGuiListviewBackgroundColor := ""
+strGuiListviewTextColor := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiHotkeysHelpClicked:
+;------------------------------------------------------------
+Gui, 1:+OwnDialogs
+
+MsgBox, 0, %g_strAppNameText% - %lGuiHotkeysHelp%
+	, %lGuiHotkeysHelpText%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiDropFilesHelpClicked:
+;------------------------------------------------------------
+Gui, 1:+OwnDialogs
+
+MsgBox, 0, %g_strAppNameText% - %lGuiDropFilesHelp%
+	, % L(lGuiDropFilesIncentive, g_strAppNameText, lDialogFolderLabel, lDialogFileLabel)
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiFavoritesListEvents:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+AddThisFolder:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiAddFavorite:
+GuiAddFromPopup:
+GuiAddFromDropFiles:
+GuiEditFavorite:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiMoveMultipleFavorites:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DropdownParentMenuChanged:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiOpenThisMenu:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RadioButtonsChanged:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DropdownSpecialFolderChanged:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+EditFolderLocationChanged:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonSelectFolderLocation:
+ButtonSelectWorkingDir:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiPickIconDialog:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiRemoveIcon:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiFavoriteIconDefault:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiFavoriteIconDisplay:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiMoveMultipleFavoritesSave:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiAddFavoriteSave:
+GuiEditFavoriteSave:
+GuiMoveOneFavoriteSave:
+;------------------------------------------------------------
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+UpdateMenuNameInSubmenus(strOldMenu, strNewMenu)
+; recursive function
+;------------------------------------------------------------
+{
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+FolderNameIsNew(strCandidateName, strMenu := "")
+;------------------------------------------------------------
+{
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiAddFavoriteCancel:
+GuiEditFavoriteCancel:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiRemoveMultipleFavorites:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiRemoveFavorite:
+GuiRemoveOneFavorite:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RemoveAllSubMenus(strSubmenuFullName)
+; recursive function
+;------------------------------------------------------------
+{
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiMenusListChanged:
+GuiGotoUpMenu:
+GuiGotoPreviousMenu:
+OpenMenuFromEditForm:
+OpenMenuFromGuiHotkey:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiMoveMultipleFavoritesUp:
+GuiMoveMultipleFavoritesDown:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetFirstSelected:
+GetLastSelected:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiMoveFavoriteUp:
+GuiMoveFavoriteDown:
+GuiMoveOneFavoriteUp:
+GuiMoveOneFavoriteDown:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiAddSeparator:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiAddColumnBreak:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiSortFavorites:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiSave:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SaveOneMenu(strMenu)
+; recursive function
+;------------------------------------------------------------
+{
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiShow:
+SettingsHotkey:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+
+;========================================================================================================================
+; END OF FAVORITES LIST
+;========================================================================================================================
+
+
+;========================================================================================================================
+040_GROUPS:
+;========================================================================================================================
+
+;------------------------------------------------------------
+GuiGroupsManage:
+;------------------------------------------------------------
+
+intWidth := 350
+
+Gosub, BuildFoldersInExplorerMenu ; refresh explorers object and intExplorersIndex counter
+
+g_intGui1WinID := WinExist("A")
+Gui, 1:Submit, NoHide
+
+Gui, 2:New, , % L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion)
+Gui, 2:+Owner1
+Gui, 2:+OwnDialogs
+if (g_blnUseColors)
+	Gui, 2:Color, %g_strGuiWindowColor%
+
+Gui, 2:Font, w600 
+Gui, 2:Add, Text, x10 y10, %lDialogGroupManageAbout%
+Gui, 2:Font
+
+Gui, 2:Add, Text, x10 y+10 w%intWidth%, %lDialogGroupManageIntro%
+
+Gui, 2:Font, w600 
+Gui, 2:Add, Text, x10 y+20, %lDialogGroupManageCreatingTitle%
+Gui, 2:Font 
+
+strUseMenuSave := lMenuGroup . " > " . lMenuGroupSave
+Gui, 2:Add, Text, x10 y+10 w%intWidth%, % L(lDialogGroupManageCreatingPrompt, lDialogGroupNew, strUseMenuSave)
+Gui, 2:Add, Button, x10 y+10 vbtnGroupManageNew gGuiGroupManageNew, %lDialogGroupNew%
+GuiControl, % (!intExplorersIndex ? "Disable" : "Enable") ; disable Save group menu if no Explorer
+	, btnGroupManageNew
+GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "btnGroupManageNew")
+if !(intExplorersIndex)
+	Gui, 2:Add, Text, x10 y+10 w%intWidth%, %lDialogGroupManageCannotSave%
+
+Gui, 2:Font, w600 
+Gui, 2:Add, Text, x10 y+20, %lDialogGroupManageManagingTitle%
+Gui, 2:Font
+
+Gui, 2:Add, DropDownList, x10 y+10 w%intWidth% vdrpGroupsList, %lDialogGroupSelect%||%g_strGroups%
+
+Gui, 2:Add, Button, x10 y+10 vbtnGroupManageLoad  gGuiGroupManageLoad, %lDialogGroupLoad%
+Gui, 2:Add, Button, x10 yp vbtnGroupManageEdit gGuiGroupManageEdit, %lDialogGroupEdit%
+Gui, 2:Add, Button, x10 yp vbtnGroupManageDelete gGuiGroupManageDelete, %lDialogGroupDelete%
+GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "btnGroupManageLoad", "btnGroupManageEdit", "btnGroupManageDelete")
+
+Gui, 2:Add, Button, x+10 y+30 vbtnGroupManageClose g2GuiClose h33, %lGui2Close%
+GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "btnGroupManageClose")
+Gui, 2:Add, Text, x10, %A_Space%
+
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiGroupManageEdit:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+Gui, 2:+OwnDialogs
+
+if !StrLen(drpGroupsList) or (drpGroupsList = lDialogGroupSelect)
+{
+	Oops(lDialogGroupSelectError, lDialogGroupEditError)
+	return
+}
+
+strGroupToEdit := drpGroupsList
+Gosub, GuiGroupEditFromManage
+GuiControl, 2:, drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiGroupManageDelete:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+Gui, 2:+OwnDialogs
+
+if !StrLen(drpGroupsList) or (drpGroupsList = lDialogGroupSelect)
+{
+	Oops(lDialogGroupSelectError, lDialogGroupDeleteError)
+	return
+}
+
+MsgBox, 52, % L(lDialogGroupDeleteTitle, g_strAppNameText), % L(lDialogGroupDeletePrompt, drpGroupsList)
+IfMsgBox, No
+	return
+
+g_strGroups := g_strGroups . "|"
+StringReplace, g_strGroups, g_strGroups, %drpGroupsList%|
+StringTrimRight, g_strGroups, g_strGroups, 1
+GuiControl, 2:, drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
+
+IniDelete, %g_strIniFile%, Group-%drpGroupsList%
+IniWrite, %g_strGroups%, %g_strIniFile%, Global, Groups
+
+Gosub, BuildGroupMenu
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiGroupManageLoad:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+if !StrLen(drpGroupsList) or (drpGroupsList = lDialogGroupSelect)
+{
+	Oops(lDialogGroupSelectError, lDialogGroupLoadError)
+	return
+}
+
+strSelectedGroup := drpGroupsList
+
+Gosub, 2GuiClose
+Gosub, GuiClose
+Gosub, GroupLoadFromManage
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiGroupManageNew:
+;------------------------------------------------------------
+
+Gosub, GuiGroupSaveFromManage
+GuiControl, 2:, drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
+
+return
+;------------------------------------------------------------
+
+;========================================================================================================================
+; END OF GROUPS
+;========================================================================================================================
+
+
+
+;========================================================================================================================
+045_OPTIONS:
+;========================================================================================================================
+
+;------------------------------------------------------------
+GuiOptions:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;========================================================================================================================
+; END OF OPTIONS
+;========================================================================================================================
+
+
+;========================================================================================================================
+050_GUI_CLOSE-CANCEL:
+;========================================================================================================================
+
+
+;------------------------------------------------------------
+GuiCancel:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiClose:
+GuiEscape:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+2GuiClose:
+2GuiEscape:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+3GuiClose:
+3GuiEscape:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;========================================================================================================================
+; END OF GUI CLOSE-CANCEL
+;========================================================================================================================
+
+
+;========================================================================================================================
+060_POPUP_MENU:
 ;========================================================================================================================
 
 LaunchHotkeyMouse:
@@ -1663,9 +2354,6 @@ PowerHotkeyKeyboard:
 return
 
 
-SettingsHotkey:
-return
-
 
 ;========================================================================================================================
 ; END OF POPUP MENU
@@ -1674,7 +2362,7 @@ return
 
 
 ;========================================================================================================================
-; CLASS
+070_CLASS:
 ;========================================================================================================================
 
 
@@ -1685,12 +2373,36 @@ return
 
 
 ;========================================================================================================================
-; MENU ACTIONS
+080_MENU_ACTIONS:
 ;========================================================================================================================
 
 
 ;------------------------------------------------------------
 OpenFavorite:
+OpenRecentFolder:
+OpenFolderInExplorer:
+OpenClipboard:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiGroupSaveFromMenu:
+GuiGroupSaveFromManage:
+GuiGroupEditFromManage:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GroupLoad:
+GroupLoadFromManage:
+;------------------------------------------------------------
+
 return
 ;------------------------------------------------------------
 
@@ -1700,9 +2412,64 @@ return
 ;========================================================================================================================
 
 
+
 ;========================================================================================================================
-; ABOUT-DONATE-HELP
+072_TRAY_MENU_ACTIONS:
 ;========================================================================================================================
+
+;========================================================================================================================
+; END OF TRAY MENU ACTIONS
+;========================================================================================================================
+
+
+
+;========================================================================================================================
+075_NAVIGATE:
+;========================================================================================================================
+
+
+;========================================================================================================================
+; END OF NAVIGATE
+;========================================================================================================================
+
+
+
+
+;========================================================================================================================
+078_ABOUT-DONATE-HELP:
+;========================================================================================================================
+
+;------------------------------------------------------------
+GuiAbout:
+;------------------------------------------------------------
+
+g_intGui1WinID := WinExist("A")
+Gui, 1:Submit, NoHide
+
+Gui, 2:New, , % L(lAboutTitle, g_strAppNameText, g_strAppVersion)
+if (g_blnUseColors)
+	Gui, 2:Color, %g_strGuiWindowColor%
+Gui, 2:+Owner1
+Gui, 2:Font, s12 w700, Verdana
+Gui, 2:Add, Link, y10 w350 vlblAboutText1, % L(lAboutText1, g_strAppNameText, g_strAppVersion, A_PtrSize * 8) ;  ; A_PtrSize * 8 = 32 or 64
+Gui, 2:Font, s8 w400, Verdana
+Gui, 2:Add, Link, , % L(lAboutText2, g_strAppNameText)
+Gui, 2:Add, Link, , % L(lAboutText3, chr(169))
+Gui, 2:Font, s10 w400, Verdana
+Gui, 2:Add, Link, , % L(lAboutText4)
+Gui, 2:Font, s8 w400, Verdana
+
+Gui, 2:Add, Button, y+20 vbtnAboutDonate gGuiDonate, %lDonateButton%
+Gui, 2:Add, Button, yp vbtnAboutClose g2GuiClose vbtnAboutClose, %lGui2Close%
+GuiCenterButtons(L(lAboutTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnAboutDonate", "btnAboutClose")
+
+GuiControl, Focus, btnAboutClose
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+return
+;------------------------------------------------------------
+
 
 ;------------------------------------------------------------
 GuiDonate:
@@ -1763,6 +2530,98 @@ strDonateReviewUrlRight3 := ""
 return
 ;------------------------------------------------------------
 
+
+;------------------------------------------------------------
+ButtonDonate1:
+ButtonDonate2:
+ButtonDonate3:
+;------------------------------------------------------------
+
+strDonatePlatformUrl1 := "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AJNCXKWKYAXLCV"
+strDonatePlatformUrl2 := "http://www.shareit.com/product.html?productid=300628012"
+strDonatePlatformUrl3 := "http://code.jeanlalonde.ca/?flattrss_redirect&id=19&md5=e1767c143c9bde02b4e7f8d9eb362b71"
+
+StringReplace, strButton, A_ThisLabel, ButtonDonate
+Run, % strDonatePlatformUrl%strButton%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiHelp:
+;------------------------------------------------------------
+
+g_intGui1WinID := WinExist("A")
+Gui, 1:Submit, NoHide
+
+Gui, 2:New, , % L(lHelpTitle, g_strAppNameText, g_strAppVersion)
+if (g_blnUseColors)
+	Gui, 2:Color, %g_strGuiWindowColor%
+Gui, 2:+Owner1
+intWidth := 600
+Gui, 2:Font, s12 w700, Verdana
+Gui, 2:Add, Text, x10 y10, %g_strAppNameText%
+Gui, 2:Font, s10 w400, Verdana
+Gui, 2:Add, Link, x10 w%intWidth%, %lHelpTextLead%
+
+Gui, 2:Font, s8 w600, Verdana
+Gui, 2:Add, Tab2, vintHelpTab w640 h350 AltSubmit, %A_Space%%lHelpTabGettingStarted% | %lHelpTabAddingFavorite% | %lHelpTabTitlesTipsAndTricks%%A_Space%
+
+; Hotkeys: 1) PopupHotkeyMouse 2) PopupHotkeyNewMouse 3) PopupHotkeyKeyboard 4) PopupHotkeyNewKeyboard
+; 5) SettingsHotkey 6) FoldersInExplorerHotkey 7) GroupsHotkey 8) RecentsHotkey 9) ClipboardHotkey 10) CopyLocationHotkey
+Gui, 2:Font, s8 w400, Verdana
+Gui, 2:Tab, 1
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText1, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1), Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3))
+Gui, 2:Add, Link, w%intWidth%, % lHelpText2
+Gui, 2:Add, Button, vbtnNext1 gNextHelpButtonClicked, %lDialogTabNext%
+GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnNext1")
+
+Gui, 2:Tab, 2
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText3, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1), Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3))
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText4, Hotkey2Text(strModifiers5, strMouseButton5, strOptionsKey5))
+Gui, 2:Add, Button, vbtnNext2 gNextHelpButtonClicked, %lDialogTabNext%
+GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnNext2")
+
+Gui, 2:Tab, 3
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText5
+	, Hotkey2Text(strModifiers2, strMouseButton2, strOptionsKey2)
+	, Hotkey2Text(strModifiers4, strMouseButton4, strOptionsKey4)
+	, Hotkey2Text(strModifiers8, strMouseButton8, strOptionsKey8)
+	, Hotkey2Text(strModifiers6, strMouseButton6, strOptionsKey6)
+	, Hotkey2Text(strModifiers7, strMouseButton7, strOptionsKey7)
+	, Hotkey2Text(strModifiers9, strMouseButton9, strOptionsKey9)
+	, Hotkey2Text(strModifiers10, strMouseButton10, strOptionsKey10))
+Gui, 2:Add, Link, w%intWidth%, % lHelpText6
+
+Gui, 2:Tab
+
+GuiControlGet, arrTabPos, Pos, intHelpTab
+Gui, 2:Add, Button, % "x180 y" . arrTabPosY + arrTabPosH + 10. " vbtnHelpDonate gGuiDonate", %lDonateButton%
+Gui, 2:Add, Button, x+80 yp g2GuiClose vbtnHelpClose, %lGui2Close%
+GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnHelpDonate", "btnHelpClose")
+
+GuiControl, Focus, btnHelpClose
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+NextHelpButtonClicked:
+;------------------------------------------------------------
+
+Gui, 2:Submit, NoHide
+
+GuiControl, Choose, intHelpTab, % intHelpTab + 1
+
+return
+;------------------------------------------------------------
+
+
+
 ;========================================================================================================================
 ; END OF ABOUT-DONATE-HELP
 ;========================================================================================================================
@@ -1770,7 +2629,8 @@ return
 
 
 ;========================================================================================================================
-; THIRD-PARTY
+080_THIRD-PARTY:
+return
 ;========================================================================================================================
 
 
@@ -1963,7 +2823,8 @@ return
 
 
 ;========================================================================================================================
-; VARIOUS FUNCTIONS
+090_VARIOUS_FUNCTIONS:
+return
 ;========================================================================================================================
 
 ;------------------------------------------------
