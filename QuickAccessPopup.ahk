@@ -1089,7 +1089,8 @@ IfNotExist, %g_strIniFile%
 else
 {
 	g_intIniLine := 1
-	###_D("RecursiveLoadMenuFromIni MAIN result: " . RecursiveLoadMenuFromIni(g_objMainMenu)) ; build menu tree
+	if (RecursiveLoadMenuFromIni(g_objMainMenu) <> "EOM") ; build menu tree
+		Oops("An error occurred while reading the favorites in the ini file.")
 }
 
 strIniBackupFile := ""
@@ -1124,7 +1125,6 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	global g_intIniLine
 	global g_strMenuPathSeparator
 	
-	###_D("Begin RecursiveLoadMenuFromIni: " . objCurrentMenu.MenuPath)
 	g_objMenuIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
 
 	Loop
@@ -1136,7 +1136,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			Return, "EOF" ; end of file - should not happen if main menu ends with a "X" type favorite as expected
 		
 		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
-		;  * 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteAppArguments, 6 FavoriteAppWorkingDir, 7 FavoritePositionSize, 8 FavoriteHotkey
+		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteAppArguments, 6 FavoriteAppWorkingDir, 7 FavoritePositionSize, 8 FavoriteHotkey
 		StringSplit, arrThisFavorite, strLoadIniLine, |
 
 		if (arrThisFavorite1 = "X")
@@ -1157,9 +1157,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			objNewMenu.Insert(objNewMenuBack)
 			
 			; build the submenu
-			###_D("Going deeper for: " . objNewMenu.MenuPath)
 			strResult := RecursiveLoadMenuFromIni(objNewMenu) ; RECURSIVE
-			###_D("Coming back from : " . objNewMenu.MenuPath . "`nwith result: " . strResult)
 			
 			if (strResult = "EOF") ; end of file was encountered while building this submenu, exit recursive function
 				Return, %strResult%
