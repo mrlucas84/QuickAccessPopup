@@ -209,9 +209,12 @@ Gosub, BuildClipboardMenuInit
 Gosub, BuildMainMenu
 Gosub, BuildGui
 
+Gosub, GuiShow
+
+; ###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
+; ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
+
 ; Menu, % g_objMainMenu.MenuPath, Show ; ### TEMP
-###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
-ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
 
 return
 
@@ -1819,6 +1822,84 @@ return
 
 
 ;------------------------------------------------------------
+GuiSize:
+;------------------------------------------------------------
+
+if (A_EventInfo = 1)  ; The window has been minimized.  No action needed.
+    return
+
+intListW := A_GuiWidth - 40 - 88
+intListH := A_GuiHeight - 115 - 132
+
+intButtonSpacing := (intListW - (100 * 2)) // 3
+
+for intIndex, objGuiControl in g_objGuiControls
+{
+	intX := objGuiControl.X
+	intY := objGuiControl.Y
+
+	if (intX < 0)
+		intX:= A_GuiWidth + intX
+	if (intY < 0)
+		intY := A_GuiHeight + intY
+
+	if (objGuiControl.Center)
+	{
+		GuiControlGet, arrPos, Pos, % objGuiControl.Name
+		intX := intX - (arrPosW // 2) ; Floor divide
+	}
+
+	if (objGuiControl.Name = "lnkGuiDropHelpClicked")
+	{
+		GuiControlGet, arrPos, Pos, lnkGuiDropHelpClicked
+		intX := intX - arrPosW
+	}
+	else if (objGuiControl.Name = "btnGuiSave")
+		intX := 40 + intButtonSpacing
+	else if (objGuiControl.Name = "btnGuiCancel")
+		intX := 40 + (2 * intButtonSpacing) + 100
+		
+	GuiControl, % "1:Move" . (objGuiControl.Draw ? "Draw" : ""), % objGuiControl.Name, % "x" . intX	.  " y" . intY
+		
+}
+
+GuiControl, 1:Move, drpMenusList, w%intListW%
+GuiControl, 1:Move, lvFavoritesList, w%intListW% h%intListH%
+
+Gosub, AjustColumnWidth
+
+intListW := ""
+intListH := ""
+intButtonSpacing := ""
+intIndex := ""
+objGuiControl := ""
+intX := ""
+intY := ""
+arrPos := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+AjustColumnWidth:
+;------------------------------------------------------------
+
+LV_ModifyCol(1, "Auto") ; adjust column width
+
+; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
+intCol1 := 0 ; column index, zero-based
+SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %strAppHwnd%
+intCol1 := ErrorLevel ; column width
+LV_ModifyCol(2, intListW - intCol1 - 21) ; adjust column width (-21 is for vertical scroll bar width)
+
+intCol1 := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 GuiHotkeysHelpClicked:
 ;------------------------------------------------------------
 Gui, 1:+OwnDialogs
@@ -2114,6 +2195,11 @@ GuiShow:
 SettingsHotkey:
 ;------------------------------------------------------------
 
+strCurrentMenu := lMainMenuName
+; ### Gosub, BackupMenuObjects
+; Gosub, LoadSettingsToGui
+Gui, 1:Show
+
 return
 ;------------------------------------------------------------
 
@@ -2296,17 +2382,44 @@ return
 
 
 ;------------------------------------------------------------
-GuiCancel:
+GuiClose:
+GuiEscape:
 ;------------------------------------------------------------
+
+GoSub, GuiCancel
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-GuiClose:
-GuiEscape:
+GuiCancel:
 ;------------------------------------------------------------
+
+GuiControlGet, blnSaveEnabled, Enabled, btnGuiSave
+if (blnSaveEnabled)
+{
+	Gui, 1:+OwnDialogs
+	MsgBox, 36, % L(lDialogCancelTitle, g_strAppNameText, g_strAppVersion), %lDialogCancelPrompt%
+	IfMsgBox, Yes
+	{
+		g_blnMenuReady := false
+		; ### Gosub, RestoreBackupMenuObjects
+		
+		; restore popup menu
+		; ### Gosub, BuildFoldersInExplorerMenu
+		Gosub, BuildMainMenu ; need to be initialized here - will be updated at each call to popup menu
+		
+		GuiControl, Disable, btnGuiSave
+		GuiControl, , btnGuiCancel, %lGuiClose%
+		g_blnMenuReady := true
+	}
+	IfMsgBox, No
+		return
+}
+Gui, 1:Cancel
+
+blnSaveEnabled := ""
 
 return
 ;------------------------------------------------------------
