@@ -209,12 +209,12 @@ Gosub, BuildClipboardMenuInit
 Gosub, BuildMainMenu
 Gosub, BuildGui
 
-Gosub, GuiShow
+; Gosub, GuiShow
 
-; ###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
-; ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
+Menu, % g_objMainMenu.MenuPath, Show ; ### TEMP
+###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
+ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
 
-; Menu, % g_objMainMenu.MenuPath, Show ; ### TEMP
 
 return
 
@@ -223,7 +223,6 @@ return
 012_HOTKEYS:
 ;========================================================================================================================
 
-/*
 ; Gui Hotkeys
 #If WinActive("ahk_id " . strAppHwnd)
 
@@ -276,7 +275,6 @@ return
 #If
 ; End of Gui Hotkeys
 
-*/
 
 ;========================================================================================================================
 ; END OF HOTKEYS
@@ -1148,8 +1146,8 @@ else
 g_blnUseColors := (g_strTheme <> "Windows")
 	
 IniRead, blnMySystemFoldersBuilt, %g_strIniFile%, Global, MySystemFoldersBuilt, 0 ; default false
-; ### if !(blnMySystemFoldersBuilt) and (A_OSVersion <> "WIN_XP")
-; 	Gosub, AddToIniMySystemFoldersMenu ; modify the ini file Folders section before reading it
+if !(blnMySystemFoldersBuilt)
+ 	Gosub, AddToIniMySystemFoldersMenu ; modify the ini file Folders section before reading it
 
 IfNotExist, %g_strIniFile%
 {
@@ -1159,6 +1157,7 @@ IfNotExist, %g_strIniFile%
 else
 {
 	g_intIniLine := 1
+	
 	if (RecursiveLoadMenuFromIni(g_objMainMenu) <> "EOM") ; build menu tree
 		Oops("An error occurred while reading the favorites in the ini file.")
 }
@@ -1252,6 +1251,78 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	}
 }
 ;-----------------------------------------------------------
+
+
+;------------------------------------------------------------
+AddToIniMySystemFoldersMenu:
+;------------------------------------------------------------
+
+strInstance := ""
+Loop
+{
+	IniRead, strIniLine, %g_strIniFile%, Favorites, Favorite%A_Index%
+	if InStr(strIniLine, lMenuMySystemMenu . strInstance)
+		strInstance := strInstance . "+"
+	if (strIniLine = "ERROR")
+	{
+		intNextFolderNumber := A_Index - 1 ; overwrite end of main menu marker
+		Break
+	}
+}
+strMySystemMenu := lMenuMySystemMenu . strInstance
+
+AddToIniOneSystemFolderMenu(g_strGuiMenuSeparator . g_strGuiMenuSeparator, g_strGuiMenuSeparator, "F")
+AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "M")
+AddToIniOneSystemFolderMenu(A_Desktop, lMenuDesktop)
+AddToIniOneSystemFolderMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}")
+AddToIniOneSystemFolderMenu(g_strMyPicturesPath)
+AddToIniOneSystemFolderMenu(g_strDownloadPath)
+AddToIniOneSystemFolderMenu(g_strGuiMenuSeparator . g_strGuiMenuSeparator, g_strGuiMenuSeparator, "F")
+AddToIniOneSystemFolderMenu("{20D04FE0-3AEA-1069-A2D8-08002B30309D}")
+AddToIniOneSystemFolderMenu("{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}")
+AddToIniOneSystemFolderMenu(g_strGuiMenuSeparator . g_strGuiMenuSeparator, g_strGuiMenuSeparator, "F")
+AddToIniOneSystemFolderMenu("{21EC2020-3AEA-1069-A2DD-08002B30309D}")
+AddToIniOneSystemFolderMenu("{645FF040-5081-101B-9F08-00AA002F954E}")
+AddToIniOneSystemFolderMenu("", "", "X") ; close special menu
+AddToIniOneSystemFolderMenu("", "", "X") ; restore end of main menu marker
+
+IniWrite, 1, %g_strIniFile%, Global, MySystemFoldersBuilt
+
+intNextFolderNumber := ""
+strMySystemMenu := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := "", strFavoriteType := "S")
+;------------------------------------------------------------
+{
+	global g_strIniFile
+	global g_objIconsFile
+	global g_objIconsIndex
+	global g_objSpecialFolders
+	global intNextFolderNumber
+	
+	if (strFavoriteType = "X")
+		strNewIniLine := strFavoriteType
+	else
+	{
+		if (strFavoriteType = "M")
+			strIconResource := g_objIconsFile["lMenuSpecialFolders"] . "," . g_objIconsIndex["lMenuSpecialFolders"]
+		else
+			strIconResource := g_objSpecialFolders[strSpecialFolderLocation].DefaultIcon
+		if !StrLen(strSpecialFolderName)
+			strSpecialFolderName := g_objSpecialFolders[strSpecialFolderLocation].DefaultName
+		
+		strNewIniLine := strFavoriteType . "|" . strSpecialFolderName . "|" . strSpecialFolderLocation . "|" . strIconResource . "|||"
+	}
+	
+	IniWrite, %strNewIniLine%, %g_strIniFile%, Favorites, Favorite%intNextFolderNumber%
+	intNextFolderNumber += 1
+}
+;------------------------------------------------------------
 
 
 ;-----------------------------------------------------------
@@ -1494,6 +1565,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	global g_objIconsFile
 	global g_objIconsIndex
 	global g_blnUseColors
+	global g_strGuiMenuSeparator
 	
 	intShortcut := 0
 	
@@ -1517,20 +1589,17 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			RecursiveBuildOneMenu(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
 			
 			if (g_blnUseColors)
-				Try Menu, % objCurrentMenu.MenuPath, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
+				Try Menu, % objCurrentMenu[A_Index].SubMenu.MenuPath, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
 			
 			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
 			Try Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, % ":" . objCurrentMenu[A_Index].SubMenu.MenuPath
-			catch e ; when menu is empty
-			{
+			catch e ; when menu objCurrentMenu[A_Index].SubMenu.MenuPath is empty
 				Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, OpenFavorite ; will never be called because disabled
-				Menu, % objCurrentMenu.MenuPath, Disable, % objCurrentMenu[A_Index].FavoriteName
-			}
-			; Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if empty ### ??? duplicate with catch ???
+			Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() > 1 ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if contains only tge back .. item
 			if (g_blnDisplayIcons)
 			{
 				ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "Submenu")
-
+				
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, on
 				Menu, % objCurrentMenu.MenuPath, Icon, % objCurrentMenu[A_Index].FavoriteName
 					, %strThisIconFile%, %intThisIconIndex% , %g_intIconSize%
@@ -2105,6 +2174,14 @@ RemoveAllSubMenus(strSubmenuFullName)
 ;------------------------------------------------------------
 {
 }
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+HotkeyChangeMenu:
+;------------------------------------------------------------
+
+return
 ;------------------------------------------------------------
 
 
