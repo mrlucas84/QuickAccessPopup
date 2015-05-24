@@ -66,7 +66,7 @@ g_typNameOfVariable
 
 */ 
 ;========================================================================================================================
-010_COMPILER_DIRECTIVES:
+!_010_COMPILER_DIRECTIVES:
 ;========================================================================================================================
 
 ; Doc: http://fincs.ahk4.net/Ahk2ExeDirectives.htm
@@ -79,7 +79,7 @@ g_typNameOfVariable
 
 
 ;========================================================================================================================
-011_INITIALIZATION:
+!_011_INITIALIZATION:
 ;========================================================================================================================
 
 #NoEnv
@@ -136,6 +136,9 @@ g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . ".ini"
 
 g_blnMenuReady := false
 
+g_objMenuInGui := Object() ; object of menu currently in Gui
+g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list
+g_objMainMenu := Object() ; object of menu structure entry point
 g_objMenuColumnBreaks := Object()
 
 g_arrSubmenuStack := Object()
@@ -147,6 +150,7 @@ g_objIconsIndex := Object()
 g_strMenuPathSeparator := ">"
 g_strGuiMenuSeparator := "----------------"
 g_strGuiMenuColumnBreak := "==="
+g_intListW := "" ; Gui width captured by GuiSize
 
 g_objGuiControls := Object()
 
@@ -209,9 +213,9 @@ Gosub, BuildClipboardMenuInit
 Gosub, BuildMainMenu
 Gosub, BuildGui
 
-; Gosub, GuiShow
+Gosub, GuiShow
 
-Menu, % g_objMainMenu.MenuPath, Show ; ### TEMP
+; Menu, % g_objMainMenu.MenuPath, Show ; ### TEMP
 ###_D(1) ; ### REMOVE WHEN SCRIPT PERSISTENT
 ExitApp ; ### REMOVE WHEN SCRIPT PERSISTENT
 
@@ -220,7 +224,7 @@ return
 
 
 ;========================================================================================================================
-012_HOTKEYS:
+!_012_HOTKEYS:
 ;========================================================================================================================
 
 ; Gui Hotkeys
@@ -283,7 +287,7 @@ return
 
 
 ;========================================================================================================================
-015_INITIALIZATION_SUBROUTINES:
+!_015_INITIALIZATION_SUBROUTINES:
 ;========================================================================================================================
 
 ;-----------------------------------------------------------
@@ -971,7 +975,7 @@ FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
 
 ; reinit after Settings save if already exist
 g_objMenuInGui := Object() ; object of menu currently in Gui
-g_objMenuIndex := Object() ; index of menu path used in Gui menu dropdown list
+g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list
 g_objMainMenu := Object() ; object of menu structure entry point
 g_objMainMenu.MenuPath := lMainMenuName ; localized name of the main menu
 
@@ -1189,12 +1193,12 @@ return
 RecursiveLoadMenuFromIni(objCurrentMenu)
 ;------------------------------------------------------------
 {
-	global g_objMenuIndex
+	global g_objMenusIndex
 	global g_strIniFile
 	global g_intIniLine
 	global g_strMenuPathSeparator
 	
-	g_objMenuIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
+	g_objMenusIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
 
 	Loop
 	{
@@ -1413,7 +1417,7 @@ return
 
 
 ;========================================================================================================================
-017_EXIT:
+!_017_EXIT:
 ;========================================================================================================================
 
 ;-----------------------------------------------------------
@@ -1439,7 +1443,7 @@ ExitApp
 
 
 ;========================================================================================================================
-020_BUILD:
+!_020_BUILD:
 ;========================================================================================================================
 
 ;------------------------------------------------------------
@@ -1788,7 +1792,7 @@ GetMenuHandle(strMenuName)
 
 
 ;========================================================================================================================
-030_FAVORITES_LIST:
+!_030_FAVORITES_LIST:
 ;========================================================================================================================
 
 
@@ -1891,16 +1895,46 @@ return
 
 
 ;------------------------------------------------------------
+LoadCurrentMenuInGui:
+;------------------------------------------------------------
+
+GuiControlGet, blnSaveEnabled, Enabled, %lGuiSave%
+if (blnSaveEnabled)
+	return
+
+Gui, 1:ListView, lvFavoritesList
+LV_Delete()
+
+; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
+Loop, % g_objMenuInGui.MaxIndex()
+	if (g_objMenuInGui[A_Index].FavoriteType = "M") ; this is a menu
+		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_strMenuPathSeparator)
+	else ; this is a folder, document, URL or application
+		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objMenuInGui[A_Index].FavoriteLocation)
+LV_Modify(1, "Select Focus")
+LV_ModifyCol(1, "Auto") ; adjust column 1 width
+
+Gosub, AjustColumnWidth
+
+GuiControl, , drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(lMainMenuName, strCurrentMenu) . "|"
+
+GuiControl, Focus, lvFavoritesList
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 GuiSize:
 ;------------------------------------------------------------
 
 if (A_EventInfo = 1)  ; The window has been minimized.  No action needed.
     return
 
-intListW := A_GuiWidth - 40 - 88
+g_intListW := A_GuiWidth - 40 - 88
 intListH := A_GuiHeight - 115 - 132
 
-intButtonSpacing := (intListW - (100 * 2)) // 3
+intButtonSpacing := (g_intListW - (100 * 2)) // 3
 
 for intIndex, objGuiControl in g_objGuiControls
 {
@@ -1932,12 +1966,13 @@ for intIndex, objGuiControl in g_objGuiControls
 		
 }
 
-GuiControl, 1:Move, drpMenusList, w%intListW%
-GuiControl, 1:Move, lvFavoritesList, w%intListW% h%intListH%
+GuiControl, 1:Move, drpMenusList, w%g_intListW%
+GuiControl, 1:Move, lvFavoritesList, w%g_intListW% h%intListH%
+
+LV_ModifyCol(1, "Auto") ; adjust column width
 
 Gosub, AjustColumnWidth
 
-intListW := ""
 intListH := ""
 intButtonSpacing := ""
 intIndex := ""
@@ -1960,7 +1995,7 @@ LV_ModifyCol(1, "Auto") ; adjust column width
 intCol1 := 0 ; column index, zero-based
 SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %strAppHwnd%
 intCol1 := ErrorLevel ; column width
-LV_ModifyCol(2, intListW - intCol1 - 21) ; adjust column width (-21 is for vertical scroll bar width)
+LV_ModifyCol(2, g_intListW - intCol1 - 21) ; adjust column width (-21 is for vertical scroll bar width)
 
 intCol1 := ""
 
@@ -2272,9 +2307,11 @@ GuiShow:
 SettingsHotkey:
 ;------------------------------------------------------------
 
-strCurrentMenu := lMainMenuName
-; ### Gosub, BackupMenuObjects
-; Gosub, LoadSettingsToGui
+g_objMenuInGui := g_objMainMenu ; was g_strCurrentMenu := lMainMenuName
+Gosub, BackupMenusObjects
+
+; ### test Gosub, RestoreBackupMenusObjects
+Gosub, LoadCurrentMenuInGui
 Gui, 1:Show
 
 return
@@ -2288,7 +2325,7 @@ return
 
 
 ;========================================================================================================================
-040_GROUPS:
+!_040_GROUPS:
 ;========================================================================================================================
 
 ;------------------------------------------------------------
@@ -2437,7 +2474,7 @@ return
 
 
 ;========================================================================================================================
-045_OPTIONS:
+!_045_OPTIONS:
 ;========================================================================================================================
 
 ;------------------------------------------------------------
@@ -2454,7 +2491,7 @@ return
 
 
 ;========================================================================================================================
-050_GUI_CLOSE-CANCEL:
+!_050_GUI_CLOSE-CANCEL-BK_OBJECTS:
 ;========================================================================================================================
 
 
@@ -2481,7 +2518,7 @@ if (blnSaveEnabled)
 	IfMsgBox, Yes
 	{
 		g_blnMenuReady := false
-		; ### Gosub, RestoreBackupMenuObjects
+		Gosub, RestoreBackupMenusObjects
 		
 		; restore popup menu
 		; ### Gosub, BuildFoldersInExplorerMenu
@@ -2520,13 +2557,68 @@ return
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+BackupMenusObjects:
+RestoreBackupMenusObjects:
+; in case of Gui Cancel to restore objects to original state
+;------------------------------------------------------------
+
+if (A_ThisLabel = "BackupMenusObjects")
+	objMenusSource := g_objMenusIndex
+else ; RestoreBackupMenusObjects
+	objMenusSource := g_objMenusBK
+
+
+objMenusDest := Object() ; reset object
+
+for strMenuPath, objMenuSource in objMenusSource
+{
+	objMenuDest := Object()
+	objMenuDest.MenuPath := objMenu.MenuPath
+	
+	loop, % objMenuSource.MaxIndex()
+	{
+		objFavorite := Object()
+		objFavorite.FavoriteType := objMenuSource[A_Index].FavoriteType
+		objFavorite.FavoriteName := objMenuSource[A_Index].FavoriteName
+		objFavorite.FavoriteLocation := objMenuSource[A_Index].FavoriteLocation
+		objFavorite.FavoriteIconResource := objMenuSource[A_Index].FavoriteIconResource
+		objFavorite.FavoriteAppArguments := objMenuSource[A_Index].FavoriteAppArguments
+		objFavorite.FavoriteAppWorkingDir := objMenuSource[A_Index].FavoriteAppWorkingDir
+		objFavorite.FavoritePositionSize := objMenuSource[A_Index].FavoritePositionSize
+		objFavorite.FavoriteHotkey := objMenuSource[A_Index].FavoriteHotkey
+		objFavorite.SubMenu := objMenuSource[A_Index].SubMenu
+		
+		objMenuDest.Insert(A_Index, objFavorite)
+	}
+	
+	objMenusDest.Insert(strMenuPath, objMenuDest)
+}
+
+if (A_ThisLabel = "BackupMenusObjects")
+	g_objMenusBK := objMenusDest
+else ; RestoreBackupMenusObjects
+	g_objMenusIndex := objMenusDest
+
+objMenusSource := ""
+objMenusDest := ""
+strMenuPath := ""
+objMenuSource := ""
+objMenuDest := ""
+objFavorite := ""
+
+return
+;------------------------------------------------------------
+
+
+
 ;========================================================================================================================
-; END OF GUI CLOSE-CANCEL
+; END OF GUI CLOSE-CANCEL-BK_OBJECTS
 ;========================================================================================================================
 
 
 ;========================================================================================================================
-060_POPUP_MENU:
+!_060_POPUP_MENU:
 ;========================================================================================================================
 
 LaunchHotkeyMouse:
@@ -2552,7 +2644,7 @@ return
 
 
 ;========================================================================================================================
-070_CLASS:
+!_070_CLASS:
 ;========================================================================================================================
 
 
@@ -2563,7 +2655,7 @@ return
 
 
 ;========================================================================================================================
-080_MENU_ACTIONS:
+!_080_MENU_ACTIONS:
 ;========================================================================================================================
 
 
@@ -2604,7 +2696,7 @@ return
 
 
 ;========================================================================================================================
-072_TRAY_MENU_ACTIONS:
+!_072_TRAY_MENU_ACTIONS:
 ;========================================================================================================================
 
 ;========================================================================================================================
@@ -2614,7 +2706,7 @@ return
 
 
 ;========================================================================================================================
-075_NAVIGATE:
+!_075_NAVIGATE:
 ;========================================================================================================================
 
 
@@ -2626,7 +2718,7 @@ return
 
 
 ;========================================================================================================================
-078_ABOUT-DONATE-HELP:
+!_078_ABOUT-DONATE-HELP:
 ;========================================================================================================================
 
 ;------------------------------------------------------------
@@ -2819,7 +2911,7 @@ return
 
 
 ;========================================================================================================================
-080_THIRD-PARTY:
+!_080_THIRD-PARTY:
 return
 ;========================================================================================================================
 
@@ -3013,7 +3105,7 @@ return
 
 
 ;========================================================================================================================
-090_VARIOUS_FUNCTIONS:
+!_090_VARIOUS_FUNCTIONS:
 return
 ;========================================================================================================================
 
@@ -3363,6 +3455,24 @@ GuiCenterButtons(strWindow, intInsideHorizontalMargin := 10, intInsideVerticalMa
 			, % "x" . intLeftMargin + ((intIndex - 1) * intMaxControlWidth) + ((intIndex - 1) * intDistanceBetweenButtons)
 			. " w" . intMaxControlWidth
 			. " h" . intMaxControlHeight + intInsideVerticalMargin
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RecursiveBuildMenuTreeDropDown(objMenu, strDefaultMenuName, strSkipMenuName := "")
+; recursive function
+;------------------------------------------------------------
+{
+	strList := objMenu.MenuPath
+	if (objMenu.MenuPath = strDefaultMenu)
+		strList := strList . "|" ; default value
+
+	Loop, % objMenu.MaxIndex()
+		if (objMenu[A_Index].FavoriteType = "M") ; this is a menu
+			if (objMenu[A_Index].Submenu.MenuPath <> strSkipMenuName) ; skip if under edited submenu ### not sure I remember why this???
+				strList := strList . "|" . RecursiveBuildMenuTreeDropDown(objMenu[A_Index].Submenu, strDefaultMenuName, strSkipMenuName) ; recursive call
+	return strList
 }
 ;------------------------------------------------------------
 
