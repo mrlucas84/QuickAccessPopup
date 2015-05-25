@@ -1895,7 +1895,7 @@ return
 
 
 ;------------------------------------------------------------
-LoadCurrentMenuInGui:
+LoadMenuInGui:
 ;------------------------------------------------------------
 
 GuiControlGet, blnSaveEnabled, Enabled, %lGuiSave%
@@ -1916,7 +1916,7 @@ LV_ModifyCol(1, "Auto") ; adjust column 1 width
 
 Gosub, AjustColumnWidth
 
-GuiControl, , drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(lMainMenuName, strCurrentMenu) . "|"
+GuiControl, , drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|"
 
 GuiControl, Focus, lvFavoritesList
 
@@ -2224,9 +2224,60 @@ return
 GuiMenusListChanged:
 GuiGotoUpMenu:
 GuiGotoPreviousMenu:
-OpenMenuFromEditForm:
-OpenMenuFromGuiHotkey:
+OpenMenuFromEditForm: ; ### to be tested
+OpenMenuFromGuiHotkey: ; ### to be tested
 ;------------------------------------------------------------
+
+intCurrentLastPosition := 0
+
+if (A_ThisLabel = "GuiMenusListChanged")
+{
+	GuiControlGet, strNewDropdownMenu, , drpMenusList
+	###_D("GuiMenusListChanged: " . strNewDropdownMenu) 
+
+	if (strNewDropdownMenu = g_objMenuInGui.MenuPath) ; user selected the current menu in the dropdown
+		return
+}
+
+; ### not required if object updated Gosub, SaveCurrentListviewToMenuObject ; save current LV
+
+if (A_ThisLabel = "GuiGotoPreviousMenu")
+{
+	###_D("GuiGotoPreviousMenu: " . g_arrSubmenuStack[1])
+	g_objMenuInGui := g_objMenusIndex[g_arrSubmenuStack[1]] ; pull the top menu from the left arrow stack
+	g_arrSubmenuStack.Remove(1) ; remove the top menu from the left arrow stack
+
+	intCurrentLastPosition := g_arrSubmenuStackPosition[1] ; pull the focus position in top menu from the left arrow stack
+	g_arrSubmenuStackPosition.Remove(1) ; remove the top position from the left arrow stack
+}
+else
+{
+	g_arrSubmenuStack.Insert(1, g_objMenuInGui.MenuPath) ; push the current menu to the left arrow stack
+	
+	if (A_ThisLabel = "GuiMenusListChanged")
+		g_objMenuInGui := g_objMenusIndex[strNewDropdownMenu]
+	else if (A_ThisLabel = "GuiGotoUpMenu")
+		g_objMenuInGui := g_objMenuInGui[1].SubMenu
+	else if (A_ThisLabel = "OpenMenuFromEditForm") or (A_ThisLabel = "OpenMenuFromGuiHotkey")
+		g_objMenuInGui := ; g_objMenuInGui[??? position].SubMenu
+
+	g_arrSubmenuStackPosition.Insert(1, LV_GetNext("Focused")) ; ### ???
+}
+
+GuiControl, % (g_arrSubmenuStack.MaxIndex() ? "Show" : "Hide"), picPreviousMenu
+GuiControl, % (g_objMenuInGui.MenuPath <> lMainMenuName ? "Show" : "Hide"), picUpMenu
+
+Gosub, LoadMenuInGui
+
+if (intCurrentLastPosition) ; we went to a previous menu
+{
+	LV_Modify(0, "-Select")
+	LV_Modify(intCurrentLastPosition, "Select Focus Vis")
+}
+
+return
+;------------------------------------------------------------
+
 
 return
 ;------------------------------------------------------------
@@ -2311,7 +2362,7 @@ g_objMenuInGui := g_objMainMenu ; was g_strCurrentMenu := lMainMenuName
 Gosub, BackupMenusObjects
 
 ; ### test Gosub, RestoreBackupMenusObjects
-Gosub, LoadCurrentMenuInGui
+Gosub, LoadMenuInGui
 Gui, 1:Show
 
 return
@@ -3465,7 +3516,7 @@ RecursiveBuildMenuTreeDropDown(objMenu, strDefaultMenuName, strSkipMenuName := "
 ;------------------------------------------------------------
 {
 	strList := objMenu.MenuPath
-	if (objMenu.MenuPath = strDefaultMenu)
+	if (objMenu.MenuPath = strDefaultMenuName)
 		strList := strList . "|" ; default value
 
 	Loop, % objMenu.MaxIndex()
