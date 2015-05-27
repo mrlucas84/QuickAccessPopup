@@ -264,7 +264,7 @@ return
 
 Enter::
 if (LV_GetCount("Selected") > 1)
-	Gosub, GuiMoveMultipleFavorites
+	Gosub, GuiMoveMultipleFavoritesToMenu
 else
 	Gosub, GuiEditFavorite
 return
@@ -2031,6 +2031,37 @@ return
 GuiFavoritesListEvents:
 ;------------------------------------------------------------
 
+Gui, 1:ListView, lvFavoritesList
+
+if (A_GuiEvent = "DoubleClick")
+	gosub, GuiEditFavorite
+else if (A_GuiEvent = "I")
+{
+	g_intFavoriteSelected := LV_GetCount("Selected")
+	if (g_intFavoriteSelected > 1)
+	{
+		GuiControl, , lblGuiEditFavorite, % lGuiMove . " (" . g_intFavoriteSelected . ")"
+		GuiControl, +gGuiMoveMultipleFavoritesToMenu, lblGuiEditFavorite
+		GuiControl, +gGuiMoveMultipleFavoritesToMenu, picGuiEditFavorite
+		GuiControl, , lblGuiRemoveFavorite, % lGuiRemoveFavorite . " (" . g_intFavoriteSelected . ")"
+		GuiControl, +gGuiRemoveMultipleFavorites, lblGuiRemoveFavorite
+		GuiControl, +gGuiRemoveMultipleFavorites, picGuiRemoveFavorite
+		GuiControl, +gGuiMoveMultipleFavoritesUp, picMoveFavoriteUp
+		GuiControl, +gGuiMoveMultipleFavoritesDown, picMoveFavoriteDown
+	}
+	else
+	{
+		GuiControl, , lblGuiEditFavorite, %lGuiEditFavorite%
+		GuiControl, +gGuiEditFavorite, lblGuiEditFavorite
+		GuiControl, +gGuiEditFavorite, picGuiEditFavorite
+		GuiControl, , lblGuiRemoveFavorite, %lGuiRemoveFavorite%
+		GuiControl, +gGuiRemoveFavorite, lblGuiRemoveFavorite
+		GuiControl, +gGuiRemoveFavorite, picGuiRemoveFavorite
+		GuiControl, +gGuiMoveFavoriteUp, picMoveFavoriteUp
+		GuiControl, +gGuiMoveFavoriteDown, picMoveFavoriteDown
+	}
+}
+
 return
 ;------------------------------------------------------------
 
@@ -2048,14 +2079,6 @@ GuiAddFavorite:
 GuiAddFromPopup:
 GuiAddFromDropFiles:
 GuiEditFavorite:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GuiMoveMultipleFavorites:
 ;------------------------------------------------------------
 
 return
@@ -2144,6 +2167,26 @@ return
 
 
 ;------------------------------------------------------------
+GuiMoveMultipleFavoritesToMenu:
+;------------------------------------------------------------
+
+Gui, 2:New, , % L(lDialogMoveFavoritesTitle, g_strAppNameText, g_strAppVersion)
+Gui, 2:Add, Text, % x10 y10 vlblFavoriteParentMenu, % L(lDialogFavoritesParentMenuMove, g_intFavoriteSelected)
+Gui, 2:Add, DropDownList, x10 w300 vdrpParentMenu, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath)
+
+Gui, 2:Add, Button, y+20 vbtnMoveFavoritesSave gGuiMoveMultipleFavoritesSave, %lGuiMove%
+Gui, 2:Add, Button, yp vbtnMoveFavoritesCancel gGuiEditFavoriteCancel, %lGuiCancel%
+GuiCenterButtons(L(lDialogMoveFavoritesTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnMoveFavoritesSave", "btnMoveFavoritesCancel")
+
+GuiControl, 2:Focus, drpParentMenu
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 GuiMoveMultipleFavoritesSave:
 ;------------------------------------------------------------
 
@@ -2181,6 +2224,8 @@ FolderNameIsNew(strCandidateName, strMenu := "")
 GuiAddFavoriteCancel:
 GuiEditFavoriteCancel:
 ;------------------------------------------------------------
+
+Gosub, 2GuiClose
 
 return
 ;------------------------------------------------------------
@@ -2233,7 +2278,7 @@ intCurrentLastPosition := 0
 if (A_ThisLabel = "GuiMenusListChanged")
 {
 	GuiControlGet, strNewDropdownMenu, , drpMenusList
-	###_D("GuiMenusListChanged: " . strNewDropdownMenu) 
+	; ###_D("GuiMenusListChanged: " . strNewDropdownMenu . "`ng_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath) 
 
 	if (strNewDropdownMenu = g_objMenuInGui.MenuPath) ; user selected the current menu in the dropdown
 		return
@@ -2267,6 +2312,7 @@ else
 GuiControl, % (g_arrSubmenuStack.MaxIndex() ? "Show" : "Hide"), picPreviousMenu
 GuiControl, % (g_objMenuInGui.MenuPath <> lMainMenuName ? "Show" : "Hide"), picUpMenu
 
+; ### if blnSaveEnabled load will abort - need to save before (where in FP?)
 Gosub, LoadMenuInGui
 
 if (intCurrentLastPosition) ; we went to a previous menu
@@ -2288,6 +2334,40 @@ GuiMoveMultipleFavoritesUp:
 GuiMoveMultipleFavoritesDown:
 ;------------------------------------------------------------
 
+GuiControl, Focus, lvFavoritesList
+Gui, 1:ListView, lvFavoritesList
+
+g_blnAbortGroupMove := false
+strSelectedRows := ""
+g_intRowToProcess := 0
+loop
+{
+	g_intRowToProcess := LV_GetNext(g_intRowToProcess)
+	strSelectedRows .= g_intRowToProcess . "|"
+}
+until !LV_GetNext(g_intRowToProcess)
+StringTrimRight, strSelectedRows, strSelectedRows, 1
+
+Loop
+{
+	Gosub, % (A_ThisLabel = "GuiMoveMultipleFavoritesUp" ? "GetFirstSelected" : "GetLastSelected") ; will re-init g_intRowToProcess
+	if (!g_intRowToProcess) or (g_blnAbortGroupMove)
+		break
+	
+	g_intSelectedRow := g_intRowToProcess
+	Gosub, % (A_ThisLabel = "GuiMoveMultipleFavoritesUp" ? "GuiMoveOneFavoriteUp" : "GuiMoveOneFavoriteDown")
+}
+
+if (!g_blnAbortGroupMove)
+	Loop, Parse, strSelectedRows, |
+		LV_Modify(A_LoopField  + (A_ThisLabel = "GuiMoveMultipleFavoritesUp" ? -1 : 1), "Select")
+
+LV_Modify(LV_GetNext(0), "Focus") ; give focus to the first selected row
+
+g_blnAbortGroupMove := ""
+strSelectedRows := ""
+g_intRowToProcess := ""
+
 return
 ;------------------------------------------------------------
 
@@ -2296,6 +2376,15 @@ return
 GetFirstSelected:
 GetLastSelected:
 ;------------------------------------------------------------
+
+g_intRowToProcess := 0
+
+if (A_ThisLabel = "GetFirstSelected")
+	g_intRowToProcess := LV_GetNext(g_intRowToProcess) ; start from first selected
+else
+	loop
+		g_intRowToProcess := LV_GetNext(g_intRowToProcess) ; start with last selected
+	until !LV_GetNext(g_intRowToProcess)
 
 return
 ;------------------------------------------------------------
@@ -2308,21 +2397,130 @@ GuiMoveOneFavoriteUp:
 GuiMoveOneFavoriteDown:
 ;------------------------------------------------------------
 
+; prevent double-click on some static control to overwrite the clipboard with the image URL (a windows "undesired feature")
+; see http://www.autohotkey.com/board/topic/94962-doubleclick-on-gui-pictures-puts-their-path-in-your-clipboard/
+If (A_GuiEvent="DoubleClick")
+	; would be used to restore clipboard's  previous content if there was not a side effect in XL 2010
+	; (see: https://github.com/JnLlnd/FoldersPopup/issues/128)
+	; Clipboard := ClipboardAllBK
+	Clipboard := "" ; better than nothing, empty the clipboard because we cannot restore its previous content
+
+if !InStr(A_ThisLabel, "One")
+{
+	GuiControl, Focus, lvFavoritesList
+	Gui, 1:ListView, lvFavoritesList
+	g_intSelectedRow := LV_GetNext()
+}
+if (g_intSelectedRow = (InStr(A_ThisLabel, "Up") ? 1 : LV_GetCount()))
+{
+	if InStr(A_ThisLabel, "One")
+		g_blnAbortGroupMove := true
+	return
+}
+
+; --- move in menu object ---
+
+; ###_D(list(g_objMenuInGui, g_intSelectedRow))
+MoveFavoriteInMenuObject(g_objMenuInGui, g_intSelectedRow, (InStr(A_ThisLabel, "Up") ? -1 : 1))
+; ###_D(list(g_objMenuInGui, g_intSelectedRow))
+
+; --- move in Gui ---
+
+Loop, 2
+	LV_GetText(arrThis%A_Index%, g_intSelectedRow, A_Index)
+
+Loop, 2
+	LV_GetText(arrOther%A_Index%, g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), A_Index)
+
+LV_Modify(g_intSelectedRow, "-Select")
+LV_Modify(g_intSelectedRow, "", arrOther1, arrOther2)
+LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), , arrThis1, arrThis2)
+
+if !InStr(A_ThisLabel, "One")
+	LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), "Select Focus Vis")
+
+GuiControl, Enable, btnGuiSave
+GuiControl, , btnGuiCancel, %lGuiCancel%
+
 return
+
+list(objMenu, intPos)
+{
+	s := ""
+	for key, val in objMenu
+		s .= key . " " . val.FavoriteName . (key = intPos ? "!" : "") . "`n"
+	return s
+}
+
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+MoveFavoriteInMenuObject(objMenu, intItem, intDirection)
+; intDirection = +1 to to down or -1 to go up
+;------------------------------------------------------------
+{
+	if (intItem + intDirection > objMenu.MaxIndex())
+		or (intItem + intDirection < o.MinIndex())
+		return
+
+	objMenu.Insert(intItem + intDirection + (intDirection > 0 ? 1 : 0), objMenu[intItem])
+	objMenu.Remove(intItem + (intDirection > 0 ? 0 : 1))
+	
+	return
+}	
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
 GuiAddSeparator:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 GuiAddColumnBreak:
 ;------------------------------------------------------------
+
+GuiControl, Focus, lvFavoritesList
+Gui, 1:ListView, lvFavoritesList
+
+if (LV_GetCount("Selected") > 1)
+	return
+
+intInsertPosition := LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1
+
+; --- ### add in menu object ---
+
+; ###_D(list(g_objMenuInGui, g_intSelectedRow))
+objNewFavorite := Object()
+objNewFavorite.FavoriteType := "F"
+if (A_ThisLabel = "GuiAddSeparator")
+{
+	objNewFavorite.FavoriteName := g_strGuiMenuSeparator
+	objNewFavorite.FavoriteLocation := g_strGuiMenuSeparator . g_strGuiMenuSeparator
+}
+else ; GuiAddColumnBreak
+{
+	objNewFavorite.FavoriteName := g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
+	objNewFavorite.FavoriteLocation := objNewFavorite.FavoriteName
+}
+g_objMenuInGui.Insert(intInsertPosition, objNewFavorite)
+; ###_D(list(g_objMenuInGui, g_intSelectedRow))
+
+; --- add in Gui ---
+
+LV_Modify(0, "-Select")
+
+if (A_ThisLabel = "GuiAddSeparator")
+	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuSeparator, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
+else ; GuiAddColumnBreak
+	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
+		, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
+
+LV_Modify(LV_GetNext(), "Vis")
+Gosub, AjustColumnWidth
+
+GuiControl, Enable, btnGuiSave
+GuiControl, , btnGuiCancel, %lGuiCancel%
+
+intInsertPosition := ""
+objNewFavorite := ""
 
 return
 ;------------------------------------------------------------
@@ -2382,6 +2580,8 @@ return
 ;------------------------------------------------------------
 GuiGroupsManage:
 ;------------------------------------------------------------
+
+; ### not reviewed, not tested
 
 intWidth := 350
 
@@ -2594,6 +2794,10 @@ return
 2GuiClose:
 2GuiEscape:
 ;------------------------------------------------------------
+
+Gui, 1:-Disabled
+Gui, 2:Destroy
+WinActivate, ahk_id %g_intGui1WinID%
 
 return
 ;------------------------------------------------------------
