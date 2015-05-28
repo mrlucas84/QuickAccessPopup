@@ -1831,7 +1831,7 @@ Gui, 1:Add, Picture, vpicMoveFavoriteUp gGuiMoveFavoriteUp x+1 yp, %g_strTempDir
 Gui, 1:Add, Picture, vpicMoveFavoriteDown gGuiMoveFavoriteDown x+1 yp, %g_strTempDir%\down_circular-26.png ; Static11
 Gui, 1:Add, Picture, vpicAddSeparator gGuiAddSeparator x+1 yp, %g_strTempDir%\separator-26.png ; Static12
 Gui, 1:Add, Picture, vpicAddColumnBreak gGuiAddColumnBreak x+1 yp, %g_strTempDir%\column-26.png ; Static13
-Gui, 1:Add, Picture, vpicSortFavorites gGuiSortFavorites x+1 yp, %g_strTempDir%\generic_sorting2-26-grey.png ; Static14
+; OUT Gui, 1:Add, Picture, vpicSortFavorites gGuiSortFavorites x+1 yp, %g_strTempDir%\generic_sorting2-26-grey.png ; Static14
 Gui, 1:Add, Picture, vpicGuiAbout gGuiAbout x+1 yp, %g_strTempDir%\about-32.png ; Static15
 Gui, 1:Add, Picture, vpicGuiHelp gGuiHelp x+1 yp, %g_strTempDir%\help-32.png ; Static16
 
@@ -1897,10 +1897,6 @@ return
 ;------------------------------------------------------------
 LoadMenuInGui:
 ;------------------------------------------------------------
-
-GuiControlGet, blnSaveEnabled, Enabled, %lGuiSave%
-if (blnSaveEnabled)
-	return
 
 Gui, 1:ListView, lvFavoritesList
 LV_Delete()
@@ -2527,26 +2523,74 @@ return
 
 
 ;------------------------------------------------------------
-GuiSortFavorites:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 GuiSave:
 ;------------------------------------------------------------
 
+g_blnMenuReady := false
+
+; ### not required, object are updated  Gosub, SaveCurrentListviewToMenuObject ; save current LV before saving
+
+IniDelete, %g_strIniFile%, Favorites
+; ### ? Gui, 1:ListView, lvFavoritesList
+
+g_intIniLine := 1 ; restet counter before saving to another ini file
+RecursiveSaveFavoritesToIniFile(g_objMainMenu)
+
+Gosub, LoadIniFile
+Gosub, BuildMainMenuWithStatus
+GuiControl, Disable, %lGuiSave%
+GuiControl, , %lGuiCancel%, %lGuiClose%
+
+Gosub, GuiCancel
+g_blnMenuReady := true
+
+g_intIniLine := ""
+
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-SaveOneMenu(strMenu)
-; recursive function
+RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 ;------------------------------------------------------------
 {
+	; ? global g_objMenusIndex
+	global g_strIniFile
+	global g_intIniLine
+	; ? global g_strMenuPathSeparator
+	
+	Loop, % objCurrentMenu.MaxIndex()
+	{
+		; skip ".." menu entry used to navigate to the parent menu
+		blnIsBackMenu := (objCurrentMenu[A_Index].FavoriteType = "B")
+		if !(blnIsBackMenu)
+		{
+			strIniLine := objCurrentMenu[A_Index].FavoriteType . "|"
+			strIniLine .= objCurrentMenu[A_Index].FavoriteName . "|"
+			strIniLine .= objCurrentMenu[A_Index].FavoriteLocation . "|"
+			strIniLine .= objCurrentMenu[A_Index].FavoriteIconResource . "|"
+			strIniLine .= objCurrentMenu[A_Index].FavoriteAppArguments . "|"
+			strIniLine .= objCurrentMenu[A_Index].FavoriteAppWorkingDir . "|"
+			strIniLine .= objCurrentMenu[A_Index].FavoritePositionSize . "|"
+			strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|"
+
+			###_D(strIniLine)
+			IniWrite, %strIniLine%, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
+			g_intIniLine += 1
+		}
+		
+		if (objCurrentMenu[A_Index].FavoriteType = "M") and !(blnIsBackMenu)
+		{
+			###_D("Going down in: " . objCurrentMenu[A_Index].SubMenu.MenuPath)
+			RecursiveSaveFavoritesToIniFile(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
+			###_D("Going up back in: " . objCurrentMenu.MenuPath)
+		}
+	}
+		
+	IniWrite, X, %g_strIniFile%, Favorites, Favorite%g_intIniLine% ; end of menu marker
+	g_intIniLine += 1
+	
+	return
 }
 ;------------------------------------------------------------
 
@@ -2555,6 +2599,11 @@ SaveOneMenu(strMenu)
 GuiShow:
 SettingsHotkey:
 ;------------------------------------------------------------
+
+; should not be required but safer
+GuiControlGet, blnSaveEnabled, Enabled, %lGuiSave%
+if (blnSaveEnabled)
+	return
 
 g_objMenuInGui := g_objMainMenu ; was g_strCurrentMenu := lMainMenuName
 Gosub, BackupMenusObjects
