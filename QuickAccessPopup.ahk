@@ -1206,13 +1206,13 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		g_intIniLine += 1
 
 		if (strLoadIniLine = "ERROR")
-			Return, "EOF" ; end of file - should not happen if main menu ends with a "X" type favorite as expected
+			Return, "EOF" ; end of file - should not happen if main menu ends with a "Z" type favorite as expected
 		
 		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
 		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteAppArguments, 6 FavoriteAppWorkingDir, 7 FavoritePositionSize, 8 FavoriteHotkey
 		StringSplit, arrThisFavorite, strLoadIniLine, |
 
-		if (arrThisFavorite1 = "X")
+		if (arrThisFavorite1 = "Z")
 			return, "EOM" ; end of menu
 		
 		objLoadIniFavorite := Object() ; new menu item
@@ -1275,20 +1275,20 @@ Loop
 }
 strMySystemMenu := lMenuMySystemMenu . strInstance
 
-AddToIniOneSystemFolderMenu(g_strGuiMenuSeparator . g_strGuiMenuSeparator, g_strGuiMenuSeparator, "F")
+AddToIniOneSystemFolderMenu("", "", "X")
 AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "M")
 AddToIniOneSystemFolderMenu(A_Desktop, lMenuDesktop)
 AddToIniOneSystemFolderMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}")
 AddToIniOneSystemFolderMenu(g_strMyPicturesPath)
 AddToIniOneSystemFolderMenu(g_strDownloadPath)
-AddToIniOneSystemFolderMenu(g_strGuiMenuSeparator . g_strGuiMenuSeparator, g_strGuiMenuSeparator, "F")
+AddToIniOneSystemFolderMenu("", "", "X")
 AddToIniOneSystemFolderMenu("{20D04FE0-3AEA-1069-A2D8-08002B30309D}")
 AddToIniOneSystemFolderMenu("{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}")
-AddToIniOneSystemFolderMenu(g_strGuiMenuSeparator . g_strGuiMenuSeparator, g_strGuiMenuSeparator, "F")
+AddToIniOneSystemFolderMenu("", "", "X")
 AddToIniOneSystemFolderMenu("{21EC2020-3AEA-1069-A2DD-08002B30309D}")
 AddToIniOneSystemFolderMenu("{645FF040-5081-101B-9F08-00AA002F954E}")
 AddToIniOneSystemFolderMenu("", "", "X") ; close special menu
-AddToIniOneSystemFolderMenu("", "", "X") ; restore end of main menu marker
+AddToIniOneSystemFolderMenu("", "", "Z") ; restore end of main menu marker
 
 IniWrite, 1, %g_strIniFile%, Global, MySystemFoldersBuilt
 
@@ -1309,7 +1309,7 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 	global g_objSpecialFolders
 	global intNextFolderNumber
 	
-	if (strFavoriteType = "X")
+	if (strFavoriteType = "Z")
 		strNewIniLine := strFavoriteType
 	else
 	{
@@ -1507,7 +1507,7 @@ if (g_blnUseColors)
 
 RecursiveBuildOneMenu(g_objMainMenu) ; recurse for submenus
 
-if !IsColumnBreak(g_arrMenus[lMainMenuName][g_arrMenus[lMainMenuName].MaxIndex()].FavoriteName)
+if (g_arrMenus[lMainMenuName][g_arrMenus[lMainMenuName].MaxIndex()].FavoriteType <> "K")
 ; column break not allowed if first item is a separator
 	Menu, %lMainMenuName%, Add
 
@@ -1565,11 +1565,9 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	global g_blnDisplayIcons
 	global g_intIconSize
 	global g_strMenuBackgroundColor
-	global g_objMenuColumnBreaks
 	global g_objIconsFile
 	global g_objIconsIndex
 	global g_blnUseColors
-	global g_strGuiMenuSeparator
 	
 	intShortcut := 0
 	
@@ -1614,14 +1612,14 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			}
 		}
 		
-		else if (objCurrentMenu[A_Index].FavoriteName = g_strGuiMenuSeparator) ; this is a separator
+		else if (objCurrentMenu[A_Index].FavoriteType = "X") ; this is a separator
 			
-			if IsColumnBreak(objCurrentMenu[A_Index - 1].FavoriteName)
+			if (objCurrentMenu[A_Index - 1].FavoriteType = "K")
 				intMenuItemsCount -= 1 ; separator not allowed as first item is a column, skip it
 			else
 				Menu, % objCurrentMenu.MenuPath, Add
 			
-		else if IsColumnBreak(objCurrentMenu[A_Index].FavoriteName)
+		else if (objCurrentMenu[A_Index].FavoriteType = "K")
 		{
 			intMenuItemsCount -= 1
 			objMenuColumnBreak := Object()
@@ -1903,10 +1901,20 @@ LV_Delete()
 
 ; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
 Loop, % g_objMenuInGui.MaxIndex()
+	
 	if (g_objMenuInGui[A_Index].FavoriteType = "M") ; this is a menu
 		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_strMenuPathSeparator)
+	
+	else if (g_objMenuInGui[A_Index].FavoriteType = "X") ; this is a separator
+		LV_Add(, g_strGuiMenuSeparator, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
+	
+	else if (g_objMenuInGui[A_Index].FavoriteType = "K") ; this is a column break
+		LV_Add(, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
+		, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
+		
 	else ; this is a folder, document, URL or application
 		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objMenuInGui[A_Index].FavoriteLocation)
+
 LV_Modify(1, "Select Focus")
 LV_ModifyCol(1, "Auto") ; adjust column 1 width
 
@@ -2485,16 +2493,17 @@ intInsertPosition := LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1
 
 ; ###_D(list(g_objMenuInGui, g_intSelectedRow))
 objNewFavorite := Object()
-objNewFavorite.FavoriteType := "F"
 if (A_ThisLabel = "GuiAddSeparator")
 {
-	objNewFavorite.FavoriteName := g_strGuiMenuSeparator
-	objNewFavorite.FavoriteLocation := g_strGuiMenuSeparator . g_strGuiMenuSeparator
+	objNewFavorite.FavoriteType := "X"
+	objNewFavorite.FavoriteName := ""
+	objNewFavorite.FavoriteLocation := ""
 }
 else ; GuiAddColumnBreak
 {
-	objNewFavorite.FavoriteName := g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
-	objNewFavorite.FavoriteLocation := objNewFavorite.FavoriteName
+	objNewFavorite.FavoriteType := "K"
+	objNewFavorite.FavoriteName := ""
+	objNewFavorite.FavoriteLocation := ""
 }
 g_objMenuInGui.Insert(intInsertPosition, objNewFavorite)
 ; ###_D(list(g_objMenuInGui, g_intSelectedRow))
@@ -3635,17 +3644,6 @@ Diag(strName, strData)
 	until !ErrorLevel or (A_Index > 50) ; after 1 second (20ms x 50), we have a problem
 }
 ;------------------------------------------------
-
-
-;------------------------------------------------------------
-IsColumnBreak(strMenuName)
-;------------------------------------------------------------
-{
-	global g_strGuiMenuColumnBreak
-
-	return (SubStr(strMenuName, 1, StrLen(g_strGuiMenuColumnBreak)) = g_strGuiMenuColumnBreak)
-}
-;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
