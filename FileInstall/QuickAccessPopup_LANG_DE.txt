@@ -109,7 +109,7 @@ lGuiCancel	&Abbrechen
 lGuiClose	&Schliessen
 lGuiDonate	Unterstützen
 lGuiDropFilesHelp	Drag & Drop Hilfe
-lGuiDropFilesIncentive	Sie können folgende Favoritentypen per Ziehen und Ablegen`nin das ~1~ Fenster verschieben:`n`n- ~2~`n- ~3~
+lGuiDropFilesIncentive	Sie können folgende Favoritentypen per Ziehen und Ablegen`nin das ~1~ Fenster verschieben:`n`n- ~2~`n- ~3~`n- ~4~
 lGuiEditFavorite	Bearbeiten
 lGuiGroupClosing	Schliesse Fenster
 lGuiGroupOf	von

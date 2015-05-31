@@ -110,7 +110,7 @@ lGuiCancel	&Cancelar
 lGuiClose	&Fechar
 lGuiDonate	Suporte
 lGuiDropFilesHelp	Ajuda Arrastar && Soltar
-lGuiDropFilesIncentive	Você pode arrastar & soltar os seguintes tipos de favoritos`nna janela do ~1~:`n`n- ~2~`n- ~3~
+lGuiDropFilesIncentive	Você pode arrastar & soltar os seguintes tipos de favoritos`nna janela do ~1~:`n`n- ~2~`n- ~3~`n- ~4~
 lGuiEditFavorite	Editar
 lGuiGroupClosing	Fechando janelas
 lGuiGroupOf	de

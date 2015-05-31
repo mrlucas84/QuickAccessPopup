@@ -110,7 +110,7 @@ lGuiCancel	&Annuleren
 lGuiClose	&Sluiten
 lGuiDonate	Steun
 lGuiDropFilesHelp	Drag & Drop Help
-lGuiDropFilesIncentive	Je kan volgende favoriettypes Drag & Drop'en`nnaar het venster ~1~:`n`n- ~2~`n- ~3~
+lGuiDropFilesIncentive	Je kan volgende favoriettypes Drag & Drop'en`nnaar het venster ~1~:`n`n- ~2~`n- ~3~`n- ~4~
 lGuiEditFavorite	Bewerken
 lGuiGroupClosing	Vensters sluiten
 lGuiGroupOf	van

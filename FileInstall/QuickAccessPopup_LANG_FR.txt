@@ -108,7 +108,7 @@ lGuiCancel	Annuler
 lGuiClose	Fermer
 lGuiDonate	Soutien
 lGuiDropFilesHelp	Aide glisser-déposer
-lGuiDropFilesIncentive	Vous pouvez "glisser-déposer" les types de favoris`nsuivants sur la fenpêtre de ~1~:`n`n- ~2~`n- ~3~
+lGuiDropFilesIncentive	Vous pouvez "glisser-déposer" les types de favoris`nsuivants sur la fenpêtre de ~1~:`n`n- ~2~`n- ~3~`n- ~4~
 lGuiEditFavorite	Modifier
 lGuiGroupClosing	Fermeture des fenêtres
 lGuiGroupOf	de

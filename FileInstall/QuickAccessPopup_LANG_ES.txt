@@ -109,7 +109,7 @@ lGuiCancel	Anular
 lGuiClose	Cerrar
 lGuiDonate	Apoyar
 lGuiDropFilesHelp	Uso de arrastrar y soltar
-lGuiDropFilesIncentive	Puede arrastrar y soltar los tipos de favoritos`nsiguiente en la ventana ~1~:`n`n- ~2~`n- ~3~
+lGuiDropFilesIncentive	Puede arrastrar y soltar los tipos de favoritos`nsiguiente en la ventana ~1~:`n`n- ~2~`n- ~3~`n- ~4~
 lGuiEditFavorite	Modicar
 lGuiGroupClosing	Cerrar ventanas
 lGuiGroupOf	de

@@ -111,7 +111,7 @@ lGuiCancel	&Annulla
 lGuiClose	&Chiudi
 lGuiDonate	Supporto
 lGuiDropFilesHelp	Drag and Drop (promemoria)
-lGuiDropFilesIncentive	Puoi trascinare i seguenti tipi di preferiti`nsulla finestra ~1~:`n`n- ~2~`n- ~3~
+lGuiDropFilesIncentive	Puoi trascinare i seguenti tipi di preferiti`nsulla finestra ~1~:`n`n- ~2~`n- ~3~`n- ~4~
 lGuiEditFavorite	Modifica
 lGuiGroupClosing	Chiusura delle finestre
 lGuiGroupOf	di
