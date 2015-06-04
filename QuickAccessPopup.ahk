@@ -1,7 +1,3 @@
-/*
-Todo:
-- AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "Menu") ; ### check if separator ok with spaces?
-*/
 ;===============================================
 /*
 
@@ -1310,7 +1306,7 @@ Loop
 strMySystemMenu := lMenuMySystemMenu . strInstance
 
 AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "Menu") ; ### check if separator ok with spaces?
+AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . " " . strMySystemMenu, strMySystemMenu, "Menu")
 AddToIniOneSystemFolderMenu(A_Desktop, lMenuDesktop)
 AddToIniOneSystemFolderMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}")
 AddToIniOneSystemFolderMenu(g_strMyPicturesPath)
@@ -1321,7 +1317,7 @@ AddToIniOneSystemFolderMenu("{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}")
 AddToIniOneSystemFolderMenu("", "", "X")
 AddToIniOneSystemFolderMenu("{21EC2020-3AEA-1069-A2DD-08002B30309D}")
 AddToIniOneSystemFolderMenu("{645FF040-5081-101B-9F08-00AA002F954E}")
-AddToIniOneSystemFolderMenu("", "", "X") ; close special menu
+AddToIniOneSystemFolderMenu("", "", "Z") ; close special menu
 AddToIniOneSystemFolderMenu("", "", "Z") ; restore end of main menu marker
 
 IniWrite, 1, %g_strIniFile%, Global, MySystemFoldersBuilt
