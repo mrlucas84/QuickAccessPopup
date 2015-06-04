@@ -1247,7 +1247,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		
 		objLoadIniFavorite := Object() ; new menu item
 		
-		if (arrThisFavorite1 = "M") ; begin a submenu
+		if (arrThisFavorite1 = "Menu") ; begin a submenu
 		{
 			objNewMenu := Object() ; create the submenu object
 			objNewMenu.MenuPath := objCurrentMenu.MenuPath . " " . g_strMenuPathSeparator . " " . arrThisFavorite2
@@ -1277,7 +1277,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
 		
 		; this is a submenu favorite, link to the submenu object
-		if (arrThisFavorite1 = "M")
+		if (arrThisFavorite1 = "Menu")
 			objLoadIniFavorite.SubMenu := objNewMenu
 
 		; update the current menu object
@@ -1306,7 +1306,7 @@ Loop
 strMySystemMenu := lMenuMySystemMenu . strInstance
 
 AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "M")
+AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "Menu")
 AddToIniOneSystemFolderMenu(A_Desktop, lMenuDesktop)
 AddToIniOneSystemFolderMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}")
 AddToIniOneSystemFolderMenu(g_strMyPicturesPath)
@@ -1330,7 +1330,7 @@ return
 
 
 ;------------------------------------------------------------
-AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := "", strFavoriteType := "S")
+AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := "", strFavoriteType := "Special")
 ;------------------------------------------------------------
 {
 	global g_strIniFile
@@ -1343,7 +1343,7 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 		strNewIniLine := strFavoriteType
 	else
 	{
-		if (strFavoriteType = "M")
+		if (strFavoriteType = "Menu")
 			strIconResource := g_objIconsFile["lMenuSpecialFolders"] . "," . g_objIconsIndex["lMenuSpecialFolders"]
 		else
 			strIconResource := g_objSpecialFolders[strSpecialFolderLocation].DefaultIcon
@@ -1616,7 +1616,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		if (objCurrentMenu[A_Index].FavoriteType = "B")
 			continue
 		
-		if (objCurrentMenu[A_Index].FavoriteType = "M")
+		if (objCurrentMenu[A_Index].FavoriteType = "Menu")
 		{
 			RecursiveBuildOneMenu(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
 			
@@ -1668,9 +1668,9 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			if (g_blnDisplayIcons)
 			{
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, on
-				if (objCurrentMenu[A_Index].FavoriteType = "F") ; this is a folder
+				if (objCurrentMenu[A_Index].FavoriteType = "Folder") ; this is a folder
 					ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "Folder")
-				else if (objCurrentMenu[A_Index].FavoriteType = "U") ; this is an URL
+				else if (objCurrentMenu[A_Index].FavoriteType = "Url") ; this is an URL
 					if StrLen(objCurrentMenu[A_Index].FavoriteIconResource)
 						ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex)
 					else
@@ -1932,7 +1932,7 @@ LV_Delete()
 ; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
 Loop, % g_objMenuInGui.MaxIndex()
 	
-	if (g_objMenuInGui[A_Index].FavoriteType = "M") ; this is a menu
+	if (g_objMenuInGui[A_Index].FavoriteType = "Menu") ; this is a menu
 		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_strMenuPathSeparator)
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "X") ; this is a separator
@@ -2101,14 +2101,6 @@ return
 
 
 ;------------------------------------------------------------
-AddThisFolder:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 GuiAddFavoriteSelectType:
 ;------------------------------------------------------------
 
@@ -2125,7 +2117,7 @@ Gui, 2:Add, Text, x10 y+20, %lDialogAdd%:
 Gui, 2:Add, Text, x+10 yp section
 
 loop, %g_arrFavoriteTypes0%
-	Gui, 2:Add, Radio, % (A_Index = 1 ? "checked vintRadioFavoriteType yp " : "") . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
+	Gui, 2:Add, Radio, % (A_Index = 1 ? " vintRadioFavoriteType yp " : "") . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
 
 Gui, 2:Add, Button, x+20 y+20 vbtnAddFavoriteSelectTypeContinue gGuiAddFavoriteSelectTypeContinue default, %lDialogContinue%
 Gui, 2:Add, Button, yp vbtnAddFavoriteSelectTypeCancel gGuiEditFavoriteCancel, %lGuiCancel%
@@ -2145,79 +2137,6 @@ FavoriteSelectTypeRadioButtonsChanged:
 Gui, 2:Submit, NoHide
 
 GuiControl, , lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[g_arrFavoriteTypes%intRadioFavoriteType%]
-
-/*
-GuiControlGet, blnAddMode, Visible, blnRadioFolder ; if radio buttons visible, we are in add mode
-if (ErrorLevel) ; if control does not exist, we are in edit mode
-	blnAddMode := 0
-
-GuiControl, % "2:" . (blnRadioSpecial ? "Show" : "Hide"), drpSpecialFolder
-GuiControl, % "2:" . (blnRadioSubmenu or blnRadioSpecial ? "Hide" : "Show"), lblFolder
-GuiControl, % "2:" . (blnRadioSubmenu or blnRadioSpecial ? "Hide" : "Show"), strFavoriteLocation
-GuiControl, % "2:" . (blnRadioSubmenu or blnRadioSpecial or blnRadioURL ? "Hide" : "Show"), btnSelectFolderLocation
-GuiControl, % "2:" . (blnRadioApplication ? "Show" : "Hide"), lblArguments
-GuiControl, % "2:" . (blnRadioApplication ? "Show" : "Hide"), strAppArguments
-GuiControl, % "2:" . (blnRadioApplication ? "Show" : "Hide"), lblWorkingDir
-GuiControl, % "2:" . (blnRadioApplication ? "Show" : "Hide"), strAppWorkingDir
-GuiControl, % "2:" . (blnRadioApplication ? "Show" : "Hide"), btnSelectWorkingDir
-
-if (blnAddMode) and StrLen(strFavoriteLocation) ; in add mode keep only folder name if we have a file name, else empty it
-{
-	SplitPath, strFavoriteLocation, , strFolderNameOnly, strFilenameExtension
-	if StrLen(strFilenameExtension)
-		GuiControl, 2:, strFavoriteLocation, %strFolderNameOnly%
-	else
-		GuiControl, 2:, strFavoriteLocation
-}
-
-if (blnRadioFolder)
-{
-	GuiControl, 2:, lblShortName, %lDialogFolderShortName%
-	GuiControl, 2:, lblFolder, %lDialogFolderLabel%
-}
-else if (blnRadioSpecial)
-{
-	GuiControl, 2:, lblShortName, %lDialogSpecialLabel%
-	ControlClick, ComboBox3 ; open drpSpecialFolder dropdown
-}
-else if (blnRadioFile)
-{
-	GuiControl, 2:, lblShortName, %lDialogFileShortName%
-	GuiControl, 2:, lblFolder, %lDialogFileLabel%
-}
-else if (blnRadioURL)
-{
-	GuiControl, 2:, lblShortName, %lDialogURLShortName%
-	GuiControl, 2:, lblFolder, %lDialogURLLabel%
-}
-else if (blnRadioApplication)
-{
-	GuiControl, 2:, lblShortName, %lDialogApplicationShortName%
-	GuiControl, 2:, lblFolder, %lDialogApplicationLabel%
-}
-else ; blnRadioSubmenu
-{
-	GuiControl, 2:, lblShortName, %lDialogSubmenuShortName%
-}
-
-if (blnAddMode) ; move buttons considering app properties fields
-{
-	GuiControl, Move, btnAddFolderAdd, % "y" . (blnRadioApplication ? intMaxButtonY : intMinButtonY)
-	GuiControl, Move, btnAddFolderCancel, % "y" . (blnRadioApplication ? intMaxButtonY : intMinButtonY)
-}
-Gui, Show, AutoSize ; resize window considering app properties fields, but do not Center
-
-Gosub, GuiFavoriteIconDefault
-if (blnAddMode)
-	strCurrentIconResource := strDefaultIconResource
-Gosub, GuiFavoriteIconDisplay
-
-if (blnRadioFolder or blnRadioFile or blnRadioApplication)
-	GuiControl, 2:+Default, btnSelectFolderLocation
-else
-	GuiControl, 2:+Default, btnAddFolderAdd
-GuiControl, 2:Focus, % (blnRadioSpecial ? "drpSpecialFolder" : "strFavoriteShortName")
-*/
 
 return
 ;------------------------------------------------------------
@@ -2239,6 +2158,133 @@ return
 
 
 ;------------------------------------------------------------
+GuiDropFiles:
+;------------------------------------------------------------
+
+Loop, parse, A_GuiEvent, `n
+{
+    g_strNewLocation = %A_LoopField%
+    Break
+}
+
+Gosub, GuiAddFromDropFiles
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+AddThisFolder:
+;------------------------------------------------------------
+
+; ### TO BE TESTED WHEN MENU IS DEVELOPED
+
+/*
+if WindowIsDirectoryOpus(strTargetClass)
+{
+	objDOpusListers := Object()
+	CollectDOpusListersList(objDOpusListers, strListText) ; list all listers, excluding special folders like Recycle Bin
+	; #### QAP NOTE: NOT SURE strListText IS CORRECTLY INITAILIZED IN FP? BUT IT WORKS...
+	
+	; From leo @ GPSoftware (http://resource.dopus.com/viewtopic.php?f=3&t=23013):
+	; Lines will have active_lister="1" if they represent tabs from the active lister.
+	; To get the active tab you want the line with active_lister="1" and tab_state="1".
+	; tab_state="1" means it's the selected tab, on the active side of the lister.
+	; tab_state="2" means it's the selected tab, on the inactive side of a dual-display lister.
+	; Tabs which are not visible (because another tab is selected on top of them) don't get a tab_state attribute at all.
+
+	for intIndex, objLister in objDOpusListers
+		if (objLister.active_lister = "1" and objLister.tab_state = "1") ; this is the active tab
+		{
+			g_strNewLocation := objLister.LocationURL
+			break
+		}
+}
+else
+{
+	objPrevClipboard := ClipboardAll ; Save the entire clipboard
+	ClipBoard := ""
+
+	; Add This folder menu is active only if we are in Explorer or in a Dialog box.
+	; In all these OS, with Explorer, the key sequence {F4}{Esc} selects the current location of the window.
+	; With dialog boxes, the key sequence {F4}{Esc} generally selects the current location of the window. But, in some
+	; dialog boxes, the {Esc} key closes the dialog box. We will check window title to detect this behavior.
+
+	if (strTargetClass = "#32770")
+		intWaitTimeIncrement := 300 ; time allowed for dialog boxes
+	else
+		intWaitTimeIncrement := 150 ; time allowed for Explorer
+
+	if (g_blnDiagMode)
+		intTries := 8
+	else
+		intTries := 3
+
+	strWindowTitle := ""
+	Loop, %intTries%
+	{
+		Sleep, intWaitTimeIncrement * A_Index
+		WinGetTitle, strWindowTitle, A ; to check later if this window is closed unexpectedly
+	} Until (StrLen(strWindowTitle))
+
+	if WindowIsTotalCommander(strTargetClass)
+	{
+		cm_CopySrcPathToClip := 2029
+		SendMessage, 0x433, %cm_CopySrcPathToClip%, , , ahk_class TTOTAL_CMD ; 
+		WinGetTitle, strWindowThisTitle, A ; to check if the window was closed unexpectedly
+	}
+	else ; Explorer
+		Loop, %intTries%
+		{
+			Sleep, intWaitTimeIncrement * A_Index
+			SendInput, {F4}{Esc} ; F4 move the caret the "Go To A Different Folder box" and {Esc} select it content ({Esc} could be replaced by ^a to Select All)
+			Sleep, intWaitTimeIncrement * A_Index
+			SendInput, ^c ; Copy
+			Sleep, intWaitTimeIncrement * A_Index
+			intTries := A_Index
+			WinGetTitle, strWindowThisTitle, A ; to check if the window was closed unexpectedly
+		} Until (StrLen(ClipBoard) or (strWindowTitle <> strWindowThisTitle))
+
+	g_strNewLocation := ClipBoard
+	Clipboard := objPrevClipboard ; Restore the original clipboard
+	objPrevClipboard := "" ; Free the memory in case the clipboard was very large
+
+	if (g_blnDiagMode)
+	{
+		Diag("Menu", A_ThisLabel)
+		Diag("Class", strTargetClass)
+		Diag("Tries", intTries)
+		Diag("AddedFolder", g_strNewLocation)
+	}
+}
+
+If !StrLen(g_strNewLocation) or !(InStr(g_strNewLocation, ":") or InStr(g_strNewLocation, "\\")) or (strWindowTitle <> strWindowThisTitle)
+{
+	Gui, 1:+OwnDialogs 
+	MsgBox, 52, % L(lDialogAddFolderManuallyTitle, g_strAppNameText, g_strAppVersion), %lDialogAddFolderManuallyPrompt%
+	IfMsgBox, Yes
+	{
+		Gosub, GuiShow
+		Gosub, GuiAddFavorite
+	}
+}
+else
+{
+	Gosub, GuiShow
+	Gosub, GuiAddFromPopup
+}
+
+objDOpusListers :=
+
+RELEASE ALL LOCAL VARIABLES
+
+*/
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 GuiAddFavorite:
 GuiAddFromPopup:
 GuiAddFromDropFiles:
@@ -2251,97 +2297,59 @@ GuiEditFavorite:
 ; strCurrentIconResource -> icon currently displayed in the Add/Edit dialog box
 ; strCurrentIconResource is always equal to strDefaultIconResource or strSavedIconResource
 
+objEditedFavorite := Object()
+
 if (A_ThisLabel = "GuiEditFavorite")
 {
 	Gui, 1:ListView, lvFavoritesList
-	intRowToEdit := LV_GetNext()
-	/* USE OBJECT
-	LV_GetText(strCurrentName, intRowToEdit, 1)
+	g_intRowToEdit := LV_GetNext()
+	objEditedFavorite := g_objMenuInGui[g_intRowToEdit]
 	
-	if (strCurrentName = g_strGuiMenuSeparator) or IsColumnBreak(strCurrentName)
+	if (objEditedFavorite.FavoriteType = "B")
+	{
+		Gosub, GuiGotoPreviousMenu
 		return
-
-	if !StrLen(strCurrentName) or (intRowToEdit = 0)
+	}
+	
+	if (g_intRowToEdit = "")
 	{
 		Oops(lDialogSelectItemToEdit)
 		return
 	}
-	LV_GetText(strCurrentLocation, intRowToEdit, 2)
-	LV_GetText(strCurrentSubmenuFullName, intRowToEdit, 4)
-	LV_GetText(strFavoriteType, intRowToEdit, 5)
-	LV_GetText(strSavedIconResource, intRowToEdit, 6)
-	strCurrentIconResource := strSavedIconResource
-	LV_GetText(strAppArguments, intRowToEdit, 7)
-	LV_GetText(strAppWorkingDir, intRowToEdit, 8)
-
-	blnRadioFolder := (strFavoriteType = "F")
-	blnRadioSpecial := (strFavoriteType = "P")
-	blnRadioFile := (strFavoriteType = "D")
-	blnRadioURL := (strFavoriteType = "U")
-	blnRadioApplication := (strFavoriteType = "A")
-	blnRadioSubmenu := (strFavoriteType = "S")
-	*/
+	if InStr("XK", g_objMenuInGui[g_intRowToEdit].FavoriteType) ; favorite is menu separator or column break
+		return
 }
 else
 {
-	; ### not required if object updated Gosub, SaveCurrentListviewToMenuObject ; update menu object from LV, for items dropdown list
+	g_intRowToEdit := 0 ;  used when saving to flag to insert a new row
 	
-	/* CREATE A NEW FAV OBJECT
-	intRowToEdit := 0 ;  used when saving to flag to insert a new row
-	strCurrentName := "" ; make sure it is empty
-	strCurrentSubmenuFullName := "" ;  make sure it is empty
-	strFavoriteType := "" ;  make sure it is empty
-	strSavedIconResource := "" ;  make sure it is empty
-	strDefaultIconResource := "" ;  make sure it is empty
-	strCurrentIconResource := "" ;  make sure it is empty
-	strAppArguments := "" ;  make sure it is empty
-	strAppWorkingDir := "" ;  make sure it is empty
-	
-	if (A_ThisLabel = "GuiAddFromPopup" or A_ThisLabel = "GuiAddFromDropFiles")
-		; strCurrentLocation is received from AddThisFolder or GuiDropFiles
-		; PUT LOCATION IN OBHJCT
-		; USE OBJECT strFavoriteShortName := GetDeepestFolderName(strCurrentLocation)
-	else
+	if InStr("GuiAddFromPopup|GuiAddFromDropFiles", A_ThisLabel)
 	{
-		;  make sure these variables are empty
-		strCurrentLocation := ""
-		strFavoriteShortName := ""
+		; g_strNewLocation is received from AddThisFolder or GuiDropFiles
+		objEditedFavorite.FavoriteLocation := g_strNewLocation
+		objEditedFavorite.FavoriteName := GetDeepestFolderName(g_strNewLocation)
 	}
-	*/
 
-	/* GUI TO ASK FAVORITE TYPE
-	blnRadioFolder := true
-	blnRadioSpecial := false
-	blnRadioFile := false
-	blnRadioURL := false
-	blnRadioApplication := false
-	blnRadioSubmenu := false
-	*/
-	
-	if (A_ThisLabel = "GuiAddFromPopup")
-		blnRadioFolder := true
+	if InStr("GuiAddFavorite|GuiAddFromDropFiles", A_ThisLabel)
+		g_intRowToEdit := (LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1)
+	else
+		g_intRowToEdit := 0 ; will display lDialogEndOfMenu
+
+	if (A_ThisLabel = "GuiAddFavorite")
+		objEditedFavorite.FavoriteType := g_strAddFavoriteType
+	else if (A_ThisLabel = "GuiAddFromPopup")
+		objEditedFavorite.FavoriteType := "Folder"
 	else if (A_ThisLabel = "GuiAddFromDropFiles")
 	{
-		SplitPath, strCurrentLocation, , , strExtension
+		SplitPath, g_strNewLocation, , , strExtension
 		if StrLen(strExtension) and InStr("exe|com|bat", strExtension)
-		{
-			blnRadioApplication := true
-			blnRadioFile := false
-			blnRadioFolder := false
-		}
+			objEditedFavorite.FavoriteType := "Application"
+		else if LocationIsDocument(g_strNewLocation)
+			objEditedFavorite.FavoriteType := "Document"
 		else
-		{
-			blnRadioApplication := false
-			blnRadioFile := LocationIsDocument(strCurrentLocation)
-			blnRadioFolder := not blnRadioFile
-		}
+			objEditedFavorite.FavoriteType := "Folder"
 	}
 }
-
-if InStr("GuiAddFavorite|GuiAddFromDropFiles", A_ThisLabel)
-	intItemPosition := (LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1)
-else
-	intItemPosition := 0 ; will display lDialogEndOfMenu
 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
@@ -2351,6 +2359,45 @@ Gui, 2:+Owner1
 Gui, 2:+OwnDialogs
 if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
+
+Gui, 2:Add, Tab2, vintAddFavoriteTab w420 h350 AltSubmit, %A_Space%Basic Settings | Menu Options | Advanced Settings%A_Space% ; ### LANGUAGE
+
+; --- Basic Settings ---
+
+Gui, 2:Tab, 1
+
+if !InStr("Special|QAP", objEditedFavorite.FavoriteType)
+{
+	Gui, 2:Add, Text, x20 y40, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypesLabels[objEditedFavorite.FavoriteType])
+
+	Gui, 2:Add, Edit
+		, % "x20 y+10 Limit250 vstrFavoriteShortName w" . 300 - (objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
+		, % objEditedFavorite.FavoriteName
+	if (objEditedFavorite.FavoriteType = "Menu")
+		Gui, 2:Add, Button, x+10 yp vbnlEditFolderOpenMenu gGuiOpenThisMenu, %lDialogOpenThisMenu%
+	else
+	{
+		Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesLabels[objEditedFavorite.FavoriteType]
+		Gui, 2:Add, Edit, x20 y+10 w300 h20 vstrFavoriteLocation gEditFavoriteLocationChanged, % objEditedFavorite.FavoriteLocation
+		if InStr("Folder|Document|Application", objEditedFavorite.FavoriteType)
+			Gui, 2:Add, Button, x+10 yp vbtnSelectFavoriteLocation gButtonSelectFavoriteLocation, %lDialogBrowseButton%
+	}
+}
+else ; "Special" or "QAP"
+{
+	Gui, 2:Add, Text, x20 y40, % g_objFavoriteTypesLabels[objEditedFavorite.FavoriteType]
+
+	Gui, 2:Add, DropDownList
+		, % "x20 y+10 w300 vdrp" . objEditedFavorite.FavoriteType . " gDropdown" . objEditedFavorite.FavoriteType . "Changed"
+		, % (objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : "QAP list to be done")
+	if (A_ThisLabel = "GuiEditFavorite")
+		GuiControl, ChooseString, drpSpecialFolder, %strCurrentName%
+}
+
+/*
+; --- Menu Options ---
+
+Gui, 2:Tab, 2
 
 Gui, 2:Add, Text, % x10 y10 vlblFavoriteParentMenu, % (blnRadioSubmenu ? lDialogSubmenuParentMenu : lDialogFavoriteParentMenu)
 Gui, 2:Add, DropDownList, x10 w300 vdrpParentMenu gDropdownParentMenuChanged, % RecursiveBuildMenuTreeDropDown(lMainMenuName, strCurrentMenu, strCurrentSubmenuFullName) . "|"
@@ -2365,40 +2412,14 @@ If (A_ThisLabel <> "GuiEditFavorite")
 	Gui, 2:Add, DropDownList, x20 w290 vdrpParentMenuItems AltSubmit
 }
 
-if (A_ThisLabel = "GuiAddFavorite")
-{
-	Gui, 2:Add, Text, x10, %lDialogAdd%:
-	Gui, 2:Add, Radio, x+10 yp vblnRadioFolder checked gRadioButtonsChanged section, %lDialogFolderLabel%
-	Gui, 2:Add, Radio, xs vblnRadioSpecial gRadioButtonsChanged, %lDialogSpecialLabel%
-	Gui, 2:Add, Radio, xs vblnRadioFile gRadioButtonsChanged, %lDialogFileLabel%
-	Gui, 2:Add, Radio, xs vblnRadioApplication gRadioButtonsChanged, %lDialogApplicationLabel%
-	Gui, 2:Add, Radio, xs vblnRadioURL gRadioButtonsChanged, %lDialogURLLabel%
-	Gui, 2:Add, Radio, xs vblnRadioSubmenu gRadioButtonsChanged, %lDialogSubmenuLabel%
-}
+Gosub, GuiFavoriteIconDefault
+if (blnAddMode)
+	strCurrentIconResource := strDefaultIconResource
+Gosub, GuiFavoriteIconDisplay
 
-Gui, 2:Add, Text, x10 y+10 w300 vlblShortName
-	, % (blnRadioSubmenu ? lDialogSubmenuShortName
-	: (blnRadioFile ? lDialogFileShortName 
-	: (blnRadioURL ? lDialogURLShortName 
-	: (blnRadioSpecial ? lDialogSpecialLabel 
-	: (blnRadioApplication ? lDialogApplicationLabel 
-	: lDialogFolderShortName)))))
-Gui, 2:Add, Edit, x10 w300 Limit250 vstrFavoriteShortName, % (A_ThisLabel = "GuiEditFavorite" ? strCurrentName : strFavoriteShortName)
+; --- Advanced Settings ---
 
-if (blnRadioSubmenu)
-	Gui, 2:Add, Button, x+10 yp vbnlEditFolderOpenMenu gGuiOpenThisMenu, %lDialogOpenThisMenu%
-else
-{
-	Gui, 2:Add, Text, x10 w300 vlblFolder section, % (blnRadioFile ? lDialogFileLabel : (blnRadioURL ? lDialogURLLabel : (blnRadioApplication ? lDialogApplicationLabel : lDialogFolderLabel)))
-	
-	Gui, 2:Add, DropDownList, xs ys w300 vdrpSpecialFolder gDropdownSpecialFolderChanged hidden, %g_strSpecialFoldersList%
-	if (A_ThisLabel = "GuiEditFavorite")
-		GuiControl, ChooseString, drpSpecialFolder, %strCurrentName%
-
-	Gui, 2:Add, Edit, ys+20 x10 w300 h20 vstrFavoriteLocation gEditFolderLocationChanged, %strCurrentLocation%
-	if !(blnRadioURL)
-		Gui, 2:Add, Button, x+10 yp vbtnSelectFolderLocation gButtonSelectFolderLocation, %lDialogBrowseButton%
-}
+Gui, 2:Tab, 3
 
 Gui, 2:Add, Text, x10 w300 vlblArguments, %lDialogArgumentsLabel%
 Gui, 2:Add, Edit, x10 w300 Limit250 vstrAppArguments, %strAppArguments%
@@ -2409,40 +2430,36 @@ Gui, 2:Add, Button, x+10 yp vbtnSelectWorkingDir gButtonSelectWorkingDir, %lDial
 GuiControlGet, arrPos, Pos, strAppArguments
 intMinButtonY := arrPosY
 
+Gui, 2:Tab
+; --- End of tabs
+*/
+
 if (A_ThisLabel = "GuiEditFavorite")
 {
-	Gui, 2:Add, Button, y+20 vbtnEditFolderSave gGuiEditFavoriteSave default, %lDialogSave%
+	Gui, 2:Add, Button, y+40 vbtnEditFolderSave gGuiEditFavoriteSave default, %lDialogSave%
 	Gui, 2:Add, Button, yp vbtnEditFolderCancel gGuiEditFavoriteCancel, %lGuiCancel%
-	
-	if (!blnRadioApplication)
-	{
-		GuiControl, Move, btnEditFolderSave, y%intMinButtonY%
-		GuiControl, Move, btnEditFolderCancel, y%intMinButtonY%
-	}
 	
 	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnEditFolderSave", "btnEditFolderCancel")
 }
 else
 {
-	Gui, 2:Add, Button, y+20 vbtnAddFolderAdd gGuiAddFavoriteSave default, %lDialogAdd%
+	Gui, 2:Add, Button, y+40 vbtnAddFolderAdd gGuiAddFavoriteSave default, %lDialogAdd%
 	Gui, 2:Add, Button, yp vbtnAddFolderCancel gGuiAddFavoriteCancel, %lGuiCancel%
-	
-	GuiControlGet, arrPos, Pos, btnAddFolderCancel
-	intMaxButtonY := arrPosY
-
-	if !(A_ThisLabel = "GuiAddFromDropFiles" and blnRadioApplication)
-	{
-		GuiControl, Move, btnAddFolderAdd, y%intMinButtonY%
-		GuiControl, Move, btnAddFolderCancel, y%intMinButtonY%
-	}
 	
 	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnAddFolderAdd", "btnAddFolderCancel")
 }
 
+/*
+if (blnRadioFolder or blnRadioFile or blnRadioApplication)
+	GuiControl, 2:+Default, btnSelectFolderLocation
+else
+	GuiControl, 2:+Default, btnAddFolderAdd
+GuiControl, 2:Focus, % (blnRadioSpecial ? "drpSpecialFolder" : "strFavoriteShortName")
+*/
+
 Gosub, GuiFavoriteIconDefault
 Gosub, GuiFavoriteIconDisplay
 Gosub, DropdownParentMenuChanged ; to init the content of menu items
-Gosub, RadioButtonsChanged ; to hide unused control when edit a special folder
 
 if (blnRadioSpecial)
 	GuiControl, 2:Focus, drpSpecialFolder
@@ -2452,6 +2469,9 @@ if (A_ThisLabel = "GuiEditFavorite") and (!blnRadioSpecial)
 	SendInput, ^a
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
+
+g_strNewLocation := ""
+objEditedFavorite := ""
 
 return
 ;------------------------------------------------------------
@@ -2468,37 +2488,79 @@ return
 ;------------------------------------------------------------
 GuiOpenThisMenu:
 ;------------------------------------------------------------
+Gosub, 2GuiClose
+
+Gui, 1:Default
+GuiControl, 1:Focus, lvFavoritesList
+Gui, 1:ListView, lvFavoritesList
+
+Gosub, OpenMenuFromEditForm
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-RadioButtonsChanged:
+DropdownSpecialChanged:
 ;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+/* to be completed
+strThisFavoriteShortName := drpSpecialFolder
+GuiControl, , strFavoriteShortName, %strThisFavoriteShortName% ; also assign values to gui control
+
+strThisFavoriteLocation := g_objClassIdOrPathByDefaultName[strThisFavoriteShortName]
+GuiControl, , strFavoriteLocation, %strThisFavoriteLocation% ; also assign values to gui control
+
+strCurrentIconResource := g_objSpecialFolders[strThisFavoriteLocation].DefaultIcon
+
+Gosub, GuiFavoriteIconDisplay
+*/
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-DropdownSpecialFolderChanged:
+DropdownQAPChanged:
 ;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+/* to be adapted and completed
+strThisFavoriteShortName := drpSpecialFolder
+GuiControl, , strFavoriteShortName, %strThisFavoriteShortName% ; also assign values to gui control
+
+strThisFavoriteLocation := g_objClassIdOrPathByDefaultName[strThisFavoriteShortName]
+GuiControl, , strFavoriteLocation, %strThisFavoriteLocation% ; also assign values to gui control
+
+strCurrentIconResource := g_objSpecialFolders[strThisFavoriteLocation].DefaultIcon
+
+Gosub, GuiFavoriteIconDisplay
+*/
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-EditFolderLocationChanged:
+EditFavoriteLocationChanged:
 ;------------------------------------------------------------
+
+Gui, 2:Submit, NoHide
+
+if InStr("Document|Appplication", objEditedFavorite.FavoriteType)
+{
+	strCurrentIconResource := "" ; ### to be completed
+	Gosub, GuiFavoriteIconDefault
+	Gosub, GuiFavoriteIconDisplay
+}
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-ButtonSelectFolderLocation:
+ButtonSelectFavoriteLocation:
 ButtonSelectWorkingDir:
 ;------------------------------------------------------------
 
@@ -2594,17 +2656,6 @@ FolderNameIsNew(strCandidateName, strMenu := "")
 
 
 ;------------------------------------------------------------
-GuiAddFavoriteCancel:
-GuiEditFavoriteCancel:
-;------------------------------------------------------------
-
-Gosub, 2GuiClose
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 GuiRemoveMultipleFavorites:
 ;------------------------------------------------------------
 
@@ -2631,8 +2682,26 @@ RemoveAllSubMenus(strSubmenuFullName)
 
 
 ;------------------------------------------------------------
+GuiAddFavoriteCancel:
+GuiEditFavoriteCancel:
+;------------------------------------------------------------
+
+Gosub, 2GuiClose
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 HotkeyChangeMenu:
 ;------------------------------------------------------------
+
+Gui, 1:ListView, lvFavoritesList
+
+g_intRowToEdit := LV_GetNext()
+
+if (g_objMenuInGui[g_intRowToEdit].FavoriteType = "Menu")
+	Gosub, OpenMenuFromGuiHotkey
 
 return
 ;------------------------------------------------------------
@@ -2677,7 +2746,7 @@ else
 	else if (A_ThisLabel = "GuiGotoUpMenu")
 		g_objMenuInGui := g_objMenuInGui[1].SubMenu
 	else if (A_ThisLabel = "OpenMenuFromEditForm") or (A_ThisLabel = "OpenMenuFromGuiHotkey")
-		g_objMenuInGui := ; g_objMenuInGui[??? position].SubMenu
+		g_objMenuInGui := g_objMenuInGui[g_intRowToEdit].SubMenu
 
 	g_arrSubmenuStackPosition.Insert(1, LV_GetNext("Focused")) ; ### ???
 }
@@ -2953,7 +3022,7 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 			g_intIniLine += 1
 		}
 		
-		if (objCurrentMenu[A_Index].FavoriteType = "M") and !(blnIsBackMenu)
+		if (objCurrentMenu[A_Index].FavoriteType = "Menu") and !(blnIsBackMenu)
 		{
 			###_D("Going down in: " . objCurrentMenu[A_Index].SubMenu.MenuPath)
 			RecursiveSaveFavoritesToIniFile(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
@@ -4136,7 +4205,7 @@ RecursiveBuildMenuTreeDropDown(objMenu, strDefaultMenuName, strSkipMenuName := "
 		strList := strList . "|" ; default value
 
 	Loop, % objMenu.MaxIndex()
-		if (objMenu[A_Index].FavoriteType = "M") ; this is a menu
+		if (objMenu[A_Index].FavoriteType = "Menu") ; this is a menu
 			if (objMenu[A_Index].Submenu.MenuPath <> strSkipMenuName) ; skip if under edited submenu ### not sure I remember why this???
 				strList := strList . "|" . RecursiveBuildMenuTreeDropDown(objMenu[A_Index].Submenu, strDefaultMenuName, strSkipMenuName) ; recursive call
 	return strList
@@ -4150,6 +4219,19 @@ LocationIsDocument(strLocation)
 {
     FileGetAttrib, strAttributes, %strLocation%
     return !InStr(strAttributes, "D") ; not a folder
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetDeepestFolderName(strLocation)
+;------------------------------------------------------------
+{
+	SplitPath, strLocation, , , , strDeepestName, strDrive
+	if !StrLen(strDeepestName) ; we are probably at the root of a drive
+		return strDrive
+	else
+		return strDeepestName
 }
 ;------------------------------------------------------------
 
