@@ -10,6 +10,7 @@ global lDiagModeIntro := "Send this file to ahk@jeanlalonde.ca with a descriptio
 global lDiagModeSee := "Do you want to see the diagnostic file?"
 global lDialogAdd := "Add"
 global lDialogAddEditFavoriteTitle := "~1~ Favorite - ~2~ ~3~"
+global lDialogAddFavoriteTabs := "Basic Settings | Menu Options | Advanced Settings"
 global lDialogAddFileSelect := "Choose the new document:"
 global lDialogAddFolderManuallyPrompt := "Sorry, we can't detect the current folder in this type of window.`n`nDo you want to add it manually now?"
 global lDialogAddFolderManuallyTitle := "Add This Folder - ~1~ ~2~"

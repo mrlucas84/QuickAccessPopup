@@ -1,3 +1,7 @@
+/*
+Todo:
+- AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "Menu") ; ### check if separator ok with spaces?
+*/
 ;===============================================
 /*
 
@@ -151,7 +155,7 @@ g_arrSubmenuStackPosition := Object()
 g_objIconsFile := Object()
 g_objIconsIndex := Object()
 
-g_strMenuPathSeparator := ">"
+g_strMenuPathSeparator := ">" ; spaces before/after are added only when submenus are added
 g_strGuiMenuSeparator := "----------------"
 g_strGuiMenuColumnBreak := "==="
 g_intListW := "" ; Gui width captured by GuiSize
@@ -1269,7 +1273,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		; this is a regular favorite, add it to the current menu
 		objLoadIniFavorite.FavoriteType := arrThisFavorite1 ; see Favorite Types
 		objLoadIniFavorite.FavoriteName := arrThisFavorite2 ; display name of this menu item
-		objLoadIniFavorite.FavoriteLocation := arrThisFavorite3 ; path, URL for this menu item
+		objLoadIniFavorite.FavoriteLocation := arrThisFavorite3 ; path, URL or menu path (without "Main") for this menu item
 		objLoadIniFavorite.FavoriteIconResource := arrThisFavorite4 ; icon resource in format "iconfile,iconindex"
 		objLoadIniFavorite.FavoriteAppArguments := arrThisFavorite5 ; application arguments
 		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
@@ -1306,7 +1310,7 @@ Loop
 strMySystemMenu := lMenuMySystemMenu . strInstance
 
 AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "Menu")
+AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . strMySystemMenu, strMySystemMenu, "Menu") ; ### check if separator ok with spaces?
 AddToIniOneSystemFolderMenu(A_Desktop, lMenuDesktop)
 AddToIniOneSystemFolderMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}")
 AddToIniOneSystemFolderMenu(g_strMyPicturesPath)
@@ -2360,7 +2364,7 @@ Gui, 2:+OwnDialogs
 if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
-Gui, 2:Add, Tab2, vintAddFavoriteTab w420 h350 AltSubmit, %A_Space%Basic Settings | Menu Options | Advanced Settings%A_Space% ; ### LANGUAGE
+Gui, 2:Add, Tab2, vintAddFavoriteTab w420 h350 AltSubmit, % " " . lDialogAddFavoriteTabs . " "
 
 ; --- Basic Settings ---
 
@@ -2394,18 +2398,19 @@ else ; "Special" or "QAP"
 		GuiControl, ChooseString, drpSpecialFolder, %strCurrentName%
 }
 
-/*
 ; --- Menu Options ---
 
 Gui, 2:Tab, 2
 
-Gui, 2:Add, Text, % x10 y10 vlblFavoriteParentMenu, % (blnRadioSubmenu ? lDialogSubmenuParentMenu : lDialogFavoriteParentMenu)
-Gui, 2:Add, DropDownList, x10 w300 vdrpParentMenu gDropdownParentMenuChanged, % RecursiveBuildMenuTreeDropDown(lMainMenuName, strCurrentMenu, strCurrentSubmenuFullName) . "|"
-Gui, 2:Add, Text, yp x+10 section
-Gui, 2:Add, Text, xs y10 w64 center vlblIcon gGuiPickIconDialog, %lDialogIcon%
-Gui, Add, Picture, % "xs+" . ((64-32)/2) . " y+5 w32 h32 vpicIcon gGuiPickIconDialog"
+Gui, 2:Add, Text, % x20 y40 vlblFavoriteParentMenu, 
+% (objEditedFavorite.FavoriteType = "Menu" ? lDialogSubmenuParentMenu : lDialogFavoriteParentMenu)
+Gui, 2:Add, DropDownList, x10 y+10 w300 vdrpParentMenu gDropdownParentMenuChanged
+	, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath, (objEditedFavorite.FavoriteType = "Menu" ? lMainMenuName . " " . objEditedFavorite.FavoriteLocation : "")) . "|"
+Gui, 2:Add, Text, x20 y+20 w64 center vlblIcon gGuiPickIconDialog, %lDialogIcon%
+Gui, Add, Picture, x20 y+5 w32 h32 vpicIcon gGuiPickIconDialog
 Gui, Add, Text, x+5 yp vlblRemoveIcon gGuiRemoveIcon, X
 
+/*
 If (A_ThisLabel <> "GuiEditFavorite")
 {
 	Gui, 2:Add, Text, x20 ys+25 vlblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
@@ -2430,9 +2435,10 @@ Gui, 2:Add, Button, x+10 yp vbtnSelectWorkingDir gButtonSelectWorkingDir, %lDial
 GuiControlGet, arrPos, Pos, strAppArguments
 intMinButtonY := arrPosY
 
+*/
+
 Gui, 2:Tab
 ; --- End of tabs
-*/
 
 if (A_ThisLabel = "GuiEditFavorite")
 {
