@@ -889,7 +889,7 @@ GetLocalizedNameForClassId(strClassId)
     strDllIndex := arrLocalizedString2
     strTranslatedName := TranslateMUI(strDllFile, Abs(strDllIndex))
     
-    /*
+	/*
     MsgBox, % ""
         . "strClassId: " . strClassId . "`n"
         . "strLocalizedString: " . strLocalizedString . "`n"
@@ -897,7 +897,7 @@ GetLocalizedNameForClassId(strClassId)
         . "strDllIndex: " . strDllIndex . "`n"
         . "strTranslatedName: " . strTranslatedName . "`n"
     */
-    
+	
     return strTranslatedName
 }
 ;------------------------------------------------------------
@@ -2536,16 +2536,14 @@ DropdownSpecialChanged:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-/* to be completed
-strThisFavoriteShortName := drpSpecialFolder
-GuiControl, , strFavoriteShortName, %strThisFavoriteShortName% ; also assign values to gui control
+g_objEditedFavorite.FavoriteName := drpSpecial
+GuiControl, , strFavoriteShortName, %drpSpecial% ; also assign values to gui control
 
-strThisFavoriteLocation := g_objClassIdOrPathByDefaultName[strThisFavoriteShortName]
-GuiControl, , strFavoriteLocation, %strThisFavoriteLocation% ; also assign values to gui control
+g_objEditedFavorite.FavoriteLocation := g_objClassIdOrPathByDefaultName[drpSpecial]
+GuiControl, , strFavoriteLocation, % g_objClassIdOrPathByDefaultName[drpSpecial] ; also assign values to gui control
 
-g_objEditedFavorite.FavoriteIconResource := g_objSpecialFolders[strThisFavoriteLocation].DefaultIcon
-
-*/
+g_objEditedFavorite.FavoriteIconResource := g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultIcon
+g_strDefaultIconResource := g_objEditedFavorite.FavoriteIconResource 
 
 return
 ;------------------------------------------------------------
@@ -2684,7 +2682,7 @@ else if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and StrL
 	GetIcon4Location(strFavoriteLocation, strThisIconFile, intThisIconIndex, blnRadioApplication)
 	g_strDefaultIconResource := strThisIconFile . "," . intThisIconIndex
 }
-else ; should not
+else if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType) ; should not
 	g_strDefaultIconResource := g_objIconsFile["UnknownDocument"] . "," . g_objIconsIndex["UnknownDocument"]
 
 if !StrLen(g_objEditedFavorite.FavoriteIconResource) or (g_objEditedFavorite.FavoriteIconResource = g_objIconsFile["UnknownDocument"] . "," . g_objIconsIndex["UnknownDocument"])
@@ -2701,6 +2699,7 @@ GuiFavoriteIconDisplay:
 strExpandedRessourceIcon := EnvVars(g_objEditedFavorite.FavoriteIconResource)
 ParseIconResource(strExpandedRessourceIcon, strThisIconFile, intThisIconIndex)
 GuiControl, , picIcon, *icon%intThisIconIndex% %strThisIconFile%
+###_D(strExpandedRessourceIcon . " / " .  EnvVars(g_strDefaultIconResource))
 GuiControl, % (strExpandedRessourceIcon <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), lblRemoveIcon
 
 strExpandedRessourceIcon := ""
