@@ -32,9 +32,6 @@ HELP
 LANGUAGE
 * Replace or update occurences of "FoldersPopup" in language files
 
-GUI
-* update CleanUpBeforeExit to save current position
-
 QAP FEATURES MENUS
 * Does not support Folders in Explorer and Group menus for TC and FPc users
 
@@ -1454,6 +1451,18 @@ return
 CleanUpBeforeExit:
 ;-----------------------------------------------------------
 
+strSettingsPosition := "-1" ; center at minimal size
+if (g_blnRememberSettingsPosition)
+{
+	WinGet, intMinMax, MinMax, ahk_id %g_strAppHwnd%
+	if (intMinMax <> 1) ; if window is maximized, we keep the default positionand size (center at minimal size)
+	{
+		WinGetPos, intX, intY, intW, intH, ahk_id %g_strAppHwnd%
+		strSettingsPosition := intX . "|" . intY . "|" . intW . "|" . intH
+	}
+}
+IniWrite, %strSettingsPosition%, %g_strIniFile%, Global, SettingsPosition
+
 FileRemoveDir, %g_strTempDir%, 1 ; Remove all files and subdirectories
 
 if (g_blnDiagMode)
@@ -1462,6 +1471,14 @@ if (g_blnDiagMode)
 	IfMsgBox, Yes
 		Run, %g_strDiagFile%
 }
+
+strSettingsPosition := ""
+intMinMax := ""
+intX := ""
+intY := ""
+intW := ""
+intH := ""
+
 ExitApp
 ;-----------------------------------------------------------
 
@@ -1836,7 +1853,7 @@ lGuiFullTitle := L(lGuiTitle, g_strAppNameText, g_strAppVersion)
 Gui, 1:New, +Resize -MinimizeBox +MinSize636x538, %lGuiFullTitle%
 
 Gui, +LastFound
-strAppHwnd := WinExist()
+g_strAppHwnd := WinExist()
 
 if (g_blnUseColors)
 	Gui, 1:Color, %g_strGuiWindowColor%
@@ -1910,7 +1927,7 @@ Gui, 1:Show, % "Hide "
 	: "x" . arrSettingsPosition1 . " y" . arrSettingsPosition2)
 sleep, 100
 if (arrSettingsPosition1 <> -1)
-	WinMove, ahk_id %strAppHwnd%, , , , %arrSettingsPosition3%, %arrSettingsPosition4%
+	WinMove, ahk_id %g_strAppHwnd%, , , , %arrSettingsPosition3%, %arrSettingsPosition4%
 
 strSettingsPosition := ""
 arrSettingsPosition := ""
@@ -2027,7 +2044,7 @@ LV_ModifyCol(1, "Auto") ; adjust column width
 
 ; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
 intCol1 := 0 ; column index, zero-based
-SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %strAppHwnd%
+SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %g_strAppHwnd%
 intCol1 := ErrorLevel ; column width
 LV_ModifyCol(2, g_intListW - intCol1 - 21) ; adjust column width (-21 is for vertical scroll bar width)
 
