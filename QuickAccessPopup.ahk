@@ -65,6 +65,9 @@ typeNameOfVariable
 g_typNameOfVariable
 ^ g_ for global, nothing for local
 
+f_typNameOfVariable
+^ f_ for form (Gui) variables
+
 */ 
 ;========================================================================================================================
 !_010_COMPILER_DIRECTIVES:
@@ -215,7 +218,7 @@ Gosub, BuildMainMenu
 Gosub, BuildGui
 
 Gosub, GuiShow
-Gosub, GuiAddFavoriteSelectType
+
 return
 
 
@@ -259,7 +262,7 @@ Gosub, HotkeyChangeMenu
 return
 
 ^Left::
-GuiControlGet, blnUpMenuVisible, Visible, picUpMenu
+GuiControlGet, blnUpMenuVisible, Visible, f_picUpMenu
 if (blnUpMenuVisible)
 	Gosub, GuiGotoPreviousMenu
 return
@@ -929,44 +932,44 @@ InitGuiControls:
 
 ; Order of controls important to avoid drawgins gliches when resizing
 
-InsertGuiControlPos("lnkGuiDropHelpClicked",	 -88, -130)
-InsertGuiControlPos("lnkGuiHotkeysHelpClicked",	  40, -130)
+InsertGuiControlPos("f_lnkGuiDropHelpClicked",	 -88, -130)
+InsertGuiControlPos("f_lnkGuiHotkeysHelpClicked",	  40, -130)
 
-InsertGuiControlPos("picGuiOptions",			 -44,   10, true) ; true = center
-InsertGuiControlPos("picGuiAddFavorite",		 -44,  122, true)
-InsertGuiControlPos("picGuiEditFavorite",		 -44,  199, true)
-InsertGuiControlPos("picGuiRemoveFavorite",		 -44,  274, true)
-InsertGuiControlPos("picGuiGroupsManage",		 -44, -150, true, true) ; true = center, true = draw
-InsertGuiControlPos("picGuiDonate",				  50,  -62, true, true)
-InsertGuiControlPos("picGuiHelp",				 -44,  -62, true, true)
-InsertGuiControlPos("picGuiAbout",				-104,  -62, true, true)
+InsertGuiControlPos("f_picGuiOptions",			 -44,   10, true) ; true = center
+InsertGuiControlPos("f_picGuiAddFavorite",		 -44,  122, true)
+InsertGuiControlPos("f_picGuiEditFavorite",		 -44,  199, true)
+InsertGuiControlPos("f_picGuiRemoveFavorite",		 -44,  274, true)
+InsertGuiControlPos("f_picGuiGroupsManage",		 -44, -150, true, true) ; true = center, true = draw
+InsertGuiControlPos("f_picGuiDonate",				  50,  -62, true, true)
+InsertGuiControlPos("f_picGuiHelp",				 -44,  -62, true, true)
+InsertGuiControlPos("f_picGuiAbout",				-104,  -62, true, true)
 
-InsertGuiControlPos("picAddColumnBreak",		  10,  230)
-InsertGuiControlPos("picAddSeparator",			  10,  200)
-InsertGuiControlPos("picMoveFavoriteDown",		  10,  170)
-InsertGuiControlPos("picMoveFavoriteUp",		  10,  140)
-InsertGuiControlPos("picPreviousMenu",			  10,   84)
-InsertGuiControlPos("picSortFavorites",			  10, -165)
-InsertGuiControlPos("picUpMenu",				  25,   84)
+InsertGuiControlPos("f_picAddColumnBreak",		  10,  230)
+InsertGuiControlPos("f_picAddSeparator",			  10,  200)
+InsertGuiControlPos("f_picMoveFavoriteDown",		  10,  170)
+InsertGuiControlPos("f_picMoveFavoriteUp",		  10,  140)
+InsertGuiControlPos("f_picPreviousMenu",			  10,   84)
+; InsertGuiControlPos("picSortFavorites",			  10, -165) ; REMOVED
+InsertGuiControlPos("f_picUpMenu",				  25,   84)
 
-InsertGuiControlPos("btnGuiSave",				   0,  -90, , true)				
-InsertGuiControlPos("btnGuiCancel",				   0,  -90, , true)
+InsertGuiControlPos("f_btnGuiSave",				   0,  -90, , true)				
+InsertGuiControlPos("f_btnGuiCancel",				   0,  -90, , true)
 
-InsertGuiControlPos("drpMenusList",				  40,   84)
+InsertGuiControlPos("f_drpMenusList",				  40,   84)
 
-InsertGuiControlPos("lblGuiDonate",				  50,  -20, true)
-InsertGuiControlPos("lblGuiAbout",				-104,  -20, true)
-InsertGuiControlPos("lblGuiHelp",				 -44,  -20, true)
-InsertGuiControlPos("lblAppName",				  10,   10)
-InsertGuiControlPos("lblAppTagLine",			  10,   42)
-InsertGuiControlPos("lblGuiAddFavorite",		 -44,  172, true)
-InsertGuiControlPos("lblGuiEditFavorite",		 -44,  249, true)
-InsertGuiControlPos("lblGuiOptions",			 -44,   45, true)
-InsertGuiControlPos("lblGuiRemoveFavorite",		 -44,  324, true)
-InsertGuiControlPos("lblSubmenuDropdownLabel",	  40,   66)
-InsertGuiControlPos("lblGuiGroupsManage",		 -44,  -95, true)
+InsertGuiControlPos("f_lblGuiDonate",				  50,  -20, true)
+InsertGuiControlPos("f_lblGuiAbout",				-104,  -20, true)
+InsertGuiControlPos("f_lblGuiHelp",				 -44,  -20, true)
+InsertGuiControlPos("f_lblAppName",				  10,   10)
+InsertGuiControlPos("f_lblAppTagLine",			  10,   42)
+InsertGuiControlPos("f_lblGuiAddFavorite",		 -44,  172, true)
+InsertGuiControlPos("f_lblGuiEditFavorite",		 -44,  249, true)
+InsertGuiControlPos("f_lblGuiOptions",			 -44,   45, true)
+InsertGuiControlPos("f_lblGuiRemoveFavorite",		 -44,  324, true)
+InsertGuiControlPos("f_lblSubmenuDropdownLabel",	  40,   66)
+InsertGuiControlPos("f_lblGuiGroupsManage",		 -44,  -95, true)
 
-InsertGuiControlPos("lvFavoritesList",			  40,  115)
+InsertGuiControlPos("f_lvFavoritesList",			  40,  115)
 
 return
 ;------------------------------------------------------------
@@ -1861,51 +1864,51 @@ if (g_blnUseColors)
 ; Order of controls important to avoid drawgins gliches when resizing
 
 Gui, 1:Font, % "s12 w700 " . (g_blnUseColors ? "c" . strTextColor : ""), Verdana
-Gui, 1:Add, Text, vlblAppName x0 y0, %g_strAppNameText% %g_strAppVersion%
+Gui, 1:Add, Text, vf_lblAppName x0 y0, %g_strAppNameText% %g_strAppVersion%
 Gui, 1:Font, s9 w400, Verdana
-Gui, 1:Add, Text, vlblAppTagLine, %lAppTagline%
+Gui, 1:Add, Text, vf_lblAppTagLine, %lAppTagline%
 
-Gui, 1:Add, Picture, vpicGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static3
-Gui, 1:Add, Picture, vpicGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
-Gui, 1:Add, Picture, vpicGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static5
-Gui, 1:Add, Picture, vpicGuiGroupsManage gGuiGroupsManage x+1 yp, %g_strTempDir%\channel_mosaic-48.png ; Static6
-Gui, 1:Add, Picture, vpicGuiOptions gGuiOptions x+1 yp, %g_strTempDir%\settings-32.png ; Static7
-Gui, 1:Add, Picture, vpicPreviousMenu gGuiGotoPreviousMenu hidden x+1 yp, %g_strTempDir%\left-12.png ; Static8
-Gui, 1:Add, Picture, vpicUpMenu gGuiGotoUpMenu hidden x+1 yp, %g_strTempDir%\up-12.png ; Static9
-Gui, 1:Add, Picture, vpicMoveFavoriteUp gGuiMoveFavoriteUp x+1 yp, %g_strTempDir%\up_circular-26.png ; Static10
-Gui, 1:Add, Picture, vpicMoveFavoriteDown gGuiMoveFavoriteDown x+1 yp, %g_strTempDir%\down_circular-26.png ; Static11
-Gui, 1:Add, Picture, vpicAddSeparator gGuiAddSeparator x+1 yp, %g_strTempDir%\separator-26.png ; Static12
-Gui, 1:Add, Picture, vpicAddColumnBreak gGuiAddColumnBreak x+1 yp, %g_strTempDir%\column-26.png ; Static13
+Gui, 1:Add, Picture, vf_picGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static3
+Gui, 1:Add, Picture, vf_picGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
+Gui, 1:Add, Picture, vf_picGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static5
+Gui, 1:Add, Picture, vf_picGuiGroupsManage gGuiGroupsManage x+1 yp, %g_strTempDir%\channel_mosaic-48.png ; Static6
+Gui, 1:Add, Picture, vf_picGuiOptions gGuiOptions x+1 yp, %g_strTempDir%\settings-32.png ; Static7
+Gui, 1:Add, Picture, vf_picPreviousMenu gGuiGotoPreviousMenu hidden x+1 yp, %g_strTempDir%\left-12.png ; Static8
+Gui, 1:Add, Picture, vf_picUpMenu gGuiGotoUpMenu hidden x+1 yp, %g_strTempDir%\up-12.png ; Static9
+Gui, 1:Add, Picture, vf_picMoveFavoriteUp gGuiMoveFavoriteUp x+1 yp, %g_strTempDir%\up_circular-26.png ; Static10
+Gui, 1:Add, Picture, vf_picMoveFavoriteDown gGuiMoveFavoriteDown x+1 yp, %g_strTempDir%\down_circular-26.png ; Static11
+Gui, 1:Add, Picture, vf_picAddSeparator gGuiAddSeparator x+1 yp, %g_strTempDir%\separator-26.png ; Static12
+Gui, 1:Add, Picture, vf_picAddColumnBreak gGuiAddColumnBreak x+1 yp, %g_strTempDir%\column-26.png ; Static13
 ; OUT Gui, 1:Add, Picture, vpicSortFavorites gGuiSortFavorites x+1 yp, %g_strTempDir%\generic_sorting2-26-grey.png ; Static14
-Gui, 1:Add, Picture, vpicGuiAbout gGuiAbout x+1 yp, %g_strTempDir%\about-32.png ; Static15
-Gui, 1:Add, Picture, vpicGuiHelp gGuiHelp x+1 yp, %g_strTempDir%\help-32.png ; Static16
+Gui, 1:Add, Picture, vf_picGuiAbout gGuiAbout x+1 yp, %g_strTempDir%\about-32.png ; Static15
+Gui, 1:Add, Picture, vf_picGuiHelp gGuiHelp x+1 yp, %g_strTempDir%\help-32.png ; Static16
 
 Gui, 1:Font, s8 w400, Arial ; button legend
-Gui, 1:Add, Text, vlblGuiOptions gGuiOptions x0 y+20, %lGuiOptions% ; Static17
-Gui, 1:Add, Text, vlblGuiAddFavorite center gGuiAddFavoriteSelectType x+1 yp, %lGuiAddFavorite% ; Static18
-Gui, 1:Add, Text, vlblGuiEditFavorite center gGuiEditFavorite x+1 yp w88, %lGuiEditFavorite% ; Static19, w88 to make room fot when multiple favorites are selected
-Gui, 1:Add, Text, vlblGuiRemoveFavorite center gGuiRemoveFavorite x+1 yp, %lGuiRemoveFavorite% ; Static20
-Gui, 1:Add, Text, vlblGuiGroupsManage center gGuiGroupsManage x+1 yp, %lDialogGroups% ; Static21
-Gui, 1:Add, Text, vlblGuiAbout center gGuiAbout x+1 yp, %lGuiAbout% ; Static22
-Gui, 1:Add, Text, vlblGuiHelp center gGuiHelp x+1 yp, %lGuiHelp% ; Static23
+Gui, 1:Add, Text, vf_lblGuiOptions gGuiOptions x0 y+20, %lGuiOptions% ; Static17
+Gui, 1:Add, Text, vf_lblGuiAddFavorite center gGuiAddFavoriteSelectType x+1 yp, %lGuiAddFavorite% ; Static18
+Gui, 1:Add, Text, vf_lblGuiEditFavorite center gGuiEditFavorite x+1 yp w88, %lGuiEditFavorite% ; Static19, w88 to make room fot when multiple favorites are selected
+Gui, 1:Add, Text, vf_lblGuiRemoveFavorite center gGuiRemoveFavorite x+1 yp, %lGuiRemoveFavorite% ; Static20
+Gui, 1:Add, Text, vf_lblGuiGroupsManage center gGuiGroupsManage x+1 yp, %lDialogGroups% ; Static21
+Gui, 1:Add, Text, vf_lblGuiAbout center gGuiAbout x+1 yp, %lGuiAbout% ; Static22
+Gui, 1:Add, Text, vf_lblGuiHelp center gGuiHelp x+1 yp, %lGuiHelp% ; Static23
 
 Gui, 1:Font, s8 w400 italic, Verdana
-Gui, 1:Add, Link, vlnkGuiHotkeysHelpClicked gGuiHotkeysHelpClicked x0 y+1, <a>%lGuiHotkeysHelp%</a> ; center option not working SysLink1
-Gui, 1:Add, Link, vlnkGuiDropHelpClicked gGuiDropFilesHelpClicked right x+1 yp, <a>%lGuiDropFilesHelp%</a> ; SysLink2
+Gui, 1:Add, Link, vf_lnkGuiHotkeysHelpClicked gGuiHotkeysHelpClicked x0 y+1, <a>%lGuiHotkeysHelp%</a> ; center option not working SysLink1
+Gui, 1:Add, Link, vf_lnkGuiDropHelpClicked gGuiDropFilesHelpClicked right x+1 yp, <a>%lGuiDropFilesHelp%</a> ; SysLink2
 
 Gui, 1:Font, s8 w400 normal, Verdana
-Gui, 1:Add, Text, vlblSubmenuDropdownLabel x+1 yp, %lGuiSubmenuDropdownLabel%
-Gui, 1:Add, DropDownList, vdrpMenusList gGuiMenusListChanged x0 y+1
+Gui, 1:Add, Text, vf_lblSubmenuDropdownLabel x+1 yp, %lGuiSubmenuDropdownLabel%
+Gui, 1:Add, DropDownList, vf_drpMenusList gGuiMenusListChanged x0 y+1
 
 ; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteAppArguments, 6 FavoriteAppWorkingDir, 7 FavoritePositionSize, 8 FavoriteHotkey
 ; In FP: 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
 Gui, 1:Add, ListView
-	, % "vlvFavoritesList Count32 AltSubmit NoSortHdr LV0x10 " . (g_blnUseColors ? "c" . strGuiListviewTextColor . " Background" . strGuiListviewBackgroundColor : "") . " gGuiFavoritesListEvents x+1 yp"
+	, % "vf_lvFavoritesList Count32 AltSubmit NoSortHdr LV0x10 " . (g_blnUseColors ? "c" . strGuiListviewTextColor . " Background" . strGuiListviewBackgroundColor : "") . " gGuiFavoritesListEvents x+1 yp"
 	, %lGuiLvFavoritesHeader%
 
 Gui, 1:Font, s9 w600, Verdana
-Gui, 1:Add, Button, vbtnGuiSave Disabled Default gGuiSave x200 y400 w100 h50, %lGuiSave% ; Button1
-Gui, 1:Add, Button, vbtnGuiCancel gGuiCancel x350 yp w100 h50, %lGuiClose% ; Close until changes occur - Button2
+Gui, 1:Add, Button, vf_btnGuiSave Disabled Default gGuiSave x200 y400 w100 h50, %lGuiSave% ; Button1
+Gui, 1:Add, Button, vf_btnGuiCancel gGuiCancel x350 yp w100 h50, %lGuiClose% ; Close until changes occur - Button2
 
 if !(g_blnDonor)
 {
@@ -1913,9 +1916,9 @@ if !(g_blnDonor)
 	StringSplit, arrDonateButtons, strDonateButtons, |
 	Random, intDonateButton, 1, 5
 
-	Gui, 1:Add, Picture, vpicGuiDonate gGuiDonate x0 y+1, % g_strTempDir . "\" . arrDonateButtons%intDonateButton% . "-32.png" ; Static25
+	Gui, 1:Add, Picture, vf_picGuiDonate gGuiDonate x0 y+1, % g_strTempDir . "\" . arrDonateButtons%intDonateButton% . "-32.png" ; Static25
 	Gui, 1:Font, s8 w400, Arial ; button legend
-	Gui, 1:Add, Text, vlblGuiDonate center gGuiDonate x0 y+1, %lGuiDonate% ; Static26
+	Gui, 1:Add, Text, vf_lblGuiDonate center gGuiDonate x0 y+1, %lGuiDonate% ; Static26
 }
 
 IniRead, strSettingsPosition, %g_strIniFile%, Global, SettingsPosition, -1 ; center at minimal size
@@ -1943,7 +1946,7 @@ return
 LoadMenuInGui:
 ;------------------------------------------------------------
 
-Gui, 1:ListView, lvFavoritesList
+Gui, 1:ListView, f_lvFavoritesList
 LV_Delete()
 
 ; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
@@ -1967,9 +1970,9 @@ LV_ModifyCol(1, "Auto") ; adjust column 1 width
 
 Gosub, AjustColumnWidth
 
-GuiControl, , drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|"
+GuiControl, , f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|"
 
-GuiControl, Focus, lvFavoritesList
+GuiControl, Focus, f_lvFavoritesList
 
 return
 ;------------------------------------------------------------
@@ -2003,22 +2006,22 @@ for intIndex, objGuiControl in g_objGuiControls
 		intX := intX - (arrPosW // 2) ; Floor divide
 	}
 
-	if (objGuiControl.Name = "lnkGuiDropHelpClicked")
+	if (objGuiControl.Name = "f_lnkGuiDropHelpClicked")
 	{
-		GuiControlGet, arrPos, Pos, lnkGuiDropHelpClicked
+		GuiControlGet, arrPos, Pos, f_lnkGuiDropHelpClicked
 		intX := intX - arrPosW
 	}
-	else if (objGuiControl.Name = "btnGuiSave")
+	else if (objGuiControl.Name = "f_btnGuiSave")
 		intX := 40 + intButtonSpacing
-	else if (objGuiControl.Name = "btnGuiCancel")
+	else if (objGuiControl.Name = "f_btnGuiCancel")
 		intX := 40 + (2 * intButtonSpacing) + 100
 		
 	GuiControl, % "1:Move" . (objGuiControl.Draw ? "Draw" : ""), % objGuiControl.Name, % "x" . intX	.  " y" . intY
 		
 }
 
-GuiControl, 1:Move, drpMenusList, w%g_intListW%
-GuiControl, 1:Move, lvFavoritesList, w%g_intListW% h%intListH%
+GuiControl, 1:Move, f_drpMenusList, w%g_intListW%
+GuiControl, 1:Move, f_lvFavoritesList, w%g_intListW% h%intListH%
 
 LV_ModifyCol(1, "Auto") ; adjust column width
 
@@ -2082,7 +2085,7 @@ return
 GuiFavoritesListEvents:
 ;------------------------------------------------------------
 
-Gui, 1:ListView, lvFavoritesList
+Gui, 1:ListView, f_lvFavoritesList
 
 if (A_GuiEvent = "DoubleClick")
 	gosub, GuiEditFavorite
@@ -2091,25 +2094,25 @@ else if (A_GuiEvent = "I") ; Item changed, change Edit button label
 	g_intFavoriteSelected := LV_GetCount("Selected")
 	if (g_intFavoriteSelected > 1)
 	{
-		GuiControl, , lblGuiEditFavorite, % lGuiMove . " (" . g_intFavoriteSelected . ")"
-		GuiControl, +gGuiMoveMultipleFavoritesToMenu, lblGuiEditFavorite
-		GuiControl, +gGuiMoveMultipleFavoritesToMenu, picGuiEditFavorite
-		GuiControl, , lblGuiRemoveFavorite, % lGuiRemoveFavorite . " (" . g_intFavoriteSelected . ")"
-		GuiControl, +gGuiRemoveMultipleFavorites, lblGuiRemoveFavorite
-		GuiControl, +gGuiRemoveMultipleFavorites, picGuiRemoveFavorite
-		GuiControl, +gGuiMoveMultipleFavoritesUp, picMoveFavoriteUp
-		GuiControl, +gGuiMoveMultipleFavoritesDown, picMoveFavoriteDown
+		GuiControl, , f_lblGuiEditFavorite, % lGuiMove . " (" . g_intFavoriteSelected . ")"
+		GuiControl, +gGuiMoveMultipleFavoritesToMenu, f_lblGuiEditFavorite
+		GuiControl, +gGuiMoveMultipleFavoritesToMenu, f_picGuiEditFavorite
+		GuiControl, , f_lblGuiRemoveFavorite, % lGuiRemoveFavorite . " (" . g_intFavoriteSelected . ")"
+		GuiControl, +gGuiRemoveMultipleFavorites, f_lblGuiRemoveFavorite
+		GuiControl, +gGuiRemoveMultipleFavorites, f_picGuiRemoveFavorite
+		GuiControl, +gGuiMoveMultipleFavoritesUp, f_picMoveFavoriteUp
+		GuiControl, +gGuiMoveMultipleFavoritesDown, f_picMoveFavoriteDown
 	}
 	else
 	{
-		GuiControl, , lblGuiEditFavorite, %lGuiEditFavorite%
-		GuiControl, +gGuiEditFavorite, lblGuiEditFavorite
-		GuiControl, +gGuiEditFavorite, picGuiEditFavorite
-		GuiControl, , lblGuiRemoveFavorite, %lGuiRemoveFavorite%
-		GuiControl, +gGuiRemoveFavorite, lblGuiRemoveFavorite
-		GuiControl, +gGuiRemoveFavorite, picGuiRemoveFavorite
-		GuiControl, +gGuiMoveFavoriteUp, picMoveFavoriteUp
-		GuiControl, +gGuiMoveFavoriteDown, picMoveFavoriteDown
+		GuiControl, , f_lblGuiEditFavorite, %lGuiEditFavorite%
+		GuiControl, +gGuiEditFavorite, f_lblGuiEditFavorite
+		GuiControl, +gGuiEditFavorite, f_picGuiEditFavorite
+		GuiControl, , f_lblGuiRemoveFavorite, %lGuiRemoveFavorite%
+		GuiControl, +gGuiRemoveFavorite, f_lblGuiRemoveFavorite
+		GuiControl, +gGuiRemoveFavorite, f_picGuiRemoveFavorite
+		GuiControl, +gGuiMoveFavoriteUp, f_picMoveFavoriteUp
+		GuiControl, +gGuiMoveFavoriteDown, f_picMoveFavoriteDown
 	}
 }
 
@@ -2134,13 +2137,13 @@ Gui, 2:Add, Text, x10 y+20, %lDialogAdd%:
 Gui, 2:Add, Text, x+10 yp section
 
 loop, %g_arrFavoriteTypes0%
-	Gui, 2:Add, Radio, % (A_Index = 1 ? " vintRadioFavoriteType yp " : "") . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
+	Gui, 2:Add, Radio, % (A_Index = 1 ? " vf_intRadioFavoriteType yp " : "") . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
 
-Gui, 2:Add, Button, x+20 y+20 vbtnAddFavoriteSelectTypeContinue gGuiAddFavoriteSelectTypeContinue default, %lDialogContinue%
-Gui, 2:Add, Button, yp vbtnAddFavoriteSelectTypeCancel gGuiEditFavoriteCancel, %lGuiCancel%
-Gui, 2:Add, Text, % "xs+120 ys vlblAddFavoriteTypeHelp w250 h" . g_arrFavoriteTypes0 * 20, % L(lDialogFavoriteSelectType, lDialogContinue)
+Gui, 2:Add, Button, x+20 y+20 vf_btnAddFavoriteSelectTypeContinue gGuiAddFavoriteSelectTypeContinue default, %lDialogContinue%
+Gui, 2:Add, Button, yp vf_btnAddFavoriteSelectTypeCancel gGuiEditFavoriteCancel, %lGuiCancel%
+Gui, 2:Add, Text, % "xs+120 ys vf_lblAddFavoriteTypeHelp w250 h" . g_arrFavoriteTypes0 * 20, % L(lDialogFavoriteSelectType, lDialogContinue)
 
-GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnAddFavoriteSelectTypeContinue", "btnAddFavoriteSelectTypeCancel")
+GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAddFavoriteSelectTypeContinue", "f_btnAddFavoriteSelectTypeCancel")
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
@@ -2153,7 +2156,7 @@ FavoriteSelectTypeRadioButtonsChanged:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-GuiControl, , lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[g_arrFavoriteTypes%intRadioFavoriteType%]
+GuiControl, , f_lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[g_arrFavoriteTypes%f_intRadioFavoriteType%]
 
 return
 ;------------------------------------------------------------
@@ -2164,9 +2167,9 @@ GuiAddFavoriteSelectTypeContinue:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-GuiControl, , lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[]
+; GuiControl, , f_lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[] ; OUT OK?
 
-g_strAddFavoriteType := g_arrFavoriteTypes%intRadioFavoriteType%
+g_strAddFavoriteType := g_arrFavoriteTypes%f_intRadioFavoriteType%
 
 Gosub, GuiAddFavorite
 
@@ -2316,7 +2319,7 @@ g_objEditedFavorite := Object()
 
 if (A_ThisLabel = "GuiEditFavorite")
 {
-	Gui, 1:ListView, lvFavoritesList
+	Gui, 1:ListView, f_lvFavoritesList
 	g_intRowToEdit := LV_GetNext()
 	g_objEditedFavorite := g_objMenuInGui[g_intRowToEdit]
 	
@@ -2375,7 +2378,7 @@ Gui, 2:+OwnDialogs
 if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
-Gui, 2:Add, Tab2, vintAddFavoriteTab w420 h350 gGuiAddFavoriteTabChanged AltSubmit, % " " . lDialogAddFavoriteTabs . " "
+Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h350 gGuiAddFavoriteTabChanged AltSubmit, % " " . lDialogAddFavoriteTabs . " "
 
 ; --- Basic Settings ---
 
@@ -2386,16 +2389,16 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 	Gui, 2:Add, Text, x20 y40, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType])
 
 	Gui, 2:Add, Edit
-		, % "x20 y+10 Limit250 vstrFavoriteShortName w" . 300 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
+		, % "x20 y+10 Limit250 vf_strFavoriteShortName w" . 300 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
 		, % g_objEditedFavorite.FavoriteName
 	if (g_objEditedFavorite.FavoriteType = "Menu")
-		Gui, 2:Add, Button, x+10 yp vbnlEditFolderOpenMenu gGuiOpenThisMenu, %lDialogOpenThisMenu%
+		Gui, 2:Add, Button, x+10 yp gGuiOpenThisMenu, %lDialogOpenThisMenu%
 	else
 	{
 		Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]
-		Gui, 2:Add, Edit, x20 y+10 w300 h20 vstrFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
+		Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
 		if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
-			Gui, 2:Add, Button, x+10 yp vbtnSelectFavoriteLocation gButtonSelectFavoriteLocation, %lDialogBrowseButton%
+			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation, %lDialogBrowseButton%
 	}
 }
 else ; "Special" or "QAP"
@@ -2403,50 +2406,50 @@ else ; "Special" or "QAP"
 	Gui, 2:Add, Text, x20 y40, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]
 
 	Gui, 2:Add, DropDownList
-		, % "x20 y+10 w300 vdrp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
+		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
 		, % (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : "QAP list to be done")
 	if (A_ThisLabel = "GuiEditFavorite")
-		GuiControl, ChooseString, drpSpecialFolder, %strCurrentName%
+		GuiControl, ChooseString, f_drpSpecialFolder, %strCurrentName%
 }
 
 ; --- Menu Options ---
 
 Gui, 2:Tab, 2
 
-Gui, 2:Add, Text, x20 y40 vlblFavoriteParentMenu
+Gui, 2:Add, Text, x20 y40 vf_lblFavoriteParentMenu
 	, % (g_objEditedFavorite.FavoriteType = "Menu" ? lDialogSubmenuParentMenu : lDialogFavoriteParentMenu)
-Gui, 2:Add, DropDownList, x20 y+5 w300 vdrpParentMenu gDropdownParentMenuChanged
+Gui, 2:Add, DropDownList, x20 y+5 w300 vf_drpParentMenu gDropdownParentMenuChanged
 	, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath, (g_objEditedFavorite.FavoriteType = "Menu" ? lMainMenuName . " " . g_objEditedFavorite.FavoriteLocation : "")) . "|"
 
 If (A_ThisLabel <> "GuiEditFavorite")
 {
-	Gui, 2:Add, Text, x20 y+10 vlblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
-	Gui, 2:Add, DropDownList, x20 y+5 w290 vdrpParentMenuItems AltSubmit
+	Gui, 2:Add, Text, x20 y+10 vf_lblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
+	Gui, 2:Add, DropDownList, x20 y+5 w290 vf_drpParentMenuItems AltSubmit
 }
 
-Gui, 2:Add, Text, x20 y+20 vlblIcon gGuiPickIconDialog, %lDialogIcon%
-Gui, 2:Add, Picture, x20 y+5 w32 h32 vpicIcon gGuiPickIconDialog section
-Gui, 2:Add, Text, x+5 yp vlblRemoveIcon gGuiRemoveIcon, X
-Gui, 2:Add, Link, x20 ys+37 vlblSelectIcon gGuiPickIconDialog, <a href="">Select icon</a> ; ### language
+Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog, %lDialogIcon%
+Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog section
+Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
+Gui, 2:Add, Link, x20 ys+37 gGuiPickIconDialog, <a href="">Select icon</a> ; ### language
 
 /*
 If (A_ThisLabel <> "GuiEditFavorite")
 {
-	Gui, 2:Add, Text, x20 ys+25 vlblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
-	Gui, 2:Add, DropDownList, x20 w290 vdrpParentMenuItems AltSubmit
+	Gui, 2:Add, Text, x20 ys+25 vf_lblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
+	Gui, 2:Add, DropDownList, x20 w290 vf_drpParentMenuItems AltSubmit
 }
 
 ; --- Advanced Settings ---
 
 Gui, 2:Tab, 3
 
-Gui, 2:Add, Text, x10 w300 vlblArguments, %lDialogArgumentsLabel%
-Gui, 2:Add, Edit, x10 w300 Limit250 vstrAppArguments, %strAppArguments%
-Gui, 2:Add, Text, x10 w300 vlblWorkingDir, %lDialogWorkingDirLabel%
-Gui, 2:Add, Edit, x10 w300 Limit250 vstrAppWorkingDir, %strAppWorkingDir%
-Gui, 2:Add, Button, x+10 yp vbtnSelectWorkingDir gButtonSelectWorkingDir, %lDialogBrowseButton%
+Gui, 2:Add, Text, x10 w300, %lDialogArgumentsLabel%
+Gui, 2:Add, Edit, x10 w300 Limit250 vf_strAppArguments, %f_strAppArguments% ; varialbe name from ini?
+Gui, 2:Add, Text, x10 w300, %lDialogWorkingDirLabel%
+Gui, 2:Add, Edit, x10 w300 Limit250 vf_strAppWorkingDir, %f_strAppWorkingDir% ; varialbe name from ini?
+Gui, 2:Add, Button, x+10 yp gButtonSelectWorkingDir, %lDialogBrowseButton%
 
-GuiControlGet, arrPos, Pos, strAppArguments
+GuiControlGet, arrPos, Pos, f_strAppArguments
 intMinButtonY := arrPosY
 
 */
@@ -2456,33 +2459,33 @@ Gui, 2:Tab
 
 if (A_ThisLabel = "GuiEditFavorite")
 {
-	Gui, 2:Add, Button, y400 vbtnEditFolderSave gGuiEditFavoriteSave default, %lDialogSave%
-	Gui, 2:Add, Button, yp vbtnEditFolderCancel gGuiEditFavoriteCancel, %lGuiCancel%
+	Gui, 2:Add, Button, y400 vf_btnEditFavoriteSave gGuiEditFavoriteSave default, %lDialogSave%
+	Gui, 2:Add, Button, yp vf_btnEditFavoriteCancel gGuiEditFavoriteCancel, %lGuiCancel%
 	
-	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnEditFolderSave", "btnEditFolderCancel")
+	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnEditFavoriteSave", "f_btnEditFavoriteCancel")
 }
 else
 {
-	Gui, 2:Add, Button, y400 vbtnAddFolderAdd gGuiAddFavoriteSave default, %lDialogAdd%
-	Gui, 2:Add, Button, yp vbtnAddFolderCancel gGuiAddFavoriteCancel, %lGuiCancel%
+	Gui, 2:Add, Button, y400 vf_btnAddFavoriteAdd gGuiAddFavoriteSave default, %lDialogAdd%
+	Gui, 2:Add, Button, yp vf_btnAddFavoriteCancel gGuiAddFavoriteCancel, %lGuiCancel%
 	
-	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnAddFolderAdd", "btnAddFolderCancel")
+	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAddFavoriteAdd", "f_btnAddFavoriteCancel")
 }
 
 /*
 if (blnRadioFolder or blnRadioFile or blnRadioApplication)
 	GuiControl, 2:+Default, btnSelectFolderLocation
 else
-	GuiControl, 2:+Default, btnAddFolderAdd
-GuiControl, 2:Focus, % (blnRadioSpecial ? "drpSpecialFolder" : "strFavoriteShortName")
+	GuiControl, 2:+Default, f_btnAddFavoriteAdd
+GuiControl, 2:Focus, % (blnRadioSpecial ? "f_drpSpecialFolder" : "f_strFavoriteShortName")
 */
 
 Gosub, DropdownParentMenuChanged ; to init the content of menu items
 
 if (blnRadioSpecial)
-	GuiControl, 2:Focus, drpSpecialFolder
+	GuiControl, 2:Focus, f_drpSpecialFolder
 else
-	GuiControl, 2:Focus, strFavoriteShortName
+	GuiControl, 2:Focus, f_strFavoriteShortName
 if (A_ThisLabel = "GuiEditFavorite") and (!blnRadioSpecial)
 	SendInput, ^a
 Gui, 2:Show, AutoSize Center
@@ -2498,10 +2501,10 @@ return
 GuiAddFavoriteTabChanged:
 ;------------------------------------------------------------
 
-if (intAddFavoriteTab = 1) ; if last tab was 1 we need to update the icon
+if (f_intAddFavoriteTab = 1) ; if last tab was 1 we need to update the icon
 {
 	Gui, 2:Submit, NoHide
-	g_objEditedFavorite.FavoriteLocation := strFavoriteLocation
+	g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
 
 	Gosub, GuiFavoriteIconDefault
 	Gosub, GuiFavoriteIconDisplay
@@ -2521,11 +2524,11 @@ strDropdownParentMenuItems := ""
 Loop, % g_objMenuInGui.MaxIndex()
 	strDropdownParentMenuItems .= g_objMenuInGui[A_Index].FavoriteName . "|"
 
-GuiControl, , drpParentMenuItems, % "|" . strDropdownParentMenuItems . g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
+GuiControl, , f_drpParentMenuItems, % "|" . strDropdownParentMenuItems . g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
 if (intItemPosition)
-	GuiControl, Choose, drpParentMenuItems, %intItemPosition%
+	GuiControl, Choose, f_drpParentMenuItems, %intItemPosition%
 else
-	GuiControl, ChooseString, drpParentMenuItems, % g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
+	GuiControl, ChooseString, f_drpParentMenuItems, % g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
 
 intItemPosition := 0 ; if called again for a new parent menu, will display lDialogEndOfMenu
 
@@ -2539,8 +2542,8 @@ GuiOpenThisMenu:
 Gosub, 2GuiClose
 
 Gui, 1:Default
-GuiControl, 1:Focus, lvFavoritesList
-Gui, 1:ListView, lvFavoritesList
+GuiControl, 1:Focus, f_lvFavoritesList
+Gui, 1:ListView, f_lvFavoritesList
 
 Gosub, OpenMenuFromEditForm
 
@@ -2553,11 +2556,11 @@ DropdownSpecialChanged:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-g_objEditedFavorite.FavoriteName := drpSpecial
-GuiControl, , strFavoriteShortName, %drpSpecial% ; also assign values to gui control
+g_objEditedFavorite.FavoriteName := f_drpSpecial
+GuiControl, , f_strFavoriteShortName, %f_drpSpecial% ; also assign values to gui control
 
-g_objEditedFavorite.FavoriteLocation := g_objClassIdOrPathByDefaultName[drpSpecial]
-GuiControl, , strFavoriteLocation, % g_objClassIdOrPathByDefaultName[drpSpecial] ; also assign values to gui control
+g_objEditedFavorite.FavoriteLocation := g_objClassIdOrPathByDefaultName[f_drpSpecial]
+GuiControl, , f_strFavoriteLocation, % g_objClassIdOrPathByDefaultName[f_drpSpecial] ; also assign values to gui control
 
 g_objEditedFavorite.FavoriteIconResource := g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultIcon
 g_strDefaultIconResource := g_objEditedFavorite.FavoriteIconResource 
@@ -2572,11 +2575,11 @@ DropdownQAPChanged:
 Gui, 2:Submit, NoHide
 
 /* to be adapted and completed
-strThisFavoriteShortName := drpSpecialFolder
-GuiControl, , strFavoriteShortName, %strThisFavoriteShortName% ; also assign values to gui control
+strThisFavoriteShortName := f_drpSpecialFolder
+GuiControl, , f_strFavoriteShortName, %strThisFavoriteShortName% ; also assign values to gui control
 
 strThisFavoriteLocation := g_objClassIdOrPathByDefaultName[strThisFavoriteShortName]
-GuiControl, , strFavoriteLocation, %strThisFavoriteLocation% ; also assign values to gui control
+GuiControl, , f_strFavoriteLocation, %strThisFavoriteLocation% ; also assign values to gui control
 
 g_objEditedFavorite.FavoriteIconResource := g_objSpecialFolders[strThisFavoriteLocation].DefaultIcon
 
@@ -2613,12 +2616,12 @@ if !(StrLen(strNewLocation))
 	return
 
 if (A_ThisLabel = "ButtonSelectWorkingDir")
-	GuiControl, 2:, strAppWorkingDir, %strNewLocation%
+	GuiControl, 2:, f_strAppWorkingDir, %strNewLocation%
 else
 {
-	GuiControl, 2:, strFavoriteLocation, %strNewLocation%
-	if !StrLen(strFavoriteShortName)
-		GuiControl, 2:, strFavoriteShortName, % GetDeepestFolderName(strNewLocation)
+	GuiControl, 2:, f_strFavoriteLocation, %strNewLocation%
+	if !StrLen(f_strFavoriteShortName)
+		GuiControl, 2:, f_strFavoriteShortName, % GetDeepestFolderName(strNewLocation)
 }
 
 strNewLocation := ""
@@ -2633,7 +2636,7 @@ GuiPickIconDialog:
 Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
 
-if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and !StrLen(strFavoriteLocation)
+if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
 {
 	Oops(lPickIconNoLocation)
 	return
@@ -2693,10 +2696,10 @@ else if (g_objEditedFavorite.FavoriteType = "URL")
 	GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strThisIconFile, intThisIconIndex)
 	g_strDefaultIconResource := strThisIconFile . "," . intThisIconIndex
 }
-else if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and StrLen(strFavoriteLocation)
+else if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and StrLen(f_strFavoriteLocation)
 {
 	; default icon for the selected file in add/edit favorite
-	GetIcon4Location(strFavoriteLocation, strThisIconFile, intThisIconIndex, blnRadioApplication)
+	GetIcon4Location(f_strFavoriteLocation, strThisIconFile, intThisIconIndex, blnRadioApplication)
 	g_strDefaultIconResource := strThisIconFile . "," . intThisIconIndex
 }
 else if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType) ; should not
@@ -2715,9 +2718,8 @@ GuiFavoriteIconDisplay:
 
 strExpandedRessourceIcon := EnvVars(g_objEditedFavorite.FavoriteIconResource)
 ParseIconResource(strExpandedRessourceIcon, strThisIconFile, intThisIconIndex)
-GuiControl, , picIcon, *icon%intThisIconIndex% %strThisIconFile%
-###_D(strExpandedRessourceIcon . " / " .  EnvVars(g_strDefaultIconResource))
-GuiControl, % (strExpandedRessourceIcon <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), lblRemoveIcon
+GuiControl, , f_picIcon, *icon%intThisIconIndex% %strThisIconFile%
+GuiControl, % (strExpandedRessourceIcon <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), f_lblRemoveIcon
 
 strExpandedRessourceIcon := ""
 strThisIconFile := ""
@@ -2732,14 +2734,14 @@ GuiMoveMultipleFavoritesToMenu:
 ;------------------------------------------------------------
 
 Gui, 2:New, , % L(lDialogMoveFavoritesTitle, g_strAppNameText, g_strAppVersion)
-Gui, 2:Add, Text, % x10 y10 vlblFavoriteParentMenu, % L(lDialogFavoritesParentMenuMove, g_intFavoriteSelected)
-Gui, 2:Add, DropDownList, x10 w300 vdrpParentMenu, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath)
+Gui, 2:Add, Text, % x10 y10 vf_lblFavoriteParentMenu, % L(lDialogFavoritesParentMenuMove, g_intFavoriteSelected)
+Gui, 2:Add, DropDownList, x10 w300 vf_drpParentMenu, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath)
 
-Gui, 2:Add, Button, y+20 vbtnMoveFavoritesSave gGuiMoveMultipleFavoritesSave, %lGuiMove%
-Gui, 2:Add, Button, yp vbtnMoveFavoritesCancel gGuiEditFavoriteCancel, %lGuiCancel%
-GuiCenterButtons(L(lDialogMoveFavoritesTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnMoveFavoritesSave", "btnMoveFavoritesCancel")
+Gui, 2:Add, Button, y+20 vf_btnMoveFavoritesSave gGuiMoveMultipleFavoritesSave, %lGuiMove%
+Gui, 2:Add, Button, yp vf_btnMoveFavoritesCancel gGuiEditFavoriteCancel, %lGuiCancel%
+GuiCenterButtons(L(lDialogMoveFavoritesTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnMoveFavoritesSave", "f_btnMoveFavoritesCancel")
 
-GuiControl, 2:Focus, drpParentMenu
+GuiControl, 2:Focus, f_drpParentMenu
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
@@ -2823,7 +2825,7 @@ return
 HotkeyChangeMenu:
 ;------------------------------------------------------------
 
-Gui, 1:ListView, lvFavoritesList
+Gui, 1:ListView, f_lvFavoritesList
 
 g_intRowToEdit := LV_GetNext()
 
@@ -2846,7 +2848,7 @@ intCurrentLastPosition := 0
 
 if (A_ThisLabel = "GuiMenusListChanged")
 {
-	GuiControlGet, strNewDropdownMenu, , drpMenusList
+	GuiControlGet, strNewDropdownMenu, , f_drpMenusList
 	; ###_D("GuiMenusListChanged: " . strNewDropdownMenu . "`ng_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath) 
 
 	if (strNewDropdownMenu = g_objMenuInGui.MenuPath) ; user selected the current menu in the dropdown
@@ -2877,8 +2879,8 @@ else
 	g_arrSubmenuStackPosition.Insert(1, LV_GetNext("Focused")) ; ### ???
 }
 
-GuiControl, % (g_arrSubmenuStack.MaxIndex() ? "Show" : "Hide"), picPreviousMenu
-GuiControl, % (g_objMenuInGui.MenuPath <> lMainMenuName ? "Show" : "Hide"), picUpMenu
+GuiControl, % (g_arrSubmenuStack.MaxIndex() ? "Show" : "Hide"), f_picPreviousMenu
+GuiControl, % (g_objMenuInGui.MenuPath <> lMainMenuName ? "Show" : "Hide"), f_picUpMenu
 
 ; ### if blnSaveEnabled load will abort - need to save before (where in FP?)
 Gosub, LoadMenuInGui
@@ -2898,8 +2900,8 @@ GuiMoveMultipleFavoritesUp:
 GuiMoveMultipleFavoritesDown:
 ;------------------------------------------------------------
 
-GuiControl, Focus, lvFavoritesList
-Gui, 1:ListView, lvFavoritesList
+GuiControl, Focus, f_lvFavoritesList
+Gui, 1:ListView, f_lvFavoritesList
 
 g_blnAbortGroupMove := false
 strSelectedRows := ""
@@ -2971,8 +2973,8 @@ If (A_GuiEvent="DoubleClick")
 
 if !InStr(A_ThisLabel, "One")
 {
-	GuiControl, Focus, lvFavoritesList
-	Gui, 1:ListView, lvFavoritesList
+	GuiControl, Focus, f_lvFavoritesList
+	Gui, 1:ListView, f_lvFavoritesList
 	g_intSelectedRow := LV_GetNext()
 }
 if (g_intSelectedRow = (InStr(A_ThisLabel, "Up") ? 1 : LV_GetCount()))
@@ -3003,8 +3005,8 @@ LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), , arrThis1, ar
 if !InStr(A_ThisLabel, "One")
 	LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), "Select Focus Vis")
 
-GuiControl, Enable, btnGuiSave
-GuiControl, , btnGuiCancel, %lGuiCancel%
+GuiControl, Enable, f_btnGuiSave
+GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
 return
 
@@ -3041,8 +3043,8 @@ GuiAddSeparator:
 GuiAddColumnBreak:
 ;------------------------------------------------------------
 
-GuiControl, Focus, lvFavoritesList
-Gui, 1:ListView, lvFavoritesList
+GuiControl, Focus, f_lvFavoritesList
+Gui, 1:ListView, f_lvFavoritesList
 
 if (LV_GetCount("Selected") > 1)
 	return
@@ -3081,8 +3083,8 @@ else ; GuiAddColumnBreak
 LV_Modify(LV_GetNext(), "Vis")
 Gosub, AjustColumnWidth
 
-GuiControl, Enable, btnGuiSave
-GuiControl, , btnGuiCancel, %lGuiCancel%
+GuiControl, Enable, f_btnGuiSave
+GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
 intInsertPosition := ""
 objNewFavorite := ""
@@ -3100,7 +3102,7 @@ g_blnMenuReady := false
 ; ### not required, object are updated  Gosub, SaveCurrentListviewToMenuObject ; save current LV before saving
 
 IniDelete, %g_strIniFile%, Favorites
-; ### ? Gui, 1:ListView, lvFavoritesList
+; ### ? Gui, 1:ListView, f_lvFavoritesList
 
 g_intIniLine := 1 ; restet counter before saving to another ini file
 RecursiveSaveFavoritesToIniFile(g_objMainMenu)
@@ -3226,10 +3228,10 @@ Gui, 2:Font
 
 strUseMenuSave := lMenuGroup . " > " . lMenuGroupSave
 Gui, 2:Add, Text, x10 y+10 w%intWidth%, % L(lDialogGroupManageCreatingPrompt, lDialogGroupNew, strUseMenuSave)
-Gui, 2:Add, Button, x10 y+10 vbtnGroupManageNew gGuiGroupManageNew, %lDialogGroupNew%
+Gui, 2:Add, Button, x10 y+10 vf_btnGroupManageNew gGuiGroupManageNew, %lDialogGroupNew%
 GuiControl, % (!intExplorersIndex ? "Disable" : "Enable") ; disable Save group menu if no Explorer
-	, btnGroupManageNew
-GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "btnGroupManageNew")
+	, f_btnGroupManageNew
+GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "f_btnGroupManageNew")
 if !(intExplorersIndex)
 	Gui, 2:Add, Text, x10 y+10 w%intWidth%, %lDialogGroupManageCannotSave%
 
@@ -3237,15 +3239,15 @@ Gui, 2:Font, w600
 Gui, 2:Add, Text, x10 y+20, %lDialogGroupManageManagingTitle%
 Gui, 2:Font
 
-Gui, 2:Add, DropDownList, x10 y+10 w%intWidth% vdrpGroupsList, %lDialogGroupSelect%||%g_strGroups%
+Gui, 2:Add, DropDownList, x10 y+10 w%intWidth% vf_drpGroupsList, %lDialogGroupSelect%||%g_strGroups%
 
-Gui, 2:Add, Button, x10 y+10 vbtnGroupManageLoad  gGuiGroupManageLoad, %lDialogGroupLoad%
-Gui, 2:Add, Button, x10 yp vbtnGroupManageEdit gGuiGroupManageEdit, %lDialogGroupEdit%
-Gui, 2:Add, Button, x10 yp vbtnGroupManageDelete gGuiGroupManageDelete, %lDialogGroupDelete%
-GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "btnGroupManageLoad", "btnGroupManageEdit", "btnGroupManageDelete")
+Gui, 2:Add, Button, x10 y+10 vf_btnGroupManageLoad gGuiGroupManageLoad, %lDialogGroupLoad%
+Gui, 2:Add, Button, x10 yp vf_btnGroupManageEdit gGuiGroupManageEdit, %lDialogGroupEdit%
+Gui, 2:Add, Button, x10 yp vf_btnGroupManageDelete gGuiGroupManageDelete, %lDialogGroupDelete%
+GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "f_btnGroupManageLoad", "f_btnGroupManageEdit", "f_btnGroupManageDelete")
 
-Gui, 2:Add, Button, x+10 y+30 vbtnGroupManageClose g2GuiClose h33, %lGui2Close%
-GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "btnGroupManageClose")
+Gui, 2:Add, Button, x+10 y+30 vf_btnGroupManageClose g2GuiClose h33, %lGui2Close%
+GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "f_btnGroupManageClose")
 Gui, 2:Add, Text, x10, %A_Space%
 
 Gui, 2:Show, AutoSize Center
@@ -3261,15 +3263,15 @@ GuiGroupManageEdit:
 Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
 
-if !StrLen(drpGroupsList) or (drpGroupsList = lDialogGroupSelect)
+if !StrLen(f_drpGroupsList) or (f_drpGroupsList = lDialogGroupSelect)
 {
 	Oops(lDialogGroupSelectError, lDialogGroupEditError)
 	return
 }
 
-strGroupToEdit := drpGroupsList
+strGroupToEdit := f_drpGroupsList
 Gosub, GuiGroupEditFromManage
-GuiControl, 2:, drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
+GuiControl, 2:, f_drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
 
 return
 ;------------------------------------------------------------
@@ -3281,22 +3283,22 @@ GuiGroupManageDelete:
 Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
 
-if !StrLen(drpGroupsList) or (drpGroupsList = lDialogGroupSelect)
+if !StrLen(f_drpGroupsList) or (f_drpGroupsList = lDialogGroupSelect)
 {
 	Oops(lDialogGroupSelectError, lDialogGroupDeleteError)
 	return
 }
 
-MsgBox, 52, % L(lDialogGroupDeleteTitle, g_strAppNameText), % L(lDialogGroupDeletePrompt, drpGroupsList)
+MsgBox, 52, % L(lDialogGroupDeleteTitle, g_strAppNameText), % L(lDialogGroupDeletePrompt, f_drpGroupsList)
 IfMsgBox, No
 	return
 
 g_strGroups := g_strGroups . "|"
-StringReplace, g_strGroups, g_strGroups, %drpGroupsList%|
+StringReplace, g_strGroups, g_strGroups, %f_drpGroupsList%|
 StringTrimRight, g_strGroups, g_strGroups, 1
-GuiControl, 2:, drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
+GuiControl, 2:, f_drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
 
-IniDelete, %g_strIniFile%, Group-%drpGroupsList%
+IniDelete, %g_strIniFile%, Group-%f_drpGroupsList%
 IniWrite, %g_strGroups%, %g_strIniFile%, Global, Groups
 
 Gosub, BuildGroupMenu
@@ -3310,13 +3312,13 @@ GuiGroupManageLoad:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-if !StrLen(drpGroupsList) or (drpGroupsList = lDialogGroupSelect)
+if !StrLen(f_drpGroupsList) or (f_drpGroupsList = lDialogGroupSelect)
 {
 	Oops(lDialogGroupSelectError, lDialogGroupLoadError)
 	return
 }
 
-strSelectedGroup := drpGroupsList
+strSelectedGroup := f_drpGroupsList
 
 Gosub, 2GuiClose
 Gosub, GuiClose
@@ -3331,7 +3333,7 @@ GuiGroupManageNew:
 ;------------------------------------------------------------
 
 Gosub, GuiGroupSaveFromManage
-GuiControl, 2:, drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
+GuiControl, 2:, f_drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
 
 return
 ;------------------------------------------------------------
@@ -3379,7 +3381,7 @@ return
 GuiCancel:
 ;------------------------------------------------------------
 
-GuiControlGet, blnSaveEnabled, Enabled, btnGuiSave
+GuiControlGet, blnSaveEnabled, Enabled, f_btnGuiSave
 if (blnSaveEnabled)
 {
 	Gui, 1:+OwnDialogs
@@ -3393,8 +3395,8 @@ if (blnSaveEnabled)
 		; ### Gosub, BuildFoldersInExplorerMenu
 		Gosub, BuildMainMenu ; need to be initialized here - will be updated at each call to popup menu
 		
-		GuiControl, Disable, btnGuiSave
-		GuiControl, , btnGuiCancel, %lGuiClose%
+		GuiControl, Disable, f_btnGuiSave
+		GuiControl, , f_btnGuiCancel, %lGuiClose%
 		g_blnMenuReady := true
 	}
 	IfMsgBox, No
@@ -3609,7 +3611,7 @@ if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 Gui, 2:+Owner1
 Gui, 2:Font, s12 w700, Verdana
-Gui, 2:Add, Link, y10 w350 vlblAboutText1, % L(lAboutText1, g_strAppNameText, g_strAppVersion, A_PtrSize * 8) ;  ; A_PtrSize * 8 = 32 or 64
+Gui, 2:Add, Link, y10 w350, % L(lAboutText1, g_strAppNameText, g_strAppVersion, A_PtrSize * 8) ;  ; A_PtrSize * 8 = 32 or 64
 Gui, 2:Font, s8 w400, Verdana
 Gui, 2:Add, Link, , % L(lAboutText2, g_strAppNameText)
 Gui, 2:Add, Link, , % L(lAboutText3, chr(169))
@@ -3617,11 +3619,11 @@ Gui, 2:Font, s10 w400, Verdana
 Gui, 2:Add, Link, , % L(lAboutText4)
 Gui, 2:Font, s8 w400, Verdana
 
-Gui, 2:Add, Button, y+20 vbtnAboutDonate gGuiDonate, %lDonateButton%
-Gui, 2:Add, Button, yp vbtnAboutClose g2GuiClose vbtnAboutClose, %lGui2Close%
-GuiCenterButtons(L(lAboutTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnAboutDonate", "btnAboutClose")
+Gui, 2:Add, Button, y+20 vf_btnAboutDonate gGuiDonate, %lDonateButton%
+Gui, 2:Add, Button, yp vf_btnAboutClose g2GuiClose, %lGui2Close%
+GuiCenterButtons(L(lAboutTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAboutDonate", "f_btnAboutClose")
 
-GuiControl, Focus, btnAboutClose
+GuiControl, Focus, f_btnAboutClose
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
@@ -3671,8 +3673,8 @@ loop, 3
 Gui, 2:Add, Link, y+10 x130, <a href="http://code.jeanlalonde.ca/support-freeware/">%lDonateText5%</a>
 
 Gui, 2:Font, s8 w400, Verdana
-Gui, 2:Add, Button, x175 y+20 g2GuiClose vbtnDonateClose, %lGui2Close%
-GuiCenterButtons(L(lDonateTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnDonateClose")
+Gui, 2:Add, Button, x175 y+20 g2GuiClose vf_btnDonateClose, %lGui2Close%
+GuiCenterButtons(L(lDonateTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnDonateClose")
 
 GuiControl, Focus, btnDonateDefault
 Gui, 2:Show, AutoSize Center
@@ -3724,7 +3726,7 @@ Gui, 2:Font, s10 w400, Verdana
 Gui, 2:Add, Link, x10 w%intWidth%, %lHelpTextLead%
 
 Gui, 2:Font, s8 w600, Verdana
-Gui, 2:Add, Tab2, vintHelpTab w640 h350 AltSubmit, %A_Space%%lHelpTabGettingStarted% | %lHelpTabAddingFavorite% | %lHelpTabTitlesTipsAndTricks%%A_Space%
+Gui, 2:Add, Tab2, vf_intHelpTab w640 h350 AltSubmit, %A_Space%%lHelpTabGettingStarted% | %lHelpTabAddingFavorite% | %lHelpTabTitlesTipsAndTricks%%A_Space%
 
 ; Hotkeys: 1) PopupHotkeyMouse 2) PopupHotkeyNewMouse 3) PopupHotkeyKeyboard 4) PopupHotkeyNewKeyboard
 ; 5) SettingsHotkey 6) FoldersInExplorerHotkey 7) GroupsHotkey 8) RecentsHotkey 9) ClipboardHotkey 10) CopyLocationHotkey
@@ -3732,14 +3734,14 @@ Gui, 2:Font, s8 w400, Verdana
 Gui, 2:Tab, 1
 Gui, 2:Add, Link, w%intWidth%, % L(lHelpText1, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1), Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3))
 Gui, 2:Add, Link, w%intWidth%, % lHelpText2
-Gui, 2:Add, Button, vbtnNext1 gNextHelpButtonClicked, %lDialogTabNext%
-GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnNext1")
+Gui, 2:Add, Button, vf_btnNext1 gNextHelpButtonClicked, %lDialogTabNext%
+GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNext1")
 
 Gui, 2:Tab, 2
 Gui, 2:Add, Link, w%intWidth%, % L(lHelpText3, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1), Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3))
 Gui, 2:Add, Link, w%intWidth%, % L(lHelpText4, Hotkey2Text(strModifiers5, strMouseButton5, strOptionsKey5))
-Gui, 2:Add, Button, vbtnNext2 gNextHelpButtonClicked, %lDialogTabNext%
-GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnNext2")
+Gui, 2:Add, Button, vf_btnNext2 gNextHelpButtonClicked, %lDialogTabNext%
+GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNext2")
 
 Gui, 2:Tab, 3
 Gui, 2:Add, Link, w%intWidth%, % L(lHelpText5
@@ -3754,10 +3756,10 @@ Gui, 2:Add, Link, w%intWidth%, % lHelpText6
 
 Gui, 2:Tab
 
-GuiControlGet, arrTabPos, Pos, intHelpTab
-Gui, 2:Add, Button, % "x180 y" . arrTabPosY + arrTabPosH + 10. " vbtnHelpDonate gGuiDonate", %lDonateButton%
-Gui, 2:Add, Button, x+80 yp g2GuiClose vbtnHelpClose, %lGui2Close%
-GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnHelpDonate", "btnHelpClose")
+GuiControlGet, arrTabPos, Pos, f_intHelpTab
+Gui, 2:Add, Button, % "x180 y" . arrTabPosY + arrTabPosH + 10. " vf_btnHelpDonate gGuiDonate", %lDonateButton%
+Gui, 2:Add, Button, x+80 yp g2GuiClose vf_btnHelpClose, %lGui2Close%
+GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnHelpDonate", "f_btnHelpClose")
 
 GuiControl, Focus, btnHelpClose
 Gui, 2:Show, AutoSize Center
@@ -3773,7 +3775,7 @@ NextHelpButtonClicked:
 
 Gui, 2:Submit, NoHide
 
-GuiControl, Choose, intHelpTab, % intHelpTab + 1
+GuiControl, Choose, f_intHelpTab, % f_intHelpTab + 1 ; f_intHelpTab is number of current tab
 
 return
 ;------------------------------------------------------------
