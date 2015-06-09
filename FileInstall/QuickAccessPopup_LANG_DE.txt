@@ -168,7 +168,7 @@ lMenuDocuments	Dokumente
 lMenuDownloads	Downloads
 lMenuExitFoldersPopup	Beenden ~1~
 lMenuFavoritesInternet	Favoriten (Internet)
-lMenuFoldersInExplorer	&Ordner im Explorer
+lMenuCurrentFolders	&Ordner im Explorer ; lMenuFoldersInExplorer renamed
 lMenuFonts	Fonts
 lMenuFPMenu	~1~ ~2~
 lMenuGroup	Ordner Gruppen

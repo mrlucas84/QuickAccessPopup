@@ -169,7 +169,7 @@ lMenuDocuments	D&ocumentos
 lMenuDownloads	Downloads
 lMenuExitFoldersPopup	Sair do ~1~
 lMenuFavoritesInternet	Favoritos (Internet)
-lMenuFoldersInExplorer	Pastas Atuais
+lMenuCurrentFolders	Pastas Atuais ; lMenuFoldersInExplorer renamed
 lMenuFonts	Fontes
 lMenuFPMenu	~1~ ~2~
 lMenuGroup	Grupos de Pastas

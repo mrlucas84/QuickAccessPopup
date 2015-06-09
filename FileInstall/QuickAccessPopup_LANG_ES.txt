@@ -169,7 +169,7 @@ lMenuDocuments	Documentos
 lMenuDownloads	Descarga
 lMenuExitFoldersPopup	Cerrar ~1~
 lMenuFavoritesInternet	Favoritos (Internet)
-lMenuFoldersInExplorer	Carpetas en el explorador
+lMenuCurrentFolders	Carpetas en el explorador ; lMenuFoldersInExplorer renamed
 lMenuFonts	Fuentes
 lMenuFPMenu	~2~ ~1~
 lMenuGroup	Grupos de carpetas
