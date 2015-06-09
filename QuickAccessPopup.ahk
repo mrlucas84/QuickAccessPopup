@@ -166,6 +166,10 @@ g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and Col
 g_objSpecialFolders := Object()
 g_strSpecialFoldersList := ""
 
+g_objQAPFeaturesByName := Object() ; used by InitSpecialFolders and CollectExplorers
+g_objQAPFeatures := Object()
+g_strQAPFeaturesList := ""
+
 g_blnUseDirectoryOpus := ""
 g_blnUseTotalCommander := ""
 g_blnUseFPconnect := ""
@@ -197,6 +201,7 @@ Gosub, InitSystemArrays
 Gosub, InitLanguages
 Gosub, InitLanguageArrays
 Gosub, InitSpecialFolders
+Gosub, InitQAPFeatures
 Gosub, InitGuiControls
 
 Gosub, LoadIniFile
@@ -372,7 +377,7 @@ StringSplit, g_arrMouseButtons, g_strMouseButtons, |
 
 ; Icon files and index tested on Win 7 and Win 8.1. Not tested on Win 10.
 strIconsMenus := "lMenuDesktop|lMenuDocuments|lMenuPictures|lMenuMyComputer|lMenuNetworkNeighborhood|lMenuControlPanel|lMenuRecycleBin"
-	. "|menuRecentFolders|menuGroupDialog|menuGroupExplorer|lMenuSpecialFolders|lMenuGroup|lMenuFoldersInExplorer"
+	. "|menuRecentFolders|menuGroupDialog|menuGroupExplorer|lMenuSpecialFolders|lMenuGroup|lMenuCurrentFolders"
 	. "|lMenuRecentFolders|lMenuSettings|lMenuAddThisFolder|lDonateMenu|Submenu|Network|UnknownDocument|Folder"
 	. "|menuGroupSave|menuGroupLoad|lMenuDownloads|Templates|MyMusic|MyVideo|History|Favorites|Temporary|Winver"
 	. "|Fonts|Application|Clipboard"
@@ -382,7 +387,7 @@ strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
 			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
 			. "|shell32|shell32|shell32"
 strIconsIndex := "106|189|68|105|115|23|50"
-			. "|113|176|203|203|99|176"
+			. "|113|176|203|203|99|96"
 			. "|113|110|217|208|298|29|176|4"
 			. "|297|46|176|55|104|179|240|87|153|1"
 			. "|39|304|261"
@@ -799,8 +804,8 @@ InitSpecialFolderObject(strClassIdOrPath, strShellConstantText, intShellConstant
 ; 		strUse4TC
 ;		strUse4FPc
 
-; Special Folder Object definition:
-;		ClassIdOrPath: key to access one Special Folder object (example: g_objSpecialFolders[strClassIdOrPath]
+; Special Folder Object (objOneSpecialFolder) definition:
+;		strClassIdOrPath: key to access one Special Folder object (example: g_objSpecialFolders[strClassIdOrPath]
 ;		objSpecialFolder.ShellConstantText: text constant used to navigate using Explorer or Dialog box? What with DOpus and TC?
 ;		objSpecialFolder.ShellConstantNumeric: numeric ShellSpecialFolderConstants constant 
 ;		objSpecialFolder.AHKConstant: AutoHotkey constant
@@ -922,6 +927,91 @@ TranslateMUI(resDll, resID)
 	hDll := DllCall("LoadLibrary", "str", resDll, "Ptr") 
 	Result := DllCall("LoadString", "Ptr", hDll, "uint", resID, "str", buf, "int", 128)
 	return buf
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+InitQAPFeatures:
+;------------------------------------------------------------
+
+; InitQAPFeatureObject(strQAPFeatureCode, strQAPFeatureLabel, strDefaultIcon
+;	, strUse4NavigateExplorer, strUse4NewExplorer, strUse4Dialog, strUse4Console, strUse4DOpus, strUse4TC, strUse4FPc)
+
+; Constants for "use" flags:
+; 		NAV: Navigate
+;		NEW: New Explorer
+;		NOT: Not supported
+
+; Usage flags:
+; 		strUse4NavigateExplorer
+; 		strUse4NewExplorer
+; 		strUse4Dialog
+; 		strUse4Console
+; 		strUse4DOpus
+; 		strUse4TC
+;		strUse4FPc
+
+InitQAPFeatureObject("CurrentFolders", lMenuCurrentFolders, g_objIconsFile["lMenuCurrentFolders"] . "," . g_objIconsIndex["lMenuCurrentFolders"]
+	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
+
+InitQAPFeatureObject("RecentFolders", lMenuRecentFolders, g_objIconsFile["lMenuRecentFolders"] . "," . g_objIconsIndex["lMenuRecentFolders"]
+	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
+
+;------------------------------------------------------------
+; Build folders list for dropdown
+
+g_strQAPFeaturesList := ""
+for strQAPFeatureName in g_objQAPFeaturesByName
+	g_strQAPFeaturesList .= strQAPFeatureName . "|"
+StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1
+
+strQAPFeatureName := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strThisDefaultIcon
+	, strUse4NavigateExplorer, strUse4NewExplorer, strUse4Dialog, strUse4Console, strUse4DOpus, strUse4TC, strUse4FPc)
+
+; QAP Features Object (objOneQAPFeature) definition:
+;		strQAPFeatureCode: key to access one QAP Feature object (example: g_objQAPFeatures[strQAPFeatureCode]
+;		objOneQAPFeature.DefaultName: QAP Feature localized label
+;		objOneQAPFeature.DefaultIcon: default icon (in the "file,index" format)
+;		objOneQAPFeature.Use4NavigateExplorer:
+;		objOneQAPFeature.Use4NewExplorer:
+;		objOneQAPFeature.Use4Dialog:
+;		objOneQAPFeature.Use4Console:
+;		objOneQAPFeature.Use4DOpus:
+;		objOneQAPFeature.Use4TC:
+;		objOneQAPFeature.Use4FPc:
+
+
+;------------------------------------------------------------
+{
+	global g_objIconsFile
+	global g_objIconsIndex
+	global g_objQAPFeaturesByName
+	global g_objQAPFeatures
+	
+	objOneQAPFeature := Object()
+	
+    g_objQAPFeaturesByName.Insert(strThisDefaultName, strQAPFeatureCode)
+
+	objOneQAPFeature.DefaultName := strThisDefaultName
+	objOneQAPFeature.DefaultIcon := strThisDefaultIcon
+
+	objOneQAPFeature.Use4NavigateExplorer := strUse4NavigateExplorer
+	objOneQAPFeature.Use4NewExplorer := strUse4NewExplorer
+	objOneQAPFeature.Use4Dialog := strUse4Dialog
+	objOneQAPFeature.Use4Console := strUse4Console
+	objOneQAPFeature.Use4DOpus := strUse4DOpus
+	objOneQAPFeature.Use4TC := strUse4TC
+	objOneQAPFeature.Use4FPc := strUse4FPc
+	
+	g_objQAPFeatures.Insert(strQAPFeatureCode, objOneQAPFeature)
 }
 ;------------------------------------------------------------
 
@@ -1564,7 +1654,7 @@ if (g_arrMenus[lMainMenuName][g_arrMenus[lMainMenuName].MaxIndex()].FavoriteType
 /* ### later
 if (blnDisplayFoldersInExplorerMenu)
 {
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(6, lMenuFoldersInExplorer), ":g_menuFoldersInExplorer", "lMenuFoldersInExplorer")
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(6, lMenuCurrentFolders), ":g_menuFoldersInExplorer", "lMenuCurrentFolders")
 	if (g_blnUseColors)
 		Menu, g_menuFoldersInExplorer, Color, %g_strMenuBackgroundColor%
 }
@@ -2316,6 +2406,7 @@ GuiEditFavorite:
 ; g_objEditedFavorite.FavoriteIconResource -> actual icon value in the menu object and icon currently displayed in the Add/Edit dialog box
 
 g_objEditedFavorite := Object()
+g_strDefaultIconResource := ""
 
 if (A_ThisLabel = "GuiEditFavorite")
 {
@@ -2407,9 +2498,9 @@ else ; "Special" or "QAP"
 
 	Gui, 2:Add, DropDownList
 		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
-		, % (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : "QAP list to be done")
+		, % (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : g_strQAPFeaturesList)
 	if (A_ThisLabel = "GuiEditFavorite")
-		GuiControl, ChooseString, f_drpSpecialFolder, %strCurrentName%
+		GuiControl, ChooseString, % "f_drp" . g_objEditedFavorite.FavoriteType . " gDropdown", % g_objEditedFavorite.FavoriteName ; ### validate when save/edit implemented
 }
 
 ; --- Menu Options ---
@@ -2421,7 +2512,7 @@ Gui, 2:Add, Text, x20 y40 vf_lblFavoriteParentMenu
 Gui, 2:Add, DropDownList, x20 y+5 w300 vf_drpParentMenu gDropdownParentMenuChanged
 	, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath, (g_objEditedFavorite.FavoriteType = "Menu" ? lMainMenuName . " " . g_objEditedFavorite.FavoriteLocation : "")) . "|"
 
-If (A_ThisLabel <> "GuiEditFavorite")
+If (A_ThisLabel <> "GuiEditFavorite") ; ### allow to change position in the dialog box
 {
 	Gui, 2:Add, Text, x20 y+10 vf_lblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
 	Gui, 2:Add, DropDownList, x20 y+5 w290 vf_drpParentMenuItems AltSubmit
@@ -2574,16 +2665,14 @@ DropdownQAPChanged:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-/* to be adapted and completed
-strThisFavoriteShortName := f_drpSpecialFolder
-GuiControl, , f_strFavoriteShortName, %strThisFavoriteShortName% ; also assign values to gui control
+g_objEditedFavorite.FavoriteName := f_drpQAP
+GuiControl, , f_strFavoriteShortName, %f_drpQAP% ; also assign values to gui control
 
-strThisFavoriteLocation := g_objClassIdOrPathByDefaultName[strThisFavoriteShortName]
-GuiControl, , f_strFavoriteLocation, %strThisFavoriteLocation% ; also assign values to gui control
+g_objEditedFavorite.FavoriteLocation := g_objQAPFeaturesByName[f_drpQAP]
+GuiControl, , f_strFavoriteLocation, % g_objQAPFeaturesByName[f_drpQAP] ; also assign values to gui control
 
-g_objEditedFavorite.FavoriteIconResource := g_objSpecialFolders[strThisFavoriteLocation].DefaultIcon
-
-*/
+g_objEditedFavorite.FavoriteIconResource := g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultIcon
+g_strDefaultIconResource := g_objEditedFavorite.FavoriteIconResource 
 
 return
 ;------------------------------------------------------------
