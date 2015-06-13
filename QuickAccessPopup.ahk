@@ -20,6 +20,7 @@ BUGS
 TO-DO
 - fix hotkey names in help text
 - review help text
+- build menu "QAP Essentials" like My Special Folders
 
 LATER
 -----
@@ -166,7 +167,6 @@ g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and Col
 g_objSpecialFolders := Object()
 g_strSpecialFoldersList := ""
 
-g_objQAPFeaturesByName := Object() ; used by InitSpecialFolders and CollectExplorers
 g_objQAPFeatures := Object()
 g_strQAPFeaturesList := ""
 
@@ -380,17 +380,17 @@ strIconsMenus := "lMenuDesktop|lMenuDocuments|lMenuPictures|lMenuMyComputer|lMen
 	. "|menuRecentFolders|menuGroupDialog|menuGroupExplorer|lMenuSpecialFolders|lMenuGroup|lMenuCurrentFolders"
 	. "|lMenuRecentFolders|lMenuSettings|lMenuAddThisFolder|lDonateMenu|Submenu|Network|UnknownDocument|Folder"
 	. "|menuGroupSave|menuGroupLoad|lMenuDownloads|Templates|MyMusic|MyVideo|History|Favorites|Temporary|Winver"
-	. "|Fonts|Application|Clipboard"
+	. "|Fonts|Application|Clipboard|lGuiAbout|lGuiHelp|lGuiOptions|FTP"
 strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
 			. "|imageres|imageres|imageres|imageres|shell32|imageres"
 			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
 			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
-			. "|shell32|shell32|shell32"
+			. "|shell32|shell32|shell32|shell32|shell32|imageres|shell32"
 strIconsIndex := "106|189|68|105|115|23|50"
 			. "|113|176|203|203|99|96"
 			. "|113|110|217|208|298|29|176|4"
 			. "|297|46|176|55|104|179|240|87|153|1"
-			. "|39|304|261"
+			. "|39|304|261|222|24|166|104"
 
 StringSplit, arrIconsFile, strIconsFile, |
 StringSplit, arrIconsIndex, strIconsIndex, |
@@ -935,7 +935,7 @@ TranslateMUI(resDll, resID)
 InitQAPFeatures:
 ;------------------------------------------------------------
 
-; InitQAPFeatureObject(strQAPFeatureCode, strQAPFeatureLabel, strDefaultIcon
+; InitQAPFeatureObject(strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand, strThisDefaultIcon
 ;	, strUse4NavigateExplorer, strUse4NewExplorer, strUse4Dialog, strUse4Console, strUse4DOpus, strUse4TC, strUse4FPc)
 
 ; Constants for "use" flags:
@@ -952,17 +952,30 @@ InitQAPFeatures:
 ; 		strUse4TC
 ;		strUse4FPc
 
-InitQAPFeatureObject("CurrentFolders", lMenuCurrentFolders, g_objIconsFile["lMenuCurrentFolders"] . "," . g_objIconsIndex["lMenuCurrentFolders"]
+InitQAPFeatureObject(lMenuCurrentFolders, ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "lMenuCurrentFolders"
+	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
+InitQAPFeatureObject(lMenuGroupManage . "...", "", "GuiGroupsManage:", "lMenuGroup"
+	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
+InitQAPFeatureObject(lMenuRecentFolders, "", "RefreshRecentFolders:", "lMenuRecentFolders"
+	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
+InitQAPFeatureObject(lMenuClipboard, ":g_menuClipboard", "ClipboardMenuShortcut:", "Clipboard"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 
-InitQAPFeatureObject("RecentFolders", lMenuRecentFolders, g_objIconsFile["lMenuRecentFolders"] . "," . g_objIconsIndex["lMenuRecentFolders"]
-	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
+InitQAPFeatureObject(lGuiAbout . "...", "", "GuiAbout:", "lGuiAbout")
+InitQAPFeatureObject(lGuiDonate . "...", "", "GuiDonate:", "lDonateMenu"
+	, "NOT", "NOT", "NOT", "NOT", "NOT", "NOT", "NOT")
+InitQAPFeatureObject(lGuiHelp . "...", "", "GuiHelp:", "lGuiHelp")
+InitQAPFeatureObject(lGuiOptions . "...", "", "GuiOptions:", "lGuiOptions")
+InitQAPFeatureObject(lMenuAddThisFolder . "...", "", "AddThisFolder:", "lMenuAddThisFolder")
+InitQAPFeatureObject(lMenuCopyLocation, "", "PopupMenuCopyLocation:", "Clipboard")
+InitQAPFeatureObject(lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "lMenuGroup")
+InitQAPFeatureObject(L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "lMenuSettings")
 
 ;------------------------------------------------------------
 ; Build folders list for dropdown
 
 g_strQAPFeaturesList := ""
-for strQAPFeatureName in g_objQAPFeaturesByName
+for strQAPFeatureName in g_objQAPFeatures
 	g_strQAPFeaturesList .= strQAPFeatureName . "|"
 StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1
 
@@ -973,12 +986,13 @@ return
 
 
 ;------------------------------------------------------------
-InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strThisDefaultIcon
-	, strUse4NavigateExplorer, strUse4NewExplorer, strUse4Dialog, strUse4Console, strUse4DOpus, strUse4TC, strUse4FPc)
+InitQAPFeatureObject(strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand, strThisDefaultIcon
+	, strUse4NavigateExplorer := "NOT", strUse4NewExplorer := "NOT", strUse4Dialog := "NOT", strUse4Console := "NOT", strUse4DOpus := "NOT", strUse4TC := "NOT", strUse4FPc := "NOT")
 
 ; QAP Features Object (objOneQAPFeature) definition:
-;		strQAPFeatureCode: key to access one QAP Feature object (example: g_objQAPFeatures[strQAPFeatureCode]
-;		objOneQAPFeature.DefaultName: QAP Feature localized label
+;		objOneQAPFeature.DefaultName: QAP Feature localized label, key to access one QAP Feature object (example: g_objQAPFeatures[strThisDefaultName]
+;		strQAPFeatureMenu: menu to be added to the Main menu (including the starting ":"), empty if no submenu associated to this QAP feature
+;		strQAPFeatureCommand: command to be executed when this favorite is selected (including the ending ":"), empty if no command associated to this QAP feature
 ;		objOneQAPFeature.DefaultIcon: default icon (in the "file,index" format)
 ;		objOneQAPFeature.Use4NavigateExplorer:
 ;		objOneQAPFeature.Use4NewExplorer:
@@ -988,21 +1002,16 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strThisDefaultIcon
 ;		objOneQAPFeature.Use4TC:
 ;		objOneQAPFeature.Use4FPc:
 
-
 ;------------------------------------------------------------
 {
 	global g_objIconsFile
 	global g_objIconsIndex
-	global g_objQAPFeaturesByName
 	global g_objQAPFeatures
 	
 	objOneQAPFeature := Object()
 	
-    g_objQAPFeaturesByName.Insert(strThisDefaultName, strQAPFeatureCode)
-
 	objOneQAPFeature.DefaultName := strThisDefaultName
-	objOneQAPFeature.DefaultIcon := strThisDefaultIcon
-
+	objOneQAPFeature.DefaultIcon := g_objIconsFile[strThisDefaultIcon] . "," . g_objIconsIndex[strThisDefaultIcon]
 	objOneQAPFeature.Use4NavigateExplorer := strUse4NavigateExplorer
 	objOneQAPFeature.Use4NewExplorer := strUse4NewExplorer
 	objOneQAPFeature.Use4Dialog := strUse4Dialog
@@ -1011,7 +1020,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strThisDefaultIcon
 	objOneQAPFeature.Use4TC := strUse4TC
 	objOneQAPFeature.Use4FPc := strUse4FPc
 	
-	g_objQAPFeatures.Insert(strQAPFeatureCode, objOneQAPFeature)
+	g_objQAPFeatures.Insert(strThisDefaultName, objOneQAPFeature)
 }
 ;------------------------------------------------------------
 
@@ -1154,7 +1163,7 @@ g_blnDisplayIcons := (g_blnDisplayIcons and OSVersionIsWorkstation())
 IniRead, g_blnDisplaySpecialMenusShortcuts, %g_strIniFile%, Global, DisplaySpecialMenusShortcuts, 1
 IniRead, blnDisplayRecentFolders, %g_strIniFile%, Global, DisplayRecentFolders, 1
 IniRead, blnDisplayFoldersInExplorerMenu, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu, 1
-IniRead, blnDisplayGroupMenu, %g_strIniFile%, Global, DisplaySwitchMenu, 1 ; keep "Switch" in label instead of "Group" for backward compatibility
+IniRead, blnDisplayGroupMenu, %g_strIniFile%, Global, DisplayGroupMenu, 1
 IniRead, blnDisplayClipboardMenu, %g_strIniFile%, Global, DisplayClipboardMenu, 1
 IniRead, blnDisplayCopyLocationMenu, %g_strIniFile%, Global, DisplayCopyLocationMenu, 1
 IniRead, g_intPopupMenuPosition, %g_strIniFile%, Global, PopupMenuPosition, 1
@@ -2668,10 +2677,10 @@ Gui, 2:Submit, NoHide
 g_objEditedFavorite.FavoriteName := f_drpQAP
 GuiControl, , f_strFavoriteShortName, %f_drpQAP% ; also assign values to gui control
 
-g_objEditedFavorite.FavoriteLocation := g_objQAPFeaturesByName[f_drpQAP]
-GuiControl, , f_strFavoriteLocation, % g_objQAPFeaturesByName[f_drpQAP] ; also assign values to gui control
+g_objEditedFavorite.FavoriteLocation := g_objQAPFeatures[f_drpQAP]
+GuiControl, , f_strFavoriteLocation, % g_objQAPFeatures[f_drpQAP] ; also assign values to gui control
 
-g_objEditedFavorite.FavoriteIconResource := g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultIcon
+g_objEditedFavorite.FavoriteIconResource := g_objQAPFeatures[f_drpQAP].DefaultIcon
 g_strDefaultIconResource := g_objEditedFavorite.FavoriteIconResource 
 
 return
@@ -2784,6 +2793,11 @@ else if (g_objEditedFavorite.FavoriteType = "URL")
 	; default browser icon
 	GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strThisIconFile, intThisIconIndex)
 	g_strDefaultIconResource := strThisIconFile . "," . intThisIconIndex
+}
+else if (g_objEditedFavorite.FavoriteType = "FTP")
+{
+	; default FTP icon
+	g_strDefaultIconResource := g_objIconsFile["FTP"] . "," . g_objIconsIndex["FTP"]
 }
 else if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and StrLen(f_strFavoriteLocation)
 {
@@ -3601,6 +3615,30 @@ return
 PowerHotkeyMouse:
 PowerHotkeyKeyboard:
 return
+
+
+;------------------------------------------------------------
+FoldersInExplorerMenuShortcut:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ClipboardMenuShortcut:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GroupsMenuShortcut:
+;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
 
 
 
