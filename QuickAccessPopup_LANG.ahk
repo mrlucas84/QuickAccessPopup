@@ -176,6 +176,7 @@ global lMenuFonts := "Fonts"
 global lMenuFPMenu := "~1~ ~2~"
 global lMenuGroup := "Groups of Folders"
 global lMenuGroupAdd := "add"
+global lMenuGroupManage := "Manage Groups" ; new
 global lMenuGroupReplace := "replace"
 global lMenuGroupSave := "Save Current Folders as Group"
 global lMenuHelp := "Help"
