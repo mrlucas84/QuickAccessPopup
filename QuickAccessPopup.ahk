@@ -18,6 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- rename icon arrays indexes with "iconXxxYyyZzz" names
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -376,18 +377,19 @@ g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|Whe
 StringSplit, g_arrMouseButtons, g_strMouseButtons, |
 
 ; Icon files and index tested on Win 7 and Win 8.1. Not tested on Win 10.
-strIconsMenus := "lMenuDesktop|lMenuDocuments|lMenuPictures|lMenuMyComputer|lMenuNetworkNeighborhood|lMenuControlPanel|lMenuRecycleBin"
-	. "|menuRecentFolders|menuGroupDialog|menuGroupExplorer|lMenuSpecialFolders|lMenuGroup|lMenuCurrentFolders"
-	. "|lMenuRecentFolders|lMenuSettings|lMenuAddThisFolder|lDonateMenu|Submenu|Network|UnknownDocument|Folder"
+strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetworkNeighborhood|iconControlPanel|iconRecycleBin"
+	. "|iconRecentFolders|iconSpecialFolders|iconGroup|iconCurrentFolders"
+	. "|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu|iconNetwork|iconUnknown|iconFolder"
+####
 	. "|menuGroupSave|menuGroupLoad|lMenuDownloads|Templates|MyMusic|MyVideo|History|Favorites|Temporary|Winver"
 	. "|Fonts|Application|Clipboard|lGuiAbout|lGuiHelp|lGuiOptions|FTP"
 strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
-			. "|imageres|imageres|imageres|imageres|shell32|imageres"
+			. "|imageres|imageres|shell32|imageres"
 			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
 			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
 			. "|shell32|shell32|shell32|shell32|shell32|imageres|shell32"
 strIconsIndex := "106|189|68|105|115|23|50"
-			. "|113|176|203|203|99|96"
+			. "|113|203|99|96"
 			. "|113|110|217|208|298|29|176|4"
 			. "|297|46|176|55|104|179|240|87|153|1"
 			. "|39|304|261|222|24|166|104"
@@ -400,7 +402,7 @@ Loop, Parse, strIconsMenus, |
 	g_objIconsFile[A_LoopField] := A_WinDir . "\System32\" . arrIconsFile%A_Index% . (arrIconsFile%A_Index% = "winver" ? ".exe" : ".dll")
 	g_objIconsIndex[A_LoopField] := arrIconsIndex%A_Index%
 }
-; example: g_objIconsFile["lMenuPictures"] and g_objIconsIndex["lMenuPictures"]
+; example: g_objIconsFile["iconPictures"] and g_objIconsIndex["iconPictures"]
 
 strFavoriteTypes := "Folder|Document|Application|Special|URL|FTP|QAP|Menu"
 StringSplit, g_arrFavoriteTypes, strFavoriteTypes, |
@@ -650,7 +652,7 @@ InitSpecialFolderObject(strException, "", -1, "", "templates", ""
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 RegRead, g_strMyPicturesPath, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, My Pictures
 InitSpecialFolderObject(g_strMyPicturesPath, "", 39, "", "mypictures", ""
-	, lMenuPictures, "lMenuPictures"
+	, lMenuPictures, "iconPictures"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 RegRead, strException, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Favorites
 InitSpecialFolderObject(strException, "", -1, "", "", ""
@@ -661,38 +663,38 @@ InitSpecialFolderObject(strException, "", -1, "", "", ""
 ; Path under %APPDATA% (no CLSID), localized name and icon provided, no Shell Command - to be tested with DOpus, TC and FPc
 
 InitSpecialFolderObject("%APPDATA%\Microsoft\Windows\Start Menu", "", -1, "A_StartMenu", "start", ""
-	, lMenuStartMenu, "Folder"
+	, lMenuStartMenu, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup", "", -1, "A_Startup", "startup", ""
-	, lMenuStartup, "Folder"
+	, lMenuStartup, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%APPDATA%", "", -1, "A_AppData", "appdata", ""
-	, lMenuAppData, "Folder"
+	, lMenuAppData, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%APPDATA%\Microsoft\Windows\Recent", "", -1, "", "recent", ""
-	, lMenuRecentItems, "menuRecentFolders"
+	, lMenuRecentItems, "iconRecentFolders"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%APPDATA%\Microsoft\Windows\Cookies", "", -1, "", "cookies", ""
-	, lMenuCookies, "Folder"
+	, lMenuCookies, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%APPDATA%\Microsoft\Internet Explorer\Quick Launch", "", -1, "", "", ""
-	, lMenuQuickLaunch, "Folder"
+	, lMenuQuickLaunch, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "CLS", "CLS", "CLS")
 InitSpecialFolderObject("%APPDATA%\Microsoft\SystemCertificates", "", -1, "", "", ""
-	, lMenuSystemCertificates, "Folder"
+	, lMenuSystemCertificates, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "CLS", "CLS", "CLS")
 
 ;---------------------
 ; Path under other environment variables (no CLSID), localized name and icon provided, no Shell Command - to be tested with DOpus, TC and FPc
 
 InitSpecialFolderObject("%ALLUSERSPROFILE%\Microsoft\Windows\Start Menu", "", -1, "A_StartMenuCommon", "commonstartmenu", ""
-	, lMenuCommonStartMenu, "Folder"
+	, lMenuCommonStartMenu, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%ALLUSERSPROFILE%\Microsoft\Windows\Start Menu\Programs\Startup", "", -1, "A_StartupCommon", "commonstartup", ""
-	, lMenuCommonStartupMenu, "Folder"
+	, lMenuCommonStartupMenu, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%ALLUSERSPROFILE%", "", -1, "A_AppDataCommon", "commonappdata", ""
-	, lMenuCommonAppData, "Folder"
+	, lMenuCommonAppData, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%LOCALAPPDATA%\Microsoft\Windows\Temporary Internet Files", "", -1, "", "", ""
 	, lMenuCache, "Temporary"
@@ -701,14 +703,14 @@ InitSpecialFolderObject("%LOCALAPPDATA%\Microsoft\Windows\History", "", -1, "", 
 	, lMenuHistory, "History"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%ProgramFiles%", "", -1, "A_ProgramFiles", "programfiles", ""
-	, lMenuProgramFiles, "Folder"
+	, lMenuProgramFiles, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 if (A_Is64bitOS)
 	InitSpecialFolderObject("%ProgramFiles(x86)%", "", -1, "", "programfilesx86", ""
-		, lMenuProgramFiles . " (x86)", "Folder"
+		, lMenuProgramFiles . " (x86)", "iconFolder"
 		, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%PUBLIC%\Libraries", "", -1, "", "", ""
-	, lMenuPublicLibraries, "Folder"
+	, lMenuPublicLibraries, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "CLS", "CLS", "CLS")
 
 ;---------------------
@@ -726,10 +728,10 @@ InitSpecialFolderObject(strPathUsers . "\Public", "Public", -1, "", "common", ""
 ; Path using AHK constants (no CLSID), localized name and icon provided, no Shell Command - to be tested with DOpus, TC and FPc
 
 InitSpecialFolderObject(A_Desktop, "", 0, "A_Desktop", "desktop", 2121
-	, lMenuDesktop, "lMenuDesktop"
+	, lMenuDesktop, "iconDesktop"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "TCC", "CLS")
 InitSpecialFolderObject(A_DesktopCommon, "", -1, "A_DesktopCommon", "commondesktopdir", ""
-	, lMenuCommonDesktop, "lMenuDesktop"
+	, lMenuCommonDesktop, "iconDesktop"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject(A_Temp, "", -1, "A_Temp", "temp", ""
 	, lMenuTemporaryFiles, "Temporary"
@@ -952,24 +954,24 @@ InitQAPFeatures:
 ; 		strUse4TC
 ;		strUse4FPc
 
-InitQAPFeatureObject(lMenuCurrentFolders, ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "lMenuCurrentFolders"
+InitQAPFeatureObject(lMenuCurrentFolders, ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "iconCurrentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
-InitQAPFeatureObject(lMenuGroupManage . "...", "", "GuiGroupsManage:", "lMenuGroup"
+InitQAPFeatureObject(lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject(lMenuRecentFolders, "", "RefreshRecentFolders:", "lMenuRecentFolders"
+InitQAPFeatureObject(lMenuRecentFolders, "", "RefreshRecentFolders:", "iconRecentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 InitQAPFeatureObject(lMenuClipboard, ":g_menuClipboard", "ClipboardMenuShortcut:", "Clipboard"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 
 InitQAPFeatureObject(lGuiAbout . "...", "", "GuiAbout:", "lGuiAbout")
-InitQAPFeatureObject(lGuiDonate . "...", "", "GuiDonate:", "lDonateMenu"
+InitQAPFeatureObject(lGuiDonate . "...", "", "GuiDonate:", "iconDonate"
 	, "NOT", "NOT", "NOT", "NOT", "NOT", "NOT", "NOT")
 InitQAPFeatureObject(lGuiHelp . "...", "", "GuiHelp:", "lGuiHelp")
 InitQAPFeatureObject(lGuiOptions . "...", "", "GuiOptions:", "lGuiOptions")
-InitQAPFeatureObject(lMenuAddThisFolder . "...", "", "AddThisFolder:", "lMenuAddThisFolder")
+InitQAPFeatureObject(lMenuAddThisFolder . "...", "", "AddThisFolder:", "iconAddThisFolder")
 InitQAPFeatureObject(lMenuCopyLocation, "", "PopupMenuCopyLocation:", "Clipboard")
-InitQAPFeatureObject(lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "lMenuGroup")
-InitQAPFeatureObject(L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "lMenuSettings")
+InitQAPFeatureObject(lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
+InitQAPFeatureObject(L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "iconSettings")
 
 ;------------------------------------------------------------
 ; Build folders list for dropdown
@@ -1443,7 +1445,7 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 	else
 	{
 		if (strFavoriteType = "Menu")
-			strIconResource := g_objIconsFile["lMenuSpecialFolders"] . "," . g_objIconsIndex["lMenuSpecialFolders"]
+			strIconResource := g_objIconsFile["iconSpecialFolders"] . "," . g_objIconsIndex["iconSpecialFolders"]
 		else
 			strIconResource := g_objSpecialFolders[strSpecialFolderLocation].DefaultIcon
 		if !StrLen(strSpecialFolderName)
@@ -1663,20 +1665,20 @@ if (g_arrMenus[lMainMenuName][g_arrMenus[lMainMenuName].MaxIndex()].FavoriteType
 /* ### later
 if (blnDisplayFoldersInExplorerMenu)
 {
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(6, lMenuCurrentFolders), ":g_menuFoldersInExplorer", "lMenuCurrentFolders")
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(6, lMenuCurrentFolders), ":g_menuFoldersInExplorer", "iconCurrentFolders")
 	if (g_blnUseColors)
 		Menu, g_menuFoldersInExplorer, Color, %g_strMenuBackgroundColor%
 }
 
 if (blnDisplayGroupMenu)
 {
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(7, lMenuGroup), ":g_menuGroups", "lMenuGroup")
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(7, lMenuGroup), ":g_menuGroups", "iconGroup")
 	if (g_blnUseColors)
 		Menu, g_menuGroups, Color, %g_strMenuBackgroundColor%
 }
 
 if (blnDisplayRecentFolders)
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(8, lMenuRecentFolders), "RefreshRecentFolders", "lMenuRecentFolders")
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(8, lMenuRecentFolders), "RefreshRecentFolders", "iconRecentFolders")
 
 if (blnDisplayClipboardMenu)
 	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(9, lMenuClipboard), ":g_menuClipboard", "Clipboard")
@@ -1684,9 +1686,9 @@ if (blnDisplayClipboardMenu)
 if (blnDisplayRecentFolders or blnDisplayFoldersInExplorerMenu or blnDisplayGroupMenu or blnDisplayClipboardMenu)
 	Menu, %lMainMenuName%, Add
 
-AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(5, L(lMenuSettings, g_strAppNameText) . "..."), "GuiShow", "lMenuSettings")
+AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(5, L(lMenuSettings, g_strAppNameText) . "..."), "GuiShow", "iconSettings")
 Menu, %lMainMenuName%, Default, %  BuildSpecialMenuItemName(5, L(lMenuSettings, g_strAppNameText) . "...")
-AddMenuIcon(lMainMenuName, lMenuAddThisFolder . "...", "AddThisFolder", "lMenuAddThisFolder")
+AddMenuIcon(lMainMenuName, lMenuAddThisFolder . "...", "AddThisFolder", "iconAddThisFolder")
 
 if (blnDisplayCopyLocationMenu)
 	AddMenuIcon(lMainMenuName, lMenuCopyLocation . "...", "PopupMenuCopyLocation", "Clipboard")
@@ -1695,7 +1697,7 @@ if (blnDisplayCopyLocationMenu)
 if !(g_blnDonor)
 {
 	Menu, %lMainMenuName%, Add
-	AddMenuIcon(lMainMenuName, lDonateMenu . "...", "GuiDonate", "lDonateMenu")
+	AddMenuIcon(lMainMenuName, lDonateMenu . "...", "GuiDonate", "iconDonate")
 }
 
 if (A_ThisLabel = "BuildMainMenuWithStatus")
@@ -1749,14 +1751,14 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() > 1 ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if contains only tge back .. item
 			if (g_blnDisplayIcons)
 			{
-				ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "Submenu")
+				ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "iconSubmenu")
 				
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, on
 				Menu, % objCurrentMenu.MenuPath, Icon, % objCurrentMenu[A_Index].FavoriteName
 					, %strThisIconFile%, %intThisIconIndex% , %g_intIconSize%
 				if (ErrorLevel)
 					Menu, % objCurrentMenu.MenuPath, Icon, % objCurrentMenu[A_Index].FavoriteName
-						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
+						, % g_objIconsFile["iconUnknown"], % g_objIconsIndex["iconUnknown"], %g_intIconSize%
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, off
 			}
 		}
@@ -1788,7 +1790,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			{
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, on
 				if (objCurrentMenu[A_Index].FavoriteType = "Folder") ; this is a folder
-					ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "Folder")
+					ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "iconFolder")
 				else if (objCurrentMenu[A_Index].FavoriteType = "Url") ; this is an URL
 					if StrLen(objCurrentMenu[A_Index].FavoriteIconResource)
 						ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex)
@@ -1806,7 +1808,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 					Menu, % objCurrentMenu.MenuPath, Icon, %strMenuName%, %strThisIconFile%, %intThisIconIndex%, %g_intIconSize%
 				if (!StrLen(strThisIconFile) or ErrorLevel)
 					Menu, % objCurrentMenu.MenuPath, Icon, %strMenuName%
-						, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
+						, % g_objIconsFile["iconUnknown"], % g_objIconsIndex["iconUnknown"], %g_intIconSize%
 						
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, off
 			}
@@ -1833,7 +1835,7 @@ NextMenuShortcut(ByRef intShortcut)
 
 ;------------------------------------------------------------
 AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue)
-; strIconValue can be an item from strIconsMenus (eg: "Folder") or a "file,index" combo (eg: "imageres.dll,33")
+; strIconValue can be an item from strIconsMenus (eg: "iconFolder") or a "file,index" combo (eg: "imageres.dll,33")
 ;------------------------------------------------------------
 {
 	global g_intIconSize
@@ -1865,7 +1867,7 @@ AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue)
 		Menu, %strMenuName%, Icon, %strMenuItemName%, %strIconFile%, %intIconIndex%, %g_intIconSize%
 		if (ErrorLevel)
 			Menu, %strMenuName%, Icon, %strMenuItemName%
-				, % g_objIconsFile["UnknownDocument"], % g_objIconsIndex["UnknownDocument"], %g_intIconSize%
+				, % g_objIconsFile["iconUnknown"], % g_objIconsIndex["iconUnknown"], %g_intIconSize%
 		Menu, %strMenuName%, UseErrorLevel, off
 	}
 }
@@ -2784,10 +2786,10 @@ Gui, 2:Submit, NoHide
 
 if (g_objEditedFavorite.FavoriteType = "Menu")
 	; default submenu icon
-	g_strDefaultIconResource := g_objIconsFile["Submenu"] . "," . g_objIconsIndex["Submenu"]
+	g_strDefaultIconResource := g_objIconsFile["iconSubmenu"] . "," . g_objIconsIndex["iconSubmenu"]
 else if (g_objEditedFavorite.FavoriteType = "Folder")
 	; default folder icon
-	g_strDefaultIconResource := g_objIconsFile["Folder"] . "," . g_objIconsIndex["Folder"]
+	g_strDefaultIconResource := g_objIconsFile["iconFolder"] . "," . g_objIconsIndex["iconFolder"]
 else if (g_objEditedFavorite.FavoriteType = "URL")
 {
 	; default browser icon
@@ -2806,9 +2808,9 @@ else if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and StrL
 	g_strDefaultIconResource := strThisIconFile . "," . intThisIconIndex
 }
 else if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType) ; should not
-	g_strDefaultIconResource := g_objIconsFile["UnknownDocument"] . "," . g_objIconsIndex["UnknownDocument"]
+	g_strDefaultIconResource := g_objIconsFile["iconUnknown"] . "," . g_objIconsIndex["iconUnknown"]
 
-if !StrLen(g_objEditedFavorite.FavoriteIconResource) or (g_objEditedFavorite.FavoriteIconResource = g_objIconsFile["UnknownDocument"] . "," . g_objIconsIndex["UnknownDocument"])
+if !StrLen(g_objEditedFavorite.FavoriteIconResource) or (g_objEditedFavorite.FavoriteIconResource = g_objIconsFile["iconUnknown"] . "," . g_objIconsIndex["iconUnknown"])
 	g_objEditedFavorite.FavoriteIconResource := g_strDefaultIconResource
 
 return
@@ -4346,7 +4348,7 @@ ParseIconResource(strIconResource, ByRef strIconFile, ByRef intIconIndex, strDef
 	global g_objIconsIndex ; ok
 	
 	if !StrLen(strDefaultType)
-		strDefaultType := "UnknownDocument"
+		strDefaultType := "iconUnknown"
 	
 	if StrLen(strIconResource)
 		If InStr(strIconResource, ",") ; this is icongroup files
@@ -4387,8 +4389,8 @@ GetIcon4Location(strLocation, ByRef strDefaultIcon, ByRef intDefaultIcon, blnRad
 		}
 		else
 		{
-			strDefaultIcon := g_objIconsFile["UnknownDocument"]
-			intDefaultIcon := g_objIconsIndex["UnknownDocument"]
+			strDefaultIcon := g_objIconsFile["iconUnknown"]
+			intDefaultIcon := g_objIconsIndex["iconUnknown"]
 		}
 		return
 	}
@@ -4413,8 +4415,8 @@ GetIcon4Location(strLocation, ByRef strDefaultIcon, ByRef intDefaultIcon, blnRad
 	
 	if !StrLen(strHKeyClassRoot)
 	{
-		strDefaultIcon := g_objIconsFile["UnknownDocument"]
-		intDefaultIcon := g_objIconsIndex["UnknownDocument"]
+		strDefaultIcon := g_objIconsFile["iconUnknown"]
+		intDefaultIcon := g_objIconsIndex["iconUnknown"]
 	}
 	else
 		ParseIconResource(strRegistryIconResource, strDefaultIcon, intDefaultIcon)
