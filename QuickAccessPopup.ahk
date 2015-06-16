@@ -380,9 +380,8 @@ StringSplit, g_arrMouseButtons, g_strMouseButtons, |
 strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetworkNeighborhood|iconControlPanel|iconRecycleBin"
 	. "|iconRecentFolders|iconSpecialFolders|iconGroup|iconCurrentFolders"
 	. "|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu|iconNetwork|iconUnknown|iconFolder"
-####
-	. "|menuGroupSave|menuGroupLoad|lMenuDownloads|Templates|MyMusic|MyVideo|History|Favorites|Temporary|Winver"
-	. "|Fonts|Application|Clipboard|lGuiAbout|lGuiHelp|lGuiOptions|FTP"
+	. "|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic|iconMyVideo|iconHistory|iconFavorites|iconTemporary|iconWinver"
+	. "|iconFonts|iconApplication|iconClipboard|iconAbout|iconHelp|iconOptions|iconFTP"
 strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
 			. "|imageres|imageres|shell32|imageres"
 			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
@@ -589,7 +588,7 @@ InitSpecialFolderObject("{1f3427c8-5c10-4210-aa03-2ee45287d668}", "User Pinned",
 	, "SCT", "SCT", "SCT", "NEW", "NEW", "NEW", "NEW")
 	; OK     OK      OK     OK    OK      OK
 InitSpecialFolderObject("{BD84B380-8CA2-1069-AB1D-08000948534}", "Fonts", -1, "", "fonts", 2124
-	, lMenuFonts, "Fonts"
+	, lMenuFonts, "iconFonts"
 	, "SCT", "SCT", "NEW", "NEW", "DOA", "TCC", "NEW")
 	; OK     OK      OK     OK    OK      OK
 
@@ -636,19 +635,19 @@ InitSpecialFolderObject("{BB06C0E4-D293-4f75-8A90-CB05B6477EEE}", "", -1, "", ""
 
 RegRead, g_strDownloadPath, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, {374DE290-123F-4565-9164-39C4925E467B}
 InitSpecialFolderObject(g_strDownloadPath, "", -1, "", "downloads", ""
-	, lMenuDownloads, "lMenuDownloads"
+	, lMenuDownloads, "iconDownloads"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 RegRead, strException, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, My Music
 InitSpecialFolderObject(strException, "", -1, "", "mymusic", ""
-	, lMenuMyMusic, "MyMusic"
+	, lMenuMyMusic, "iconMyMusic"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 RegRead, strException, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, My Video
 InitSpecialFolderObject(strException, "", -1, "", "myvideos", ""
-	, lMenuMyVideo, "MyVideo"
+	, lMenuMyVideo, "iconMyVideo"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 RegRead, strException, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Templates
 InitSpecialFolderObject(strException, "", -1, "", "templates", ""
-	, lMenuTemplates, "Templates"
+	, lMenuTemplates, "iconTemplates"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 RegRead, g_strMyPicturesPath, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, My Pictures
 InitSpecialFolderObject(g_strMyPicturesPath, "", 39, "", "mypictures", ""
@@ -656,7 +655,7 @@ InitSpecialFolderObject(g_strMyPicturesPath, "", 39, "", "mypictures", ""
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 RegRead, strException, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Favorites
 InitSpecialFolderObject(strException, "", -1, "", "", ""
-	, lMenuFavoritesInternet, "Favorites"
+	, lMenuFavoritesInternet, "iconFavorites"
 	, "CLS", "CLS", "CLS", "CLS", "CLS", "CLS", "CLS")
 
 ;---------------------
@@ -697,10 +696,10 @@ InitSpecialFolderObject("%ALLUSERSPROFILE%", "", -1, "A_AppDataCommon", "commona
 	, lMenuCommonAppData, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%LOCALAPPDATA%\Microsoft\Windows\Temporary Internet Files", "", -1, "", "", ""
-	, lMenuCache, "Temporary"
+	, lMenuCache, "iconTemporary"
 	, "CLS", "CLS", "CLS", "CLS", "CLS", "CLS", "CLS")
 InitSpecialFolderObject("%LOCALAPPDATA%\Microsoft\Windows\History", "", -1, "", "history", ""
-	, lMenuHistory, "History"
+	, lMenuHistory, "iconHistory"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%ProgramFiles%", "", -1, "A_ProgramFiles", "programfiles", ""
 	, lMenuProgramFiles, "iconFolder"
@@ -734,10 +733,10 @@ InitSpecialFolderObject(A_DesktopCommon, "", -1, "A_DesktopCommon", "commondeskt
 	, lMenuCommonDesktop, "iconDesktop"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject(A_Temp, "", -1, "A_Temp", "temp", ""
-	, lMenuTemporaryFiles, "Temporary"
+	, lMenuTemporaryFiles, "iconTemporary"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject(A_WinDir, "", -1, "A_WinDir", "windows", ""
-	, "Windows", "Winver"
+	, "Windows", "iconWinver"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 
 ;------------------------------------------------------------
@@ -960,16 +959,16 @@ InitQAPFeatureObject(lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGrou
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 InitQAPFeatureObject(lMenuRecentFolders, "", "RefreshRecentFolders:", "iconRecentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject(lMenuClipboard, ":g_menuClipboard", "ClipboardMenuShortcut:", "Clipboard"
+InitQAPFeatureObject(lMenuClipboard, ":g_menuClipboard", "ClipboardMenuShortcut:", "iconClipboard"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 
-InitQAPFeatureObject(lGuiAbout . "...", "", "GuiAbout:", "lGuiAbout")
+InitQAPFeatureObject(lGuiAbout . "...", "", "GuiAbout:", "iconAbout")
 InitQAPFeatureObject(lGuiDonate . "...", "", "GuiDonate:", "iconDonate"
 	, "NOT", "NOT", "NOT", "NOT", "NOT", "NOT", "NOT")
-InitQAPFeatureObject(lGuiHelp . "...", "", "GuiHelp:", "lGuiHelp")
-InitQAPFeatureObject(lGuiOptions . "...", "", "GuiOptions:", "lGuiOptions")
+InitQAPFeatureObject(lGuiHelp . "...", "", "GuiHelp:", "iconHelp")
+InitQAPFeatureObject(lGuiOptions . "...", "", "GuiOptions:", "iconOptions")
 InitQAPFeatureObject(lMenuAddThisFolder . "...", "", "AddThisFolder:", "iconAddThisFolder")
-InitQAPFeatureObject(lMenuCopyLocation, "", "PopupMenuCopyLocation:", "Clipboard")
+InitQAPFeatureObject(lMenuCopyLocation, "", "PopupMenuCopyLocation:", "iconClipboard")
 InitQAPFeatureObject(lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
 InitQAPFeatureObject(L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "iconSettings")
 
@@ -1681,7 +1680,7 @@ if (blnDisplayRecentFolders)
 	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(8, lMenuRecentFolders), "RefreshRecentFolders", "iconRecentFolders")
 
 if (blnDisplayClipboardMenu)
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(9, lMenuClipboard), ":g_menuClipboard", "Clipboard")
+	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(9, lMenuClipboard), ":g_menuClipboard", "iconClipboard")
 
 if (blnDisplayRecentFolders or blnDisplayFoldersInExplorerMenu or blnDisplayGroupMenu or blnDisplayClipboardMenu)
 	Menu, %lMainMenuName%, Add
@@ -1691,7 +1690,7 @@ Menu, %lMainMenuName%, Default, %  BuildSpecialMenuItemName(5, L(lMenuSettings, 
 AddMenuIcon(lMainMenuName, lMenuAddThisFolder . "...", "AddThisFolder", "iconAddThisFolder")
 
 if (blnDisplayCopyLocationMenu)
-	AddMenuIcon(lMainMenuName, lMenuCopyLocation . "...", "PopupMenuCopyLocation", "Clipboard")
+	AddMenuIcon(lMainMenuName, lMenuCopyLocation . "...", "PopupMenuCopyLocation", "iconClipboard")
 */
 
 if !(g_blnDonor)
@@ -2799,7 +2798,7 @@ else if (g_objEditedFavorite.FavoriteType = "URL")
 else if (g_objEditedFavorite.FavoriteType = "FTP")
 {
 	; default FTP icon
-	g_strDefaultIconResource := g_objIconsFile["FTP"] . "," . g_objIconsIndex["FTP"]
+	g_strDefaultIconResource := g_objIconsFile["iconFTP"] . "," . g_objIconsIndex["iconFTP"]
 }
 else if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and StrLen(f_strFavoriteLocation)
 {
@@ -4384,8 +4383,8 @@ GetIcon4Location(strLocation, ByRef strDefaultIcon, ByRef intDefaultIcon, blnRad
 	{
 		if (blnRadioApplication)
 		{
-			strDefaultIcon := g_objIconsFile["Application"]
-			intDefaultIcon := g_objIconsIndex["Application"]
+			strDefaultIcon := g_objIconsFile["iconApplication"]
+			intDefaultIcon := g_objIconsIndex["iconApplication"]
 		}
 		else
 		{
