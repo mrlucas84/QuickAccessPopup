@@ -18,7 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- rename icon arrays indexes with "iconXxxYyyZzz" names
+- in Add/EditFavorite alwys uodate g_objEditedFavorite object?
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -493,8 +493,8 @@ loop, %g_arrOptionsLanguageCodes0%
 			break
 		}
 
-lOptionsMouseButtonsText := lOptionsMouseNone . "|" . lOptionsMouseButtonsText ; use lOptionsMouseNone because this is displayed
-StringSplit, g_arrMouseButtonsText, lOptionsMouseButtonsText, |
+lDialogMouseButtonsText := lDialogMouseNone . "|" . lDialogMouseButtonsText ; use lDialogMouseNone because this is displayed
+StringSplit, g_arrMouseButtonsText, lDialogMouseButtonsText, |
 
 strOptionsLanguageCodes := ""
 
@@ -1474,7 +1474,7 @@ loop, % g_arrHotkeyNames%0%
 	SplitHotkey(arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
 	; example: Hotkey, $MButton, LaunchHotkeyMouse
 	
-	if (arrHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
+	if (arrHotkeys%A_Index% = "None") ; do not compare with lDialogMouseNone because it is translated
 		Hotkey, % "$" . strHotkeyNoneModifiers . strHotkeyNoneKey, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
 	else
 		Hotkey, % "$" . arrHotkeys%A_Index%, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
@@ -2241,6 +2241,7 @@ loop, %g_arrFavoriteTypes0%
 
 Gui, 2:Add, Button, x+20 y+20 vf_btnAddFavoriteSelectTypeContinue gGuiAddFavoriteSelectTypeContinue default, %lDialogContinue%
 Gui, 2:Add, Button, yp vf_btnAddFavoriteSelectTypeCancel gGuiEditFavoriteCancel, %lGuiCancel%
+Gui, Add, Text
 Gui, 2:Add, Text, % "xs+120 ys vf_lblAddFavoriteTypeHelp w250 h" . g_arrFavoriteTypes0 * 20, % L(lDialogFavoriteSelectType, lDialogContinue)
 
 GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAddFavoriteSelectTypeContinue", "f_btnAddFavoriteSelectTypeCancel")
@@ -2304,7 +2305,7 @@ if WindowIsDirectoryOpus(strTargetClass)
 {
 	objDOpusListers := Object()
 	CollectDOpusListersList(objDOpusListers, strListText) ; list all listers, excluding special folders like Recycle Bin
-	; #### QAP NOTE: NOT SURE strListText IS CORRECTLY INITAILIZED IN FP? BUT IT WORKS...
+	; ### QAP NOTE: NOT SURE strListText IS CORRECTLY INITAILIZED IN FP? BUT IT WORKS...
 	
 	; From leo @ GPSoftware (http://resource.dopus.com/viewtopic.php?f=3&t=23013):
 	; Lines will have active_lister="1" if they represent tabs from the active lister.
@@ -2501,6 +2502,13 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 		if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
 			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation, %lDialogBrowseButton%
 	}
+	
+	if (g_objEditedFavorite.FavoriteType = "Application")
+	{
+		Gui, 2:Add, Text, x20 y+20 vf_lblSelectRunningApplication, Browse or Select a running application ; ### language
+		Gui, 2:Add, DropDownList, x20 y+5 w400 vf_drpRunningApplication gDropdownRunningApplicationChanged
+			, % CollectRunningApplications()
+	}
 }
 else ; "Special" or "QAP"
 {
@@ -2528,10 +2536,15 @@ If (A_ThisLabel <> "GuiEditFavorite") ; ### allow to change position in the dial
 	Gui, 2:Add, DropDownList, x20 y+5 w290 vf_drpParentMenuItems AltSubmit
 }
 
-Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog, %lDialogIcon%
-Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog section
+Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog section, %lDialogIcon%
+Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
 Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
-Gui, 2:Add, Link, x20 ys+37 gGuiPickIconDialog, <a href="">Select icon</a> ; ### language
+Gui, 2:Add, Link, x20 ys+57 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
+
+SplitHotkey(g_objEditedFavorite.FavoriteHotkey, strHotkeyModifiers, strHotkeyKey, strHotkeyMouse, strMouseButtonsWithDefault)
+Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
+Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_lblHotkeyText gButtonChangeHotkey, % Hotkey2Text(strHotkeyModifiers, strHotkeyMouse, strHotkeyKey)
+Gui, 2:Add, Button, yp x+10 gButtonChangeHotkey, %lOptionsChangeHotkey%
 
 /*
 If (A_ThisLabel <> "GuiEditFavorite")
@@ -2589,10 +2602,34 @@ else
 	GuiControl, 2:Focus, f_strFavoriteShortName
 if (A_ThisLabel = "GuiEditFavorite") and (!blnRadioSpecial)
 	SendInput, ^a
+
+Gui, Add, Text
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
 g_strNewLocation := ""
+arrTop := ""
+strHotkeyModifiers := ""
+strHotkeyMouse := ""
+strHotkeyKey := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonChangeHotkey:
+;------------------------------------------------------------
+
+g_objEditedFavorite.FavoriteHotkey := SelectHotkey(g_objEditedFavorite, g_objEditedFavorite.FavoriteName, g_objEditedFavorite.FavoriteLocation, 3, g_objEditedFavorite.FavoriteHotkey)
+
+SplitHotkey(g_objEditedFavorite.FavoriteHotkey, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
+GuiControl, 2:, f_lblHotkeyText, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
+
+strNewModifiers := ""
+strNewMouse := ""
+strNewOptionsKey := ""
+strNewMouseButtonsWithDefault := ""
 
 return
 ;------------------------------------------------------------
@@ -2632,6 +2669,18 @@ else
 	GuiControl, ChooseString, f_drpParentMenuItems, % g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
 
 intItemPosition := 0 ; if called again for a new parent menu, will display lDialogEndOfMenu
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DropdownRunningApplicationChanged:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+g_objEditedFavorite.FavoriteLocation := f_drpRunningApplication
+GuiControl, , f_strFavoriteLocation, %f_drpRunningApplication%
 
 return
 ;------------------------------------------------------------
@@ -2691,9 +2740,13 @@ return
 ;------------------------------------------------------------
 EditFavoriteLocationChanged:
 ;------------------------------------------------------------
+Gui, 2:Submit, NoHide
 
 if InStr("Document|Application", g_objEditedFavorite.FavoriteType)
 	g_objEditedFavorite.FavoriteIconResource := ""
+
+g_objEditedFavorite.FavoriteName := GetDeepestFolderName(f_strFavoriteLocation)
+GuiControl, 2:, f_strFavoriteShortName, % g_objEditedFavorite.FavoriteName
 
 return
 ;------------------------------------------------------------
@@ -3290,10 +3343,259 @@ Gui, 1:Show
 return
 ;------------------------------------------------------------
 
+;========================================================================================================================
+; END OF FAVORITES LIST
+;========================================================================================================================
 
 
 ;========================================================================================================================
-; END OF FAVORITES LIST
+!_035_GUI_CHANGE_HOTKEY:
+return
+;========================================================================================================================
+
+; Gui in function, see from daniel2 http://www.autohotkey.com/board/topic/19880-help-making-gui-work-inside-a-function/#entry130557
+
+;------------------------------------------------------------
+SelectHotkey(objFavorite, strHotkeyTitle, strHotkeyDescription, intHotkeyType, strActualHotkey := "", strDefaultHotkey := "")
+; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
+; returns the new hotkey or empty string if cancel
+;------------------------------------------------------------
+{
+	; safer that declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
+	global
+
+	SplitHotkey(strActualHotkey, strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
+
+	intGui2WinID := WinExist("A")
+
+	Gui, 3:New, , % L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion)
+	Gui, 3:Default
+	Gui, +Owner2
+	Gui, +OwnDialogs
+	
+	if (g_blnUseColors)
+		Gui, Color, %g_strGuiWindowColor%
+	Gui, Font, s10 w700, Verdana
+	Gui, Add, Text, x10 y10 w300 center, % L(lDialogChangeHotkeyTitle, g_strAppNameText)
+	Gui, Font
+
+	Gui, Add, Text, y+15 x10, %lDialogTriggerFor%
+	Gui, Font, s8 w700
+	Gui, Add, Text, x+5 yp w300 section, % objFavorite.FavoriteName . " (" . objFavorite.FavoriteType . ")"
+	Gui, Font
+	Gui, Add, Text, xs y+5 w300, % objFavorite.FavoriteLocation
+
+	Gui, Add, CheckBox, y+20 x50 vf_blnShift, %lDialogShift%
+	GuiControlGet, arrTop, Pos, f_blnShift
+	Gui, Add, CheckBox, y+10 x50 vf_blnCtrl, %lDialogCtrl%
+	Gui, Add, CheckBox, y+10 x50 vf_blnAlt, %lDialogAlt%
+	Gui, Add, CheckBox, y+10 x50 vf_blnWin, %lDialogWin%
+	Gosub, SetModifiersCheckBox
+
+	if (intHotkeyType = 1)
+		Gui, Add, DropDownList, % "y" . arrTopY . " x150 w200 vf_drpHotkeyMouse gMouseChanged", %strActualMouseButtonsWithDefault%
+	if (intHotkeyType = 3)
+	{
+		Gui, Add, Text, % "y" . arrTopY . " x150 w60", %lDialogMouse%
+		Gui, Add, DropDownList, yp x+10 w200 vf_drpHotkeyMouse gMouseChanged, %strActualMouseButtonsWithDefault%
+		Gui, Add, Text, % "y" . arrTopY + 20 . " x150", %lDialogOr%
+	}
+	if (intHotkeyType <> 1)
+	{
+		Gui, Add, Text, % "y" . arrTopY + (intHotkeyType = 2 ? 0 : 40) . " x150 w60", %lDialogKeyboard%
+		Gui, Add, Hotkey, yp x+10 w130 vf_strHotkeyKey gHotkeyChanged section
+		GuiControl, , f_strHotkeyKey, %strActualKey%
+	}
+	if (intHotkeyType <> 1)
+		Gui, Add, Link, y+5 xs w130 gHotkeySpaceTabClicked, %lDialogSpacebarTab% ; space or tab
+
+	Gui, Add, Button, % "x10 y" . arrTopY + 100 . " vf_btnNoneHotkey gSelectNoneHotkeyClicked", %lDialogMouseNone%
+	if StrLen(strDefaultHotkey)
+	{
+		Gui, Add, Button, % "x10 y" . arrTopY + 100 . " vf_btnResetHotkey gButtonResetHotkey", %lGuiResetDefault%
+		GuiCenterButtons(L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNoneHotkey", "f_btnResetHotkey")
+	}
+	else
+	{
+		Gui, Add, Text, % "x10 y" . arrTopY + 100
+		GuiCenterButtons(L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNoneHotkey")
+	}
+	Gui, Add, Button, y+30 x10 vf_btnChangeHotkeySave gButtonChangeHotkeySave, %lGuiSave%
+	Gui, Add, Button, yp x+20 vf_btnChangeHotkeyCancel gButtonChangeHotkeyCancel, %lGuiCancel%
+	
+	GuiCenterButtons(L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnChangeHotkeySave", "f_btnChangeHotkeyCancel")
+
+	Gui, Add, Text
+	GuiControl, Focus, f_btnChangeHotkeySave
+	Gui, Show, AutoSize Center
+
+	Gui, 2:+Disabled
+	WinWaitClose,  % L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion) ; waiting for Gui to close
+
+	return strNewHotkey ; returning value
+
+
+	;------------------------------------------------------------
+	MouseChanged:
+	;------------------------------------------------------------
+
+	strMouseControl := A_GuiControl ; hotkey var name
+	GuiControlGet, strMouseValue, , %strMouseControl%
+
+	if (strMouseValue = lDialogMouseNone) ; this is the translated "None"
+	{
+		GuiControl, , f_blnShift, 0
+		GuiControl, , f_blnCtrl, 0
+		GuiControl, , f_blnAlt, 0
+		GuiControl, , f_blnWin, 0
+	}
+
+	if (intHotkeyType = 3) ; both keyboard and mouse options are available
+	{
+		; get the hotkey var
+		StringReplace, strHotkeyControl, strMouseControl, Mouse, Key
+		StringReplace, strHotkeyControl, strHotkeyControl, drp, str
+
+		; we have a mouse button, empty the hotkey control
+		GuiControl, , %strHotkeyControl%, None
+	}
+
+	return
+	;------------------------------------------------------------
+	
+	;------------------------------------------------------------
+	HotkeyChanged:
+	;------------------------------------------------------------
+	strHotkeyControl := A_GuiControl ; hotkey var name
+	strHotkeyChanged := %strHotkeyControl% ; hotkey content
+
+	if !StrLen(strHotkeyChanged)
+		return
+
+	SplitModifiersFromKey(strHotkeyChanged, strHotkeyChangedModifiers, strHotkeyChangedKey)
+
+	if StrLen(strHotkeyChangedModifiers) ; we have a modifier and we don't want it, reset keyboard to none and return
+		GuiControl, , %A_GuiControl%, None
+	else ; we have a valid key, empty the mouse dropdown and return
+	{
+		StringReplace, strMouseControl, strHotkeyControl, Key, Mouse ; get the matching mouse dropdown var
+		GuiControl, Choose, %f_strHotkeyMouse%, 0
+	}
+
+	return
+	;------------------------------------------------------------
+
+	;------------------------------------------------------------
+	SelectNoneHotkeyClicked:
+	;------------------------------------------------------------
+
+	GuiControl, , f_strHotkeyKey, %lDialogMouseNone%
+	GuiControl, Choose, f_drpHotkeyMouse, %lDialogMouseNone%
+	SplitHotkey("", strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
+	Gosub, SetModifiersCheckBox
+
+	strModifiers := ""
+
+	return
+	;------------------------------------------------------------
+
+	;------------------------------------------------------------
+	HotkeySpaceTabClicked:
+	;------------------------------------------------------------
+	
+	if (ErrorLevel = "Space")
+		GuiControl, , f_strHotkeyKey, %A_Space%
+	else
+		GuiControl, , f_strHotkeyKey, %A_Tab%
+	GuiControl, Choose, f_drpHotkeyMouse, 0
+
+	return
+	;------------------------------------------------------------
+
+	;------------------------------------------------------------
+	ButtonResetHotkey:
+	;------------------------------------------------------------
+
+	SplitHotkey(strDefaultHotkey, strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
+	GuiControl, , f_strHotkeyKey, %strActualKey%
+	GuiControl, Choose, f_drpHotkeyMouse, % GetText4MouseButton(strActualMouseButton)
+	Gosub, SetModifiersCheckBox
+	
+	return
+	;------------------------------------------------------------
+
+	;------------------------------------------------------------
+	SetModifiersCheckBox:
+	;------------------------------------------------------------
+	GuiControl, , f_blnShift, % InStr(strActualModifiers, "+") ? 1 : 0
+	GuiControl, , f_blnCtrl, % InStr(strActualModifiers, "^") ? 1 : 0
+	GuiControl, , f_blnAlt, % InStr(strActualModifiers, "!") ? 1 : 0
+	GuiControl, , f_blnWin, % InStr(strActualModifiers, "#") ? 1 : 0
+	
+	return
+	;------------------------------------------------------------
+
+	;------------------------------------------------------------
+	ButtonChangeHotkeySave:
+	;------------------------------------------------------------
+	
+	GuiControlGet, strMouse, , f_drpHotkeyMouse
+	GuiControlGet, strKey, , f_strHotkeyKey
+	GuiControlGet, blnWin , ,f_blnWin
+	GuiControlGet, blnAlt, , f_blnAlt
+	GuiControlGet, blnCtrl, , f_blnCtrl
+	GuiControlGet, blnShift, , f_blnShift
+	
+	if StrLen(strMouse)
+		strMouse := GetMouseButton4Text(strMouse) ; get mouse button system name from dropdown localized text
+	; else ???
+	;	strMouseButton%intIndex% := "" ;  empty mouse button text
+	
+	strNewHotkey := Trim(strKey . strMouse)
+	if !StrLen(strNewHotkey)
+		strNewHotkey := "None"
+
+	if (strNewHotkey <> "None") ; do not compare with lDialogMouseNone because it is translated
+	{
+		; Order of modifiers important to keep modifiers labels in correct order
+		if (blnWin)
+			strNewHotkey := "#" . strNewHotkey
+		if (blnAlt)
+			strNewHotkey := "!" . strNewHotkey
+		if (blnCtrl)
+			strNewHotkey := "^" . strNewHotkey
+		if (blnShift)
+			strNewHotkey := "+" . strNewHotkey
+
+		if (strNewHotkey = "LButton")
+		{
+			Oops(lDialogMouseCheckLButton, lDialogShift, lDialogCtrl, lDialogAlt, lDialogWin)
+			strNewHotkey := ""
+			return
+		}
+	}
+
+	Gosub, 3GuiClose
+	
+	return
+	;------------------------------------------------------------
+
+	;------------------------------------------------------------
+	ButtonChangeHotkeyCancel:
+	;------------------------------------------------------------
+	
+	strHotkey := ""
+
+	Gosub, 3GuiClose
+  
+	return
+	;------------------------------------------------------------
+
+}
+;------------------------------------------------------------
+
+;========================================================================================================================
+; END OF !_035_GUI_CHANGE_HOTKEY:
 ;========================================================================================================================
 
 
@@ -3534,6 +3836,10 @@ return
 3GuiClose:
 3GuiEscape:
 ;------------------------------------------------------------
+
+Gui, 2:-Disabled
+Gui, 3:Destroy
+WinActivate, ahk_id %intGui2WinID%
 
 return
 ;------------------------------------------------------------
@@ -4189,56 +4495,58 @@ GetOSVersionInfo()
 SplitHotkey(strHotkey, ByRef strModifiers, ByRef strKey, ByRef strMouseButton, ByRef strMouseButtonsWithDefault)
 ;------------------------------------------------------------
 {
-	global g_strMouseButtons
+	; safer that declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
+	global
 
-	if (strHotkey = "None") ; do not compare with lOptionsMouseNone because it is translated
+	if (strHotkey = "None") ; do not compare with lDialogMouseNone because it is translated
 	{
-		strMouseButton := "None" ; do not use lOptionsMouseNone because it is translated
+		strMouseButton := "None" ; do not use lDialogMouseNone because it is translated
 		strKey := ""
-		StringReplace, strMouseButtonsWithDefault, lOptionsMouseButtonsText, % lOptionsMouseNone . "|", % lOptionsMouseNone . "||" ; use lOptionsMouseNone because this is displayed
+		StringReplace, strMouseButtonsWithDefault, lDialogMouseButtonsText, % lDialogMouseNone . "|", % lDialogMouseNone . "||" ; use lDialogMouseNone because this is displayed
 	}
 	else 
 	{
 		SplitModifiersFromKey(strHotkey, strModifiers, strKey)
+
 		if InStr(g_strMouseButtons, "|" . strKey . "|") ;  we have a mouse button
 		{
 			strMouseButton := strKey
 			strKey := ""
-			StringReplace, strMouseButtonsWithDefault, lOptionsMouseButtonsText, % GetText4MouseButton(strMouseButton) . "|", % GetText4MouseButton(strMouseButton) . "||" ; with default value
+			StringReplace, strMouseButtonsWithDefault, lDialogMouseButtonsText, % GetText4MouseButton(strMouseButton) . "|", % GetText4MouseButton(strMouseButton) . "||" ; with default value
 		}
 		else ; we have a key
-			strMouseButtonsWithDefault := lOptionsMouseButtonsText ; no default value
+			strMouseButtonsWithDefault := lDialogMouseButtonsText ; no default value
 	}
 }
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-Hotkey2Text(strModifiers, strMouseButton, strOptionKey, blnShort := false)
+Hotkey2Text(strModifiers, strMouseButton, strKey, blnShort := false)
 ;------------------------------------------------------------
 {
-	if (strMouseButton = "None") ; do not compare with lOptionsMouseNone because it is translated
-		str := lOptionsMouseNone ; use lOptionsMouseNone because this is displayed
+	if (strMouseButton = "None") ; do not compare with lDialogNone because it is translated
+		str := lDialogMouseNone ; use lDialogMouseNone because this is displayed
 	else
 	{
 		str := ""
 		loop, parse, strModifiers
 		{
 			if (A_LoopField = "!")
-				str := str . lOptionsAlt . "+"
+				str := str . lDialogAlt . "+"
 			if (A_LoopField = "^")
-				str := str . (blnShort ? lOptionsCtrlShort : lOptionsCtrl) . "+"
+				str := str . (blnShort ? lDialogCtrlShort : lDialogCtrl) . "+"
 			if (A_LoopField = "+")
-				str := str . lOptionsShift . "+"
+				str := str . lDialogShift . "+"
 			if (A_LoopField = "#")
-				str := str . (blnShort ? lOptionsWinShort : lOptionsWin) . "+"
+				str := str . (blnShort ? lDialogWinShort : lDialogWin) . "+"
 		}
 		if StrLen(strMouseButton)
 			str := str . GetText4MouseButton(strMouseButton)
-		if StrLen(strOptionKey)
+		if StrLen(strKey)
 		{
-			StringUpper, strOptionKey, strOptionKey
-			str := str . strOptionKey
+			StringUpper, strKey, strKey
+			str := str . strKey
 		}
 	}
 
@@ -4252,12 +4560,14 @@ GetText4MouseButton(strSource)
 ; Returns the string in g_arrMouseButtonsText at the same position of strSource in g_arrMouseButtons
 ;------------------------------------------------------------
 {
-	global g_arrMouseButtons
-	global g_arrMouseButtonsText
-	
+	; safer that declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
+	global
+
 	loop, %g_arrMouseButtons0%
+	{
 		if (strSource = g_arrMouseButtons%A_Index%)
 			return g_arrMouseButtonsText%A_Index%
+	}
 }
 ;------------------------------------------------------------
 
@@ -4267,8 +4577,7 @@ GetMouseButton4Text(strSource)
 ; Returns the string in g_arrMouseButtons at the same position of strSource in g_arrMouseButtonsText
 ;------------------------------------------------------------
 {
-	global g_arrMouseButtons
-	global g_arrMouseButtonsText
+	global
 
 	loop, %g_arrMouseButtonsText0%
 		if (strSource = g_arrMouseButtonsText%A_Index%)
@@ -4468,12 +4777,12 @@ RecursiveBuildMenuTreeDropDown(objMenu, strDefaultMenuName, strSkipMenuName := "
 {
 	strList := objMenu.MenuPath
 	if (objMenu.MenuPath = strDefaultMenuName)
-		strList := strList . "|" ; default value
+		strList .= "|" ; default value
 
 	Loop, % objMenu.MaxIndex()
 		if (objMenu[A_Index].FavoriteType = "Menu") ; this is a menu
 			if (objMenu[A_Index].Submenu.MenuPath <> strSkipMenuName) ; skip if under edited submenu ### not sure I remember why this???
-				strList := strList . "|" . RecursiveBuildMenuTreeDropDown(objMenu[A_Index].Submenu, strDefaultMenuName, strSkipMenuName) ; recursive call
+				strList .= "|" . RecursiveBuildMenuTreeDropDown(objMenu[A_Index].Submenu, strDefaultMenuName, strSkipMenuName) ; recursive call
 	return strList
 }
 ;------------------------------------------------------------
@@ -4502,3 +4811,24 @@ GetDeepestFolderName(strLocation)
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+CollectRunningApplications()
+;------------------------------------------------------------
+{
+	objApps := Object()
+
+	Winget, strIDs, list
+	
+	Loop, %strIDs%
+	{
+		WinGet, strPath, ProcessPath, % "ahk_id " . strIDs%A_index%
+		if !objApps.HasKey(strPath)
+			objApps.Insert(strPath, "")
+	}
+	for strPath in objApps
+		strPaths .= strPath . "|"
+	StringTrimRight, strPaths, strPaths, 1 ; remove last |
+
+	return strPaths
+}
+;------------------------------------------------------------
