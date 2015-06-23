@@ -85,6 +85,7 @@ global lDialogOpenThisMenu := "Open this menu"
 global lDialogOr := "or" ; new (lowercase)
 global lDialogRemoveMultipleFavorites := "Do you realy want to remove ~1~ favorites or submenus?"
 global lDialogSave := "Save"
+global lDialogSelectIcon := "Select icon"
 global lDialogSelectItemToEdit := "Please, select the item to edit."
 global lDialogSelectItemToRemove := "Please, select the item to remove."
 global lDialogShift := "Shift" ; renamed
