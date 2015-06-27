@@ -18,8 +18,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- test adding sub menu in gui add fav
-- test edit submeu in gui edit fav
 - test gui edit move multiple
 - fix hotkey names in help text
 - review help text
@@ -2190,7 +2188,13 @@ GuiFavoritesListEvents:
 Gui, 1:ListView, f_lvFavoritesList
 
 if (A_GuiEvent = "DoubleClick")
-	gosub, GuiEditFavorite
+{
+	g_intOriginalMenuPosition := LV_GetNext()
+	if (g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType = "Menu")
+		Gosub, OpenMenuFromGuiHotkey
+	else
+		gosub, GuiEditFavorite
+}
 else if (A_GuiEvent = "I") ; Item changed, change Edit button label
 {
 	g_intFavoriteSelected := LV_GetCount("Selected")
@@ -3042,15 +3046,26 @@ if (g_objEditedFavorite.FavoriteType = "Menu") and InStr(f_strFavoriteShortName,
 		return
 	}
 	
-; updating menu object
+; if menu, create submenu object
 
 if (g_objEditedFavorite.FavoriteType = "Menu")
 	if (A_ThisLabel = "GuiAddFavoriteSave")
 	{
 		objNewMenu := Object() ; object for the new menu
 		objNewMenu.MenuPath := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
+
+		; create a navigation entry to navigate to the parent menu
+		objNewMenuBack := Object()
+		objNewMenuBack.FavoriteType := "B" ; for Back link to parent menu
+		objNewMenuBack.FavoriteName := ".. (" . objNewMenu.MenuPath . ")"
+		objNewMenuBack.SubMenu := g_objEditedFavorite ; this is the link to the parent menu
+		objNewMenu.Insert(objNewMenuBack)
+		
 		g_objMenusIndex.Insert(objNewMenu.MenuPath, objNewMenu)
+		g_objEditedFavorite.Submenu := objNewMenu
 	}
+
+; update menu object
 
 g_objEditedFavorite.FavoriteName := f_strFavoriteShortName
 g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
@@ -3071,6 +3086,7 @@ g_objEditedFavorite.FavoriteAppWorkingDir := f_strAppWorkingDir
 	. "g_objEditedFavorite.FavoriteHotkey: " . g_objEditedFavorite.FavoriteHotkey . "`n"
 	. "g_objEditedFavorite.FavoriteAppArguments: " . g_objEditedFavorite.FavoriteAppArguments . "`n"
 	. "g_objEditedFavorite.FavoriteAppWorkingDir: " . g_objEditedFavorite.FavoriteAppWorkingDir . "`n"
+	. "g_objEditedFavorite.Submenu.MenuPath: " . g_objEditedFavorite.Submenu.MenuPath . "`n"
 	. ": " . x . "`n"
 	. "")
 
@@ -3194,8 +3210,8 @@ return
 GuiMenusListChanged:
 GuiGotoUpMenu:
 GuiGotoPreviousMenu:
-OpenMenuFromEditForm: ; ### to be tested
-OpenMenuFromGuiHotkey: ; ### to be tested
+OpenMenuFromEditForm:
+OpenMenuFromGuiHotkey:
 ;------------------------------------------------------------
 
 intCurrentLastPosition := 0
