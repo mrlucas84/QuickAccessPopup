@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- when save in another menu, line in original menu is not updated (seen in Main)
 
 TO-DO
 - fix hotkey names in help text
@@ -1353,8 +1354,8 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			
 			; create a navigation entry to navigate to the parent menu
 			objNewMenuBack := Object()
-			objNewMenuBack.FavoriteType := "B" ; for Back
-			objNewMenuBack.FavoriteName := ".. (" . objCurrentMenu.MenuPath . ")" ; name is optional but it must start with ".."
+			objNewMenuBack.FavoriteType := "B" ; for Back link to parent menu
+			objNewMenuBack.FavoriteName := ".. (" . objCurrentMenu.MenuPath . ")"
 			objNewMenuBack.SubMenu := objCurrentMenu ; this is the link to the parent menu
 			objNewMenu.Insert(objNewMenuBack)
 			
@@ -2225,8 +2226,7 @@ GuiAddFavoriteSelectType:
 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
-g_intRowToEdit := (LV_GetCount() ? (LV_GetNext() ? LV_GetNext() + (g_objMenuInGui[1].FavoriteType = "B" ? -1 : 0) : 0xFFFF) : 1)
-; #### Maybe need 2 variable: one for Gui Listview and one gor object array?
+g_intRowToEdit := (LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1)
 
 Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion)
 Gui, 2:+Owner1
@@ -2424,13 +2424,15 @@ GuiEditFavorite:
 
 g_objEditedFavorite := Object()
 g_strDefaultIconResource := ""
+g_strNewFavoriteIconResource := ""
 
 if (A_ThisLabel = "GuiEditFavorite")
 {
 	Gui, 1:ListView, f_lvFavoritesList
-	g_intRowToEdit := LV_GetNext() + (g_objMenuInGui[1].FavoriteType = "B" ? -1 : 0)
+	g_intRowToEdit := LV_GetNext()
 	
 	g_objEditedFavorite := g_objMenuInGui[g_intRowToEdit]
+	g_strNewFavoriteIconResource := g_objEditedFavorite.FavoriteIconResource
 	
 	if (g_objEditedFavorite.FavoriteType = "B")
 	{
@@ -2476,6 +2478,8 @@ else
 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
+if (A_ThisLabel = "GuiAddFavorite")
+	Gosub, 2GuiClose ; to avoid flashing Gui 1:
 
 Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (A_ThisLabel = "GuiEditFavorite" ? lDialogEdit : lDialogAdd), g_strAppNameText, g_strAppVersion)
 Gui, 2:+Owner1
@@ -2598,14 +2602,16 @@ GuiControl, 2:Focus, % (blnRadioSpecial ? "f_drpSpecialFolder" : "f_strFavoriteS
 
 Gosub, DropdownParentMenuChanged ; to init the content of menu items
 
-if (blnRadioSpecial)
+if InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 	GuiControl, 2:Focus, f_drpSpecialFolder
 else
+{
 	GuiControl, 2:Focus, f_strFavoriteShortName
-if (A_ThisLabel = "GuiEditFavorite") and (!blnRadioSpecial)
-	SendInput, ^a
+	if (A_ThisLabel = "GuiEditFavorite") 
+		SendInput, ^a
+}
 
-Gui, Add, Text
+Gui, 2:Add, Text
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
@@ -2663,7 +2669,7 @@ strDropdownParentMenuItems := ""
 
 Loop, % g_objMenusIndex[f_drpParentMenu].MaxIndex()
 {
-	if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "B") ; skip ".." back menu
+	if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "B") ; skip ".." back link to parent menu
 		Continue
 	else if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "X")
 		strDropdownParentMenuItems .= g_strGuiMenuSeparator . g_strGuiMenuSeparator . "|"
@@ -2674,8 +2680,8 @@ Loop, % g_objMenusIndex[f_drpParentMenu].MaxIndex()
 }
 
 GuiControl, , f_drpParentMenuItems, % "|" . strDropdownParentMenuItems . g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
-if (g_intRowToEdit)
-	GuiControl, Choose, f_drpParentMenuItems, %g_intRowToEdit%
+if (f_drpParentMenu = g_objMenuInGui.MenuPath)
+	GuiControl, Choose, f_drpParentMenuItems, % g_intRowToEdit - (g_objMenusIndex[f_drpParentMenu][1].FavoriteType = "B" ? 1 : 0)
 else
 	GuiControl, ChooseString, f_drpParentMenuItems, % g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
 
@@ -2749,7 +2755,7 @@ Gui, 2:Submit, NoHide
 if InStr("Document|Application", g_objEditedFavorite.FavoriteType)
 	g_strNewFavoriteIconResource := ""
 
-GuiControl, 2:, f_strFavoriteShortName, % g_objEditedFavorite.FavoriteName
+; ### not required? GuiControl, 2:, f_strFavoriteShortName, % g_objEditedFavorite.FavoriteName
 
 return
 ;------------------------------------------------------------
@@ -2974,7 +2980,10 @@ Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
 
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave") ; for "GuiMoveOneFavoriteSave" we add at the end of f_drpParentMenu
+{
 	GuiControlGet, g_intNewItemPos, , f_drpParentMenuItems
+	g_intNewItemPos += (g_objMenusIndex[f_drpParentMenu][1].FavoriteType = "B" ? 1 : 0)
+}
 
 if !(g_intNewItemPos)
 	g_intNewItemPos := 1
@@ -3051,72 +3060,46 @@ if (g_objEditedFavorite.FavoriteType = "Menu")
 	. ": " . x . "`n"
 	. "")
 
-; #####
-/*
 Gosub, 2GuiClose
 
 Gui, 1:Default
 GuiControl, 1:Focus, lvFavoritesList
 Gui, 1:ListView, lvFavoritesList
 
-if (strParentMenu = strCurrentMenu)
+g_objMenusIndex[f_drpParentMenu].Insert(g_intNewItemPos, g_objEditedFavorite)
+
+if (f_drpParentMenu = g_objMenuInGui.MenuPath) ; update Listview
 {
 	if (A_ThisLabel = "GuiAddFavoriteSave")
 	{
 		LV_Modify(0, "-Select")
-		LV_Insert(g_intNewItemPos, "Select Focus"
-			, strFavoriteShortName, strFavoriteLocation, strCurrentMenu, strNewSubmenuFullName, strFavoriteType, strCurrentIconResource, strAppArguments, strAppWorkingDir)
+		LV_Insert(g_intNewItemPos, "Select Focus", g_objEditedFavorite.FavoriteName, g_objEditedFavorite.FavoriteLocation)
 		LV_Modify(LV_GetNext(), "Vis")
-	
-		Gosub, SaveCurrentListviewToMenuObject ; save current LV tbefore update the dropdown menu
-		GuiControl, 1:, drpMenusList, % "|" . BuildMenuTreeDropDown(lMainMenuName, strCurrentMenu) . "|"
 	}
 	else ; GuiEditFavoriteSave or GuiMoveOneFavoriteSave
-	{
-		LV_Modify(intRowToEdit, "Select Focus"
-			, strFavoriteShortName, strFavoriteLocation, strCurrentMenu, strNewSubmenuFullName, strFavoriteType, strCurrentIconResource, strAppArguments, strAppWorkingDir)
-	}
+		
+		LV_Modify(g_intNewItemPos, "Select Focus", g_objEditedFavorite.FavoriteName, g_objEditedFavorite.FavoriteLocation)
 }
-else ; add menu item to selected menu object
+else ; favorite was moved, remove line from Listview
 {
-	objFavorite := Object() ; new menu item
-	objFavorite.MenuName := strParentMenu ; parent menu of this menu item
-	objFavorite.FavoriteName := strFavoriteShortName ; display name of this menu item
-	objFavorite.FavoriteLocation := strFavoriteLocation ; path for this menu item
-	objFavorite.SubmenuFullName := strNewSubmenuFullName ; full name of the submenu
-	objFavorite.FavoriteType := strFavoriteType ; "F" folder, "P" sPecial, "D" document, "U" for URL or "S" submenu
-	objFavorite.IconResource := strCurrentIconResource ; icon resource in format "iconfile,iconindex"
-	objFavorite.AppArguments := strAppArguments ; application arguments
-	objFavorite.AppWorkingDir := strAppWorkingDir ; application working directory
-	g_arrMenus[objFavorite.MenuName].Insert(g_intNewItemPos, objFavorite) ; add this menu item to the new menu
-
 	if (A_ThisLabel = "GuiEditFavoriteSave") or (A_ThisLabel = "GuiMoveOneFavoriteSave")
 		LV_Delete(intRowToEdit)
 	if (A_ThisLabel = "GuiEditFavoriteSave")
-		LV_Modify(intRowToEdit, "Select Focus")
+		LV_Modify(g_intNewItemPos, "Select Focus")
 }
 
-GuiControl, 1:, drpMenusList, % "|" . BuildMenuTreeDropDown(lMainMenuName, strCurrentMenu) . "|"
-
+	
+GuiControl, 1:, f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|"
 Gosub, AjustColumnWidth
-
-if (A_ThisLabel = "GuiEditFavoriteSave") or (A_ThisLabel = "GuiMoveOneFavoriteSave")
-{
-	Gosub, SaveCurrentListviewToMenuObject ; save current LV tbefore update the dropdown menu
-	GuiControl, 1:, drpMenusList, % "|" . BuildMenuTreeDropDown(lMainMenuName, strCurrentMenu) . "|"
-}
 
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	Gosub, BuildMainMenuWithStatus ; update menus
 
-GuiControl, Enable, btnGuiSave
-GuiControl, , btnGuiCancel, %lDialogCancelButton%
+GuiControl, Enable, f_btnGuiSave
+GuiControl, , f_btnGuiCancel, %lDialogCancelButton%
 
 g_blnMenuReady := true
 
-return
-
-*/
 return
 ;------------------------------------------------------------
 
@@ -3491,7 +3474,7 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 	
 	Loop, % objCurrentMenu.MaxIndex()
 	{
-		; skip ".." menu entry used to navigate to the parent menu
+		; skip ".." back link to parent menu
 		blnIsBackMenu := (objCurrentMenu[A_Index].FavoriteType = "B")
 		if !(blnIsBackMenu)
 		{
@@ -3753,7 +3736,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	; else ???
 	;	strMouseButton%intIndex% := "" ;  empty mouse button text
 	
-	strNewHotkey := Trim(strKey . strMouse)
+	strNewHotkey := Trim(strKey . (strMouse = "None" ? "" : strMouse))
 	if !StrLen(strNewHotkey)
 		strNewHotkey := "None"
 
