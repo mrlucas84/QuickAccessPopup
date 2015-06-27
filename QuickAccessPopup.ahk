@@ -16,9 +16,11 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- when save in another menu, line in original menu is not updated (seen in Main)
 
 TO-DO
+- test adding sub menu in gui add fav
+- test edit submeu in gui edit fav
+- test gui edit move multiple
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -2226,7 +2228,7 @@ GuiAddFavoriteSelectType:
 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
-g_intRowToEdit := (LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1)
+g_intOriginalMenuPosition := (LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1)
 
 Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion)
 Gui, 2:+Owner1
@@ -2429,9 +2431,9 @@ g_strNewFavoriteIconResource := ""
 if (A_ThisLabel = "GuiEditFavorite")
 {
 	Gui, 1:ListView, f_lvFavoritesList
-	g_intRowToEdit := LV_GetNext()
+	g_intOriginalMenuPosition := LV_GetNext()
 	
-	g_objEditedFavorite := g_objMenuInGui[g_intRowToEdit]
+	g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
 	g_strNewFavoriteIconResource := g_objEditedFavorite.FavoriteIconResource
 	
 	if (g_objEditedFavorite.FavoriteType = "B")
@@ -2440,17 +2442,17 @@ if (A_ThisLabel = "GuiEditFavorite")
 		return
 	}
 	
-	if (g_intRowToEdit = "")
+	if (g_intOriginalMenuPosition = "")
 	{
 		Oops(lDialogSelectItemToEdit)
 		return
 	}
-	if InStr("XK", g_objMenuInGui[g_intRowToEdit].FavoriteType) ; favorite is menu separator or column break
+	if InStr("XK", g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType) ; favorite is menu separator or column break
 		return
 }
 else
 {
-	; ### needed for gui listview? g_intRowToEdit := 0 ;  used when saving to flag to insert a new row
+	; ### needed for gui listview? g_intOriginalMenuPosition := 0 ;  used when saving to flag to insert a new row
 
 	if InStr("GuiAddFromPopup|GuiAddFromDropFiles", A_ThisLabel)
 	{
@@ -2681,7 +2683,7 @@ Loop, % g_objMenusIndex[f_drpParentMenu].MaxIndex()
 
 GuiControl, , f_drpParentMenuItems, % "|" . strDropdownParentMenuItems . g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
 if (f_drpParentMenu = g_objMenuInGui.MenuPath)
-	GuiControl, Choose, f_drpParentMenuItems, % g_intRowToEdit - (g_objMenusIndex[f_drpParentMenu][1].FavoriteType = "B" ? 1 : 0)
+	GuiControl, Choose, f_drpParentMenuItems, % g_intOriginalMenuPosition - (g_objMenusIndex[f_drpParentMenu][1].FavoriteType = "B" ? 1 : 0)
 else
 	GuiControl, ChooseString, f_drpParentMenuItems, % g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
 
@@ -2927,20 +2929,18 @@ if (f_drpParentMenu = g_objMenuInGui.MenuPath) ; ### test it
 ###_D(f_drpParentMenu . " / " . g_objMenusIndex[f_drpParentMenu].MaxIndex())
 Gui, 1:Default
 Gui, ListView, lvFavoritesList
-intRowToEdit := 0
+g_intOriginalMenuPosition := 0
 
 Loop ; #### test when GuiMoveOneFavoriteSave will remove the favorite from the Gui?
 {
-	intRowToEdit := LV_GetNext(intRowToEdit)
-	if (!intRowToEdit)
+	g_intOriginalMenuPosition := LV_GetNext(g_intOriginalMenuPosition)
+	if (!g_intOriginalMenuPosition)
         break
-	###_D(g_objMenuInGui[intRowToEdit].FavoriteName)
+	###_D(g_objMenuInGui[g_intOriginalMenuPosition].FavoriteName)
 	
-
-	
-	g_objMenusIndex[f_drpParentMenu].Insert(g_objMenuInGui[intRowToEdit]) ; add favorite at end of destination menu ### must check if name exists in dest menu
-	g_objMenuInGui.Remove(intRowToEdit) ; remove favorite froim current menu in Gui (ListView will be updated in GuiMoveOneFavoriteSave)
-	; LV_Delete(intRowToEdit) here or in GuiMoveOneFavoriteSave?
+	g_objMenusIndex[f_drpParentMenu].Insert(g_objMenuInGui[g_intOriginalMenuPosition]) ; add favorite at end of destination menu ### must check if name exists in dest menu
+	g_objMenuInGui.Remove(g_intOriginalMenuPosition) ; remove favorite froim current menu in Gui (ListView will be updated in GuiMoveOneFavoriteSave)
+	; LV_Delete(g_intOriginalMenuPosition) here or in GuiMoveOneFavoriteSave?
 
 	/*
 	g_intNewItemPos := g_arrMenus[strParentMenu].MaxIndex() + 1 ; add favorite at end of destination menu
@@ -2961,7 +2961,7 @@ Loop ; #### test when GuiMoveOneFavoriteSave will remove the favorite from the G
 	*/
 
 	Gosub, GuiMoveOneFavoriteSave
-	intRowToEdit := intRowToEdit - 1 ; because we deleted the previous item
+	g_intOriginalMenuPosition := g_intOriginalMenuPosition - 1 ; because we deleted the previous item
 }
 
 Gosub, BuildMainMenuWithStatus ; update menus
@@ -2979,14 +2979,26 @@ GuiMoveOneFavoriteSave:
 Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
 
+; original and destination menus values
+
+if InStr("GuiEditFavoriteSave|GuiMoveOneFavoriteSave", A_ThisLabel)
+	strOriginalMenu := g_objMenuInGui.MenuPath
+else ; GuiAddFavoriteSave
+{
+	strOriginalMenu := ""
+	g_intOriginalMenuPosition := 0
+}
+strDestinationMenu := f_drpParentMenu
+
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave") ; for "GuiMoveOneFavoriteSave" we add at the end of f_drpParentMenu
 {
 	GuiControlGet, g_intNewItemPos, , f_drpParentMenuItems
-	g_intNewItemPos += (g_objMenusIndex[f_drpParentMenu][1].FavoriteType = "B" ? 1 : 0)
+	g_intNewItemPos += (g_objMenusIndex[strDestinationMenu][1].FavoriteType = "B" ? 1 : 0)
 }
-
 if !(g_intNewItemPos)
 	g_intNewItemPos := 1
+
+; validation
 
 if !StrLen(f_strFavoriteShortName)
 {
@@ -3012,45 +3024,47 @@ if  InStr("Folder|Document|Application|URL|FTP", g_objEditedFavorite.FavoriteTyp
 	return
 }
 
-if !FolderNameIsNew(f_strFavoriteShortName, g_objMenusIndex[f_drpParentMenu])
+if !FolderNameIsNew(f_strFavoriteShortName, g_objMenusIndex[strDestinationMenu])
 	and !InStr("X|K", g_objEditedFavorite.FavoriteType) ; same name OK for separators
 	; we have the same name in the destination menu
 	; if this is the same menu and the same name, this is OK
-	if (f_drpParentMenu <> g_objMenuInGui.MenuPath) or (f_strFavoriteShortName <> g_objEditedFavorite.FavoriteName)
+	if (strDestinationMenu <> strOriginalMenu) or (f_strFavoriteShortName <> g_objEditedFavorite.FavoriteName)
 	{
-		Oops(lDialogFavoriteNameNotNew, strFavoriteShortName)
+		Oops(lDialogFavoriteNameNotNew, f_strFavoriteShortName)
 		if (A_ThisLabel = "GuiMoveOneFavoriteSave")
-			intRowToEdit := intRowToEdit + 1
+			g_intOriginalMenuPosition := g_intOriginalMenuPosition + 1
 		return
 	}
 
-if (g_objEditedFavorite.FavoriteType = "Menu")
-{
-	if InStr(f_strFavoriteShortName, g_strMenuPathSeparator)
+if (g_objEditedFavorite.FavoriteType = "Menu") and InStr(f_strFavoriteShortName, g_strMenuPathSeparator)
 	{
 		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator))
 		return
 	}
 	
+; updating menu object
+
+if (g_objEditedFavorite.FavoriteType = "Menu")
 	if (A_ThisLabel = "GuiAddFavoriteSave")
 	{
 		objNewMenu := Object() ; object for the new menu
-		objNewMenu.MenuPath := f_drpParentMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
+		objNewMenu.MenuPath := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
 		g_objMenusIndex.Insert(objNewMenu.MenuPath, objNewMenu)
 	}
-}
 
-	g_objEditedFavorite.FavoriteName := f_strFavoriteShortName
-	g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
-	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
-	g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
-	g_objEditedFavorite.FavoriteAppArguments := f_strAppArguments
-	g_objEditedFavorite.FavoriteAppWorkingDir := f_strAppWorkingDir
+g_objEditedFavorite.FavoriteName := f_strFavoriteShortName
+g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
+g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
+g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
+g_objEditedFavorite.FavoriteAppArguments := f_strAppArguments
+g_objEditedFavorite.FavoriteAppWorkingDir := f_strAppWorkingDir
 
 ###_D(""
-	. "f_drpParentMenu: " . f_drpParentMenu . "`n"
+	. "strOriginalMenu: " . strOriginalMenu . "`n"
+	. "strDestinationMenu: " . strDestinationMenu . "`n"
 	. "g_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath . "`n"
-	. "g_intNewItemPos: " . g_intNewItemPos . "`n"
+	. "g_intOriginalMenuPosition: " . g_intOriginalMenuPosition . "`n"
+	. "g_intNewItemPos: " . g_intNewItemPos . "`n`n"
 	. "g_objEditedFavorite.FavoriteName : " . g_objEditedFavorite.FavoriteName  . "`n"
 	. "g_objEditedFavorite.FavoriteLocation: " . g_objEditedFavorite.FavoriteLocation . "`n"
 	. "g_objEditedFavorite.FavoriteIconResource: " . g_objEditedFavorite.FavoriteIconResource . "`n"
@@ -3060,36 +3074,31 @@ if (g_objEditedFavorite.FavoriteType = "Menu")
 	. ": " . x . "`n"
 	. "")
 
+; updating original and destination menu objects (these can be the same)
+
+if (strOriginalMenu <> "")
+	g_objMenusIndex[strOriginalMenu].Remove(g_intOriginalMenuPosition)
+g_objMenusIndex[strDestinationMenu].Insert(g_intNewItemPos, g_objEditedFavorite)
+
+; updating listview
+
 Gosub, 2GuiClose
 
 Gui, 1:Default
 GuiControl, 1:Focus, lvFavoritesList
 Gui, 1:ListView, lvFavoritesList
 
-g_objMenusIndex[f_drpParentMenu].Insert(g_intNewItemPos, g_objEditedFavorite)
+if (strOriginalMenu = g_objMenuInGui.MenuPath) ; remove original from Listview if original in Gui (can be replaced with modified)
+	LV_Delete(g_intOriginalMenuPosition)
 
-if (f_drpParentMenu = g_objMenuInGui.MenuPath) ; update Listview
+if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if destination in Gui (can replace original deleted)
 {
-	if (A_ThisLabel = "GuiAddFavoriteSave")
-	{
-		LV_Modify(0, "-Select")
-		LV_Insert(g_intNewItemPos, "Select Focus", g_objEditedFavorite.FavoriteName, g_objEditedFavorite.FavoriteLocation)
-		LV_Modify(LV_GetNext(), "Vis")
-	}
-	else ; GuiEditFavoriteSave or GuiMoveOneFavoriteSave
-		
-		LV_Modify(g_intNewItemPos, "Select Focus", g_objEditedFavorite.FavoriteName, g_objEditedFavorite.FavoriteLocation)
-}
-else ; favorite was moved, remove line from Listview
-{
-	if (A_ThisLabel = "GuiEditFavoriteSave") or (A_ThisLabel = "GuiMoveOneFavoriteSave")
-		LV_Delete(intRowToEdit)
-	if (A_ThisLabel = "GuiEditFavoriteSave")
-		LV_Modify(g_intNewItemPos, "Select Focus")
+	LV_Modify(0, "-Select")
+	LV_Insert(g_intNewItemPos, "Select Focus", g_objEditedFavorite.FavoriteName, g_objEditedFavorite.FavoriteLocation)
+	LV_Modify(LV_GetNext(), "Vis")
 }
 
-	
-GuiControl, 1:, f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|"
+GuiControl, 1:, f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|" ; required if submenu was added
 Gosub, AjustColumnWidth
 
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
@@ -3099,6 +3108,9 @@ GuiControl, Enable, f_btnGuiSave
 GuiControl, , f_btnGuiCancel, %lDialogCancelButton%
 
 g_blnMenuReady := true
+
+strOriginalMenu := ""
+strDestinationMenu := ""
 
 return
 ;------------------------------------------------------------
@@ -3169,9 +3181,9 @@ HotkeyChangeMenu:
 
 Gui, 1:ListView, f_lvFavoritesList
 
-g_intRowToEdit := LV_GetNext()
+g_intOriginalMenuPosition := LV_GetNext()
 
-if (g_objMenuInGui[g_intRowToEdit].FavoriteType = "Menu")
+if (g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType = "Menu")
 	Gosub, OpenMenuFromGuiHotkey
 
 return
@@ -3216,7 +3228,7 @@ else
 	else if (A_ThisLabel = "GuiGotoUpMenu")
 		g_objMenuInGui := g_objMenuInGui[1].SubMenu
 	else if (A_ThisLabel = "OpenMenuFromEditForm") or (A_ThisLabel = "OpenMenuFromGuiHotkey")
-		g_objMenuInGui := g_objMenuInGui[g_intRowToEdit].SubMenu
+		g_objMenuInGui := g_objMenuInGui[g_intOriginalMenuPosition].SubMenu
 
 	g_arrSubmenuStackPosition.Insert(1, LV_GetNext("Focused")) ; ### ???
 }
