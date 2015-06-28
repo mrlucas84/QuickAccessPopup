@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- when moving multiple, keep original order in dest menu (see how in FP)
 
 TO-DO
 - test gui edit move multiple
@@ -2954,6 +2953,8 @@ Loop
 	g_intOriginalMenuPosition -=  1 ; because GuiMoveOneFavoriteSave deleted the previous item
 }
 
+g_intNewItemPos := "" ; make it fresh for next use (multiple move or not)
+
 Gosub, BuildMainMenuWithStatus ; update menus
 Gosub, GuiEditFavoriteCancel
 
@@ -2981,7 +2982,8 @@ else ; GuiAddFavoriteSave
 
 ; f_drpParentMenu and f_drpParentMenuItems have same field name in 2 gui: GuiAddFavorite and GuiMoveMultipleFavoritesToMenu
 strDestinationMenu := f_drpParentMenu
-g_intNewItemPos := f_drpParentMenuItems + (g_objMenusIndex[strDestinationMenu][1].FavoriteType = "B" ? 1 : 0)
+if (!g_intNewItemPos) ; if in GuiMoveOneFavoriteSave g_intNewItemPos may be already set
+	g_intNewItemPos := f_drpParentMenuItems + (g_objMenusIndex[strDestinationMenu][1].FavoriteType = "B" ? 1 : 0)
 
 ; validation (not required for GuiMoveOneFavoriteSave because info in g_objEditedFavorite is not changed)
 
@@ -3095,12 +3097,13 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 
 ; updating original and destination menu objects (these can be the same)
 
-if (strOriginalMenu <> "")
+if (strOriginalMenu <> "") ; we are moving a favorite
 	g_objMenusIndex[strOriginalMenu].Remove(g_intOriginalMenuPosition)
 if (g_intNewItemPos)
 	g_objMenusIndex[strDestinationMenu].Insert(g_intNewItemPos, g_objEditedFavorite)
 else
 	g_objMenusIndex[strDestinationMenu].Insert(g_objEditedFavorite) ; if no item is selected, add to the end of menu
+
 
 ; updating listview
 
@@ -3134,6 +3137,11 @@ GuiControl, Enable, f_btnGuiSave
 GuiControl, , f_btnGuiCancel, %lDialogCancelButton%
 
 g_blnMenuReady := true
+
+if (A_ThisLabel = "GuiMoveOneFavoriteSave")
+	g_intNewItemPos += 1 ; move next favorite after this one in the destination menu (or will be deleted in GuiMoveOneFavoriteSave after the loop)
+else
+	g_intNewItemPos := "" ; delete it for next use
 
 strOriginalMenu := ""
 strDestinationMenu := ""
