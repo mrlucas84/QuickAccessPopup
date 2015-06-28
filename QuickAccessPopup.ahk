@@ -18,7 +18,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- test gui edit move multiple
+- add internal names to QAP features for ini file and build index object
+- put incentifve in Special and QAP favorite dropdown
+- add app favorite advances settings
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -995,7 +997,7 @@ InitQAPFeatureObject(strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand
 
 ; QAP Features Object (objOneQAPFeature) definition:
 ;		objOneQAPFeature.DefaultName: QAP Feature localized label, key to access one QAP Feature object (example: g_objQAPFeatures[strThisDefaultName]
-;		strQAPFeatureMenu: menu to be added to the Main menu (including the starting ":"), empty if no submenu associated to this QAP feature
+;		strQAPFeatureMenu: menu to be added to the menu (including the starting ":"), empty if no submenu associated to this QAP feature
 ;		strQAPFeatureCommand: command to be executed when this favorite is selected (including the ending ":"), empty if no command associated to this QAP feature
 ;		objOneQAPFeature.DefaultIcon: default icon (in the "file,index" format)
 ;		objOneQAPFeature.Use4NavigateExplorer:
@@ -2529,7 +2531,8 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 }
 else ; "Special" or "QAP"
 {
-	Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]
+	Gui, 2:Add, Edit, x20 y+20 hidden section vf_strFavoriteLocation, % g_objEditedFavorite.FavoriteLocation ; hidden because set by DropdownSpecialChanged or DropdownQAPChanged
+	Gui, 2:Add, Text, xs ys, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]
 
 	Gui, 2:Add, DropDownList
 		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
@@ -2757,7 +2760,7 @@ Gui, 2:Submit, NoHide
 GuiControl, , f_strFavoriteShortName, %f_drpSpecial%
 GuiControl, , f_strFavoriteLocation, % g_objClassIdOrPathByDefaultName[f_drpSpecial]
 
-g_strNewFavoriteIconResource := g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultIcon
+g_strNewFavoriteIconResource := g_objSpecialFolders[g_objClassIdOrPathByDefaultName[f_drpSpecial]].DefaultIcon
 g_strDefaultIconResource := g_strNewFavoriteIconResource 
 
 return
@@ -2770,7 +2773,7 @@ DropdownQAPChanged:
 Gui, 2:Submit, NoHide
 
 GuiControl, , f_strFavoriteShortName, %f_drpQAP%
-GuiControl, , f_strFavoriteLocation, % g_objQAPFeatures[f_drpQAP]
+GuiControl, , f_strFavoriteLocation, % g_objQAPFeatures[f_drpQAP] ; ### use internal name, build index
 
 g_strNewFavoriteIconResource := g_objQAPFeatures[f_drpQAP].DefaultIcon
 g_strDefaultIconResource := g_strNewFavoriteIconResource 
@@ -3488,12 +3491,9 @@ GuiSave:
 
 g_blnMenuReady := false
 
-; ### not required, object are updated  Gosub, SaveCurrentListviewToMenuObject ; save current LV before saving
-
 IniDelete, %g_strIniFile%, Favorites
-; ### ? Gui, 1:ListView, f_lvFavoritesList
 
-g_intIniLine := 1 ; restet counter before saving to another ini file
+g_intIniLine := 1 ; reset counter before saving to another ini file
 RecursiveSaveFavoritesToIniFile(g_objMainMenu)
 
 Gosub, LoadIniFile
@@ -3525,14 +3525,14 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 		blnIsBackMenu := (objCurrentMenu[A_Index].FavoriteType = "B")
 		if !(blnIsBackMenu)
 		{
-			strIniLine := objCurrentMenu[A_Index].FavoriteType . "|"
-			strIniLine .= objCurrentMenu[A_Index].FavoriteName . "|"
-			strIniLine .= objCurrentMenu[A_Index].FavoriteLocation . "|"
-			strIniLine .= objCurrentMenu[A_Index].FavoriteIconResource . "|"
-			strIniLine .= objCurrentMenu[A_Index].FavoriteAppArguments . "|"
-			strIniLine .= objCurrentMenu[A_Index].FavoriteAppWorkingDir . "|"
-			strIniLine .= objCurrentMenu[A_Index].FavoritePositionSize . "|"
-			strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|"
+			strIniLine := objCurrentMenu[A_Index].FavoriteType . "|" ; 1
+			strIniLine .= objCurrentMenu[A_Index].FavoriteName . "|" ; 2
+			strIniLine .= objCurrentMenu[A_Index].FavoriteLocation . "|" ; 3
+			strIniLine .= objCurrentMenu[A_Index].FavoriteIconResource . "|" ; 4
+			strIniLine .= objCurrentMenu[A_Index].FavoriteAppArguments . "|" ; 5
+			strIniLine .= objCurrentMenu[A_Index].FavoriteAppWorkingDir . "|" ; 6
+			strIniLine .= objCurrentMenu[A_Index].FavoritePositionSize . "|" ; 7
+			strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|" ; 8
 
 			###_D(strIniLine)
 			IniWrite, %strIniLine%, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
@@ -3547,7 +3547,7 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 		}
 	}
 		
-	IniWrite, X, %g_strIniFile%, Favorites, Favorite%g_intIniLine% ; end of menu marker
+	IniWrite, Z, %g_strIniFile%, Favorites, Favorite%g_intIniLine% ; end of menu marker
 	g_intIniLine += 1
 	
 	return
