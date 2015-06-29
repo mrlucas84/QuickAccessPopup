@@ -16,11 +16,13 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- should not be able to move backlinks in submenus
+- should not be able to move before back link in submenus
 
 TO-DO
 - test save favorites, all types
-- put incentifve in Special and QAP favorite dropdown
-- add app favorite advances settings
+- put explanation in Special and QAP favorite dropdown
+- add app favorite advanced settings
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -415,12 +417,16 @@ StringSplit, arrFavoriteTypesLabels, lDialogFavoriteTypesLabels, |
 g_objFavoriteTypesLabels := Object()
 StringSplit, arrFavoriteTypesHelp, lDialogFavoriteTypesHelp, |
 g_objFavoriteTypesHelp := Object()
+StringSplit, arrFavoriteTypesShortNames, lDialogFavoriteTypesShortNames, |
+g_objFavoriteTypesShortNames := Object()
 Loop, %g_arrFavoriteTypes0%
 {
 	g_objFavoriteTypesLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLabels%A_Index%)
 	; example to display favorite type label: g_objFavoriteTypesLabels["Folder"], g_objFavoriteTypesLabels["Document"]
 	g_objFavoriteTypesHelp.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesHelp%A_Index%)
 	; example to display favorite type help: g_objFavoriteTypesHelp["Folder"], g_objFavoriteTypesHelp["Document"]
+	g_objFavoriteTypesShortNames.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesShortNames%A_Index%)
+	; example to display favorite type shortname: g_objFavoriteTypesHelp["Folder"], g_objFavoriteTypesHelp["Document"]
 }
 
 strHotkeyNames := ""
@@ -433,6 +439,7 @@ arrIconsIndex := ""
 strFavoriteTypes := ""
 arrFavoriteTypesLabels := ""
 arrFavoriteTypesHelp := ""
+arrFavoriteTypesShortNames := ""
 
 return
 ;-----------------------------------------------------------
@@ -1367,7 +1374,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			; create a navigation entry to navigate to the parent menu
 			objNewMenuBack := Object()
 			objNewMenuBack.FavoriteType := "B" ; for Back link to parent menu
-			objNewMenuBack.FavoriteName := ".. (" . objCurrentMenu.MenuPath . ")"
+			objNewMenuBack.FavoriteName := "(" . objCurrentMenu.MenuPath . ")"
 			objNewMenuBack.SubMenu := objCurrentMenu ; this is the link to the parent menu
 			objNewMenu.Insert(objNewMenuBack)
 			
@@ -1759,7 +1766,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			Try Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, % ":" . objCurrentMenu[A_Index].SubMenu.MenuPath
 			catch e ; when menu objCurrentMenu[A_Index].SubMenu.MenuPath is empty
 				Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, OpenFavorite ; will never be called because disabled
-			Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() > 1 ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if contains only tge back .. item
+			Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() > 1 ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if contains only the back .. item
 			if (g_blnDisplayIcons)
 			{
 				ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "iconSubmenu")
@@ -2065,20 +2072,22 @@ LV_Delete()
 Loop, % g_objMenuInGui.MaxIndex()
 	
 	if (g_objMenuInGui[A_Index].FavoriteType = "Menu") ; this is a menu
-		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_strMenuPathSeparator)
+		LV_Add(, g_objFavoriteTypesShortNames["Menu"], g_objMenuInGui[A_Index].FavoriteName, g_strMenuPathSeparator)
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "X") ; this is a separator
-		LV_Add(, g_strGuiMenuSeparator, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
+		LV_Add(, "---", g_strGuiMenuSeparator, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "K") ; this is a column break
-		LV_Add(, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
+		LV_Add(, "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
 		, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
 		
+	else if (g_objMenuInGui[A_Index].FavoriteType = "B") ; this is a back link
+		LV_Add(, "..", g_objMenuInGui[A_Index].FavoriteName, "")
+		
 	else ; this is a folder, document, URL or application
-		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objMenuInGui[A_Index].FavoriteLocation)
+		LV_Add(, g_objFavoriteTypesShortNames[g_objMenuInGui[A_Index].FavoriteType], g_objMenuInGui[A_Index].FavoriteName, g_objMenuInGui[A_Index].FavoriteLocation)
 
 LV_Modify(1 + (g_objMenuInGui[1].FavoriteType = "B" ? 1 : 0), "Select Focus") 
-LV_ModifyCol(1, "Auto") ; adjust column 1 width
 
 Gosub, AjustColumnWidth
 
@@ -2135,8 +2144,6 @@ for intIndex, objGuiControl in g_objGuiControls
 GuiControl, 1:Move, f_drpMenusList, w%g_intListW%
 GuiControl, 1:Move, f_lvFavoritesList, w%g_intListW% h%intListH%
 
-LV_ModifyCol(1, "Auto") ; adjust column width
-
 Gosub, AjustColumnWidth
 
 intListH := ""
@@ -2155,15 +2162,22 @@ return
 AjustColumnWidth:
 ;------------------------------------------------------------
 
-LV_ModifyCol(1, "Auto") ; adjust column width
+LV_ModifyCol(1, "Auto Center") ; adjust column width
+LV_ModifyCol(2, "Auto") ; adjust column width
 
 ; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
 intCol1 := 0 ; column index, zero-based
 SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %g_strAppHwnd%
 intCol1 := ErrorLevel ; column width
-LV_ModifyCol(2, g_intListW - intCol1 - 21) ; adjust column width (-21 is for vertical scroll bar width)
+
+intCol2 := 0 ; column index, zero-based
+SendMessage, 0x1000+29, %intCol2%, 0, SysListView321, ahk_id %g_strAppHwnd%
+intCol2 := ErrorLevel ; column width
+
+LV_ModifyCol(3, g_intListW - intCol1 - intCol2 - 21) ; adjust column width (-21 is for vertical scroll bar width)
 
 intCol1 := ""
+intCol2 := ""
 
 return
 ;------------------------------------------------------------
@@ -3059,7 +3073,7 @@ if ((g_objEditedFavorite.FavoriteType = "Menu") and (A_ThisLabel = "GuiAddFavori
 	; create a navigation entry to navigate to the parent menu
 	objNewMenuBack := Object()
 	objNewMenuBack.FavoriteType := "B" ; for Back link to parent menu
-	objNewMenuBack.FavoriteName := ".. (" . objNewMenu.MenuPath . ")"
+	objNewMenuBack.FavoriteName := "(" . objNewMenu.MenuPath . ")"
 	objNewMenuBack.SubMenu := g_objEditedFavorite ; this is the link to the parent menu
 	objNewMenu.Insert(objNewMenuBack)
 	
@@ -3130,9 +3144,11 @@ if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if 
 {
 	LV_Modify(0, "-Select")
 	if (g_intNewItemPos)
-		LV_Insert(g_intNewItemPos, "Select Focus", g_objEditedFavorite.FavoriteName, (g_objEditedFavorite.FavoriteType = "Menu" ? g_strMenuPathSeparator : g_objEditedFavorite.FavoriteLocation))
+		LV_Insert(g_intNewItemPos, "Select Focus", g_objFavoriteTypesShortNames[g_objEditedFavorite.FavoriteName], g_objEditedFavorite.FavoriteName
+			, (g_objEditedFavorite.FavoriteType = "Menu" ? g_strMenuPathSeparator : g_objEditedFavorite.FavoriteLocation))
 	else
-		LV_Add("Select Focus", g_objEditedFavorite.FavoriteName, (g_objEditedFavorite.FavoriteType = "Menu" ? g_strMenuPathSeparator : g_objEditedFavorite.FavoriteLocation))
+		LV_Add("Select Focus", g_objFavoriteTypesShortNames[g_objEditedFavorite.FavoriteName], g_objEditedFavorite.FavoriteName
+			, (g_objEditedFavorite.FavoriteType = "Menu" ? g_strMenuPathSeparator : g_objEditedFavorite.FavoriteLocation))
 
 	LV_Modify(LV_GetNext(), "Vis")
 }
@@ -3391,15 +3407,15 @@ MoveFavoriteInMenuObject(g_objMenuInGui, g_intSelectedRow, (InStr(A_ThisLabel, "
 
 ; --- move in Gui ---
 
-Loop, 2
+Loop, 3
 	LV_GetText(arrThis%A_Index%, g_intSelectedRow, A_Index)
 
-Loop, 2
+Loop, 3
 	LV_GetText(arrOther%A_Index%, g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), A_Index)
 
 LV_Modify(g_intSelectedRow, "-Select")
-LV_Modify(g_intSelectedRow, "", arrOther1, arrOther2)
-LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), , arrThis1, arrThis2)
+LV_Modify(g_intSelectedRow, "", arrOther1, arrOther2, arrOther3)
+LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), , arrThis1, arrThis2, arrThis3)
 
 if !InStr(A_ThisLabel, "One")
 	LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), "Select Focus Vis")
@@ -3474,9 +3490,9 @@ g_objMenuInGui.Insert(intInsertPosition, objNewFavorite)
 LV_Modify(0, "-Select")
 
 if (A_ThisLabel = "GuiAddSeparator")
-	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuSeparator, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
+	LV_Insert(intInsertPosition, "Select Focus", "---", g_strGuiMenuSeparator, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
 else ; GuiAddColumnBreak
-	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
+	LV_Insert(intInsertPosition, "Select Focus", "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
 		, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
 
 LV_Modify(LV_GetNext(), "Vis")
