@@ -18,7 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- add internal names to QAP features for ini file and build index object
+- test save favorites, all types
 - put incentifve in Special and QAP favorite dropdown
 - add app favorite advances settings
 - fix hotkey names in help text
@@ -173,6 +173,7 @@ g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and Col
 g_objSpecialFolders := Object()
 g_strSpecialFoldersList := ""
 
+g_objQAPFeaturesCodeByDefaultName := Object()
 g_objQAPFeatures := Object()
 g_strQAPFeaturesList := ""
 
@@ -811,7 +812,7 @@ InitSpecialFolderObject(strClassIdOrPath, strShellConstantText, intShellConstant
 ;		strUse4FPc
 
 ; Special Folder Object (objOneSpecialFolder) definition:
-;		strClassIdOrPath: key to access one Special Folder object (example: g_objSpecialFolders[strClassIdOrPath]
+;		strClassIdOrPath: key to access one Special Folder object (example: g_objSpecialFolders[strClassIdOrPath], saved to ini file
 ;		objSpecialFolder.ShellConstantText: text constant used to navigate using Explorer or Dialog box? What with DOpus and TC?
 ;		objSpecialFolder.ShellConstantNumeric: numeric ShellSpecialFolderConstants constant 
 ;		objSpecialFolder.AHKConstant: AutoHotkey constant
@@ -941,7 +942,7 @@ TranslateMUI(resDll, resID)
 InitQAPFeatures:
 ;------------------------------------------------------------
 
-; InitQAPFeatureObject(strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand, strThisDefaultIcon
+; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand, strThisDefaultIcon
 ;	, strUse4NavigateExplorer, strUse4NewExplorer, strUse4Dialog, strUse4Console, strUse4DOpus, strUse4TC, strUse4FPc)
 
 ; Constants for "use" flags:
@@ -958,24 +959,24 @@ InitQAPFeatures:
 ; 		strUse4TC
 ;		strUse4FPc
 
-InitQAPFeatureObject(lMenuCurrentFolders, ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "iconCurrentFolders"
+InitQAPFeatureObject("Current Folders", lMenuCurrentFolders, ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "iconCurrentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
-InitQAPFeatureObject(lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
+InitQAPFeatureObject("Manage Groups", lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject(lMenuRecentFolders, "", "RefreshRecentFolders:", "iconRecentFolders"
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders, "", "RefreshRecentFolders:", "iconRecentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject(lMenuClipboard, ":g_menuClipboard", "ClipboardMenuShortcut:", "iconClipboard"
+InitQAPFeatureObject("Clipboard", lMenuClipboard, ":g_menuClipboard", "ClipboardMenuShortcut:", "iconClipboard"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 
-InitQAPFeatureObject(lGuiAbout . "...", "", "GuiAbout:", "iconAbout")
-InitQAPFeatureObject(lGuiDonate . "...", "", "GuiDonate:", "iconDonate"
+InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout:", "iconAbout")
+InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate:", "iconDonate"
 	, "NOT", "NOT", "NOT", "NOT", "NOT", "NOT", "NOT")
-InitQAPFeatureObject(lGuiHelp . "...", "", "GuiHelp:", "iconHelp")
-InitQAPFeatureObject(lGuiOptions . "...", "", "GuiOptions:", "iconOptions")
-InitQAPFeatureObject(lMenuAddThisFolder . "...", "", "AddThisFolder:", "iconAddThisFolder")
-InitQAPFeatureObject(lMenuCopyLocation, "", "PopupMenuCopyLocation:", "iconClipboard")
-InitQAPFeatureObject(lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
-InitQAPFeatureObject(L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "iconSettings")
+InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp:", "iconHelp")
+InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions:", "iconOptions")
+InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder:", "iconAddThisFolder")
+InitQAPFeatureObject("Copy a Favorite's Path or URL", lMenuCopyLocation, "", "PopupMenuCopyLocation:", "iconClipboard")
+InitQAPFeatureObject("Groups of Favorites", lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
+InitQAPFeatureObject("Settings", L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "iconSettings")
 
 ;------------------------------------------------------------
 ; Build folders list for dropdown
@@ -992,8 +993,12 @@ return
 
 
 ;------------------------------------------------------------
-InitQAPFeatureObject(strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand, strThisDefaultIcon
+InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand, strThisDefaultIcon
 	, strUse4NavigateExplorer := "NOT", strUse4NewExplorer := "NOT", strUse4Dialog := "NOT", strUse4Console := "NOT", strUse4DOpus := "NOT", strUse4TC := "NOT", strUse4FPc := "NOT")
+
+; QAP Feature Objects (g_objQAPFeatures) definition:
+;		Key: strQAPFeatureInternalName
+;		Value: objOneQAPFeature
 
 ; QAP Features Object (objOneQAPFeature) definition:
 ;		objOneQAPFeature.DefaultName: QAP Feature localized label, key to access one QAP Feature object (example: g_objQAPFeatures[strThisDefaultName]
@@ -1013,6 +1018,7 @@ InitQAPFeatureObject(strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand
 	global g_objIconsFile
 	global g_objIconsIndex
 	global g_objQAPFeatures
+	global g_objQAPFeaturesCodeByDefaultName
 	
 	objOneQAPFeature := Object()
 	
@@ -1027,6 +1033,7 @@ InitQAPFeatureObject(strThisDefaultName, strQAPFeatureMenu, strQAPFeatureCommand
 	objOneQAPFeature.Use4FPc := strUse4FPc
 	
 	g_objQAPFeatures.Insert(strThisDefaultName, objOneQAPFeature)
+	g_objQAPFeaturesCodeByDefaultName.Insert(strThisDefaultName, "{" . strQAPFeatureCode . "}")
 }
 ;------------------------------------------------------------
 
@@ -2773,7 +2780,7 @@ DropdownQAPChanged:
 Gui, 2:Submit, NoHide
 
 GuiControl, , f_strFavoriteShortName, %f_drpQAP%
-GuiControl, , f_strFavoriteLocation, % g_objQAPFeatures[f_drpQAP] ; ### use internal name, build index
+GuiControl, , f_strFavoriteLocation, % g_objQAPFeaturesCodeByDefaultName[f_drpQAP]
 
 g_strNewFavoriteIconResource := g_objQAPFeatures[f_drpQAP].DefaultIcon
 g_strDefaultIconResource := g_strNewFavoriteIconResource 
