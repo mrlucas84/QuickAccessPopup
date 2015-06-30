@@ -16,8 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- should not be able to move backlinks in submenus
-- should not be able to move before back link in submenus
 
 TO-DO
 - test save favorites, all types
@@ -3392,7 +3390,9 @@ if !InStr(A_ThisLabel, "One")
 	Gui, 1:ListView, f_lvFavoritesList
 	g_intSelectedRow := LV_GetNext()
 }
-if (g_intSelectedRow = (InStr(A_ThisLabel, "Up") ? 1 : LV_GetCount()))
+if (g_intSelectedRow = (InStr(A_ThisLabel, "Up") ? (g_objMenuInGui[1].FavoriteType = "B" ? 2 : 1) ; if Up not higher that first non-back link favorite
+	: LV_GetCount())) ; if Down not lower that last
+	or (g_objMenuInGui[g_intSelectedRow].FavoriteType = "B") ; cannot move back link
 {
 	if InStr(A_ThisLabel, "One")
 		g_blnAbortGroupMove := true
