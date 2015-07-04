@@ -18,6 +18,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- when edit app fav, select default item in running app list if app is running
+- in fav list for back link add space before/after .. to make sure Type is shown entirely
+- in fav list, for menus back link, show only last level of previous menu
 - remove favorite
 - test save favorites, all types
 - add app favorite advanced settings
@@ -2322,6 +2325,7 @@ Loop, parse, A_GuiEvent, `n
     Break
 }
 
+g_intOriginalMenuPosition := (LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1)
 Gosub, GuiAddFromDropFiles
 
 return
@@ -2525,7 +2529,7 @@ if (g_blnUseColors)
 Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h350 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTablsList(g_objEditedFavorite.FavoriteType) . " "
 intTabNumber := 0
 
-; --- Basic Settings ---
+; ------ TAB Basic Settings ------
 
 Gui, 2:Tab, % ++intTabNumber
 
@@ -2534,7 +2538,7 @@ Gui, 2:Add, Text, x20 y40, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypes
 Gui, 2:Add, Edit
 	, % "x20 y+10 Limit250 vf_strFavoriteShortName w" . 300 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
 	, % g_objEditedFavorite.FavoriteName
-if (g_objEditedFavorite.FavoriteType = "Menu")
+if (g_objEditedFavorite.FavoriteType = "Menu" and A_ThisLabel = "GuiEditFavorite")
 	Gui, 2:Add, Button, x+10 yp gGuiOpenThisMenu, %lDialogOpenThisMenu%
 
 if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
@@ -2566,7 +2570,7 @@ else ; "Special" or "QAP"
 		GuiControl, ChooseString, % "f_drp" . g_objEditedFavorite.FavoriteType . " gDropdown", % g_objEditedFavorite.FavoriteName
 }
 
-; --- Menu Options ---
+; ------ TAB Menu Options ------
 
 Gui, 2:Tab, % ++intTabNumber
 
@@ -2589,7 +2593,7 @@ Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
 Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeHotkey, % Hotkey2Text(strHotkeyModifiers, strHotkeyMouse, strHotkeyKey)
 Gui, 2:Add, Button, yp x+10 gButtonChangeHotkey, %lOptionsChangeHotkey%
 
-; --- Window Options ---
+; ------ TAB Window Options ------
 
 if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 {
@@ -2615,7 +2619,7 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 
 
 
-; --- Advanced Settings ---
+; ------ TAB Advanced Settings ------
 
 /*
 
@@ -2775,6 +2779,8 @@ strDropdownParentMenuItems := ""
 Loop, % g_objMenusIndex[f_drpParentMenu].MaxIndex()
 {
 	if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "B") ; skip ".." back link to parent menu
+		or (g_objEditedFavorite.FavoriteName = g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteName)
+			and (g_objMenuInGui.MenuPath = g_objMenusIndex[f_drpParentMenu].MenuPath) ; skip edited item itself
 		Continue
 	else if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "X")
 		strDropdownParentMenuItems .= g_strGuiMenuSeparator . g_strGuiMenuSeparator . "|"
@@ -2785,7 +2791,7 @@ Loop, % g_objMenusIndex[f_drpParentMenu].MaxIndex()
 }
 
 GuiControl, , f_drpParentMenuItems, % "|" . strDropdownParentMenuItems . g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
-if (f_drpParentMenu = g_objMenuInGui.MenuPath)
+if (f_drpParentMenu = g_objMenuInGui.MenuPath) and (g_intOriginalMenuPosition <> 0xFFFF)
 	GuiControl, Choose, f_drpParentMenuItems, % g_intOriginalMenuPosition - (g_objMenusIndex[f_drpParentMenu][1].FavoriteType = "B" ? 1 : 0)
 else
 	GuiControl, ChooseString, f_drpParentMenuItems, % g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
