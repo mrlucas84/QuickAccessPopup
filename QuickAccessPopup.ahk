@@ -18,9 +18,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- when edit app fav, select default item in running app list if app is running
-- in fav list for back link add space before/after .. to make sure Type is shown entirely
-- in fav list, for menus back link, show only last level of previous menu
 - remove favorite
 - test save favorites, all types
 - add app favorite advanced settings
@@ -1315,7 +1312,7 @@ else
 {
 	g_intIniLine := 1
 	
-	if (RecursiveLoadMenuFromIni(g_objMainMenu) <> "EOM") ; build menu tree
+	if (RecursiveLoadMenuFromIni(g_objMainMenu, g_objMainMenu.MenuPath) <> "EOM") ; build menu tree
 		Oops("An error occurred while reading the favorites in the ini file.")
 }
 
@@ -1343,7 +1340,7 @@ return
 
 
 ;------------------------------------------------------------
-RecursiveLoadMenuFromIni(objCurrentMenu)
+RecursiveLoadMenuFromIni(objCurrentMenu, strBackMenuName)
 ;------------------------------------------------------------
 {
 	global g_objMenusIndex
@@ -1378,12 +1375,12 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			; create a navigation entry to navigate to the parent menu
 			objNewMenuBack := Object()
 			objNewMenuBack.FavoriteType := "B" ; for Back link to parent menu
-			objNewMenuBack.FavoriteName := "(" . objCurrentMenu.MenuPath . ")"
+			objNewMenuBack.FavoriteName := "(" . strBackMenuName . ")"
 			objNewMenuBack.SubMenu := objCurrentMenu ; this is the link to the parent menu
 			objNewMenu.Insert(objNewMenuBack)
 			
 			; build the submenu
-			strResult := RecursiveLoadMenuFromIni(objNewMenu) ; RECURSIVE
+			strResult := RecursiveLoadMenuFromIni(objNewMenu, arrThisFavorite2) ; RECURSIVE
 			
 			if (strResult = "EOF") ; end of file was encountered while building this submenu, exit recursive function
 				Return, %strResult%
@@ -2086,7 +2083,7 @@ Loop, % g_objMenuInGui.MaxIndex()
 		, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
 		
 	else if (g_objMenuInGui[A_Index].FavoriteType = "B") ; this is a back link
-		LV_Add(, "..", g_objMenuInGui[A_Index].FavoriteName, "")
+		LV_Add(, "   ..   " , g_objMenuInGui[A_Index].FavoriteName, "")
 		
 	else ; this is a folder, document, URL or application
 		LV_Add(, g_objFavoriteTypesShortNames[g_objMenuInGui[A_Index].FavoriteType], g_objMenuInGui[A_Index].FavoriteName, g_objMenuInGui[A_Index].FavoriteLocation)
@@ -2555,7 +2552,7 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 	{
 		Gui, 2:Add, Text, x20 y+20 vf_lblSelectRunningApplication, %lDialogBrowseOrSelectApplication%
 		Gui, 2:Add, DropDownList, x20 y+5 w400 vf_drpRunningApplication gDropdownRunningApplicationChanged
-			, % CollectRunningApplications()
+			, % CollectRunningApplications(g_objEditedFavorite.FavoriteLocation)
 	}
 }
 else ; "Special" or "QAP"
@@ -3313,6 +3310,19 @@ FolderNameIsNew(strCandidateName, objMenu)
 GuiRemoveMultipleFavorites:
 ;------------------------------------------------------------
 
+/*
+GuiControl, Focus, lvFavoritesList
+Gui, 1:ListView, lvFavoritesList
+
+MsgBox, 52, %g_strAppNameText%, % L(lDialogRemoveMultipleFavorites, LV_GetCount("Selected"))
+IfMsgBox, No
+	return
+
+Loop
+	Gosub, GuiRemoveOneFavorite
+until !LV_GetNext()
+*/
+
 return
 ;------------------------------------------------------------
 
@@ -3321,6 +3331,48 @@ return
 GuiRemoveFavorite:
 GuiRemoveOneFavorite:
 ;------------------------------------------------------------
+
+/*
+
+GuiControl, Focus, lvFavoritesList
+Gui, 1:ListView, lvFavoritesList
+intItemToRemove := LV_GetNext()
+if !(intItemToRemove)
+{
+	Oops(lDialogSelectItemToRemove)
+	return
+}
+
+LV_GetText(strFavoriteType, intItemToRemove, 5)
+if (strFavoriteType = "S") ; this is a submneu
+{
+	LV_GetText(strSubmenuFullName, intItemToRemove, 4)
+	MsgBox, 52, % L(lDialogFavoriteRemoveTitle, g_strAppNameText), % L(lDialogFavoriteRemovePrompt, strSubmenuFullName)
+	IfMsgBox, No
+		return
+	RemoveAllSubMenus(strSubmenuFullName)
+}
+
+LV_Delete(intItemToRemove)
+if (A_ThisLabel = "GuiRemoveFavorite")
+{
+	LV_Modify(intItemToRemove, "Select Focus")
+	if !LV_GetNext() ; if last item was deleted, select the new last item
+		LV_Modify(LV_GetCount(), "Select Focus")
+}
+Gosub, AjustColumnWidth
+
+if (strFavoriteType = "S")
+{
+	Gosub, SaveCurrentListviewToMenuObject ; save current LV before update the dropdown menu
+	GuiControl, 1:, drpMenusList, % "|" . BuildMenuTreeDropDown(lMainMenuName, strCurrentMenu) . "|"
+}
+
+Gosub, SaveCurrentListviewToMenuObject
+
+GuiControl, Enable, btnGuiSave
+GuiControl, , btnGuiCancel, %lGuiCancel%
+*/
 
 return
 ;------------------------------------------------------------
@@ -5180,7 +5232,7 @@ GetDeepestFolderName(strLocation)
 
 
 ;------------------------------------------------------------
-CollectRunningApplications()
+CollectRunningApplications(strDefaultPath)
 ;------------------------------------------------------------
 {
 	objApps := Object()
@@ -5194,8 +5246,11 @@ CollectRunningApplications()
 			objApps.Insert(strPath, "")
 	}
 	for strPath in objApps
+	{
 		strPaths .= strPath . "|"
-	StringTrimRight, strPaths, strPaths, 1 ; remove last |
+		if (strPath = strDefaultPath)
+			strPaths .= "|"
+	}
 
 	return strPaths
 }
