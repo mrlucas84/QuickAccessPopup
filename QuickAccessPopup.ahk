@@ -18,7 +18,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- remove favorite
+- remove multiple favorite
+- add Support freeware to main menu if user did not donate
 - test save favorites, all types
 - add app favorite advanced settings
 - fix hotkey names in help text
@@ -1312,7 +1313,7 @@ else
 {
 	g_intIniLine := 1
 	
-	if (RecursiveLoadMenuFromIni(g_objMainMenu, g_objMainMenu.MenuPath) <> "EOM") ; build menu tree
+	if (RecursiveLoadMenuFromIni(g_objMainMenu) <> "EOM") ; build menu tree
 		Oops("An error occurred while reading the favorites in the ini file.")
 }
 
@@ -1340,7 +1341,7 @@ return
 
 
 ;------------------------------------------------------------
-RecursiveLoadMenuFromIni(objCurrentMenu, strBackMenuName)
+RecursiveLoadMenuFromIni(objCurrentMenu)
 ;------------------------------------------------------------
 {
 	global g_objMenusIndex
@@ -1375,12 +1376,12 @@ RecursiveLoadMenuFromIni(objCurrentMenu, strBackMenuName)
 			; create a navigation entry to navigate to the parent menu
 			objNewMenuBack := Object()
 			objNewMenuBack.FavoriteType := "B" ; for Back link to parent menu
-			objNewMenuBack.FavoriteName := "(" . strBackMenuName . ")"
+			objNewMenuBack.FavoriteName := "(" . GetDeepestMenuPath(objCurrentMenu.MenuPath) . ")"
 			objNewMenuBack.SubMenu := objCurrentMenu ; this is the link to the parent menu
 			objNewMenu.Insert(objNewMenuBack)
 			
 			; build the submenu
-			strResult := RecursiveLoadMenuFromIni(objNewMenu, arrThisFavorite2) ; RECURSIVE
+			strResult := RecursiveLoadMenuFromIni(objNewMenu) ; RECURSIVE
 			
 			if (strResult = "EOF") ; end of file was encountered while building this submenu, exit recursive function
 				Return, %strResult%
@@ -2471,7 +2472,7 @@ if (A_ThisLabel = "GuiEditFavorite")
 	
 	if (g_objEditedFavorite.FavoriteType = "B")
 	{
-		Gosub, GuiGotoPreviousMenu
+		Gosub, GuiGotoUpMenu
 		return
 	}
 	
@@ -3065,13 +3066,13 @@ Gui, 2:+OwnDialogs
 
 ; original and destination menus values
 
-if InStr("GuiEditFavoriteSave|GuiMoveOneFavoriteSave", A_ThisLabel)
-	strOriginalMenu := g_objMenuInGui.MenuPath
-else ; GuiAddFavoriteSave
+if (A_ThisLabel = "GuiAddFavoriteSave")
 {
 	strOriginalMenu := ""
 	g_intOriginalMenuPosition := 0
 }
+else ; GuiEditFavoriteSave or GuiMoveOneFavoriteSave
+	strOriginalMenu := g_objMenuInGui.MenuPath
 
 ; f_drpParentMenu and f_drpParentMenuItems have same field name in 2 gui: GuiAddFavorite and GuiMoveMultipleFavoritesToMenu
 strDestinationMenu := f_drpParentMenu
@@ -3151,8 +3152,8 @@ if ((g_objEditedFavorite.FavoriteType = "Menu") and (A_ThisLabel = "GuiAddFavori
 	; create a navigation entry to navigate to the parent menu
 	objNewMenuBack := Object()
 	objNewMenuBack.FavoriteType := "B" ; for Back link to parent menu
-	objNewMenuBack.FavoriteName := "(" . objNewMenu.MenuPath . ")"
-	objNewMenuBack.SubMenu := g_objEditedFavorite ; this is the link to the parent menu
+	objNewMenuBack.FavoriteName := "(" . GetDeepestMenuPath(strDestinationMenu) . ")"
+	objNewMenuBack.SubMenu := g_objMenusIndex[strDestinationMenu] ; this is the link to the parent menu
 	objNewMenu.Insert(objNewMenuBack)
 	
 	g_objMenusIndex.Insert(objNewMenu.MenuPath, objNewMenu)
@@ -3179,25 +3180,6 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
 }
 
-/*
-###_D(""
-	. "strOriginalMenu: " . strOriginalMenu . "`n"
-	. "strDestinationMenu: " . strDestinationMenu . "`n"
-	. "g_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath . "`n"
-	. "g_intOriginalMenuPosition: " . g_intOriginalMenuPosition . "`n"
-	. "g_intNewItemPos: " . g_intNewItemPos . "`n`n"
-	. "g_objEditedFavorite.FavoriteType : " . g_objEditedFavorite.FavoriteType . "`n"
-	. "g_objEditedFavorite.FavoriteName : " . g_objEditedFavorite.FavoriteName . "`n"
-	. "g_objEditedFavorite.FavoriteLocation: " . g_objEditedFavorite.FavoriteLocation . "`n"
-	. "g_objEditedFavorite.FavoriteIconResource: " . g_objEditedFavorite.FavoriteIconResource . "`n"
-	. "g_objEditedFavorite.FavoriteHotkey: " . g_objEditedFavorite.FavoriteHotkey . "`n"
-	. "g_objEditedFavorite.FavoriteAppArguments: " . g_objEditedFavorite.FavoriteAppArguments . "`n"
-	. "g_objEditedFavorite.FavoriteAppWorkingDir: " . g_objEditedFavorite.FavoriteAppWorkingDir . "`n"
-	. "g_objEditedFavorite.Submenu.MenuPath: " . g_objEditedFavorite.Submenu.MenuPath . "`n"
-	. ": " . x . "`n"
-	. "")
-*/
-
 ; updating original and destination menu objects (these can be the same)
 
 if (strOriginalMenu <> "") ; we are moving a favorite
@@ -3207,6 +3189,18 @@ if (g_intNewItemPos)
 else
 	g_objMenusIndex[strDestinationMenu].Insert(g_objEditedFavorite) ; if no item is selected, add to the end of menu
 
+/*
+###_D(""
+	. "g_intNewItemPos: " . g_intNewItemPos . "`n"
+	. "g_objEditedFavorite.FavoriteType : " . g_objEditedFavorite.FavoriteType . "`n"
+	. "g_objEditedFavorite.FavoriteName : " . g_objEditedFavorite.FavoriteName . "`n"
+	. "g_objEditedFavorite.FavoriteLocation: " . g_objEditedFavorite.FavoriteLocation . "`n"
+	. "g_objEditedFavorite.Submenu.MenuPath: " . g_objEditedFavorite.Submenu.MenuPath . "`n"
+	. "`n"
+	. "g_objEditedFavorite.Submenu[1].FavoriteName: " . g_objEditedFavorite.Submenu[1].FavoriteName . "`n"
+	. "g_objEditedFavorite.Submenu[1].Submenu.MenuPath: " . g_objEditedFavorite.Submenu[1].Submenu.MenuPath . "`n"
+	. "")
+*/
 
 ; updating listview
 
@@ -3332,26 +3326,36 @@ GuiRemoveFavorite:
 GuiRemoveOneFavorite:
 ;------------------------------------------------------------
 
-/*
-
-GuiControl, Focus, lvFavoritesList
-Gui, 1:ListView, lvFavoritesList
+GuiControl, Focus, f_lvFavoritesList
+Gui, 1:ListView, f_lvFavoritesList
 intItemToRemove := LV_GetNext()
 if !(intItemToRemove)
 {
 	Oops(lDialogSelectItemToRemove)
 	return
 }
+if (g_objMenuInGui[intItemToRemove].FavoriteType = "B")
+	return
 
-LV_GetText(strFavoriteType, intItemToRemove, 5)
-if (strFavoriteType = "S") ; this is a submneu
+; remove favorite in object model (if menu, leaving submenu objects unlinked without releasing them)
+
+blnItemIsMenu := (g_objMenuInGui[intItemToRemove].FavoriteType = "Menu")
+
+if (blnItemIsMenu)
 {
-	LV_GetText(strSubmenuFullName, intItemToRemove, 4)
-	MsgBox, 52, % L(lDialogFavoriteRemoveTitle, g_strAppNameText), % L(lDialogFavoriteRemovePrompt, strSubmenuFullName)
+	MsgBox, 52, % L(lDialogFavoriteRemoveTitle, g_strAppNameText), % L(lDialogFavoriteRemovePrompt, g_objMenuInGui[intItemToRemove].Submenu.MenuPath)
 	IfMsgBox, No
 		return
-	RemoveAllSubMenus(strSubmenuFullName)
+	g_objMenusIndex.Remove(g_objMenuInGui[intItemToRemove].Submenu.MenuPath)
 }
+g_objMenuInGui.Remove(intItemToRemove)
+
+; refresh menu dropdpown in gui
+
+if (blnItemIsMenu)
+	GuiControl, 1:, f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|"
+
+; remove favorite in gui
 
 LV_Delete(intItemToRemove)
 if (A_ThisLabel = "GuiRemoveFavorite")
@@ -3362,28 +3366,13 @@ if (A_ThisLabel = "GuiRemoveFavorite")
 }
 Gosub, AjustColumnWidth
 
-if (strFavoriteType = "S")
-{
-	Gosub, SaveCurrentListviewToMenuObject ; save current LV before update the dropdown menu
-	GuiControl, 1:, drpMenusList, % "|" . BuildMenuTreeDropDown(lMainMenuName, strCurrentMenu) . "|"
-}
+GuiControl, Enable, f_btnGuiSave
+GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
-Gosub, SaveCurrentListviewToMenuObject
-
-GuiControl, Enable, btnGuiSave
-GuiControl, , btnGuiCancel, %lGuiCancel%
-*/
+intItemToRemove := ""
+blnItemIsMenu := ""
 
 return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-RemoveAllSubMenus(strSubmenuFullName)
-; recursive function
-;------------------------------------------------------------
-{
-}
 ;------------------------------------------------------------
 
 
@@ -3420,7 +3409,6 @@ GuiGotoPreviousMenu:
 OpenMenuFromEditForm:
 OpenMenuFromGuiHotkey:
 ;------------------------------------------------------------
-
 intCurrentLastPosition := 0
 
 if (A_ThisLabel = "GuiMenusListChanged")
@@ -3433,6 +3421,19 @@ if (A_ThisLabel = "GuiMenusListChanged")
 }
 
 ; ### not required if object updated Gosub, SaveCurrentListviewToMenuObject ; save current LV
+
+/*
+###_D(A_ThisLabel . "`n"
+	. "intCurrentLastPosition: " . intCurrentLastPosition . "`n"
+	. "g_intOriginalMenuPosition: " . g_intOriginalMenuPosition . "`n"
+	. "strNewDropdownMenu: " . strNewDropdownMenu . "`n"
+	. "g_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath . "`n"
+	. "g_objMenusIndex[strNewDropdownMenu].MenuPath: " . g_objMenusIndex[strNewDropdownMenu].MenuPath . "`n"
+	. "g_objMenuInGui[1].SubMenu.MenuPath: " . g_objMenuInGui[1].SubMenu.MenuPath . "`n"
+	. "g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath: " . g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath . "`n"
+	. ": " . "`n"
+	. "")
+*/
 
 if (A_ThisLabel = "GuiGotoPreviousMenu")
 {
@@ -3721,16 +3722,16 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 			strIniLine .= objCurrentMenu[A_Index].FavoriteWindowPosition . "|" ; 7
 			strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|" ; 8
 
-			###_D(strIniLine)
+			; ###_D(strIniLine)
 			IniWrite, %strIniLine%, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
 			g_intIniLine += 1
 		}
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "Menu") and !(blnIsBackMenu)
 		{
-			###_D("Going down in: " . objCurrentMenu[A_Index].SubMenu.MenuPath)
+			; ###_D("Going down in: " . objCurrentMenu[A_Index].SubMenu.MenuPath)
 			RecursiveSaveFavoritesToIniFile(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
-			###_D("Going up back in: " . objCurrentMenu.MenuPath)
+			; ###_D("Going up back in: " . objCurrentMenu.MenuPath)
 		}
 	}
 		
@@ -5227,6 +5228,17 @@ GetDeepestFolderName(strLocation)
 		return strDrive
 	else
 		return strDeepestName
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetDeepestMenuPath(strPath)
+;------------------------------------------------------------
+{
+	global g_strMenuPathSeparator
+	
+	return Trim(SubStr(strPath, InStr(strPath, g_strMenuPathSeparator, 0) + 1, 9999))
 }
 ;------------------------------------------------------------
 
