@@ -3304,18 +3304,22 @@ FolderNameIsNew(strCandidateName, objMenu)
 GuiRemoveMultipleFavorites:
 ;------------------------------------------------------------
 
-/*
-GuiControl, Focus, lvFavoritesList
-Gui, 1:ListView, lvFavoritesList
+GuiControl, Focus, f_lvFavoritesList
+Gui, 1:ListView, f_lvFavoritesList
 
-MsgBox, 52, %g_strAppNameText%, % L(lDialogRemoveMultipleFavorites, LV_GetCount("Selected"))
-IfMsgBox, No
-	return
+if (LV_GetNext() = 1 and g_objMenuInGui[1].FavoriteType = "B")
+	LV_Modify(1, "-Select") ; deselect back link entry
+
+if LV_GetCount("Selected") > 1
+{
+	MsgBox, 52, %g_strAppNameText%, % L(lDialogRemoveMultipleFavorites, LV_GetCount("Selected"))
+	IfMsgBox, No
+		return
+}
 
 Loop
 	Gosub, GuiRemoveOneFavorite
 until !LV_GetNext()
-*/
 
 return
 ;------------------------------------------------------------
