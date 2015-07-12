@@ -163,6 +163,7 @@ g_strMenuPathSeparator := ">" ; spaces before/after are added only when submenus
 g_strGuiMenuSeparator := "----------------"
 g_strGuiMenuColumnBreak := "==="
 g_intListW := "" ; Gui width captured by GuiSize
+g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file
 
 g_objGuiControls := Object()
 
@@ -1348,6 +1349,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	global g_strIniFile
 	global g_intIniLine
 	global g_strMenuPathSeparator
+	global g_strEscapePipe
 	
 	g_objMenusIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
 
@@ -1360,7 +1362,8 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			Return, "EOF" ; end of file - should not happen if main menu ends with a "Z" type favorite as expected
 		
 		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
-		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteArguments, 6 FavoriteAppWorkingDir, 7 FavoriteWindowPosition, 8 FavoriteHotkey, 9 FavoriteLaunchWith
+		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteArguments, 6 FavoriteAppWorkingDir,
+		; 7 FavoriteWindowPosition, 8 FavoriteHotkey, 9 FavoriteLaunchWith, 10 FavoriteFTPLoginName, 11 FavoriteFTPPassword
 		StringSplit, arrThisFavorite, strLoadIniLine, |
 
 		if (arrThisFavorite1 = "Z")
@@ -1389,14 +1392,16 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		
 		; this is a regular favorite, add it to the current menu
 		objLoadIniFavorite.FavoriteType := arrThisFavorite1 ; see Favorite Types
-		objLoadIniFavorite.FavoriteName := arrThisFavorite2 ; display name of this menu item
-		objLoadIniFavorite.FavoriteLocation := arrThisFavorite3 ; path, URL or menu path (without "Main") for this menu item
-		objLoadIniFavorite.FavoriteIconResource := arrThisFavorite4 ; icon resource in format "iconfile,iconindex"
-		objLoadIniFavorite.FavoriteArguments := arrThisFavorite5 ; application arguments
-		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
+		objLoadIniFavorite.FavoriteName := ReplaceAllInString(arrThisFavorite2, g_strEscapePipe, "|") ; display name of this menu item
+		objLoadIniFavorite.FavoriteLocation := ReplaceAllInString(arrThisFavorite3, g_strEscapePipe, "|") ; path, URL or menu path (without "Main") for this menu item
+		objLoadIniFavorite.FavoriteIconResource := ReplaceAllInString(arrThisFavorite4, g_strEscapePipe, "|") ; icon resource in format "iconfile,iconindex"
+		objLoadIniFavorite.FavoriteArguments := ReplaceAllInString(arrThisFavorite5, g_strEscapePipe, "|") ; application arguments
+		objLoadIniFavorite.FavoriteAppWorkingDir := ReplaceAllInString(arrThisFavorite6, g_strEscapePipe, "|") ; application working directory
 		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height (comma delimited)
 		objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
-		objLoadIniFavorite.FavoriteLaunchWith := arrThisFavorite9 ; launch favorite with this executable
+		objLoadIniFavorite.FavoriteLaunchWith := ReplaceAllInString(arrThisFavorite9, g_strEscapePipe, "|") ; launch favorite with this executable
+		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; login name for FTP favorite
+		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite11, g_strEscapePipe, "|") ; password for FTP favorite
 		
 		; this is a submenu favorite, link to the submenu object
 		if (arrThisFavorite1 = "Menu")
@@ -2069,24 +2074,23 @@ LoadMenuInGui:
 Gui, 1:ListView, f_lvFavoritesList
 LV_Delete()
 
-; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 Arguments, 8 AppWorkingDir
 Loop, % g_objMenuInGui.MaxIndex()
 	
 	if (g_objMenuInGui[A_Index].FavoriteType = "Menu") ; this is a menu
-		LV_Add(, g_objFavoriteTypesShortNames["Menu"], g_objMenuInGui[A_Index].FavoriteName, g_strMenuPathSeparator)
+		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objFavoriteTypesShortNames["Menu"], g_strMenuPathSeparator)
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "X") ; this is a separator
-		LV_Add(, "---", g_strGuiMenuSeparator, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
+		LV_Add(, g_strGuiMenuSeparator, "---", g_strGuiMenuSeparator . g_strGuiMenuSeparator)
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "K") ; this is a column break
-		LV_Add(, "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
-		, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
+		LV_Add(, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
+		, "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
 		
 	else if (g_objMenuInGui[A_Index].FavoriteType = "B") ; this is a back link
-		LV_Add(, "   ..   " , g_objMenuInGui[A_Index].FavoriteName, "")
+		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, "   ..   " , "")
 		
 	else ; this is a folder, document, URL or application
-		LV_Add(, g_objFavoriteTypesShortNames[g_objMenuInGui[A_Index].FavoriteType], g_objMenuInGui[A_Index].FavoriteName, g_objMenuInGui[A_Index].FavoriteLocation)
+		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objFavoriteTypesShortNames[g_objMenuInGui[A_Index].FavoriteType], g_objMenuInGui[A_Index].FavoriteLocation)
 
 LV_Modify(1 + (g_objMenuInGui[1].FavoriteType = "B" ? 1 : 0), "Select Focus") 
 
@@ -2163,7 +2167,7 @@ return
 AjustColumnWidth:
 ;------------------------------------------------------------
 
-LV_ModifyCol(1, "Auto Center") ; adjust column width
+LV_ModifyCol(1, "Auto") ; adjust column width
 LV_ModifyCol(2, "Auto") ; adjust column width
 
 ; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
@@ -2558,7 +2562,7 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 else ; "Special" or "QAP"
 {
 	Gui, 2:Add, Edit, x20 y+20 hidden section vf_strFavoriteLocation, % g_objEditedFavorite.FavoriteLocation ; hidden because set by DropdownSpecialChanged or DropdownQAPChanged
-	Gui, 2:Add, Text, xs ys, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]
+	Gui, 2:Add, Text, xs ys, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType] . " *"
 
 	Gui, 2:Add, DropDownList
 		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
@@ -2569,7 +2573,15 @@ else ; "Special" or "QAP"
 		else ; QAP
 			GuiControl, ChooseString, f_drpQAP, % g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultName
 }
-; )
+
+if (g_objEditedFavorite.FavoriteType = "FTP")
+{
+	Gui, 2:Add, Text, x20 y+20, %lGuiLoginName%
+	Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
+
+	Gui, 2:Add, Text, x20 y+20, %lGuiPassword%
+	Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
+}
 
 
 ; ------ TAB Menu Options ------
@@ -2630,18 +2642,18 @@ if InStr("Folder|Document|Application|Special|URL", g_objEditedFavorite.Favorite
 	if (g_objEditedFavorite.FavoriteType = "Application")
 	{
 		Gui, 2:Add, Text, x20 y+20 w300, %lDialogWorkingDirLabel%
-		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strAppWorkingDir, % g_objEditedFavorite.FavoriteAppWorkingDir
+		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteAppWorkingDir, % g_objEditedFavorite.FavoriteAppWorkingDir
 		Gui, 2:Add, Button, x+10 yp gButtonSelectWorkingDir, %lDialogBrowseButton%
 	}
 	else
 	{
 		Gui, 2:Add, Text, x20 y40 w300, %lDialogLaunchWith%
-		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strLaunchWith, % g_objEditedFavorite.FavoriteLaunchWith
+		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteLaunchWith, % g_objEditedFavorite.FavoriteLaunchWith
 		Gui, 2:Add, Button, x+10 yp gButtonSelectLaunchWith, %lDialogBrowseButton%
 	}
 
 	Gui, 2:Add, Text, y+20 x20 w300, %lDialogArgumentsLabel%
-	Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strArguments, % g_objEditedFavorite.FavoriteArguments
+	Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments, % g_objEditedFavorite.FavoriteArguments
 }
 
 Gui, 2:Tab
@@ -2855,7 +2867,7 @@ Gui, 2:Submit, NoHide
 GuiControl, , f_strFavoriteShortName, %f_drpQAP%
 GuiControl, , f_strFavoriteLocation, % g_objQAPFeaturesCodeByDefaultName[f_drpQAP]
 
-g_strNewFavoriteIconResource := g_objQAPFeatures[f_drpQAP].DefaultIcon
+g_strNewFavoriteIconResource := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultName[f_drpQAP]].DefaultIcon
 g_strDefaultIconResource := g_strNewFavoriteIconResource 
 
 return
@@ -2891,12 +2903,12 @@ if (A_ThisLabel = "ButtonSelectFavoriteLocation")
 }
 else if (A_ThisLabel = "ButtonSelectWorkingDir")
 {
-	strDefault := f_strAppWorkingDir
+	strDefault := f_strFavoriteAppWorkingDir
 	strType := "Folder"
 }
 else ; ButtonSelectLaunchWith
 {
-	strDefault := f_strLaunchWith
+	strDefault := f_strFavoriteLaunchWith
 	strType := "File"
 }
 
@@ -2909,9 +2921,9 @@ if !(StrLen(strNewLocation))
 	return
 
 if (A_ThisLabel = "ButtonSelectWorkingDir")
-	GuiControl, 2:, f_strAppWorkingDir, %strNewLocation%
+	GuiControl, 2:, f_strFavoriteAppWorkingDir, %strNewLocation%
 else if (A_ThisLabel = "ButtonSelectLaunchWith")
-	GuiControl, 2:, f_strLaunchWith, %strNewLocation%
+	GuiControl, 2:, f_strFavoriteLaunchWith, %strNewLocation%
 else
 {
 	GuiControl, 2:, f_strFavoriteLocation, %strNewLocation%
@@ -3120,12 +3132,6 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 		return
 	}
 
-	if InStr(f_strFavoriteShortName, "|")
-	{
-		Oops(lDialogFavoriteNameNoPipe)
-		return
-	}
-
 	if IsColumnBreak(f_strFavoriteShortName)
 	{
 		Oops(L(lDialogFavoriteNameNoColumnBreak, g_strGuiMenuColumnBreak))
@@ -3135,6 +3141,12 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	if  InStr("Folder|Document|Application|URL|FTP", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
 	{
 		Oops(lDialogFavoriteLocationEmpty)
+		return
+	}
+
+	if  InStr("Special|QAP", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
+	{
+		Oops(lDialogFavoriteDropdownEmpty, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""))
 		return
 	}
 
@@ -3209,10 +3221,12 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
 	g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
-	g_objEditedFavorite.FavoriteArguments := f_strArguments
-	g_objEditedFavorite.FavoriteAppWorkingDir := f_strAppWorkingDir
+	g_objEditedFavorite.FavoriteArguments := f_strFavoriteArguments
+	g_objEditedFavorite.FavoriteAppWorkingDir := f_strFavoriteAppWorkingDir
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
-	g_objEditedFavorite.FavoriteLaunchWith := f_strLaunchWith
+	g_objEditedFavorite.FavoriteLaunchWith := f_strFavoriteLaunchWith
+	g_objEditedFavorite.FavoriteLoginName := f_strFavoriteLoginName
+	g_objEditedFavorite.FavoritePassword := f_strFavoritePassword
 }
 
 ; updating original and destination menu objects (these can be the same)
@@ -3753,10 +3767,9 @@ return
 RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 ;------------------------------------------------------------
 {
-	; ? global g_objMenusIndex
 	global g_strIniFile
 	global g_intIniLine
-	; ? global g_strMenuPathSeparator
+	global g_strEscapePipe
 	
 	Loop, % objCurrentMenu.MaxIndex()
 	{
@@ -3765,14 +3778,16 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 		if !(blnIsBackMenu)
 		{
 			strIniLine := objCurrentMenu[A_Index].FavoriteType . "|" ; 1
-			strIniLine .= objCurrentMenu[A_Index].FavoriteName . "|" ; 2
-			strIniLine .= objCurrentMenu[A_Index].FavoriteLocation . "|" ; 3
-			strIniLine .= objCurrentMenu[A_Index].FavoriteIconResource . "|" ; 4
-			strIniLine .= objCurrentMenu[A_Index].FavoriteArguments . "|" ; 5
-			strIniLine .= objCurrentMenu[A_Index].FavoriteAppWorkingDir . "|" ; 6
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteName, "|", g_strEscapePipe) . "|" ; 2
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLocation, "|", g_strEscapePipe) . "|" ; 3
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteIconResource, "|", g_strEscapePipe) . "|" ; 4
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteArguments, "|", g_strEscapePipe) . "|" ; 5
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteAppWorkingDir, "|", g_strEscapePipe) . "|" ; 6
 			strIniLine .= objCurrentMenu[A_Index].FavoriteWindowPosition . "|" ; 7
 			strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|" ; 8
-			strIniLine .= objCurrentMenu[A_Index].FavoriteLaunchWith . "|" ; 9
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLaunchWith, "|", g_strEscapePipe) . "|" ; 9
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLoginName, "|", g_strEscapePipe)  . "|" ; 10
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoritePassword, "|", g_strEscapePipe)  . "|" ; 11
 
 			; ###_D(strIniLine)
 			IniWrite, %strIniLine%, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
@@ -5329,6 +5344,16 @@ IsColumnBreak(strMenuName)
 	global g_strGuiMenuColumnBreak
 
 	return (SubStr(Trim(strMenuName), 1, StrLen(g_strGuiMenuColumnBreak)) = g_strGuiMenuColumnBreak)
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ReplaceAllInString(strThis, strFrom, strTo)
+;------------------------------------------------------------
+{
+	StringReplace, strThis, strThis, %strFrom%, %strTo%, A
+	return strThis
 }
 ;------------------------------------------------------------
 
