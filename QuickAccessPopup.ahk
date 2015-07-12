@@ -3142,7 +3142,7 @@ if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " "
 	return
 }
 
-; if menu, create submenu object
+; if adding menu, create submenu object
 
 if ((g_objEditedFavorite.FavoriteType = "Menu") and (A_ThisLabel = "GuiAddFavoriteSave"))
 {
@@ -3168,11 +3168,14 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	if (g_objEditedFavorite.FavoriteType = "Menu")
 	{
 		strMenuLocation := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
-		StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu (localized) name
+		RecursiveUpdateMenuPath(g_objEditedFavorite.Submenu, strMenuLocation)
+		
+		StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
 		g_objEditedFavorite.FavoriteLocation := strMenuLocation
 	}
 	else
 		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
+	
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
 	g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
 	g_objEditedFavorite.FavoriteAppArguments := f_strAppArguments
@@ -3252,6 +3255,27 @@ return
 
 
 ;------------------------------------------------------------
+RecursiveUpdateMenuPath(objEditedMenu, strMenuPath)
+;------------------------------------------------------------
+{
+	global g_strMenuPathSeparator
+	
+	Loop, % objEditedMenu.MaxIndex()
+	{
+		objEditedMenu.MenuPath := strMenuPath
+		
+		; skip ".." back link to parent menu
+		if (objEditedMenu[A_Index].FavoriteType = "B")
+			continue
+		
+		if (objEditedMenu[A_Index].FavoriteType = "Menu")
+			RecursiveUpdateMenuPath(objEditedMenu[A_Index].SubMenu, objEditedMenu.MenuPath . " " . g_strMenuPathSeparator . " " . objEditedMenu[A_Index].FavoriteName) ; RECURSIVE
+	}
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 ValidateWindowPosition(strPosition)
 ;------------------------------------------------------------
 {
@@ -3274,15 +3298,6 @@ ValidateWindowPosition(strPosition)
 		blnOK := (arrPosition2 > 0) and (arrPosition3 > 0) and (arrPosition4 > 0) and (arrPosition5 > 0)
 	
 	return blnOK
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-UpdateMenuNameInSubmenus(strOldMenu, strNewMenu)
-; recursive function
-;------------------------------------------------------------
-{
 }
 ;------------------------------------------------------------
 
