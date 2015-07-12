@@ -18,10 +18,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- remove multiple favorite
-- add Support freeware to main menu if user did not donate
-- test save favorites, all types
 - add app favorite advanced settings
+- test save favorites, all types
+- add Support freeware to main menu if user did not donate
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -991,7 +990,7 @@ InitQAPFeatureObject("Settings", L(lMenuSettings, g_strAppNameText) . "...", "",
 ; Build folders list for dropdown
 
 g_strQAPFeaturesList := ""
-for strQAPFeatureName in g_objQAPFeatures
+for strQAPFeatureName in g_objQAPFeaturesCodeByDefaultName
 	g_strQAPFeaturesList .= strQAPFeatureName . "|"
 StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1
 
@@ -1041,7 +1040,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenu, s
 	objOneQAPFeature.Use4TC := strUse4TC
 	objOneQAPFeature.Use4FPc := strUse4FPc
 	
-	g_objQAPFeatures.Insert(strThisDefaultName, objOneQAPFeature)
+	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisDefaultName, "{" . strQAPFeatureCode . "}")
 }
 ;------------------------------------------------------------
@@ -2546,7 +2545,7 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 		Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType] . " *"
 		Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
 		if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
-			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation, %lDialogBrowseButton%
+			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation vf_btnSelectFolderLocation, %lDialogBrowseButton%
 	}
 	
 	if (g_objEditedFavorite.FavoriteType = "Application")
@@ -2565,8 +2564,13 @@ else ; "Special" or "QAP"
 		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
 		, % lDialogSelectItemToAdd . "...||" . (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : g_strQAPFeaturesList)
 	if (A_ThisLabel = "GuiEditFavorite")
-		GuiControl, ChooseString, % "f_drp" . g_objEditedFavorite.FavoriteType . " gDropdown", % g_objEditedFavorite.FavoriteName
+		if (g_objEditedFavorite.FavoriteType = "Special")
+			GuiControl, ChooseString, f_drpSpecial, % g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultName
+		else ; QAP
+			GuiControl, ChooseString, f_drpQAP, % g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultName
 }
+; )
+
 
 ; ------ TAB Menu Options ------
 
@@ -2619,23 +2623,20 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 
 ; ------ TAB Advanced Settings ------
 
-/*
+if (g_objEditedFavorite.FavoriteType = "Application")
+{
+	Gui, 2:Tab, % ++intTabNumber
 
-Gui, 2:Tab, % ++intTabNumber
-
-Gui, 2:Add, Text, x20 y40 w300, %lDialogArgumentsLabel%
-Gui, 2:Add, Edit, x20 w300 Limit250 vf_strAppArguments, %f_strAppArguments% ; variable name from ini?
-Gui, 2:Add, Text, x20 w300, %lDialogWorkingDirLabel%
-Gui, 2:Add, Edit, x20 w300 Limit250 vf_strAppWorkingDir, %f_strAppWorkingDir% ; variable name from ini?
-Gui, 2:Add, Button, x+10 yp gButtonSelectWorkingDir, %lDialogBrowseButton%
-
-GuiControlGet, arrPos, Pos, f_strAppArguments
-intMinButtonY := arrPosY
-
-*/
+	Gui, 2:Add, Text, x20 y40 w300, %lDialogArgumentsLabel%
+	Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strAppArguments, %f_strAppArguments% ; variable name from ini?
+	Gui, 2:Add, Text, x20 y+20 w300, %lDialogWorkingDirLabel%
+	Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strAppWorkingDir, %f_strAppWorkingDir% ; variable name from ini?
+	Gui, 2:Add, Button, x+10 yp gButtonSelectWorkingDir, %lDialogBrowseButton%
+}
 
 Gui, 2:Tab
-; --- End of tabs
+
+; ------ TAB End ------
 
 if (A_ThisLabel = "GuiEditFavorite")
 {
@@ -2652,24 +2653,21 @@ else
 	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAddFavoriteAdd", "f_btnAddFavoriteCancel")
 }
 
-/*
-if (blnRadioFolder or blnRadioFile or blnRadioApplication)
-	GuiControl, 2:+Default, btnSelectFolderLocation
+if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
+	GuiControl, 2:+Default, f_btnSelectFolderLocation
 else
 	GuiControl, 2:+Default, f_btnAddFavoriteAdd
-GuiControl, 2:Focus, % (blnRadioSpecial ? "f_drpSpecialFolder" : "f_strFavoriteShortName")
-*/
-
-Gosub, DropdownParentMenuChanged ; to init the content of menu items
 
 if InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
-	GuiControl, 2:Focus, f_drpSpecialFolder
+	GuiControl, 2:Focus, % "f_drp" . g_objEditedFavorite.FavoriteType
 else
 {
 	GuiControl, 2:Focus, f_strFavoriteShortName
 	if (A_ThisLabel = "GuiEditFavorite") 
 		SendInput, ^a
 }
+
+Gosub, DropdownParentMenuChanged ; to init the content of menu items
 
 Gui, 2:Add, Text
 Gui, 2:Show, AutoSize Center
@@ -2876,9 +2874,9 @@ Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
 
 if (g_objEditedFavorite.FavoriteType = "Folder") or (A_ThisLabel = "ButtonSelectWorkingDir")
-	FileSelectFolder, strNewLocation, *%strCurrentLocation%, 3, %lDialogAddFolderSelect%
+	FileSelectFolder, strNewLocation, % "*" . (A_ThisLabel = "ButtonSelectWorkingDir" ? f_strAppWorkingDir : f_strFavoriteLocation), 3, %lDialogAddFolderSelect%
 else
-	FileSelectFile, strNewLocation, S3, %strCurrentLocation%, %lDialogAddFileSelect%
+	FileSelectFile, strNewLocation, S3, %f_strFavoriteLocation%, %lDialogAddFileSelect%
 
 if !(StrLen(strNewLocation))
 	return
@@ -3076,6 +3074,8 @@ else ; GuiEditFavoriteSave or GuiMoveOneFavoriteSave
 
 ; f_drpParentMenu and f_drpParentMenuItems have same field name in 2 gui: GuiAddFavorite and GuiMoveMultipleFavoritesToMenu
 strDestinationMenu := f_drpParentMenu
+if (!f_drpParentMenuItems) ; ### because once I got a menu item inserted before the back link - unable to reproduce - remove after debugging
+	###_D("f_drpParentMenuItems = 0. Not supposed...")
 if (!g_intNewItemPos) ; if in GuiMoveOneFavoriteSave g_intNewItemPos may be already set
 	g_intNewItemPos := f_drpParentMenuItems + (g_objMenusIndex[strDestinationMenu][1].FavoriteType = "B" ? 1 : 0)
 
