@@ -24,6 +24,7 @@ TO-DO
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
+- make an option to show add/edit favorite advanced settings
 
 LATER
 -----
@@ -1359,7 +1360,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			Return, "EOF" ; end of file - should not happen if main menu ends with a "Z" type favorite as expected
 		
 		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
-		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteAppArguments, 6 FavoriteAppWorkingDir, 7 FavoriteWindowPosition, 8 FavoriteHotkey
+		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteArguments, 6 FavoriteAppWorkingDir, 7 FavoriteWindowPosition, 8 FavoriteHotkey, 9 FavoriteLaunchWith
 		StringSplit, arrThisFavorite, strLoadIniLine, |
 
 		if (arrThisFavorite1 = "Z")
@@ -1391,10 +1392,11 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteName := arrThisFavorite2 ; display name of this menu item
 		objLoadIniFavorite.FavoriteLocation := arrThisFavorite3 ; path, URL or menu path (without "Main") for this menu item
 		objLoadIniFavorite.FavoriteIconResource := arrThisFavorite4 ; icon resource in format "iconfile,iconindex"
-		objLoadIniFavorite.FavoriteAppArguments := arrThisFavorite5 ; application arguments
+		objLoadIniFavorite.FavoriteArguments := arrThisFavorite5 ; application arguments
 		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
 		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height (comma delimited)
 		objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
+		objLoadIniFavorite.FavoriteLaunchWith := arrThisFavorite9 ; launch favorite with this executable
 		
 		; this is a submenu favorite, link to the submenu object
 		if (arrThisFavorite1 = "Menu")
@@ -2020,8 +2022,6 @@ Gui, 1:Font, s8 w400 normal, Verdana
 Gui, 1:Add, Text, vf_lblSubmenuDropdownLabel x+1 yp, %lGuiSubmenuDropdownLabel%
 Gui, 1:Add, DropDownList, vf_drpMenusList gGuiMenusListChanged x0 y+1
 
-; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteAppArguments, 6 FavoriteAppWorkingDir, 7 FavoriteWindowPosition, 8 FavoriteHotkey
-; In FP: 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
 Gui, 1:Add, ListView
 	, % "vf_lvFavoritesList Count32 AltSubmit NoSortHdr LV0x10 " . (g_blnUseColors ? "c" . strGuiListviewTextColor . " Background" . strGuiListviewBackgroundColor : "") . " gGuiFavoritesListEvents x+1 yp"
 	, %lGuiLvFavoritesHeader%
@@ -2069,7 +2069,7 @@ LoadMenuInGui:
 Gui, 1:ListView, f_lvFavoritesList
 LV_Delete()
 
-; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 AppArguments, 8 AppWorkingDir
+; 1 FavoriteName, 2 FavoriteLocation, 3 MenuName, 4 SubmenuFullName, 5 FavoriteType, 6 IconResource, 7 Arguments, 8 AppWorkingDir
 Loop, % g_objMenuInGui.MaxIndex()
 	
 	if (g_objMenuInGui[A_Index].FavoriteType = "Menu") ; this is a menu
@@ -2261,7 +2261,7 @@ g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
 g_intOriginalMenuPosition := (LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1)
 
-Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion)
+Gui, 2:New, , % L(lDialogAddFavoriteSelectTitle, g_strAppNameText, g_strAppVersion)
 Gui, 2:+Owner1
 Gui, 2:+OwnDialogs
 if (g_blnUseColors)
@@ -2278,7 +2278,7 @@ Gui, 2:Add, Button, yp vf_btnAddFavoriteSelectTypeCancel gGuiEditFavoriteCancel,
 Gui, Add, Text
 Gui, 2:Add, Text, % "xs+120 ys vf_lblAddFavoriteTypeHelp w250 h" . g_arrFavoriteTypes0 * 20, % L(lDialogFavoriteSelectType, lDialogContinue)
 
-GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAddFavoriteSelectTypeContinue", "f_btnAddFavoriteSelectTypeCancel")
+GuiCenterButtons(L(lDialogAddFavoriteSelectTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAddFavoriteSelectTypeContinue", "f_btnAddFavoriteSelectTypeCancel")
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
@@ -2517,13 +2517,13 @@ Gui, 1:Submit, NoHide
 if (A_ThisLabel = "GuiAddFavorite")
 	Gosub, 2GuiClose ; to avoid flashing Gui 1:
 
-Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (A_ThisLabel = "GuiEditFavorite" ? lDialogEdit : lDialogAdd), g_strAppNameText, g_strAppVersion)
+Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (A_ThisLabel = "GuiEditFavorite" ? lDialogEdit : lDialogAdd), g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType)
 Gui, 2:+Owner1
 Gui, 2:+OwnDialogs
 if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
-Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h350 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTablsList(g_objEditedFavorite.FavoriteType) . " "
+Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h350 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
 intTabNumber := 0
 
 ; ------ TAB Basic Settings ------
@@ -2623,15 +2623,25 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 
 ; ------ TAB Advanced Settings ------
 
-if (g_objEditedFavorite.FavoriteType = "Application")
+if InStr("Folder|Document|Application|Special|URL", g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
-	Gui, 2:Add, Text, x20 y40 w300, %lDialogArgumentsLabel%
-	Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strAppArguments, %f_strAppArguments% ; variable name from ini?
-	Gui, 2:Add, Text, x20 y+20 w300, %lDialogWorkingDirLabel%
-	Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strAppWorkingDir, %f_strAppWorkingDir% ; variable name from ini?
-	Gui, 2:Add, Button, x+10 yp gButtonSelectWorkingDir, %lDialogBrowseButton%
+	if (g_objEditedFavorite.FavoriteType = "Application")
+	{
+		Gui, 2:Add, Text, x20 y+20 w300, %lDialogWorkingDirLabel%
+		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strAppWorkingDir, % g_objEditedFavorite.FavoriteAppWorkingDir
+		Gui, 2:Add, Button, x+10 yp gButtonSelectWorkingDir, %lDialogBrowseButton%
+	}
+	else
+	{
+		Gui, 2:Add, Text, x20 y40 w300, %lDialogLaunchWith%
+		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strLaunchWith, % g_objEditedFavorite.FavoriteLaunchWith
+		Gui, 2:Add, Button, x+10 yp gButtonSelectLaunchWith, %lDialogBrowseButton%
+	}
+
+	Gui, 2:Add, Text, y+20 x20 w300, %lDialogArgumentsLabel%
+	Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strArguments, % g_objEditedFavorite.FavoriteArguments
 }
 
 Gui, 2:Tab
@@ -2643,14 +2653,14 @@ if (A_ThisLabel = "GuiEditFavorite")
 	Gui, 2:Add, Button, y400 vf_btnEditFavoriteSave gGuiEditFavoriteSave default, %lDialogSave%
 	Gui, 2:Add, Button, yp vf_btnEditFavoriteCancel gGuiEditFavoriteCancel, %lGuiCancel%
 	
-	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnEditFavoriteSave", "f_btnEditFavoriteCancel")
+	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnEditFavoriteSave", "f_btnEditFavoriteCancel")
 }
 else
 {
 	Gui, 2:Add, Button, y400 vf_btnAddFavoriteAdd gGuiAddFavoriteSave default, %lDialogAdd%
 	Gui, 2:Add, Button, yp vf_btnAddFavoriteCancel gGuiAddFavoriteCancel, %lGuiCancel%
 	
-	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAddFavoriteAdd", "f_btnAddFavoriteCancel")
+	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnAddFavoriteAdd", "f_btnAddFavoriteCancel")
 }
 
 if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
@@ -2685,7 +2695,7 @@ return
 
 
 ;------------------------------------------------------------
-BuildTablsList(strFavoriteType)
+BuildTabsList(strFavoriteType)
 ;------------------------------------------------------------
 {
 	global
@@ -2695,7 +2705,7 @@ BuildTablsList(strFavoriteType)
 	
 	if InStr("Folder|Special", strFavoriteType)
 		strTabsList .= " | " . g_arrFavoriteGuiTabs3
-	if InStr("Application|Others...", strFavoriteType)
+	if InStr("Folder|Document|Application|Special|URL", strFavoriteType)
 		strTabsList .= " | " . g_arrFavoriteGuiTabs4
 	
 	strTabsList .= " "
@@ -2869,20 +2879,39 @@ return
 ;------------------------------------------------------------
 ButtonSelectFavoriteLocation:
 ButtonSelectWorkingDir:
+ButtonSelectLaunchWith:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
 
-if (g_objEditedFavorite.FavoriteType = "Folder") or (A_ThisLabel = "ButtonSelectWorkingDir")
-	FileSelectFolder, strNewLocation, % "*" . (A_ThisLabel = "ButtonSelectWorkingDir" ? f_strAppWorkingDir : f_strFavoriteLocation), 3, %lDialogAddFolderSelect%
-else
-	FileSelectFile, strNewLocation, S3, %f_strFavoriteLocation%, %lDialogAddFileSelect%
+if (A_ThisLabel = "ButtonSelectFavoriteLocation")
+{
+	strDefault := f_strFavoriteLocation
+	strType := (g_objEditedFavorite.FavoriteType = "Folder" ? "Folder" : "File")
+}
+else if (A_ThisLabel = "ButtonSelectWorkingDir")
+{
+	strDefault := f_strAppWorkingDir
+	strType := "Folder"
+}
+else ; ButtonSelectLaunchWith
+{
+	strDefault := f_strLaunchWith
+	strType := "File"
+}
+
+if (strType = "Folder")
+	FileSelectFolder, strNewLocation, *%strDefault%, 3, %lDialogAddFolderSelect%
+else ; File
+	FileSelectFile, strNewLocation, S3, %strDefault%, %lDialogAddFileSelect%
 
 if !(StrLen(strNewLocation))
 	return
 
 if (A_ThisLabel = "ButtonSelectWorkingDir")
 	GuiControl, 2:, f_strAppWorkingDir, %strNewLocation%
+else if (A_ThisLabel = "ButtonSelectLaunchWith")
+	GuiControl, 2:, f_strLaunchWith, %strNewLocation%
 else
 {
 	GuiControl, 2:, f_strFavoriteLocation, %strNewLocation%
@@ -2891,6 +2920,8 @@ else
 }
 
 strNewLocation := ""
+strDefault := ""
+strType := ""
 
 return
 ;------------------------------------------------------------
@@ -3178,9 +3209,10 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
 	g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
-	g_objEditedFavorite.FavoriteAppArguments := f_strAppArguments
+	g_objEditedFavorite.FavoriteArguments := f_strArguments
 	g_objEditedFavorite.FavoriteAppWorkingDir := f_strAppWorkingDir
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
+	g_objEditedFavorite.FavoriteLaunchWith := f_strLaunchWith
 }
 
 ; updating original and destination menu objects (these can be the same)
@@ -3736,10 +3768,11 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 			strIniLine .= objCurrentMenu[A_Index].FavoriteName . "|" ; 2
 			strIniLine .= objCurrentMenu[A_Index].FavoriteLocation . "|" ; 3
 			strIniLine .= objCurrentMenu[A_Index].FavoriteIconResource . "|" ; 4
-			strIniLine .= objCurrentMenu[A_Index].FavoriteAppArguments . "|" ; 5
+			strIniLine .= objCurrentMenu[A_Index].FavoriteArguments . "|" ; 5
 			strIniLine .= objCurrentMenu[A_Index].FavoriteAppWorkingDir . "|" ; 6
 			strIniLine .= objCurrentMenu[A_Index].FavoriteWindowPosition . "|" ; 7
 			strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|" ; 8
+			strIniLine .= objCurrentMenu[A_Index].FavoriteLaunchWith . "|" ; 9
 
 			; ###_D(strIniLine)
 			IniWrite, %strIniLine%, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
@@ -4310,10 +4343,11 @@ for strMenuPath, objMenuSource in objMenusSource
 		objFavorite.FavoriteName := objMenuSource[A_Index].FavoriteName
 		objFavorite.FavoriteLocation := objMenuSource[A_Index].FavoriteLocation
 		objFavorite.FavoriteIconResource := objMenuSource[A_Index].FavoriteIconResource
-		objFavorite.FavoriteAppArguments := objMenuSource[A_Index].FavoriteAppArguments
+		objFavorite.FavoriteArguments := objMenuSource[A_Index].FavoriteArguments
 		objFavorite.FavoriteAppWorkingDir := objMenuSource[A_Index].FavoriteAppWorkingDir
 		objFavorite.FavoriteWindowPosition := objMenuSource[A_Index].FavoriteWindowPosition
 		objFavorite.FavoriteHotkey := objMenuSource[A_Index].FavoriteHotkey
+		objFavorite.FavoriteLaunchWith := objMenuSource[A_Index].FavoriteLaunchWith
 		objFavorite.SubMenu := objMenuSource[A_Index].SubMenu
 		
 		objMenuDest.Insert(A_Index, objFavorite)
