@@ -3548,7 +3548,7 @@ GuiMoveMultipleFavoritesDown:
 GuiControl, Focus, f_lvFavoritesList
 Gui, 1:ListView, f_lvFavoritesList
 
-g_blnAbortGroupMove := false
+g_blnAbortMultipleMove := false
 strSelectedRows := ""
 g_intRowToProcess := 0
 loop
@@ -3562,20 +3562,20 @@ StringTrimRight, strSelectedRows, strSelectedRows, 1
 Loop
 {
 	Gosub, % (A_ThisLabel = "GuiMoveMultipleFavoritesUp" ? "GetFirstSelected" : "GetLastSelected") ; will re-init g_intRowToProcess
-	if (!g_intRowToProcess) or (g_blnAbortGroupMove)
+	if (!g_intRowToProcess) or (g_blnAbortMultipleMove)
 		break
 	
 	g_intSelectedRow := g_intRowToProcess
 	Gosub, % (A_ThisLabel = "GuiMoveMultipleFavoritesUp" ? "GuiMoveOneFavoriteUp" : "GuiMoveOneFavoriteDown")
 }
 
-if (!g_blnAbortGroupMove)
+if (!g_blnAbortMultipleMove)
 	Loop, Parse, strSelectedRows, |
 		LV_Modify(A_LoopField  + (A_ThisLabel = "GuiMoveMultipleFavoritesUp" ? -1 : 1), "Select")
 
 LV_Modify(LV_GetNext(0), "Focus") ; give focus to the first selected row
 
-g_blnAbortGroupMove := ""
+g_blnAbortMultipleMove := ""
 strSelectedRows := ""
 g_intRowToProcess := ""
 
@@ -3627,7 +3627,7 @@ if (g_intSelectedRow = (InStr(A_ThisLabel, "Up") ? (g_objMenuInGui[1].FavoriteTy
 	or (g_objMenuInGui[g_intSelectedRow].FavoriteType = "B") ; cannot move back link
 {
 	if InStr(A_ThisLabel, "One")
-		g_blnAbortGroupMove := true
+		g_blnAbortMultipleMove := true
 	return
 }
 
