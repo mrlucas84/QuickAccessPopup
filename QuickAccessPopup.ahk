@@ -415,18 +415,19 @@ strFavoriteTypes := "Folder|Document|Application|Special|URL|FTP|QAP|Menu"
 StringSplit, g_arrFavoriteTypes, strFavoriteTypes, |
 StringSplit, arrFavoriteTypesLabels, lDialogFavoriteTypesLabels, |
 g_objFavoriteTypesLabels := Object()
+StringSplit, arrFavoriteTypesPositionLabels, lDialogFavoriteTypesPositionLabels, |
+g_objFavoriteTypesPositionLabels := Object()
 StringSplit, arrFavoriteTypesHelp, lDialogFavoriteTypesHelp, |
 g_objFavoriteTypesHelp := Object()
 StringSplit, arrFavoriteTypesShortNames, lDialogFavoriteTypesShortNames, |
 g_objFavoriteTypesShortNames := Object()
 Loop, %g_arrFavoriteTypes0%
 {
-	g_objFavoriteTypesLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLabels%A_Index%)
 	; example to display favorite type label: g_objFavoriteTypesLabels["Folder"], g_objFavoriteTypesLabels["Document"]
+	g_objFavoriteTypesLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLabels%A_Index%)
+	g_objFavoriteTypesPositionLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesPositionLabels%A_Index%)
 	g_objFavoriteTypesHelp.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesHelp%A_Index%)
-	; example to display favorite type help: g_objFavoriteTypesHelp["Folder"], g_objFavoriteTypesHelp["Document"]
 	g_objFavoriteTypesShortNames.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesShortNames%A_Index%)
-	; example to display favorite type shortname: g_objFavoriteTypesHelp["Folder"], g_objFavoriteTypesHelp["Document"]
 }
 
 ; 1 Basic Settings, 2 Menu Options, 3 Window Options, 4 Advanced Settings
@@ -441,6 +442,7 @@ arrIconsFile := ""
 arrIconsIndex := ""
 strFavoriteTypes := ""
 arrFavoriteTypesLabels := ""
+arrFavoriteTypesPositionLabels := ""
 arrFavoriteTypesHelp := ""
 arrFavoriteTypesShortNames := ""
 
@@ -1805,7 +1807,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			objMenuColumnBreak.MenuArrayPosition := intMenuArrayItemsCount
 			g_objMenuColumnBreaks.Insert(objMenuColumnBreak)
 		}
-		else ; this is a favorite (folder, document, application or URL)
+		else ; this is a favorite (folder, document, application or link)
 		{
 			strSubMenuDisplayName := objCurrentMenu[A_Index].FavoriteName
 			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "")
@@ -2546,7 +2548,7 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 {
 	if (g_objEditedFavorite.FavoriteType <> "Menu")
 	{
-		Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType] . " *"
+		Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesPositionLabels[g_objEditedFavorite.FavoriteType] . " *"
 		Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
 		if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
 			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation vf_btnSelectFolderLocation, %lDialogBrowseButton%
@@ -2635,7 +2637,7 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 
 ; ------ TAB Advanced Settings ------
 
-if InStr("Folder|Document|Application|Special|URL", g_objEditedFavorite.FavoriteType)
+if InStr("Folder|Document|Application|Special|URL|FTP", g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
@@ -2717,7 +2719,7 @@ BuildTabsList(strFavoriteType)
 	
 	if InStr("Folder|Special", strFavoriteType)
 		strTabsList .= " | " . g_arrFavoriteGuiTabs3
-	if InStr("Folder|Document|Application|Special|URL", strFavoriteType)
+	if InStr("Folder|Document|Application|Special|URL|FTP", strFavoriteType)
 		strTabsList .= " | " . g_arrFavoriteGuiTabs4
 	
 	strTabsList .= " "
