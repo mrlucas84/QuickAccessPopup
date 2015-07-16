@@ -18,6 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- in select new fav type, a double-click can be detected by checking whether A_GuiEvent contains the word DoubleClick
 - add app favorite advanced settings
 - test save favorites, all types
 - add Support freeware to main menu if user did not donate
@@ -2473,7 +2474,7 @@ if (A_ThisLabel = "GuiEditFavorite")
 	
 	g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
 	g_strNewFavoriteIconResource := g_objEditedFavorite.FavoriteIconResource
-	g_intNewFavoriteWindowPosition := g_objEditedFavorite.FavoriteWindowPosition
+	g_strNewFavoriteWindowPosition := g_objEditedFavorite.FavoriteWindowPosition
 	
 	if (g_objEditedFavorite.FavoriteType = "B")
 	{
@@ -2492,7 +2493,7 @@ if (A_ThisLabel = "GuiEditFavorite")
 else
 {
 	if (A_ThisLabel <> "GuiAddThisFolder") ; else position is set in AddThisFolder
-		g_intNewFavoriteWindowPosition := ""
+		g_strNewFavoriteWindowPosition := ""
 
 	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", A_ThisLabel)
 	{
@@ -2517,7 +2518,8 @@ else
 			g_objEditedFavorite.FavoriteType := "Folder"
 	}
 }
-
+g_strNewFavoriteWindowPosition .= ",,,,,,," ; extra coma to avoid having phantom values if in case string is empty
+ 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
 if (A_ThisLabel = "GuiAddFavorite")
@@ -2615,25 +2617,32 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
-	; 0 for default/1 for remember/-1 for maximized, Left (X), Top (Y), Width, Height; for example: "1,100,50,640,480"
-	StringSplit, arrNewFavoriteWindowPosition, g_intNewFavoriteWindowPosition, `,
+	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
+	StringSplit, arrNewFavoriteWindowPosition, g_strNewFavoriteWindowPosition, `,
 
 	Gui, 2:Add, Checkbox, % "x20 y40 section vf_chkRememberWindowPosition gCheckboxWindowPositionClicked " . (arrNewFavoriteWindowPosition1 ? "checked" : ""), %lDialogRememberWindowPosition%
 	
-	Gui, 2:Add, Text, % "y+10 x20 section vf_lblWindowPosition " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPosition%
-
-	Gui, 2:Add, Text, % "ys+20 x20 vf_lblWindowPositionX " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionX%
-	Gui, 2:Add, Text, % "ys+40 x20 vf_lblWindowPositionY " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionY%
-	Gui, 2:Add, Text, % "ys+60 x20 vf_lblWindowPositionW " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionW%
-	Gui, 2:Add, Text, % "ys+80 x20 vf_lblWindowPositionH " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionH%
+	Gui, 2:Add, Text, % "y+20 x20 section vf_lblWindowPositionState " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogState%
 	
-	Gui, 2:Add, Edit, % "ys+20 xs+72 w36 h17 vf_intWindowPositionX center " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %arrNewFavoriteWindowPosition2%
-	Gui, 2:Add, Edit, % "ys+40 xs+72 w36 h17 vf_intWindowPositionY center " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %arrNewFavoriteWindowPosition3%
-	Gui, 2:Add, Edit, % "ys+60 xs+72 w36 h17 vf_intWindowPositionW center " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %arrNewFavoriteWindowPosition4%
-	Gui, 2:Add, Edit, % "ys+80 xs+72 w36 h17 vf_intWindowPositionH center " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %arrNewFavoriteWindowPosition5%
+	Gui, 2:Add, Radio, % "y+10 x20 vf_lblWindowPositionMinMax1 gRadioButtonWindowPositionMinMaxClicked" 
+		. (arrNewFavoriteWindowPosition1 ? "" : " hidden") . (!arrNewFavoriteWindowPosition2 ? " checked" : ""), %lDialogNormal%
+	Gui, 2:Add, Radio, % "y+10 x20 vf_lblWindowPositionMinMax2 gRadioButtonWindowPositionMinMaxClicked"
+		. (arrNewFavoriteWindowPosition1 ? "" : " hidden") . (arrNewFavoriteWindowPosition2 = 1 ? " checked" : ""), %lDialogMaximized%
+	Gui, 2:Add, Radio, % "y+10 x20 vf_lblWindowPositionMinMax3 gRadioButtonWindowPositionMinMaxClicked"
+		. (arrNewFavoriteWindowPosition1 ? "" : " hidden") . (arrNewFavoriteWindowPosition2 = -1 ? " checked" : ""), %lDialogMinimized%
+
+	Gui, 2:Add, Text, % "ys x200 section vf_lblWindowPosition " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPosition%
+
+	Gui, 2:Add, Text, % "ys+20 xs vf_lblWindowPositionX " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionX%
+	Gui, 2:Add, Text, % "ys+40 xs vf_lblWindowPositionY " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionY%
+	Gui, 2:Add, Text, % "ys+60 xs vf_lblWindowPositionW " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionW%
+	Gui, 2:Add, Text, % "ys+80 xs vf_lblWindowPositionH " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionH%
+	
+	Gui, 2:Add, Edit, % "ys+20 xs+72 w36 h17 vf_intWindowPositionX center " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition3%
+	Gui, 2:Add, Edit, % "ys+40 xs+72 w36 h17 vf_intWindowPositionY center " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition4%
+	Gui, 2:Add, Edit, % "ys+60 xs+72 w36 h17 vf_intWindowPositionW center " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition5%
+	Gui, 2:Add, Edit, % "ys+80 xs+72 w36 h17 vf_intWindowPositionH center " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition6%
 }
-
-
 
 ; ------ TAB Advanced Settings ------
 
@@ -3047,18 +3056,24 @@ return
 
 ;------------------------------------------------------------
 CheckboxWindowPositionClicked:
+RadioButtonWindowPositionMinMaxClicked:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPosition
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionX
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_intWindowPositionX
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionY
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_intWindowPositionY
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionW
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_intWindowPositionW
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionH
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_intWindowPositionH
+GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionState
+GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax1
+GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax2
+GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax3
+
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPosition
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionX
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionX
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionY
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionY
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionW
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionW
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionH
+GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionH
 
 return
 ;------------------------------------------------------------
@@ -3160,7 +3175,8 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 
 	strNewFavoriteWindowPosition := f_chkRememberWindowPosition
 	if (f_chkRememberWindowPosition)
-		strNewFavoriteWindowPosition .= "," . f_intWindowPositionX . "," . f_intWindowPositionY . "," . f_intWindowPositionW . "," . f_intWindowPositionH
+		strNewFavoriteWindowPosition .= "," . (f_lblWindowPositionMinMax1 ? 0 : (f_lblWindowPositionMinMax2 ? 1 : -1))
+			. "," . f_intWindowPositionX . "," . f_intWindowPositionY . "," . f_intWindowPositionW . "," . f_intWindowPositionH
 	if !ValidateWindowPosition(strNewFavoriteWindowPosition)
 	{
 		Oops(lOopsInvalidWindowPosition)
@@ -3331,19 +3347,19 @@ ValidateWindowPosition(strPosition)
 	if !(arrPosition1) ; no position to validate
 		return true
 	
-	if arrPosition2 is not integer
-		blnOK := false
-	else if arrPosition3 is not integer
+	if arrPosition3 is not integer
 		blnOK := false
 	else if arrPosition4 is not integer
 		blnOK := false
 	else if arrPosition5 is not integer
 		blnOK := false
+	else if arrPosition6 is not integer
+		blnOK := false
 	else
 		blnOK := true
 
 	if (blnOK)
-		blnOK := (arrPosition2 > 0) and (arrPosition3 > 0) and (arrPosition4 > 0) and (arrPosition5 > 0)
+		blnOK := (arrPosition3 > 0) and (arrPosition4 > 0) and (arrPosition5 > 0) and (arrPosition6 > 0)
 	
 	return blnOK
 }

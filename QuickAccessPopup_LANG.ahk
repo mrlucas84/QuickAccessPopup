@@ -99,6 +99,7 @@ global lDialogShift := "Shift" ; renamed
 global lDialogShortcut := "Shortcut"
 global lDialogSpacebarTab := "choose <a id=""Space"">space bar</a> or <a id=""Tab"">tab</a>" ; renamed, changed (was "use space bar")
 global lDialogSpecialLabel := "Special Folder"
+global lDialogState := "Window State:" ; new
 global lDialogSubmenuLabel := "Submenu"
 global lDialogSubmenuNameEmpty := "The submenu name is empty. Please, choose a name."
 global lDialogSubmenuParentMenu := "Submenu parent menu"
