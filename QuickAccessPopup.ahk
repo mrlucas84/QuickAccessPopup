@@ -18,14 +18,13 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- in select new fav type, a double-click can be detected by checking whether A_GuiEvent contains the word DoubleClick
-- add app favorite advanced settings
-- test save favorites, all types
-- add Support freeware to main menu if user did not donate
+- add new fields to object model and gui for favorite type Group
+- placeholders for location in favorite advanced settings paremeters
+- in add favorite advance add a check box to use default app and settings
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
-- make an option to show add/edit favorite advanced settings
+- add Support freeware to main menu if user did not donate
 
 LATER
 -----
@@ -412,13 +411,15 @@ Loop, Parse, strIconsMenus, |
 }
 ; example: g_objIconsFile["iconPictures"] and g_objIconsIndex["iconPictures"]
 
-strFavoriteTypes := "Folder|Document|Application|Special|URL|FTP|QAP|Menu"
+strFavoriteTypes := "Folder|Document|Application|Special|URL|FTP|QAP|Menu|Group"
 StringSplit, g_arrFavoriteTypes, strFavoriteTypes, |
 StringSplit, arrFavoriteTypesLabels, lDialogFavoriteTypesLabels, |
 g_objFavoriteTypesLabels := Object()
-StringSplit, arrFavoriteTypesPositionLabels, lDialogFavoriteTypesPositionLabels, |
-g_objFavoriteTypesPositionLabels := Object()
-StringSplit, arrFavoriteTypesHelp, lDialogFavoriteTypesHelp, |
+StringSplit, arrFavoriteTypesLocationLabels, lDialogFavoriteTypesLocationLabels, |
+g_objFavoriteTypesLocationLabels := Object()
+; StringSplit, arrFavoriteTypesHelp, lDialogFavoriteTypesHelp, |
+Loop, 9
+	arrFavoriteTypesHelp%A_Index% := lDialogFavoriteTypesHelp%A_Index%
 g_objFavoriteTypesHelp := Object()
 StringSplit, arrFavoriteTypesShortNames, lDialogFavoriteTypesShortNames, |
 g_objFavoriteTypesShortNames := Object()
@@ -426,7 +427,7 @@ Loop, %g_arrFavoriteTypes0%
 {
 	; example to display favorite type label: g_objFavoriteTypesLabels["Folder"], g_objFavoriteTypesLabels["Document"]
 	g_objFavoriteTypesLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLabels%A_Index%)
-	g_objFavoriteTypesPositionLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesPositionLabels%A_Index%)
+	g_objFavoriteTypesLocationLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLocationLabels%A_Index%)
 	g_objFavoriteTypesHelp.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesHelp%A_Index%)
 	g_objFavoriteTypesShortNames.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesShortNames%A_Index%)
 }
@@ -443,7 +444,7 @@ arrIconsFile := ""
 arrIconsIndex := ""
 strFavoriteTypes := ""
 arrFavoriteTypesLabels := ""
-arrFavoriteTypesPositionLabels := ""
+arrFavoriteTypesLocationLabels := ""
 arrFavoriteTypesHelp := ""
 arrFavoriteTypesShortNames := ""
 
@@ -2278,7 +2279,7 @@ Gui, 2:Add, Text, x10 y+20, %lDialogAdd%:
 Gui, 2:Add, Text, x+10 yp section
 
 loop, %g_arrFavoriteTypes0%
-	Gui, 2:Add, Radio, % (A_Index = 1 ? " vf_intRadioFavoriteType yp " : "") . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
+	Gui, 2:Add, Radio, % (A_Index = 1 ? " vf_intRadioFavoriteType yp " : (A_Index = 8 ? "y+15 " : "")) . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
 
 Gui, 2:Add, Button, x+20 y+20 vf_btnAddFavoriteSelectTypeContinue gGuiAddFavoriteSelectTypeContinue default, %lDialogContinue%
 Gui, 2:Add, Button, yp vf_btnAddFavoriteSelectTypeCancel gGuiEditFavoriteCancel, %lGuiCancel%
@@ -2298,7 +2299,13 @@ FavoriteSelectTypeRadioButtonsChanged:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-GuiControl, , f_lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[g_arrFavoriteTypes%f_intRadioFavoriteType%]
+if (g_arrFavoriteTypes%f_intRadioFavoriteType% = "QAP")
+	GuiControl, , f_lblAddFavoriteTypeHelp, % L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, L(lMenuSettings, g_strAppNameText), lGuiOptions)
+else
+	GuiControl, , f_lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[g_arrFavoriteTypes%f_intRadioFavoriteType%]
+
+if (A_GuiEvent = "DoubleClick")
+	Gosub, GuiAddFavoriteSelectTypeContinue
 
 return
 ;------------------------------------------------------------
@@ -2548,9 +2555,9 @@ if (g_objEditedFavorite.FavoriteType = "Menu" and A_ThisLabel = "GuiEditFavorite
 
 if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 {
-	if (g_objEditedFavorite.FavoriteType <> "Menu")
+	if !InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
 	{
-		Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesPositionLabels[g_objEditedFavorite.FavoriteType] . " *"
+		Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesLocationLabels[g_objEditedFavorite.FavoriteType] . " *"
 		Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
 		if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
 			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation vf_btnSelectFolderLocation, %lDialogBrowseButton%
@@ -3007,6 +3014,9 @@ Gui, 2:Submit, NoHide
 if (g_objEditedFavorite.FavoriteType = "Menu")
 	; default submenu icon
 	g_strDefaultIconResource := g_objIconsFile["iconSubmenu"] . "," . g_objIconsIndex["iconSubmenu"]
+else if (g_objEditedFavorite.FavoriteType = "Group")
+	; default group icon
+	g_strDefaultIconResource := g_objIconsFile["iconGroup"] . "," . g_objIconsIndex["iconGroup"]
 else if (g_objEditedFavorite.FavoriteType = "Folder")
 	; default folder icon
 	g_strDefaultIconResource := g_objIconsFile["iconFolder"] . "," . g_objIconsIndex["iconFolder"]
