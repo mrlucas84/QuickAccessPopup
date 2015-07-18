@@ -18,7 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- save new fields for Group to object model and ini file
+- save new fields for Group to object model and ini file FavoriteGroupSettings
 - add advanced settings for groups
 - placeholders for location in favorite advanced settings paremeters
 - in add favorite advance add a check box to use default app and settings
@@ -2548,7 +2548,12 @@ intTabNumber := 0
 
 Gui, 2:Tab, % ++intTabNumber
 
-Gui, 2:Add, Text, x20 y40, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]) . " *"
+if (g_arrFavoriteTypes%f_intRadioFavoriteType% = "QAP")
+	Gui, 2:Add, Text, x20 y40 w400, % ReplaceAllInString(L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, L(lMenuSettings, g_strAppNameText), lGuiOptions), "`n`n", "`n")
+else
+	Gui, 2:Add, Text, x20 y40 w400, % "> " . ReplaceAllInString(g_objFavoriteTypesHelp[g_arrFavoriteTypes%f_intRadioFavoriteType%], "`n`n", "`n> ")
+
+Gui, 2:Add, Text, x20 y+20, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]) . " *"
 
 Gui, 2:Add, Edit
 	, % "x20 y+10 Limit250 vf_strFavoriteShortName w" . 300 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
@@ -2654,15 +2659,15 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 	Gui, 2:Add, Text, % "ys+60 xs vf_lblWindowPositionW " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionW%
 	Gui, 2:Add, Text, % "ys+80 xs vf_lblWindowPositionH " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionH%
 	
-	Gui, 2:Add, Edit, % "ys+20 xs+72 w36 h17 vf_intWindowPositionX center " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition3%
-	Gui, 2:Add, Edit, % "ys+40 xs+72 w36 h17 vf_intWindowPositionY center " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition4%
-	Gui, 2:Add, Edit, % "ys+60 xs+72 w36 h17 vf_intWindowPositionW center " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition5%
-	Gui, 2:Add, Edit, % "ys+80 xs+72 w36 h17 vf_intWindowPositionH center " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition6%
+	Gui, 2:Add, Edit, % "ys+20 xs+72 w36 h17 vf_intWindowPositionX center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition3%
+	Gui, 2:Add, Edit, % "ys+40 xs+72 w36 h17 vf_intWindowPositionY center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition4%
+	Gui, 2:Add, Edit, % "ys+60 xs+72 w36 h17 vf_intWindowPositionW center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition5%
+	Gui, 2:Add, Edit, % "ys+80 xs+72 w36 h17 vf_intWindowPositionH center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition6%
 }
 
 ; ------ TAB Advanced Settings ------
 
-if InStr("Folder|Document|Application|Special|URL|FTP", g_objEditedFavorite.FavoriteType)
+if InStr("Folder|Document|Application|Special|URL|FTP|Group", g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
@@ -2672,6 +2677,12 @@ if InStr("Folder|Document|Application|Special|URL|FTP", g_objEditedFavorite.Favo
 		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteAppWorkingDir, % g_objEditedFavorite.FavoriteAppWorkingDir
 		Gui, 2:Add, Button, x+10 yp gButtonSelectWorkingDir, %lDialogBrowseButton%
 	}
+	else if (g_objEditedFavorite.FavoriteType = "Group")
+	{
+		Gui, 2:Add, Text, x20 y+20, %lGuiGroupRestoreDelay%
+		Gui, 2:Add, Edit, x20 y+10 w50 center number Limit4 vf_intGroupRestoreDelay, % g_objEditedFavorite.FavoriteGroupRestoreDelay
+		Gui, 2:Add, Text, x+10 yp, %lGuiGroupRestoreDelayMilliseconds%
+	}
 	else
 	{
 		Gui, 2:Add, Text, x20 y40 w300, %lDialogLaunchWith%
@@ -2679,8 +2690,11 @@ if InStr("Folder|Document|Application|Special|URL|FTP", g_objEditedFavorite.Favo
 		Gui, 2:Add, Button, x+10 yp gButtonSelectLaunchWith, %lDialogBrowseButton%
 	}
 
-	Gui, 2:Add, Text, y+20 x20 w300, %lDialogArgumentsLabel%
-	Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments, % g_objEditedFavorite.FavoriteArguments
+	if (g_objEditedFavorite.FavoriteType <> "Group")
+	{
+		Gui, 2:Add, Text, y+20 x20 w300, %lDialogArgumentsLabel%
+		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments, % g_objEditedFavorite.FavoriteArguments
+	}
 }
 
 Gui, 2:Tab
@@ -2744,7 +2758,7 @@ BuildTabsList(strFavoriteType)
 	
 	if InStr("Folder|Special", strFavoriteType)
 		strTabsList .= " | " . g_arrFavoriteGuiTabs3
-	if InStr("Folder|Document|Application|Special|URL|FTP", strFavoriteType)
+	if InStr("Folder|Document|Application|Special|URL|FTP|Group", strFavoriteType)
 		strTabsList .= " | " . g_arrFavoriteGuiTabs4
 	
 	strTabsList .= " "
