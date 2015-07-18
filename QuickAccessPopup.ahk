@@ -18,7 +18,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- add new fields to object model and gui for favorite type Group
+- save new fields for Group to object model and ini file
+- add advanced settings for groups
 - placeholders for location in favorite advanced settings paremeters
 - in add favorite advance add a check box to use default app and settings
 - fix hotkey names in help text
@@ -148,9 +149,11 @@ g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . ".ini"
 
 g_blnMenuReady := false
 
+/* not needed here because initialized in LoadIniFile
 g_objMenuInGui := Object() ; object of menu currently in Gui
-g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list
+g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
 g_objMainMenu := Object() ; object of menu structure entry point
+*/
 g_objMenuColumnBreaks := Object()
 
 g_arrSubmenuStack := Object()
@@ -1131,7 +1134,7 @@ FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
 
 ; reinit after Settings save if already exist
 g_objMenuInGui := Object() ; object of menu currently in Gui
-g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list
+g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
 g_objMainMenu := Object() ; object of menu structure entry point
 g_objMainMenu.MenuPath := lMainMenuName ; localized name of the main menu
 
@@ -2594,6 +2597,12 @@ if (g_objEditedFavorite.FavoriteType = "FTP")
 	Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
 }
 
+if (g_objEditedFavorite.FavoriteType = "Group")
+{
+	Gui, 2:Add, Text, x20 y+20, %lGuiGroupSaveRestoreOption%
+	Gui, 2:Add, Radio, % "x20 y+10 vf_blnRadioGroupAdd " . (g_objEditedFavorite.FavoriteGroupReplaceWhenRestoring ? "" : "checked"), %lGuiGroupSaveAddWindowsLabel%
+	Gui, 2:Add, Radio, % "x20 y+5 vf_blnRadioGroupReplace " . (g_objEditedFavorite.FavoriteGroupReplaceWhenRestoring ? "checked" : ""), %lGuiGroupSaveReplaceWindowsLabel%
+}
 
 ; ------ TAB Menu Options ------
 
