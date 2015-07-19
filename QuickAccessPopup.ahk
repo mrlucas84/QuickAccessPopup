@@ -18,10 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- double-click in group open group
-- groups in dropdown
-- save new fields for Group to object model and ini file FavoriteGroupSettings
-- add advanced settings for Explorer wait groups
+- only replace favorite's name if empty in gui add fav
 - placeholders for location in favorite advanced settings paremeters
 - in add favorite advance add a check box to use default app and settings
 - fix hotkey names in help text
@@ -1141,6 +1138,7 @@ g_objMenuInGui := Object() ; object of menu currently in Gui
 g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
 g_objMainMenu := Object() ; object of menu structure entry point
 g_objMainMenu.MenuPath := lMainMenuName ; localized name of the main menu
+g_objMainMenu.MenuType := "Menu" ; main menu is not a group
 
 IfNotExist, %g_strIniFile%
 {
@@ -2290,7 +2288,7 @@ Gui, 2:Add, Text, x10 y+20, %lDialogAdd%:
 Gui, 2:Add, Text, x+10 yp section
 
 loop, %g_arrFavoriteTypes0%
-	Gui, 2:Add, Radio, % (A_Index = 1 ? " vf_intRadioFavoriteType yp " : (A_Index = 8 ? "y+15 " : "")) . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
+	Gui, 2:Add, Radio, % (A_Index = 1 ? " vf_intRadioFavoriteType yp " : (A_Index = 7 or A_Index = 8? "y+15 " : "")) . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
 
 Gui, 2:Add, Button, x+20 y+20 vf_btnAddFavoriteSelectTypeContinue gGuiAddFavoriteSelectTypeContinue default, %lDialogContinue%
 Gui, 2:Add, Button, yp vf_btnAddFavoriteSelectTypeCancel gGuiEditFavoriteCancel, %lGuiCancel%
@@ -2572,11 +2570,17 @@ if (g_objEditedFavorite.FavoriteType = "QAP")
 else
 	Gui, 2:Add, Text, x20 y40 w400, % "> " . ReplaceAllInString(g_objFavoriteTypesHelp[g_objEditedFavorite.FavoriteType], "`n`n", "`n> ")
 
-Gui, 2:Add, Text, x20 y+20, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]) . " *"
+if (g_objEditedFavorite.FavoriteType = "QAP")
+	Gui, 2:Add, Edit, x20 y+0 vf_strFavoriteShortName hidden ; not allow to change favorite short name for QAP feature favorites
+else
+{
+	Gui, 2:Add, Text, x20 y+20, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]) . " *"
 
-Gui, 2:Add, Edit
-	, % "x20 y+10 Limit250 vf_strFavoriteShortName w" . 300 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
-	, % g_objEditedFavorite.FavoriteName
+	Gui, 2:Add, Edit
+		, % "x20 y+10 Limit250 vf_strFavoriteShortName w" . 300 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
+		, % g_objEditedFavorite.FavoriteName
+}
+
 if (g_objEditedFavorite.FavoriteType = "Menu" and A_ThisLabel = "GuiEditFavorite")
 	Gui, 2:Add, Button, x+10 yp gGuiOpenThisMenu, %lDialogOpenThisMenu%
 
@@ -2946,7 +2950,8 @@ Gui, 2:Submit, NoHide
 if InStr("Document|Application", g_objEditedFavorite.FavoriteType)
 	g_strNewFavoriteIconResource := ""
 
-GuiControl, 2:, f_strFavoriteShortName, % GetDeepestFolderName(f_strFavoriteLocation)
+if !StrLen(f_strFavoriteShortName)
+	GuiControl, 2:, f_strFavoriteShortName, % GetDeepestFolderName(f_strFavoriteLocation)
 
 return
 ;------------------------------------------------------------
@@ -3195,6 +3200,20 @@ if (!f_drpParentMenuItems) ; ### because once I got a menu item inserted before 
 if (!g_intNewItemPos) ; if in GuiMoveOneFavoriteSave g_intNewItemPos may be already set
 	g_intNewItemPos := f_drpParentMenuItems + (g_objMenusIndex[strDestinationMenu][1].FavoriteType = "B" ? 1 : 0)
 
+; validation to avoid unauthorized favorite types in groups
+if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|Group", g_objEditedFavorite.FavoriteType))
+{
+	Oops(lDialogFavoriteNameNotAllowed, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""), lDialogFavoriteParentMenu)
+	if (A_ThisLabel = "GuiMoveOneFavoriteSave")
+		g_intOriginalMenuPosition += 1
+	return
+}
+/*
+###_D("g_objEditedFavorite.FavoriteType: " . g_objEditedFavorite.FavoriteType 
+	. "`ng_objMenusIndex[strDestinationMenu].MenuPath: " . g_objMenusIndex[strDestinationMenu].MenuPath 
+	. "`ng_objMenusIndex[strDestinationMenu].MenuType: " . g_objMenusIndex[strDestinationMenu].MenuType)
+*/
+
 ; validation (not required for GuiMoveOneFavoriteSave because info in g_objEditedFavorite is not changed)
 
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
@@ -3266,6 +3285,7 @@ if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (A_ThisLabel = "Gu
 {
 	objNewMenu := Object() ; object for the new menu or group
 	objNewMenu.MenuPath := strDestinationMenu . " " . (g_objEditedFavorite.FavoriteType = "Menu" ? g_strMenuPathSeparator : g_strGroupPathSeparator) . " " . f_strFavoriteShortName
+	objNewMenu.MenuType := g_objEditedFavorite.FavoriteType
 
 	; create a navigation entry to navigate to the parent menu
 	objNewMenuBack := Object()
@@ -3321,6 +3341,7 @@ else
 	. "g_objEditedFavorite.FavoriteName : " . g_objEditedFavorite.FavoriteName . "`n"
 	. "g_objEditedFavorite.FavoriteLocation: " . g_objEditedFavorite.FavoriteLocation . "`n"
 	. "g_objEditedFavorite.Submenu.MenuPath: " . g_objEditedFavorite.Submenu.MenuPath . "`n"
+	. "g_objEditedFavorite.Submenu.MenuType: " . g_objEditedFavorite.Submenu.MenuType . "`n"
 	. "`n"
 	. "g_objEditedFavorite.Submenu[1].FavoriteName: " . g_objEditedFavorite.Submenu[1].FavoriteName . "`n"
 	. "g_objEditedFavorite.Submenu[1].Submenu.MenuPath: " . g_objEditedFavorite.Submenu[1].Submenu.MenuPath . "`n"
@@ -3391,7 +3412,7 @@ RecursiveUpdateMenuPath(objEditedMenu, strMenuPath)
 	
 	Loop, % objEditedMenu.MaxIndex()
 	{
-		objEditedMenu.MenuPath := strMenuPath
+		objEditedMenu.MenuPath := strMenuPath ; update only path regardless .MenuType "Menu" or "Group"
 		
 		; skip ".." back link to parent menu
 		if (objEditedMenu[A_Index].FavoriteType = "B")

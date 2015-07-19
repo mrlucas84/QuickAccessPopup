@@ -39,6 +39,7 @@ global lDialogFavoriteMenuPosition := "Insert the new favorite before this item"
 global lDialogFavoriteNameEmpty := "The favorite name is empty. Please, choose a name."
 global lDialogFavoriteNameNoColumnBreak := "The submenu name cannot start the reserved characters ""~1~"" used as column break indicators."
 global lDialogFavoriteNameNoSeparator := "The submenu or group name cannot include the reserved characters ""~1~"" and ""~2~""." ; changed
+global lDialogFavoriteNameNotAllowed := "Favorites of type ""~1~"" are not allowed in groups. Please, select another ""~2~"" in the ""Menu Options"" tab." ; new
 global lDialogFavoriteNameNotNew := "The name ""~1~"" is already used in this menu. Please, choose a new name."
 global lDialogFavoriteParentMenu := "Favorite parent menu"
 global lDialogFavoriteRemovePrompt := "Remove the submenu ""~1~""`nand ALL its content (folders and submenus)?"
