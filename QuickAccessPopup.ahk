@@ -16,11 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- moving from first position in main to end of menu in sub menu did move to top of submenu
 
 TO-DO
-- only replace favorite's name if empty in gui add fav
-- placeholders for location in favorite advanced settings paremeters
-- in add favorite advance add a check box to use default app and settings
+- debug save: in add favorite advance add a check box to use default app and settings
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -29,6 +28,7 @@ TO-DO
 LATER
 -----
 * Test Lexikos fix for OnLButtonDblClk issue
+* decode arguments placeholders {LOC}, ect.
 
 HELP
 * Update links to QAP website in Help
@@ -2513,7 +2513,7 @@ if (A_ThisLabel = "GuiEditFavorite")
 	   ; 1 boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
 	   ; 2 delay in milliseconds to insert between each favorite to restore
 	   ; 3 delay in milliseconds to insert between each retries of Explorer launch
-		strGroupSettings := g_objEditedFavorite.FavoriteGroupSettings
+		strGroupSettings := g_objEditedFavorite.FavoriteGroupSettings . ",,," ; ,,, to make sure all fields are re-init
 		StringSplit, arrGroupSettings, strGroupSettings, `,
 	}
 }
@@ -2694,35 +2694,45 @@ if InStr("Folder|Document|Application|Special|URL|FTP|Group", g_objEditedFavorit
 {
 	Gui, 2:Tab, % ++intTabNumber
 
+	Gui, 2:Add, Checkbox, x20 y40 vf_blnUseDefaultSettings gCheckboxUseDefaultSettingsClicked, %lDialogUseDefaultSettings%
+
+	blnShowAdvancedSettings := StrLen(g_objEditedFavorite.FavoriteAppWorkingDir . arrGroupSettings2 . arrGroupSettings3 . g_objEditedFavorite.FavoriteLaunchWith . g_objEditedFavorite.FavoriteArguments)
+	GuiControl, , f_blnUseDefaultSettings, % !blnShowAdvancedSettings
+
 	if (g_objEditedFavorite.FavoriteType = "Application")
 	{
-		Gui, 2:Add, Text, x20 y+20 w300, %lDialogWorkingDirLabel%
+		Gui, 2:Add, Text, x20 y+20 w300 vf_AdvancedSettingsLabel1, %lDialogWorkingDirLabel%
 		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteAppWorkingDir, % g_objEditedFavorite.FavoriteAppWorkingDir
-		Gui, 2:Add, Button, x+10 yp gButtonSelectWorkingDir, %lDialogBrowseButton%
+		Gui, 2:Add, Button, x+10 yp vf_AdvancedSettingsButton1 gButtonSelectWorkingDir, %lDialogBrowseButton%
 	}
 	else if (g_objEditedFavorite.FavoriteType = "Group")
 	{
-		Gui, 2:Add, Text, x20 y+20, %lGuiGroupRestoreDelay%
+		Gui, 2:Add, Text, x20 y+20 vf_AdvancedSettingsLabel2, %lGuiGroupRestoreDelay%
 		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupRestoreDelay, %arrGroupSettings2%
-		Gui, 2:Add, Text, x+10 yp, %lGuiGroupRestoreDelayMilliseconds%
+		Gui, 2:Add, Text, x+10 yp vf_AdvancedSettingsLabel3, %lGuiGroupRestoreDelayMilliseconds%
 
-		Gui, 2:Add, Text, x20 y+20, %lGuiGroupExplorerDelay%
+		Gui, 2:Add, Text, x20 y+20 vf_AdvancedSettingsLabel4, %lGuiGroupExplorerDelay%
 		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupExplorerDelay, %arrGroupSettings3%
-		Gui, 2:Add, Text, x+10 yp, %lGuiGroupRestoreDelayMilliseconds%
+		Gui, 2:Add, Text, x+10 yp vf_AdvancedSettingsLabel5, %lGuiGroupRestoreDelayMilliseconds%
 	}
 	else
 	{
-		Gui, 2:Add, Text, x20 y40 w300, %lDialogLaunchWith%
+		Gui, 2:Add, Text, x20 y+20 w300 vf_AdvancedSettingsLabel6, %lDialogLaunchWith%
 		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteLaunchWith, % g_objEditedFavorite.FavoriteLaunchWith
-		Gui, 2:Add, Button, x+10 yp gButtonSelectLaunchWith, %lDialogBrowseButton%
+		Gui, 2:Add, Button, x+10 yp vf_AdvancedSettingsButton2 gButtonSelectLaunchWith, %lDialogBrowseButton%
 	}
 
 	if (g_objEditedFavorite.FavoriteType <> "Group")
 	{
-		Gui, 2:Add, Text, y+20 x20 w300, %lDialogArgumentsLabel%
+		Gui, 2:Add, Text, y+20 x20 w300 vf_AdvancedSettingsLabel7, %lDialogArgumentsLabel%
 		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments, % g_objEditedFavorite.FavoriteArguments
+		Gui, 2:Add, Text, x20 y+5 w300 vf_AdvancedSettingsLabel8, %lDialogArgumentsPlaceholder%
 	}
+
+	Gosub, CheckboxUseDefaultSettingsClicked ; init controls hidden
 }
+
+; ------ TAB End ------
 
 Gui, 2:Tab
 
@@ -2834,6 +2844,25 @@ strNewModifiers := ""
 strNewMouse := ""
 strNewOptionsKey := ""
 strNewMouseButtonsWithDefault := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CheckboxUseDefaultSettingsClicked:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_AdvancedSettingsButton1|f_intGroupRestoreDelay|f_intGroupExplorerDelay|f_strFavoriteLaunchWith|f_AdvancedSettingsButton2|f_strFavoriteArguments"
+
+Loop, Parse, strAdvancedSettingsControls, |
+	GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), %A_LoopField%
+
+Loop, 8
+	GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), f_AdvancedSettingsLabel%A_Index%
+
+strAdvancedSettingsControls := ""
 
 return
 ;------------------------------------------------------------
@@ -3316,13 +3345,17 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
 	g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
-	g_objEditedFavorite.FavoriteArguments := f_strFavoriteArguments
-	g_objEditedFavorite.FavoriteAppWorkingDir := f_strFavoriteAppWorkingDir
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
-	g_objEditedFavorite.FavoriteLaunchWith := f_strFavoriteLaunchWith
+	
+	g_objEditedFavorite.FavoriteGroupSettings := f_blnRadioGroupReplace
+	g_objEditedFavorite.FavoriteGroupSettings .= (f_blnUseDefaultSettings ? "" : "," . f_intGroupRestoreDelay . "," . f_intGroupExplorerDelay)
+	
 	g_objEditedFavorite.FavoriteLoginName := f_strFavoriteLoginName
 	g_objEditedFavorite.FavoritePassword := f_strFavoritePassword
-	g_objEditedFavorite.FavoriteGroupSettings := f_blnRadioGroupReplace . "," . f_intGroupRestoreDelay . "," . f_intGroupExplorerDelay
+	
+	g_objEditedFavorite.FavoriteArguments := (f_blnUseDefaultSettings ? "" : f_strFavoriteArguments)
+	g_objEditedFavorite.FavoriteAppWorkingDir := (f_blnUseDefaultSettings ? "" : f_strFavoriteAppWorkingDir)
+	g_objEditedFavorite.FavoriteLaunchWith := (f_blnUseDefaultSettings ? "" : f_strFavoriteLaunchWith)
 }
 
 ; updating original and destination menu objects (these can be the same)
