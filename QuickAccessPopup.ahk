@@ -16,10 +16,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- moving from first position in main to end of menu in sub menu did move to top of submenu
 
 TO-DO
-- debug save: in add favorite advance add a check box to use default app and settings
+- Options, 3rd party, one Browse in modal window
 - fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -979,8 +978,8 @@ InitQAPFeatures:
 
 InitQAPFeatureObject("Current Folders", lMenuCurrentFolders, ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "iconCurrentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
-InitQAPFeatureObject("Manage Groups", lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
-	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
+; removed InitQAPFeatureObject("Manage Groups", lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
+;	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 InitQAPFeatureObject("Recent Folders", lMenuRecentFolders, "", "RefreshRecentFolders:", "iconRecentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 InitQAPFeatureObject("Clipboard", lMenuClipboard, ":g_menuClipboard", "ClipboardMenuShortcut:", "iconClipboard"
@@ -993,7 +992,7 @@ InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp:", "iconHelp")
 InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions:", "iconOptions")
 InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder:", "iconAddThisFolder")
 InitQAPFeatureObject("Copy a Favorite's Path or URL", lMenuCopyLocation, "", "PopupMenuCopyLocation:", "iconClipboard")
-InitQAPFeatureObject("Groups of Favorites", lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
+; removed InitQAPFeatureObject("Groups of Favorites", lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
 InitQAPFeatureObject("Settings", L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "iconSettings")
 
 ;------------------------------------------------------------
@@ -2558,20 +2557,24 @@ Gui, 2:+OwnDialogs
 if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
-Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h350 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
+Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h380 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
 intTabNumber := 0
 
 ; ------ TAB Basic Settings ------
 
 Gui, 2:Tab, % ++intTabNumber
 
-if (g_objEditedFavorite.FavoriteType = "QAP")
-	Gui, 2:Add, Text, x20 y40 w400, % ReplaceAllInString(L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, L(lMenuSettings, g_strAppNameText), lGuiOptions), "`n`n", "`n")
-else
-	Gui, 2:Add, Text, x20 y40 w400, % "> " . ReplaceAllInString(g_objFavoriteTypesHelp[g_objEditedFavorite.FavoriteType], "`n`n", "`n> ")
+Gui, 2:Font, w700
+Gui, 2:Add, Text, x20 y40 w400, % lDialogFavoriteType . ": " . g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]
+Gui, 2:Font
 
 if (g_objEditedFavorite.FavoriteType = "QAP")
-	Gui, 2:Add, Edit, x20 y+0 vf_strFavoriteShortName hidden ; not allow to change favorite short name for QAP feature favorites
+	Gui, 2:Add, Text, x20 y+10 w400, % ReplaceAllInString(L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, L(lMenuSettings, g_strAppNameText), lGuiOptions), "`n`n", "`n")
+else
+	Gui, 2:Add, Text, x20 y+10 w400, % "> " . ReplaceAllInString(g_objFavoriteTypesHelp[g_objEditedFavorite.FavoriteType], "`n`n", "`n> ")
+
+if (g_objEditedFavorite.FavoriteType = "QAP")
+	Gui, 2:Add, Edit, x20 y+0 vf_strFavoriteShortName hidden, % g_objEditedFavorite.FavoriteName ; not allow to change favorite short name for QAP feature favorites
 else
 {
 	Gui, 2:Add, Text, x20 y+20, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]) . " *"
@@ -2618,10 +2621,10 @@ else ; "Special" or "QAP"
 
 if (g_objEditedFavorite.FavoriteType = "FTP")
 {
-	Gui, 2:Add, Text, x20 y+20, %lGuiLoginName%
+	Gui, 2:Add, Text, x20 y+10, %lGuiLoginName%
 	Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
 
-	Gui, 2:Add, Text, x20 y+20, %lGuiPassword%
+	Gui, 2:Add, Text, x20 y+10, %lGuiPassword%
 	Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
 }
 
@@ -2740,7 +2743,7 @@ Gui, 2:Tab
 
 if (A_ThisLabel = "GuiEditFavorite")
 {
-	Gui, 2:Add, Button, y400 vf_btnEditFavoriteSave gGuiEditFavoriteSave default, %lDialogSave%
+	Gui, 2:Add, Button, y420 vf_btnEditFavoriteSave gGuiEditFavoriteSave default, %lDialogSave%
 	Gui, 2:Add, Button, yp vf_btnEditFavoriteCancel gGuiEditFavoriteCancel, %lGuiCancel%
 	
 	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnEditFavoriteSave", "f_btnEditFavoriteCancel")
@@ -3117,7 +3120,11 @@ else if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and StrL
 	GetIcon4Location(f_strFavoriteLocation, strThisIconFile, intThisIconIndex, blnRadioApplication)
 	g_strDefaultIconResource := strThisIconFile . "," . intThisIconIndex
 }
-else if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType) ; should not
+else if (g_objEditedFavorite.FavoriteType = "Special")
+	g_strDefaultIconResource := g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultIcon
+else if (g_objEditedFavorite.FavoriteType = "QAP")
+	g_strDefaultIconResource := g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultIcon
+else ; should not
 	g_strDefaultIconResource := g_objIconsFile["iconUnknown"] . "," . g_objIconsIndex["iconUnknown"]
 
 if !StrLen(g_strNewFavoriteIconResource) or (g_strNewFavoriteIconResource = g_objIconsFile["iconUnknown"] . "," . g_objIconsIndex["iconUnknown"])
@@ -3464,7 +3471,7 @@ ValidateWindowPosition(strPosition)
 ;------------------------------------------------------------
 {
 	StringSplit, arrPosition, strPosition, `,
-	if !(arrPosition1) ; no position to validate
+	if !(arrPosition1) or (arrPosition2 <> 0) ; no position to validate
 		return true
 	
 	if arrPosition3 is not integer
