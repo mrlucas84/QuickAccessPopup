@@ -16,10 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- edit on backlink move to parent menu, should do nothing
 
 TO-DO
 - Options, 3rd party, one Browse in modal window
-- fix hotkey names in help text
 - review help text
 - build menu "QAP Essentials" like My Special Folders
 - add Support freeware to main menu if user did not donate
@@ -32,6 +32,7 @@ LATER
 HELP
 * Update links to QAP website in Help
 * Update links to QAP reviews in Donate
+* fix hotkey names in help text
 
 LANGUAGE
 * Replace or update occurences of "FoldersPopup" in language files
@@ -39,8 +40,6 @@ LANGUAGE
 QAP FEATURES MENUS
 * Does not support Folders in Explorer and Group menus for TC and FPc users
 
-FAVORITE LIST
-* Support moving sperators and column breaks (types "K" and "X") when moving multiple items
 
 Version 6.0.2 alpha (2015-05-??)
 
@@ -3194,7 +3193,7 @@ Loop
 	g_intOriginalMenuPosition := LV_GetNext(g_intOriginalMenuPosition)
 	if (!g_intOriginalMenuPosition)
         break
-	if InStr("K|X", g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType)
+	if (g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType = "B") ; skip back menu
 		continue
 	g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
 	
@@ -3309,6 +3308,7 @@ if !FolderNameIsNew((A_ThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorit
 	}
 
 if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " " . g_objEditedFavorite.FavoriteName) = 1) ; = 1 to check if equal from start only
+	and !InStr("K|X", g_objEditedFavorite.FavoriteType) ; no risk with separators
 {
 	Oops(lDialogMenuNotMoveUnderItself, g_objEditedFavorite.FavoriteName)
 	g_intOriginalMenuPosition += 1 ; will be reduced by GuiMoveMultipleFavoritesSave
