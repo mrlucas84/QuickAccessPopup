@@ -18,6 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- adjust static control occurences showing cursor in WM_MOUSEMOVE
 - Options, 3rd party, one Browse in modal window
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -25,7 +26,6 @@ TO-DO
 
 LATER
 -----
-* Test Lexikos fix for OnLButtonDblClk issue
 * decode arguments placeholders {LOC}, ect.
 
 HELP
@@ -61,7 +61,7 @@ VARIABLES NAMING CONVENTION
 ---------------------------
 
 typNameOfVariable
-^^^^^^^^^^^^^^^^^ description of the variable content, with name section from general to specific
+^^^^^^^^^^^^^^^^^ description of the variable content, with name sections from general to specific
 
 typeNameOfVariable
 ^^^^ type of variable, str for strings, int for integers (any size), dbl for reals (not used in this app),
@@ -189,7 +189,6 @@ g_strFPconnectAppFilename := ""
 g_strFPconnectTargetFilename := ""
 
 
-
 ; if the app runs from a zip file, the script directory is created under the system Temp folder
 if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
 {
@@ -226,7 +225,7 @@ if (g_blnUseColors)
 ; build even if blnDisplayFoldersInExplorerMenu (etc.) are false because they could become true
 ; no need to build Recent folders menu at startup since this menu is refreshed/recreated on demand
 Gosub, BuildFoldersInExplorerMenuInit ; need to be initialized here - will be updated at each call to popup menu
-Gosub, BuildGroupMenuInit
+; Gosub, BuildGroupMenuInit not needed with new Grup favorite type
 Gosub, BuildClipboardMenuInit
 
 Gosub, BuildMainMenu
@@ -234,21 +233,21 @@ Gosub, BuildGui
 
 Gosub, GuiShow
 
+; Load the cursor and start the "hook" - See WM_MOUSEMOVE function below
+objCursor := DllCall("LoadCursor", "UInt", NULL, "Int", 32649, "UInt") ; IDC_HAND
+OnMessage(0x200, "WM_MOUSEMOVE")
+
+; To prevent double-click on image static controls to copy their path to the clipboard - See WM_LBUTTONDBLCLK function below
+; see http://www.autohotkey.com/board/topic/94962-doubleclick-on-gui-pictures-puts-their-path-in-your-clipboard/#entry682595
+OnMessage(0x203, "WM_LBUTTONDBLCLK")
+
+; To popup menu when left click on the tray icon - See AHK_NOTIFYICON function below
+OnMessage(0x404, "AHK_NOTIFYICON")
+
+; Create a mutex to allow Inno Setup to detect if FP is running before uninstall or update
+DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex")
+
 return
-
-
-/*
-
-IN QAP FIX THIS LOOKING AT OnLButtonDblClk by Lexikos IN http://www.autohotkey.com/board/topic/94962-doubleclick-on-gui-pictures-puts-their-path-in-your-clipboard/#entry682595)
-
-REMOVED IN v4.2.1 BECAUSE OF A SIDE EFFECT IN XL 2010
-; prevent double-click on some static control to overwrite the clipboard with the image URL (a windows "undesired feature")
-; see http://www.autohotkey.com/board/topic/94962-doubleclick-on-gui-pictures-puts-their-path-in-your-clipboard/
-OnClipboardChange:
-If A_EventInfo
-  ClipboardAllBK := ClipboardAll
-return
-*/
 
 
 ;========================================================================================================================
@@ -3749,19 +3748,16 @@ GuiMoveOneFavoriteUp:
 GuiMoveOneFavoriteDown:
 ;------------------------------------------------------------
 
-; prevent double-click on some static control to overwrite the clipboard with the image URL (a windows "undesired feature")
-; see http://www.autohotkey.com/board/topic/94962-doubleclick-on-gui-pictures-puts-their-path-in-your-clipboard/
-If (A_GuiEvent="DoubleClick")
-	; would be used to restore clipboard's  previous content if there was not a side effect in XL 2010
-	; (see: https://github.com/JnLlnd/FoldersPopup/issues/128)
-	; Clipboard := ClipboardAllBK
-	Clipboard := "" ; better than nothing, empty the clipboard because we cannot restore its previous content
-
 if !InStr(A_ThisLabel, "One")
 {
 	GuiControl, Focus, f_lvFavoritesList
 	Gui, 1:ListView, f_lvFavoritesList
 	g_intSelectedRow := LV_GetNext()
+}
+if (g_intSelectedRow = 0)
+{
+	Oops(lDialogSelectItemToMove)
+	return
 }
 if (g_intSelectedRow = (InStr(A_ThisLabel, "Up") ? (g_objMenuInGui[1].FavoriteType = "B" ? 2 : 1) ; if Up not higher that first non-back link favorite
 	: LV_GetCount())) ; if Down not lower that last
@@ -5498,6 +5494,88 @@ ReplaceAllInString(strThis, strFrom, strTo)
 	StringReplace, strThis, strThis, %strFrom%, %strTo%, A
 	return strThis
 }
+;------------------------------------------------------------
+
+
+
+;========================================================================================================================
+; END OF VARIOUS_FUNCTIONS
+;========================================================================================================================
+
+;========================================================================================================================
+!_095_ONMESSAGE_FUNCTIONS:
+return
+;========================================================================================================================
+
+
+;------------------------------------------------
+WM_MOUSEMOVE(wParam, lParam)
+; "hook" for image buttons cursor
+; see http://www.autohotkey.com/board/topic/70261-gui-buttons-hover-cant-change-cursor-to-hand/
+;------------------------------------------------
+{
+	Global objCursor
+	Global lGuiFullTitle
+
+	WinGetTitle, strCurrentWindow, A
+	if (strCurrentWindow <> lGuiFullTitle)
+		return
+
+	MouseGetPos, , , , strControl ; Static1, StaticN, Button1, ButtonN
+	if InStr(strControl, "Static")
+	{
+		StringReplace, intControl, strControl, Static
+		; 3-23, 25-26
+		if (intControl < 3) or (intControl = 24) or (intControl > 26)
+			return
+	}
+	else if !InStr(strControl, "Button")
+		return
+
+	DllCall("SetCursor", "UInt", objCursor)
+
+	return
+}
+;------------------------------------------------
+
+
+;------------------------------------------------------------
+WM_LBUTTONDBLCLK(wParam, lParam, msg, hwnd)
+; To prevent double-click on image static controls to copy their path to the clipboard
+; see http://www.autohotkey.com/board/topic/94962-doubleclick-on-gui-pictures-puts-their-path-in-your-clipboard/#entry682595
+;------------------------------------------------------------
+{
+    WinGetClass class, ahk_id %hwnd%
+    if (class = "Static") {
+        if !A_Gui
+            return 0  ; Just prevent Clipboard change.
+        ; Send a WM_COMMAND message to the Gui to trigger the control's g-label.
+        Gui +LastFound
+        id := DllCall("GetDlgCtrlID", "ptr", hwnd) ; Requires AutoHotkey v1.1.
+        static STN_DBLCLK := 1
+        PostMessage 0x111, id | (STN_DBLCLK << 16), hwnd
+        ; Return a value to prevent the default handling of this message.
+        return 0
+    }
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+AHK_NOTIFYICON(wParam, lParam) 
+; Adapted from Lexikos http://www.autohotkey.com/board/topic/11250-mouseover-trayicon-triggering-an-event/#entry153388
+; To popup menu when left click on the tray icon - See the OnMessage command in the init section
+;------------------------------------------------------------
+{
+	global blnClickOnTrayIcon
+	
+	if (lParam = 0x202) ; WM_LBUTTONUP
+	{
+		blnClickOnTrayIcon := 1
+		SetTimer, LaunchHotkeyMouse, -1
+		return 0
+	}
+} 
 ;------------------------------------------------------------
 
 

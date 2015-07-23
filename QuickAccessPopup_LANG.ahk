@@ -104,6 +104,7 @@ global lDialogSave := "Save"
 global lDialogSelectIcon := "Select icon"
 global lDialogSelectItemToAdd := "Select the item to add" ; new
 global lDialogSelectItemToEdit := "Please, select the item to edit."
+global lDialogSelectItemToMove := "Please, select the item to move." ; new
 global lDialogSelectItemToRemove := "Please, select the item to remove."
 global lDialogShift := "Shift" ; renamed
 global lDialogShortcut := "Shortcut"
