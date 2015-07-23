@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- edit on backlink move to parent menu, should do nothing
 
 TO-DO
 - Options, 3rd party, one Browse in modal window
@@ -2234,6 +2233,8 @@ if (A_GuiEvent = "DoubleClick")
 	g_intOriginalMenuPosition := LV_GetNext()
 	if InStr("Menu|Group", g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType)
 		Gosub, OpenMenuFromGuiHotkey
+	else if (g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType = "B")
+		Gosub, GuiGotoUpMenu
 	else
 		gosub, GuiEditFavorite
 }
@@ -2495,10 +2496,7 @@ if (A_ThisLabel = "GuiEditFavorite")
 	g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
 	
 	if (g_objEditedFavorite.FavoriteType = "B")
-	{
-		Gosub, GuiGotoUpMenu
 		return
-	}
 	
 	if InStr("XK", g_objEditedFavorite.FavoriteType) ; favorite is menu separator or column break
 		return
