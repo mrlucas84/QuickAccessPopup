@@ -1,10 +1,10 @@
 #NoEnv
 #SingleInstance force
 
-global g_strMouseLaunchHotkey := "MButton" ; shiftt-middle mouse button
-global g_strKeyboardLaunchHotkey := "#A" ; Windows-A
-global g_strMouseNavigateHotkey := "MButton" ; shiftt-middle mouse button
-global g_strKeyboardNavigateHotkey := "!#A" ; Windows-A
+global g_strMouseHotkey := "MButton" ; shiftt-middle mouse button
+global g_strKeyboardHotkey := "#A" ; Windows-A
+global g_strMouseAlternateHotkey := "!MButton" ; shiftt-middle mouse button
+global g_strKeyboardAlternateHotkey := "!#A" ; Windows-A
 
 global g_strTargetWinId
 global g_strTargetClass
@@ -21,18 +21,21 @@ global g_blnOpenMenuOnTaskbar := 1 ; from Options
 
 global g_strExclusionClassList
 
-g_strExclusionClassList := "SciTEWindow|" ; must end with |
+g_strExclusionClassList := "SciTEWindow|Chrome_WidgetWin_1|" ; must end with |
 
 ; Hotkey, If, CanNavigate(A_ThisLabel, strTargetWinId, strTargetClass, strTargetControl)
 Hotkey, If, CanNavigate(A_ThisHotkey)
-Hotkey, %g_strMouseNavigateHotkey%, NavigateHotkeyMouse
-Hotkey, %g_strKeyboardNavigateHotkey%, NavigateHotkeyKeyboard
+Hotkey, %g_strMouseHotkey%, NavigateHotkeyMouse
+Hotkey, %g_strKeyboardHotkey%, NavigateHotkeyKeyboard
 Hotkey, If
 
 Hotkey, If, CanLaunch(A_ThisHotkey)
-Hotkey, %g_strMouseLaunchHotkey%, LaunchHotkeyMouse
-Hotkey, %g_strKeyboardLaunchHotkey%, LaunchHotkeyKeyboard
+Hotkey, %g_strMouseHotkey%, LaunchHotkeyMouse
+Hotkey, %g_strKeyboardHotkey%, LaunchHotkeyKeyboard
 Hotkey, If
+
+Hotkey, %g_strMouseAlternateHotkey%, AskHotkeyMouse
+Hotkey, %g_strKeyboardAlternateHotkey%, AskHotkeyKeyboard
 
 ; To popup menu when left click on the tray icon - See AHK_NOTIFYICON function below
 OnMessage(0x404, "AHK_NOTIFYICON")
@@ -77,11 +80,12 @@ AHK_NOTIFYICON(wParam, lParam)
 
 
 ;------------------------------------------------------------
-LaunchHotkeyMouse: ; default MButton
-NavigateHotkeyMouse: ; default !MButton
-LaunchHotkeyKeyboard: ; default !#A
-NavigateHotkeyKeyboard: ; default !#A
-
+NavigateHotkeyMouse: ; default MButton if CanNavigate
+NavigateHotkeyKeyboard: ; default #A if CanNavigate
+LaunchHotkeyMouse: ; default MButton if CanLaunch
+LaunchHotkeyKeyboard: ; default #A if CanLaunch
+AskHotkeyMouse: ; default !MButton if CanLaunch
+AskHotkeyKeyboard: ; default !#A if CanLaunch
 ;------------------------------------------------------------
 
 ###_D("A_ThisLabel: " . A_ThisLabel . "`ng_strTargetWinId: " . g_strTargetWinId . "`ng_strTargetClass: " . g_strTargetClass . "`ng_strTargetControl: " . g_strTargetControl . "`nCounters (Navigate/Launch): " . g_intCounterNavigate . "/" . g_intCounterLaunch)
@@ -97,18 +101,18 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 {
 	g_intCounterLaunch++
 	
-	if (strMouseOrKeyboard = g_strMouseLaunchHotkey or strMouseOrKeyboard = g_strMouseNavigateHotkey)
+	if (strMouseOrKeyboard = g_strMouseHotkey or strMouseOrKeyboard = g_strMouseHotkey)
 	{
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, Launch Mouse, %strMouseOrKeyboard%: %g_strMouseNavigateHotkey%`n%g_strTargetControl%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
+		; TrayTip, Launch Mouse, %strMouseOrKeyboard%: %g_strMouseNavigateHotkey%`n%g_strTargetControl%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
 	}
 	else ; Keyboard
 	{
 		g_strTargetWinId := WinExist("A")
 		g_strTargetControl := ""
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, Launch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
+		; TrayTip, Launch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
 	}
 
 	return !InStr(g_strExclusionClassList, g_strTargetClass . "|")
@@ -128,18 +132,18 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 {
 	g_intCounterNavigate++
 	
-	if (strMouseOrKeyboard = g_strMouseLaunchHotkey or strMouseOrKeyboard = g_strMouseNavigateHotkey)
+	if (strMouseOrKeyboard = g_strMouseHotkey or strMouseOrKeyboard = g_strMouseHotkey)
 	{
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, Navigate Mouse, %strMouseOrKeyboard% = %g_strMouseNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%`n%g_strTargetControl%
+		; TrayTip, Navigate Mouse, %strMouseOrKeyboard% = %g_strMouseNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%`n%g_strTargetControl%
 	}
 	else ; Keyboard
 	{
 		g_strTargetWinId := WinExist("A")
 		g_strTargetControl := ""
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
+		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
 	}
 
 	blnCanOpenFavorite := WindowIsAnExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
