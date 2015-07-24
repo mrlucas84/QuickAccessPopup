@@ -18,6 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- rewrite lOptionsTitles
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - Options, 3rd party, one Browse in modal window
 - review help text
@@ -1469,7 +1470,7 @@ return
 
 
 ;------------------------------------------------------------
-AddToIniQAPFeaturesMenu:
+AddToIniMyQAPFeaturesMenu:
 ;------------------------------------------------------------
 
 ; base on AddToIniMySystemFoldersMenu: and re-use AddToIniOneSystemFolderMenu
@@ -2005,7 +2006,7 @@ Gui, 1:Add, Text, vf_lblAppTagLine, %lAppTagline%
 Gui, 1:Add, Picture, vf_picGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static3
 Gui, 1:Add, Picture, vf_picGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
 Gui, 1:Add, Picture, vf_picGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static5
-Gui, 1:Add, Picture, vf_picGuiGroupsManage gGuiGroupsManage x+1 yp, %g_strTempDir%\channel_mosaic-48.png ; Static6
+; Gui, 1:Add, Picture, vf_picGuiGroupsManage gGuiGroupsManage x+1 yp, %g_strTempDir%\channel_mosaic-48.png ; Static6
 Gui, 1:Add, Picture, vf_picGuiOptions gGuiOptions x+1 yp, %g_strTempDir%\settings-32.png ; Static7
 Gui, 1:Add, Picture, vf_picPreviousMenu gGuiGotoPreviousMenu hidden x+1 yp, %g_strTempDir%\left-12.png ; Static8
 Gui, 1:Add, Picture, vf_picUpMenu gGuiGotoUpMenu hidden x+1 yp, %g_strTempDir%\up-12.png ; Static9
@@ -2022,7 +2023,7 @@ Gui, 1:Add, Text, vf_lblGuiOptions gGuiOptions x0 y+20, %lGuiOptions% ; Static17
 Gui, 1:Add, Text, vf_lblGuiAddFavorite center gGuiAddFavoriteSelectType x+1 yp, %lGuiAddFavorite% ; Static18
 Gui, 1:Add, Text, vf_lblGuiEditFavorite center gGuiEditFavorite x+1 yp w88, %lGuiEditFavorite% ; Static19, w88 to make room fot when multiple favorites are selected
 Gui, 1:Add, Text, vf_lblGuiRemoveFavorite center gGuiRemoveFavorite x+1 yp, %lGuiRemoveFavorite% ; Static20
-Gui, 1:Add, Text, vf_lblGuiGroupsManage center gGuiGroupsManage x+1 yp, %lDialogGroups% ; Static21
+; Gui, 1:Add, Text, vf_lblGuiGroupsManage center gGuiGroupsManage x+1 yp, %lDialogGroups% ; Static21
 Gui, 1:Add, Text, vf_lblGuiAbout center gGuiAbout x+1 yp, %lGuiAbout% ; Static22
 Gui, 1:Add, Text, vf_lblGuiHelp center gGuiHelp x+1 yp, %lGuiHelp% ; Static23
 
@@ -4228,6 +4229,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 !_040_GROUPS:
 ;========================================================================================================================
 
+/*
 ;------------------------------------------------------------
 GuiGroupsManage:
 ;------------------------------------------------------------
@@ -4368,6 +4370,7 @@ GuiControl, 2:, f_drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
 
 return
 ;------------------------------------------------------------
+*/
 
 ;========================================================================================================================
 ; END OF GROUPS
@@ -4383,8 +4386,211 @@ return
 GuiOptions:
 ;------------------------------------------------------------
 
+g_intGui1WinID := WinExist("A")
+
+StringSplit, arrOptionsTitlesSub, lOptionsTitlesSub, |
+
+;---------------------------------------
+; Build Gui header
+Gui, 1:Submit, NoHide
+Gui, 2:New, , % L(lOptionsGuiTitle, g_strAppNameText, g_strAppVersion)
+if (g_blnUseColors)
+	Gui, 2:Color, %g_strGuiWindowColor%
+Gui, 2:+Owner1
+Gui, 2:Font, s10 w700, Verdana
+Gui, 2:Add, Text, x10 y10 w595 center, % L(lOptionsGuiTitle, g_strAppNameText)
+
+Gui, 2:Font, s8 w600, Verdana
+Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsHotkeys% | %lOptionsThirdParty%%A_Space%
+
+;---------------------------------------
+; Tab 1: General options
+
+Gui, 2:Tab, 1
+
+Gui, 2:Font
+Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabOtherOptionsIntro, g_strAppNameText)
+
+; column 1
+Gui, 2:Add, Text, y+10 x15 Section, %lOptionsLanguage%
+Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpLanguage Sort, %lOptionsLanguageLabels%
+GuiControl, ChooseString, f_drpLanguage, %g_strLanguageLabel%
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOptionsRunAtStartup, %lOptionsRunAtStartup%
+GuiControl, , f_blnOptionsRunAtStartup, % FileExist(A_Startup . "\" . g_strAppNameFile . ".lnk") ? 1 : 0
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayMenuShortcuts, %lOptionsDisplayMenuShortcuts%
+GuiControl, , f_blnDisplayMenuShortcuts, %g_blnDisplayMenuShortcuts%
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayTrayTip, %lOptionsTrayTip%
+GuiControl, , f_blnDisplayTrayTip, %g_blnDisplayTrayTip%
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayIcons, %lOptionsDisplayIcons%
+GuiControl, , f_blnDisplayIcons, %g_blnDisplayIcons%
+if !OSVersionIsWorkstation()
+{
+	GuiControl, , f_blnDisplayIcons, 0
+	GuiControl, Disable, f_blnDisplayIcons
+}
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnCheck4Update, %lOptionsCheck4Update%
+GuiControl, , f_blnCheck4Update, %g_blnCheck4Update%
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
+GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
+
+; column 2
+Gui, 2:Add, Text, ys x240 Section, %lOptionsIconSize%
+Gui, 2:Add, DropDownList, ys x+10 w40 vf_drpIconSize Sort, 16|24|32|48|64
+GuiControl, ChooseString, f_drpIconSize, %g_intIconSize%
+
+/*
+Gui, 2:Add, Text, y+7 x240 w200, %lOptionsDisplayMenus%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayFoldersInExplorerMenu, %lOptionsDisplayFoldersInExplorerMenu%
+GuiControl, , blnDisplayFoldersInExplorerMenu, %blnDisplayFoldersInExplorerMenu%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayGroupMenu, %lOptionsDisplayGroupMenu%
+GuiControl, , blnDisplayGroupMenu, %blnDisplayGroupMenu%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayClipboardMenu, %lOptionsDisplayClipboardMenu%
+GuiControl, , blnDisplayClipboardMenu, %blnDisplayClipboardMenu%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayCopyLocationMenu, %lOptionsDisplayCopyLocationMenu%
+GuiControl, , blnDisplayCopyLocationMenu, %blnDisplayCopyLocationMenu%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayRecentFolders gDisplayRecentFoldersClicked, %lOptionsDisplayRecentFolders%
+GuiControl, , blnDisplayRecentFolders, %blnDisplayRecentFolders%
+
+Gui, 2:Add, Edit, % "y+5 xs+15 w36 h17 vintRecentFolders center " . (blnDisplayRecentFolders ? "" : "hidden"), %g_intRecentFolders%
+Gui, 2:Add, Text, % "yp x+10 vlblRecentFolders " . (blnDisplayRecentFolders ? "" : "hidden"), %lOptionsRecentFolders%
+*/
+
+; column 3
+
+Gui, 2:Add, Text, ys x430 Section, %lOptionsTheme%
+Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpTheme, %g_strAvailableThemes%
+GuiControl, ChooseString, f_drpTheme, %g_strTheme%
+
+Gui, 2:Add, CheckBox, y+10 xs w190 vf_blnRememberSettingsPosition, %lOptionsRememberSettingsPosition%
+GuiControl, , f_blnRememberSettingsPosition, %g_blnRememberSettingsPosition%
+
+Gui, 2:Add, Text, y+12 xs w190 Section, %lOptionsMenuPositionPrompt%
+
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition1 gPopupMenuPositionClicked Group " . (g_intPopupMenuPosition = 1 ? "Checked" : ""), %lOptionsMenuNearMouse%
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition2 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 2 ? "Checked" : ""), %lOptionsMenuActiveWindow%
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition3 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 3 ? "Checked" : ""), %lOptionsMenuFixPosition%
+
+Gui, 2:Add, Text, % "y+5 xs+18 vf_lblPopupFixPositionX " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %lOptionsPopupFixPositionX%
+Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionX center " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %g_arrPopupFixPosition1%
+Gui, 2:Add, Text, % "yp x+5 vf_lblPopupFixPositionY " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %lOptionsPopupFixPositionY%
+Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionY center " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %g_arrPopupFixPosition2%
+
+;---------------------------------------
+; Tab 2: Popup menu hotkeys
+
+Gui, 2:Tab, 2
+
+Gui, 2:Font
+Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabMouseAndKeyboardIntro, g_strAppNameText)
+
+loop, 4
+{
+	Gui, 2:Font, s8 w700
+	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsTitles%A_Index%
+	Gui, 2:Font, s9 w500, Courier New
+	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % Hotkey2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
+	Gui, 2:Font
+	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
+	Gui, 2:Font, s8 w500
+	Gui, 2:Add, Text, x15 ys w240, % arrOptionsTitlesSub%A_Index%
+}
+
+;---------------------------------------
+; Tab 3: Other hotkeys
+
+/*
+Gui, 2:Tab, 3
+
+Gui, 2:Font
+Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabHotkeysIntro%
+
+loop, 6
+{
+	intIndex := A_Index + 4
+	Gui, 2:Font, s8 w700
+	Gui, 2:Add, Text, Section x15 y+10, % g_arrOptionsTitles%intIndex%
+	Gui, 2:Font, s9 w500, Courier New
+	Gui, 2:Add, Text, x260 ys+5 w280 h23 center 0x1000 vlblHotkeyText%intIndex% gButtonOptionsChangeHotkey%intIndex%, % Hotkey2Text(strModifiers%intIndex%, strMouseButton%intIndex%, strOptionsKey%intIndex%)
+	Gui, 2:Font
+	Gui, 2:Add, Button, yp x555 vbtnChangeHotkey%intIndex% gButtonOptionsChangeHotkey%intIndex%, %lOptionsChangeHotkey%
+	Gui, 2:Font, s8 w500
+	Gui, 2:Add, Text, x15 ys+15 w240, % arrOptionsTitlesSub%intIndex%
+}
+
+Gui, 2:Add, CheckBox, y+35 x20 vblnDisplaySpecialMenusShortcuts, %lOptionsDisplaySpecialMenusShortcuts%
+GuiControl, , g_blnDisplaySpecialMenusShortcuts, %g_blnDisplaySpecialMenusShortcuts%
+*/
+
+;---------------------------------------
+; Tab 4: File Managers
+
+Gui, 2:Tab, 4
+
+Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabFileManagersIntro%
+
+Gui, 2:Font, s8 w700
+Gui, 2:Add, Link, y+15 x15, % L(lOptionsThirdPartyTitle, "Directory Opus") . " (<a href=""http://code.jeanlalonde.ca/using-folderspopup-with-directory-opus/"">" . lGuiHelp . "</a>)"
+Gui, 2:Font
+Gui, 2:Add, Text, y+5 x15, % L(lOptionsThirdPartyDetail, "Directory Opus")
+Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
+Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strDirectoryOpusPath, %g_strDirectoryOpusPath%
+Gui, 2:Add, Button, x+10 yp vf_btnSelectDOpusPath gButtonSelectDOpusPath, %lDialogBrowseButton%
+Gui, 2:Add, Checkbox, x+10 yp vf_blnDirectoryOpusUseTabs, %lOptionsDirectoryOpusUseTabs%
+GuiControl, , f_blnDirectoryOpusUseTabs, %g_blnDirectoryOpusUseTabs%
+
+Gui, 2:Font, s8 w700
+Gui, 2:Add, Link, y+25 x15, % L(lOptionsThirdPartyTitle, "Total Commander") . " (<a href=""http://code.jeanlalonde.ca/using-folderspopup-with-total-commander/"">" . lGuiHelp . "</a>)"
+Gui, 2:Font
+Gui, 2:Add, Text, y+5 x15, % L(lOptionsThirdPartyDetail, "Total Commander")
+Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
+Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strTotalCommanderPath, %g_strTotalCommanderPath%
+Gui, 2:Add, Button, x+10 yp vf_btnSelectTCPath gButtonSelectTCPath, %lDialogBrowseButton%
+Gui, 2:Add, Checkbox, x+10 yp vf_blnTotalCommanderUseTabs, %lOptionsTotalCommanderUseTabs%
+GuiControl, , f_blnTotalCommanderUseTabs, %g_blnTotalCommanderUseTabs%
+
+Gui, 2:Font, s8 w700
+Gui, 2:Add, Link, y+25 x15, %lOptionsThirdPartyTitleFPconnect% (<a href="https://github.com/rolandtoth/FPconnect">%lGuiHelp%</a>)
+Gui, 2:Font
+Gui, 2:Add, Text, y+5 x15, %lOptionsThirdPartyDetailFPconnect%
+Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
+Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strFPconnectPath, %g_strFPconnectPath%
+Gui, 2:Add, Button, x+10 yp vf_btnSelectFPcPath gButtonSelectFPcPath, %lDialogBrowseButton%
+
+;---------------------------------------
+; Build Gui footer
+
+Gui, 2:Tab
+
+GuiControlGet, arrTabPos, Pos, f_intOptionsTab
+
+Gui, 2:Add, Button, % "y" . arrTabPosY + arrTabPosH + 10 . " x10 vf_btnOptionsSave gButtonOptionsSave Default", %lGuiSave%
+Gui, 2:Add, Button, yp vf_btnOptionsCancel gButtonOptionsCancel, %lGuiCancel%
+Gui, 2:Add, Button, yp vf_btnOptionsDonate gGuiDonate, %lDonateButton%
+GuiCenterButtons(L(lOptionsGuiTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnOptionsSave", "f_btnOptionsCancel", "f_btnOptionsDonate")
+
+Gui, 2:Add, Text
+GuiControl, Focus, f_btnOptionsSave
+
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+arrOptionsTitlesSub := ""
+
 return
 ;------------------------------------------------------------
+
+
 
 
 ;========================================================================================================================
@@ -4535,18 +4741,18 @@ return
 !_060_POPUP_MENU:
 ;========================================================================================================================
 
-LaunchHotkeyMouse:
-LaunchHotkeyKeyboard:
+HotkeyMouse:
+HotkeyKeyboard:
 return
 
 
-NavigateHotkeyMouse:
-NavigateHotkeyKeyboard:
-return
+; NavigateHotkeyMouse:
+; NavigateHotkeyKeyboard:
+; return
 
 
-PowerHotkeyMouse:
-PowerHotkeyKeyboard:
+AlternateHotkeyMouse:
+AlternateHotkeyKeyboard:
 return
 
 
@@ -5571,7 +5777,7 @@ AHK_NOTIFYICON(wParam, lParam)
 	if (lParam = 0x202) ; WM_LBUTTONUP
 	{
 		blnClickOnTrayIcon := 1
-		SetTimer, LaunchHotkeyMouse, -1
+		SetTimer, HotkeyMouse, -1
 		return 0
 	}
 } 
