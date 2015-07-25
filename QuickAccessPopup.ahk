@@ -1976,6 +1976,451 @@ GetMenuHandle(strMenuName)
 
 
 ;========================================================================================================================
+!_025_OPTIONS:
+;========================================================================================================================
+
+;------------------------------------------------------------
+GuiOptions:
+;------------------------------------------------------------
+
+g_intGui1WinID := WinExist("A")
+
+StringSplit, g_arrOptionsTitlesSub, lOptionsTitlesSub, |
+
+;---------------------------------------
+; Build Gui header
+Gui, 1:Submit, NoHide
+Gui, 2:New, , % L(lOptionsGuiTitle, g_strAppNameText, g_strAppVersion)
+if (g_blnUseColors)
+	Gui, 2:Color, %g_strGuiWindowColor%
+Gui, 2:+Owner1
+Gui, 2:Font, s10 w700, Verdana
+Gui, 2:Add, Text, x10 y10 w595 center, % L(lOptionsGuiTitle, g_strAppNameText)
+
+Gui, 2:Font, s8 w600, Verdana
+Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsHotkeys% | %lOptionsThirdParty%%A_Space%
+
+;---------------------------------------
+; Tab 1: General options
+
+Gui, 2:Tab, 1
+
+Gui, 2:Font
+Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabOtherOptionsIntro, g_strAppNameText)
+
+; column 1
+Gui, 2:Add, Text, y+10 x15 Section, %lOptionsLanguage%
+Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpLanguage Sort, %lOptionsLanguageLabels%
+GuiControl, ChooseString, f_drpLanguage, %g_strLanguageLabel%
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOptionsRunAtStartup, %lOptionsRunAtStartup%
+GuiControl, , f_blnOptionsRunAtStartup, % FileExist(A_Startup . "\" . g_strAppNameFile . ".lnk") ? 1 : 0
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayMenuShortcuts, %lOptionsDisplayMenuShortcuts%
+GuiControl, , f_blnDisplayMenuShortcuts, %g_blnDisplayMenuShortcuts%
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayTrayTip, %lOptionsTrayTip%
+GuiControl, , f_blnDisplayTrayTip, %g_blnDisplayTrayTip%
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayIcons, %lOptionsDisplayIcons%
+GuiControl, , f_blnDisplayIcons, %g_blnDisplayIcons%
+if !OSVersionIsWorkstation()
+{
+	GuiControl, , f_blnDisplayIcons, 0
+	GuiControl, Disable, f_blnDisplayIcons
+}
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnCheck4Update, %lOptionsCheck4Update%
+GuiControl, , f_blnCheck4Update, %g_blnCheck4Update%
+
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
+GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
+
+; column 2
+Gui, 2:Add, Text, ys x240 Section, %lOptionsIconSize%
+Gui, 2:Add, DropDownList, ys x+10 w40 vf_drpIconSize Sort, 16|24|32|48|64
+GuiControl, ChooseString, f_drpIconSize, %g_intIconSize%
+
+/*
+Gui, 2:Add, Text, y+7 x240 w200, %lOptionsDisplayMenus%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayFoldersInExplorerMenu, %lOptionsDisplayFoldersInExplorerMenu%
+GuiControl, , blnDisplayFoldersInExplorerMenu, %blnDisplayFoldersInExplorerMenu%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayGroupMenu, %lOptionsDisplayGroupMenu%
+GuiControl, , blnDisplayGroupMenu, %blnDisplayGroupMenu%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayClipboardMenu, %lOptionsDisplayClipboardMenu%
+GuiControl, , blnDisplayClipboardMenu, %blnDisplayClipboardMenu%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayCopyLocationMenu, %lOptionsDisplayCopyLocationMenu%
+GuiControl, , blnDisplayCopyLocationMenu, %blnDisplayCopyLocationMenu%
+
+Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayRecentFolders gDisplayRecentFoldersClicked, %lOptionsDisplayRecentFolders%
+GuiControl, , blnDisplayRecentFolders, %blnDisplayRecentFolders%
+
+Gui, 2:Add, Edit, % "y+5 xs+15 w36 h17 vintRecentFolders center " . (blnDisplayRecentFolders ? "" : "hidden"), %g_intRecentFolders%
+Gui, 2:Add, Text, % "yp x+10 vlblRecentFolders " . (blnDisplayRecentFolders ? "" : "hidden"), %lOptionsRecentFolders%
+*/
+
+; column 3
+
+Gui, 2:Add, Text, ys x430 Section, %lOptionsTheme%
+Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpTheme, %g_strAvailableThemes%
+GuiControl, ChooseString, f_drpTheme, %g_strTheme%
+
+Gui, 2:Add, CheckBox, y+10 xs w190 vf_blnRememberSettingsPosition, %lOptionsRememberSettingsPosition%
+GuiControl, , f_blnRememberSettingsPosition, %g_blnRememberSettingsPosition%
+
+Gui, 2:Add, Text, y+12 xs w190 Section, %lOptionsMenuPositionPrompt%
+
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition1 gPopupMenuPositionClicked Group " . (g_intPopupMenuPosition = 1 ? "Checked" : ""), %lOptionsMenuNearMouse%
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition2 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 2 ? "Checked" : ""), %lOptionsMenuActiveWindow%
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition3 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 3 ? "Checked" : ""), %lOptionsMenuFixPosition%
+
+Gui, 2:Add, Text, % "y+5 xs+18 vf_lblPopupFixPositionX " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %lOptionsPopupFixPositionX%
+Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionX center " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %g_arrPopupFixPosition1%
+Gui, 2:Add, Text, % "yp x+5 vf_lblPopupFixPositionY " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %lOptionsPopupFixPositionY%
+Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionY center " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %g_arrPopupFixPosition2%
+
+;---------------------------------------
+; Tab 2: Popup menu hotkeys
+
+Gui, 2:Tab, 2
+
+Gui, 2:Font
+Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabMouseAndKeyboardIntro, g_strAppNameText)
+
+loop, 4
+{
+	Gui, 2:Font, s8 w700
+	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsTitles%A_Index%
+	Gui, 2:Font, s9 w500, Courier New
+	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % Hotkey2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
+	Gui, 2:Font
+	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
+	Gui, 2:Font, s8 w500
+	Gui, 2:Add, Link, x15 ys w240 gOptionsTitlesSubClicked, % g_arrOptionsTitlesSub%A_Index%
+}
+
+;---------------------------------------
+; Tab 3: Exclusion list
+
+
+;---------------------------------------
+; Tab 4: File Managers
+
+Gui, 2:Tab, 4
+
+Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabFileManagersIntro%
+
+Gui, 2:Font, s8 w700
+Gui, 2:Add, Link, y+15 x15, % L(lOptionsThirdPartyTitle, "Directory Opus") . " (<a href=""http://code.jeanlalonde.ca/using-folderspopup-with-directory-opus/"">" . lGuiHelp . "</a>)"
+Gui, 2:Font
+Gui, 2:Add, Text, y+5 x15, % L(lOptionsThirdPartyDetail, "Directory Opus")
+Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
+Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strDirectoryOpusPath, %g_strDirectoryOpusPath%
+Gui, 2:Add, Button, x+10 yp vf_btnSelectDOpusPath gButtonSelectDOpusPath, %lDialogBrowseButton%
+Gui, 2:Add, Checkbox, x+10 yp vf_blnDirectoryOpusUseTabs, %lOptionsDirectoryOpusUseTabs%
+GuiControl, , f_blnDirectoryOpusUseTabs, %g_blnDirectoryOpusUseTabs%
+
+Gui, 2:Font, s8 w700
+Gui, 2:Add, Link, y+25 x15, % L(lOptionsThirdPartyTitle, "Total Commander") . " (<a href=""http://code.jeanlalonde.ca/using-folderspopup-with-total-commander/"">" . lGuiHelp . "</a>)"
+Gui, 2:Font
+Gui, 2:Add, Text, y+5 x15, % L(lOptionsThirdPartyDetail, "Total Commander")
+Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
+Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strTotalCommanderPath, %g_strTotalCommanderPath%
+Gui, 2:Add, Button, x+10 yp vf_btnSelectTCPath gButtonSelectTCPath, %lDialogBrowseButton%
+Gui, 2:Add, Checkbox, x+10 yp vf_blnTotalCommanderUseTabs, %lOptionsTotalCommanderUseTabs%
+GuiControl, , f_blnTotalCommanderUseTabs, %g_blnTotalCommanderUseTabs%
+
+Gui, 2:Font, s8 w700
+Gui, 2:Add, Link, y+25 x15, %lOptionsThirdPartyTitleFPconnect% (<a href="https://github.com/rolandtoth/FPconnect">%lGuiHelp%</a>)
+Gui, 2:Font
+Gui, 2:Add, Text, y+5 x15, %lOptionsThirdPartyDetailFPconnect%
+Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
+Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strFPconnectPath, %g_strFPconnectPath%
+Gui, 2:Add, Button, x+10 yp vf_btnSelectFPcPath gButtonSelectFPcPath, %lDialogBrowseButton%
+
+;---------------------------------------
+; Build Gui footer
+
+Gui, 2:Tab
+
+GuiControlGet, arrTabPos, Pos, f_intOptionsTab
+
+Gui, 2:Add, Button, % "y" . arrTabPosY + arrTabPosH + 10 . " x10 vf_btnOptionsSave gButtonOptionsSave Default", %lGuiSave%
+Gui, 2:Add, Button, yp vf_btnOptionsCancel gButtonOptionsCancel, %lGuiCancel%
+Gui, 2:Add, Button, yp vf_btnOptionsDonate gGuiDonate, %lDonateButton%
+GuiCenterButtons(L(lOptionsGuiTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnOptionsSave", "f_btnOptionsCancel", "f_btnOptionsDonate")
+
+Gui, 2:Add, Text
+GuiControl, Focus, f_btnOptionsSave
+
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+PopupMenuPositionClicked:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_lblPopupFixPositionX
+GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_strPopupFixPositionX
+GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_lblPopupFixPositionY
+GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_strPopupFixPositionY
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OptionsTitlesSubClicked:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+GuiControl, Choose, f_intOptionsTab, 3
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonOptionsChangeHotkey1:
+ButtonOptionsChangeHotkey2:
+ButtonOptionsChangeHotkey3:
+ButtonOptionsChangeHotkey4:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+StringReplace, intHotkeyIndex, A_ThisLabel, ButtonOptionsChangeHotkey
+
+if InStr(g_arrHotkeyNames%intHotkeyIndex%, "Mouse")
+	intHotkeyType := 1 ; Mouse
+else
+	intHotkeyType := 2 ; Keyboard
+
+g_arrHotkeys%intHotkeyIndex% := SelectHotkey(g_arrHotkeys%intHotkeyIndex%, g_arrOptionsTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
+
+SplitHotkey(g_arrHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
+GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
+
+strNewModifiers := ""
+strNewMouse := ""
+strNewOptionsKey := ""
+strNewMouseButtonsWithDefault := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonSelectDOpusPath:
+;------------------------------------------------------------
+
+if StrLen(g_strDirectoryOpusPath) and (g_strDirectoryOpusPath <> "NO")
+	strCurrentDOpusLocation := g_strDirectoryOpusPath
+else
+	strCurrentDOpusLocation := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
+
+FileSelectFile, strNewDOpusLocation, 3, %strCurrentDOpusLocation%, %lDialogAddFolderSelect%
+
+if !(StrLen(strNewDOpusLocation))
+	return
+
+GuiControl, 2:, f_strDirectoryOpusPath, %strNewDOpusLocation%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonSelectTCPath:
+;------------------------------------------------------------
+
+if StrLen(g_strTotalCommanderPath) and (g_strTotalCommanderPath <> "NO")
+	strCurrentTCLocation := g_strTotalCommanderPath
+else
+	strCurrentTCLocation := GetTotalCommanderPath()
+
+FileSelectFile, strNewTCLocation, 3, %strCurrentTCLocation%, %lDialogAddFolderSelect%
+
+if !(StrLen(strNewTCLocation))
+	return
+
+GuiControl, 2:, f_strTotalCommanderPath, %strNewTCLocation%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonSelectFPcPath:
+;------------------------------------------------------------
+
+if StrLen(g_strFPconnectPath) and (g_strFPconnectPath <> "NO")
+	strCurrentFPcLocation := g_strFPconnectPath
+else
+	strCurrentFPcLocation := A_ScriptDir . "\FPconnect\FPconnect.exe"
+
+FileSelectFile, strNewFPcLocation, 3, %strCurrentFPcLocation%, %lDialogAddFolderSelect%
+
+if !(StrLen(strNewFPcLocation))
+	return
+
+GuiControl, 2:, f_strFPconnectPath, %strNewFPcLocation%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonOptionsSave:
+;------------------------------------------------------------
+/*
+Gui, 2:Submit
+
+g_blnMenuReady := false
+
+IfExist, %A_Startup%\%g_strAppNameFile%.lnk
+	FileDelete, %A_Startup%\%g_strAppNameFile%.lnk
+if (blnOptionsRunAtStartup)
+	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
+Menu, Tray, % blnOptionsRunAtStartup ? "Check" : "Uncheck", %lMenuRunAtStartup%
+
+IniWrite, %g_blnDisplayTrayTip%, %g_strIniFile%, Global, DisplayTrayTip
+IniWrite, %g_blnDisplayIcons%, %g_strIniFile%, Global, DisplayIcons
+IniWrite, %g_blnDisplaySpecialMenusShortcuts%, %g_strIniFile%, Global, DisplaySpecialMenusShortcuts
+IniWrite, %blnDisplayRecentFolders%, %g_strIniFile%, Global, DisplayRecentFolders
+IniWrite, %g_intRecentFolders%, %g_strIniFile%, Global, RecentFolders
+IniWrite, %blnDisplayFoldersInExplorerMenu%, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu
+IniWrite, %blnDisplayGroupMenu%, %g_strIniFile%, Global, DisplayGroupMenu
+IniWrite, %blnDisplayClipboardMenu%, %g_strIniFile%, Global, DisplayClipboardMenu
+IniWrite, %blnDisplayCopyLocationMenu%, %g_strIniFile%, Global, DisplayCopyLocationMenu
+IniWrite, %g_blnDisplayMenuShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
+IniWrite, %g_blnCheck4Update%, %g_strIniFile%, Global, Check4Update
+IniWrite, %g_blnOpenMenuOnTaskbar%, %g_strIniFile%, Global, OpenMenuOnTaskbar
+IniWrite, %g_blnRememberSettingsPosition%, %g_strIniFile%, Global, RememberSettingsPosition
+
+if (radPopupMenuPosition1)
+	g_intPopupMenuPosition := 1
+else if (radPopupMenuPosition2)
+	g_intPopupMenuPosition := 2
+else
+	g_intPopupMenuPosition := 3
+IniWrite, %g_intPopupMenuPosition%, %g_strIniFile%, Global, PopupMenuPosition
+	
+IniWrite, %strPopupFixPositionX%`,%strPopupFixPositionY%, %g_strIniFile%, Global, PopupFixPosition
+g_arrPopupFixPosition1 := strPopupFixPositionX
+g_arrPopupFixPosition2 := strPopupFixPositionY
+
+g_strLanguageCodePrev := g_strLanguageCode
+g_strLanguageLabel := drpLanguage
+loop, %g_arrOptionsLanguageLabels0%
+	if (g_arrOptionsLanguageLabels%A_Index% = g_strLanguageLabel)
+		{
+			g_strLanguageCode := g_arrOptionsLanguageCodes%A_Index%
+			break
+		}
+IniWrite, %g_strLanguageCode%, %g_strIniFile%, Global, LanguageCode
+
+strThemePrev := g_strTheme
+g_strTheme := drpTheme
+IniWrite, %g_strTheme%, %g_strIniFile%, Global, Theme
+
+g_intIconSize := drpIconSize
+IniWrite, %g_intIconSize%, %g_strIniFile%, Global, IconSize
+
+IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
+IniWrite, %g_blnDirectoryOpusUseTabs%, %g_strIniFile%, Global, DirectoryOpusUseTabs
+g_blnUseDirectoryOpus := StrLen(g_strDirectoryOpusPath)
+if (g_blnUseDirectoryOpus)
+{
+	g_blnUseDirectoryOpus := FileExist(g_strDirectoryOpusPath)
+	if (g_blnUseDirectoryOpus)
+		Gosub, SetDOpusRt
+}
+if (g_blnDirectoryOpusUseTabs)
+	g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
+else
+	g_strDirectoryOpusNewTabOrWindow := "NEW" ; open new folder in a new DOpus lister (instance)
+
+IniWrite, %g_strTotalCommanderPath%, %g_strIniFile%, Global, TotalCommanderPath
+IniWrite, %g_blnTotalCommanderUseTabs%, %g_strIniFile%, Global, TotalCommanderUseTabs
+g_blnUseTotalCommander := StrLen(g_strTotalCommanderPath)
+if (g_blnUseTotalCommander)
+{
+	g_blnUseTotalCommander := FileExist(g_strTotalCommanderPath)
+	if (g_blnUseTotalCommander)
+		Gosub, SetTCCommand
+}
+if (g_blnTotalCommanderUseTabs)
+	g_strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
+else
+	g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
+
+IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
+g_blnUseFPconnect := StrLen(g_strFPconnectPath)
+if (g_blnUseFPconnect)
+{
+	g_blnUseFPconnect := FileExist(g_strFPconnectPath)
+	if (g_blnUseFPconnect)
+		Gosub, SetFPconnect
+}
+
+; if language or theme changed, offer to restart the app
+if (g_strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
+{
+	MsgBox, 52, %g_strAppNameText%, % L(lReloadPrompt, (g_strLanguageCodePrev <> g_strLanguageCode ? lOptionsLanguage : lOptionsTheme), (g_strLanguageCodePrev <> g_strLanguageCode ? g_strLanguageLabel : g_strTheme), g_strAppNameText)
+	IfMsgBox, Yes
+	{
+		Gosub, RestoreBackupMenuObjects
+		Reload
+	}
+}	
+
+; else rebuild special and Group menus
+Gosub, BuildFoldersInExplorerMenu
+Gosub, BuildGroupMenu
+
+; and rebuild Folders menus w/ or w/o optional folders and shortcuts
+for strMenuName, arrMenu in g_arrMenus
+{
+	Menu, %strMenuName%, Add
+	Menu, %strMenuName%, DeleteAll
+	arrMenu := ; free object's memory
+}
+Gosub, BuildMainMenuWithStatus
+
+Gosub, 2GuiClose
+
+g_blnMenuReady := true
+
+return
+*/
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonOptionsCancel:
+;------------------------------------------------------------
+Gosub, 2GuiClose
+
+return
+;------------------------------------------------------------
+
+
+
+;========================================================================================================================
+; END OF OPTIONS
+;========================================================================================================================
+
+
+;========================================================================================================================
 !_030_FAVORITES_LIST:
 ;========================================================================================================================
 
@@ -4380,452 +4825,6 @@ return
 ; END OF GROUPS
 ;========================================================================================================================
 
-
-
-;========================================================================================================================
-!_045_OPTIONS:
-;========================================================================================================================
-
-;------------------------------------------------------------
-GuiOptions:
-;------------------------------------------------------------
-
-g_intGui1WinID := WinExist("A")
-
-StringSplit, g_arrOptionsTitlesSub, lOptionsTitlesSub, |
-
-;---------------------------------------
-; Build Gui header
-Gui, 1:Submit, NoHide
-Gui, 2:New, , % L(lOptionsGuiTitle, g_strAppNameText, g_strAppVersion)
-if (g_blnUseColors)
-	Gui, 2:Color, %g_strGuiWindowColor%
-Gui, 2:+Owner1
-Gui, 2:Font, s10 w700, Verdana
-Gui, 2:Add, Text, x10 y10 w595 center, % L(lOptionsGuiTitle, g_strAppNameText)
-
-Gui, 2:Font, s8 w600, Verdana
-Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsHotkeys% | %lOptionsThirdParty%%A_Space%
-
-;---------------------------------------
-; Tab 1: General options
-
-Gui, 2:Tab, 1
-
-Gui, 2:Font
-Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabOtherOptionsIntro, g_strAppNameText)
-
-; column 1
-Gui, 2:Add, Text, y+10 x15 Section, %lOptionsLanguage%
-Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpLanguage Sort, %lOptionsLanguageLabels%
-GuiControl, ChooseString, f_drpLanguage, %g_strLanguageLabel%
-
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOptionsRunAtStartup, %lOptionsRunAtStartup%
-GuiControl, , f_blnOptionsRunAtStartup, % FileExist(A_Startup . "\" . g_strAppNameFile . ".lnk") ? 1 : 0
-
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayMenuShortcuts, %lOptionsDisplayMenuShortcuts%
-GuiControl, , f_blnDisplayMenuShortcuts, %g_blnDisplayMenuShortcuts%
-
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayTrayTip, %lOptionsTrayTip%
-GuiControl, , f_blnDisplayTrayTip, %g_blnDisplayTrayTip%
-
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayIcons, %lOptionsDisplayIcons%
-GuiControl, , f_blnDisplayIcons, %g_blnDisplayIcons%
-if !OSVersionIsWorkstation()
-{
-	GuiControl, , f_blnDisplayIcons, 0
-	GuiControl, Disable, f_blnDisplayIcons
-}
-
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnCheck4Update, %lOptionsCheck4Update%
-GuiControl, , f_blnCheck4Update, %g_blnCheck4Update%
-
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
-GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
-
-; column 2
-Gui, 2:Add, Text, ys x240 Section, %lOptionsIconSize%
-Gui, 2:Add, DropDownList, ys x+10 w40 vf_drpIconSize Sort, 16|24|32|48|64
-GuiControl, ChooseString, f_drpIconSize, %g_intIconSize%
-
-/*
-Gui, 2:Add, Text, y+7 x240 w200, %lOptionsDisplayMenus%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayFoldersInExplorerMenu, %lOptionsDisplayFoldersInExplorerMenu%
-GuiControl, , blnDisplayFoldersInExplorerMenu, %blnDisplayFoldersInExplorerMenu%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayGroupMenu, %lOptionsDisplayGroupMenu%
-GuiControl, , blnDisplayGroupMenu, %blnDisplayGroupMenu%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayClipboardMenu, %lOptionsDisplayClipboardMenu%
-GuiControl, , blnDisplayClipboardMenu, %blnDisplayClipboardMenu%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayCopyLocationMenu, %lOptionsDisplayCopyLocationMenu%
-GuiControl, , blnDisplayCopyLocationMenu, %blnDisplayCopyLocationMenu%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayRecentFolders gDisplayRecentFoldersClicked, %lOptionsDisplayRecentFolders%
-GuiControl, , blnDisplayRecentFolders, %blnDisplayRecentFolders%
-
-Gui, 2:Add, Edit, % "y+5 xs+15 w36 h17 vintRecentFolders center " . (blnDisplayRecentFolders ? "" : "hidden"), %g_intRecentFolders%
-Gui, 2:Add, Text, % "yp x+10 vlblRecentFolders " . (blnDisplayRecentFolders ? "" : "hidden"), %lOptionsRecentFolders%
-*/
-
-; column 3
-
-Gui, 2:Add, Text, ys x430 Section, %lOptionsTheme%
-Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpTheme, %g_strAvailableThemes%
-GuiControl, ChooseString, f_drpTheme, %g_strTheme%
-
-Gui, 2:Add, CheckBox, y+10 xs w190 vf_blnRememberSettingsPosition, %lOptionsRememberSettingsPosition%
-GuiControl, , f_blnRememberSettingsPosition, %g_blnRememberSettingsPosition%
-
-Gui, 2:Add, Text, y+12 xs w190 Section, %lOptionsMenuPositionPrompt%
-
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition1 gPopupMenuPositionClicked Group " . (g_intPopupMenuPosition = 1 ? "Checked" : ""), %lOptionsMenuNearMouse%
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition2 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 2 ? "Checked" : ""), %lOptionsMenuActiveWindow%
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition3 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 3 ? "Checked" : ""), %lOptionsMenuFixPosition%
-
-Gui, 2:Add, Text, % "y+5 xs+18 vf_lblPopupFixPositionX " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %lOptionsPopupFixPositionX%
-Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionX center " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %g_arrPopupFixPosition1%
-Gui, 2:Add, Text, % "yp x+5 vf_lblPopupFixPositionY " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %lOptionsPopupFixPositionY%
-Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionY center " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %g_arrPopupFixPosition2%
-
-;---------------------------------------
-; Tab 2: Popup menu hotkeys
-
-Gui, 2:Tab, 2
-
-Gui, 2:Font
-Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabMouseAndKeyboardIntro, g_strAppNameText)
-
-loop, 4
-{
-	Gui, 2:Font, s8 w700
-	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsTitles%A_Index%
-	Gui, 2:Font, s9 w500, Courier New
-	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % Hotkey2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
-	Gui, 2:Font
-	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
-	Gui, 2:Font, s8 w500
-	Gui, 2:Add, Link, x15 ys w240 gOptionsTitlesSubClicked, % g_arrOptionsTitlesSub%A_Index%
-}
-
-;---------------------------------------
-; Tab 3: Exclusion list
-
-
-;---------------------------------------
-; Tab 4: File Managers
-
-Gui, 2:Tab, 4
-
-Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabFileManagersIntro%
-
-Gui, 2:Font, s8 w700
-Gui, 2:Add, Link, y+15 x15, % L(lOptionsThirdPartyTitle, "Directory Opus") . " (<a href=""http://code.jeanlalonde.ca/using-folderspopup-with-directory-opus/"">" . lGuiHelp . "</a>)"
-Gui, 2:Font
-Gui, 2:Add, Text, y+5 x15, % L(lOptionsThirdPartyDetail, "Directory Opus")
-Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
-Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strDirectoryOpusPath, %g_strDirectoryOpusPath%
-Gui, 2:Add, Button, x+10 yp vf_btnSelectDOpusPath gButtonSelectDOpusPath, %lDialogBrowseButton%
-Gui, 2:Add, Checkbox, x+10 yp vf_blnDirectoryOpusUseTabs, %lOptionsDirectoryOpusUseTabs%
-GuiControl, , f_blnDirectoryOpusUseTabs, %g_blnDirectoryOpusUseTabs%
-
-Gui, 2:Font, s8 w700
-Gui, 2:Add, Link, y+25 x15, % L(lOptionsThirdPartyTitle, "Total Commander") . " (<a href=""http://code.jeanlalonde.ca/using-folderspopup-with-total-commander/"">" . lGuiHelp . "</a>)"
-Gui, 2:Font
-Gui, 2:Add, Text, y+5 x15, % L(lOptionsThirdPartyDetail, "Total Commander")
-Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
-Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strTotalCommanderPath, %g_strTotalCommanderPath%
-Gui, 2:Add, Button, x+10 yp vf_btnSelectTCPath gButtonSelectTCPath, %lDialogBrowseButton%
-Gui, 2:Add, Checkbox, x+10 yp vf_blnTotalCommanderUseTabs, %lOptionsTotalCommanderUseTabs%
-GuiControl, , f_blnTotalCommanderUseTabs, %g_blnTotalCommanderUseTabs%
-
-Gui, 2:Font, s8 w700
-Gui, 2:Add, Link, y+25 x15, %lOptionsThirdPartyTitleFPconnect% (<a href="https://github.com/rolandtoth/FPconnect">%lGuiHelp%</a>)
-Gui, 2:Font
-Gui, 2:Add, Text, y+5 x15, %lOptionsThirdPartyDetailFPconnect%
-Gui, 2:Add, Text, y+10 x15, %lOptionsThirdPartyPrompt%
-Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strFPconnectPath, %g_strFPconnectPath%
-Gui, 2:Add, Button, x+10 yp vf_btnSelectFPcPath gButtonSelectFPcPath, %lDialogBrowseButton%
-
-;---------------------------------------
-; Build Gui footer
-
-Gui, 2:Tab
-
-GuiControlGet, arrTabPos, Pos, f_intOptionsTab
-
-Gui, 2:Add, Button, % "y" . arrTabPosY + arrTabPosH + 10 . " x10 vf_btnOptionsSave gButtonOptionsSave Default", %lGuiSave%
-Gui, 2:Add, Button, yp vf_btnOptionsCancel gButtonOptionsCancel, %lGuiCancel%
-Gui, 2:Add, Button, yp vf_btnOptionsDonate gGuiDonate, %lDonateButton%
-GuiCenterButtons(L(lOptionsGuiTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnOptionsSave", "f_btnOptionsCancel", "f_btnOptionsDonate")
-
-Gui, 2:Add, Text
-GuiControl, Focus, f_btnOptionsSave
-
-Gui, 2:Show, AutoSize Center
-Gui, 1:+Disabled
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-PopupMenuPositionClicked:
-;------------------------------------------------------------
-Gui, 2:Submit, NoHide
-
-GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_lblPopupFixPositionX
-GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_strPopupFixPositionX
-GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_lblPopupFixPositionY
-GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_strPopupFixPositionY
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-OptionsTitlesSubClicked:
-;------------------------------------------------------------
-Gui, 2:Submit, NoHide
-
-GuiControl, Choose, f_intOptionsTab, 3
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ButtonOptionsChangeHotkey1:
-ButtonOptionsChangeHotkey2:
-ButtonOptionsChangeHotkey3:
-ButtonOptionsChangeHotkey4:
-;------------------------------------------------------------
-Gui, 2:Submit, NoHide
-
-StringReplace, intHotkeyIndex, A_ThisLabel, ButtonOptionsChangeHotkey
-
-if InStr(g_arrHotkeyNames%intHotkeyIndex%, "Mouse")
-	intHotkeyType := 1 ; Mouse
-else
-	intHotkeyType := 2 ; Keyboard
-
-g_arrHotkeys%intHotkeyIndex% := SelectHotkey(g_arrHotkeys%intHotkeyIndex%, g_arrOptionsTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
-
-SplitHotkey(g_arrHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
-GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
-
-strNewModifiers := ""
-strNewMouse := ""
-strNewOptionsKey := ""
-strNewMouseButtonsWithDefault := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ButtonSelectDOpusPath:
-;------------------------------------------------------------
-
-if StrLen(g_strDirectoryOpusPath) and (g_strDirectoryOpusPath <> "NO")
-	strCurrentDOpusLocation := g_strDirectoryOpusPath
-else
-	strCurrentDOpusLocation := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
-
-FileSelectFile, strNewDOpusLocation, 3, %strCurrentDOpusLocation%, %lDialogAddFolderSelect%
-
-if !(StrLen(strNewDOpusLocation))
-	return
-
-GuiControl, 2:, f_strDirectoryOpusPath, %strNewDOpusLocation%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ButtonSelectTCPath:
-;------------------------------------------------------------
-
-if StrLen(g_strTotalCommanderPath) and (g_strTotalCommanderPath <> "NO")
-	strCurrentTCLocation := g_strTotalCommanderPath
-else
-	strCurrentTCLocation := GetTotalCommanderPath()
-
-FileSelectFile, strNewTCLocation, 3, %strCurrentTCLocation%, %lDialogAddFolderSelect%
-
-if !(StrLen(strNewTCLocation))
-	return
-
-GuiControl, 2:, f_strTotalCommanderPath, %strNewTCLocation%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ButtonSelectFPcPath:
-;------------------------------------------------------------
-
-if StrLen(g_strFPconnectPath) and (g_strFPconnectPath <> "NO")
-	strCurrentFPcLocation := g_strFPconnectPath
-else
-	strCurrentFPcLocation := A_ScriptDir . "\FPconnect\FPconnect.exe"
-
-FileSelectFile, strNewFPcLocation, 3, %strCurrentFPcLocation%, %lDialogAddFolderSelect%
-
-if !(StrLen(strNewFPcLocation))
-	return
-
-GuiControl, 2:, f_strFPconnectPath, %strNewFPcLocation%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ButtonOptionsSave:
-;------------------------------------------------------------
-/*
-Gui, 2:Submit
-
-g_blnMenuReady := false
-
-IfExist, %A_Startup%\%g_strAppNameFile%.lnk
-	FileDelete, %A_Startup%\%g_strAppNameFile%.lnk
-if (blnOptionsRunAtStartup)
-	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
-Menu, Tray, % blnOptionsRunAtStartup ? "Check" : "Uncheck", %lMenuRunAtStartup%
-
-IniWrite, %g_blnDisplayTrayTip%, %g_strIniFile%, Global, DisplayTrayTip
-IniWrite, %g_blnDisplayIcons%, %g_strIniFile%, Global, DisplayIcons
-IniWrite, %g_blnDisplaySpecialMenusShortcuts%, %g_strIniFile%, Global, DisplaySpecialMenusShortcuts
-IniWrite, %blnDisplayRecentFolders%, %g_strIniFile%, Global, DisplayRecentFolders
-IniWrite, %g_intRecentFolders%, %g_strIniFile%, Global, RecentFolders
-IniWrite, %blnDisplayFoldersInExplorerMenu%, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu
-IniWrite, %blnDisplayGroupMenu%, %g_strIniFile%, Global, DisplayGroupMenu
-IniWrite, %blnDisplayClipboardMenu%, %g_strIniFile%, Global, DisplayClipboardMenu
-IniWrite, %blnDisplayCopyLocationMenu%, %g_strIniFile%, Global, DisplayCopyLocationMenu
-IniWrite, %g_blnDisplayMenuShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
-IniWrite, %g_blnCheck4Update%, %g_strIniFile%, Global, Check4Update
-IniWrite, %g_blnOpenMenuOnTaskbar%, %g_strIniFile%, Global, OpenMenuOnTaskbar
-IniWrite, %g_blnRememberSettingsPosition%, %g_strIniFile%, Global, RememberSettingsPosition
-
-if (radPopupMenuPosition1)
-	g_intPopupMenuPosition := 1
-else if (radPopupMenuPosition2)
-	g_intPopupMenuPosition := 2
-else
-	g_intPopupMenuPosition := 3
-IniWrite, %g_intPopupMenuPosition%, %g_strIniFile%, Global, PopupMenuPosition
-	
-IniWrite, %strPopupFixPositionX%`,%strPopupFixPositionY%, %g_strIniFile%, Global, PopupFixPosition
-g_arrPopupFixPosition1 := strPopupFixPositionX
-g_arrPopupFixPosition2 := strPopupFixPositionY
-
-g_strLanguageCodePrev := g_strLanguageCode
-g_strLanguageLabel := drpLanguage
-loop, %g_arrOptionsLanguageLabels0%
-	if (g_arrOptionsLanguageLabels%A_Index% = g_strLanguageLabel)
-		{
-			g_strLanguageCode := g_arrOptionsLanguageCodes%A_Index%
-			break
-		}
-IniWrite, %g_strLanguageCode%, %g_strIniFile%, Global, LanguageCode
-
-strThemePrev := g_strTheme
-g_strTheme := drpTheme
-IniWrite, %g_strTheme%, %g_strIniFile%, Global, Theme
-
-g_intIconSize := drpIconSize
-IniWrite, %g_intIconSize%, %g_strIniFile%, Global, IconSize
-
-IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
-IniWrite, %g_blnDirectoryOpusUseTabs%, %g_strIniFile%, Global, DirectoryOpusUseTabs
-g_blnUseDirectoryOpus := StrLen(g_strDirectoryOpusPath)
-if (g_blnUseDirectoryOpus)
-{
-	g_blnUseDirectoryOpus := FileExist(g_strDirectoryOpusPath)
-	if (g_blnUseDirectoryOpus)
-		Gosub, SetDOpusRt
-}
-if (g_blnDirectoryOpusUseTabs)
-	g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
-else
-	g_strDirectoryOpusNewTabOrWindow := "NEW" ; open new folder in a new DOpus lister (instance)
-
-IniWrite, %g_strTotalCommanderPath%, %g_strIniFile%, Global, TotalCommanderPath
-IniWrite, %g_blnTotalCommanderUseTabs%, %g_strIniFile%, Global, TotalCommanderUseTabs
-g_blnUseTotalCommander := StrLen(g_strTotalCommanderPath)
-if (g_blnUseTotalCommander)
-{
-	g_blnUseTotalCommander := FileExist(g_strTotalCommanderPath)
-	if (g_blnUseTotalCommander)
-		Gosub, SetTCCommand
-}
-if (g_blnTotalCommanderUseTabs)
-	g_strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
-else
-	g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
-
-IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
-g_blnUseFPconnect := StrLen(g_strFPconnectPath)
-if (g_blnUseFPconnect)
-{
-	g_blnUseFPconnect := FileExist(g_strFPconnectPath)
-	if (g_blnUseFPconnect)
-		Gosub, SetFPconnect
-}
-
-; if language or theme changed, offer to restart the app
-if (g_strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
-{
-	MsgBox, 52, %g_strAppNameText%, % L(lReloadPrompt, (g_strLanguageCodePrev <> g_strLanguageCode ? lOptionsLanguage : lOptionsTheme), (g_strLanguageCodePrev <> g_strLanguageCode ? g_strLanguageLabel : g_strTheme), g_strAppNameText)
-	IfMsgBox, Yes
-	{
-		Gosub, RestoreBackupMenuObjects
-		Reload
-	}
-}	
-
-; else rebuild special and Group menus
-Gosub, BuildFoldersInExplorerMenu
-Gosub, BuildGroupMenu
-
-; and rebuild Folders menus w/ or w/o optional folders and shortcuts
-for strMenuName, arrMenu in g_arrMenus
-{
-	Menu, %strMenuName%, Add
-	Menu, %strMenuName%, DeleteAll
-	arrMenu := ; free object's memory
-}
-Gosub, BuildMainMenuWithStatus
-
-Gosub, 2GuiClose
-
-g_blnMenuReady := true
-
-return
-*/
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ButtonOptionsCancel:
-;------------------------------------------------------------
-Gosub, 2GuiClose
-
-return
-;------------------------------------------------------------
-
-
-
-
-;========================================================================================================================
-; END OF OPTIONS
-;========================================================================================================================
 
 
 ;========================================================================================================================
