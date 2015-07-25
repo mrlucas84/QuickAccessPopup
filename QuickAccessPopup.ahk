@@ -18,7 +18,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- continuer ButtonOptionsChangeHotkey1:
 - save options and debug
 - add default hotkey to QAP Feature Object
 - rewrite lOptionsTitles
@@ -3992,8 +3991,6 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	; safer that declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
 	global
 	
-	###_D(strActualHotkey)
-
 	SplitHotkey(strActualHotkey, strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
 
 	intGui2WinID := WinExist("A")
@@ -4510,34 +4507,12 @@ loop, 4
 	Gui, 2:Font
 	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
 	Gui, 2:Font, s8 w500
-	Gui, 2:Add, Text, x15 ys w240, % g_arrOptionsTitlesSub%A_Index%
+	Gui, 2:Add, Link, x15 ys w240 gOptionsTitlesSubClicked, % g_arrOptionsTitlesSub%A_Index%
 }
 
 ;---------------------------------------
-; Tab 3: Other hotkeys
+; Tab 3: Exclusion list
 
-/*
-Gui, 2:Tab, 3
-
-Gui, 2:Font
-Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabHotkeysIntro%
-
-loop, 6
-{
-	intIndex := A_Index + 4
-	Gui, 2:Font, s8 w700
-	Gui, 2:Add, Text, Section x15 y+10, % g_arrOptionsTitles%intIndex%
-	Gui, 2:Font, s9 w500, Courier New
-	Gui, 2:Add, Text, x260 ys+5 w280 h23 center 0x1000 vlblHotkeyText%intIndex% gButtonOptionsChangeHotkey%intIndex%, % Hotkey2Text(strModifiers%intIndex%, strMouseButton%intIndex%, strOptionsKey%intIndex%)
-	Gui, 2:Font
-	Gui, 2:Add, Button, yp x555 vbtnChangeHotkey%intIndex% gButtonOptionsChangeHotkey%intIndex%, %lOptionsChangeHotkey%
-	Gui, 2:Font, s8 w500
-	Gui, 2:Add, Text, x15 ys+15 w240, % arrOptionsTitlesSub%intIndex%
-}
-
-Gui, 2:Add, CheckBox, y+35 x20 vblnDisplaySpecialMenusShortcuts, %lOptionsDisplaySpecialMenusShortcuts%
-GuiControl, , g_blnDisplaySpecialMenusShortcuts, %g_blnDisplaySpecialMenusShortcuts%
-*/
 
 ;---------------------------------------
 ; Tab 4: File Managers
@@ -4611,6 +4586,17 @@ return
 
 
 ;------------------------------------------------------------
+OptionsTitlesSubClicked:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+GuiControl, Choose, f_intOptionsTab, 3
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 ButtonOptionsChangeHotkey1:
 ButtonOptionsChangeHotkey2:
 ButtonOptionsChangeHotkey3:
@@ -4618,28 +4604,17 @@ ButtonOptionsChangeHotkey4:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-; SplitHotkey(arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouse
-
-; SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription)
-; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
-; strHotkeyNames := "HotkeyMouse|HotkeyKeyboard|AlternateHotkeyMouse|AlternateHotkeyKeyboard"
-
 StringReplace, intHotkeyIndex, A_ThisLabel, ButtonOptionsChangeHotkey
-###_D("intHotkeyIndex: " . intHotkeyIndex .  " / " . g_arrHotkeys%intHotkeyIndex% . " / " . g_arrHotkeyNames%intHotkeyIndex% . " / " . g_arrOptionsTitles%intHotkeyIndex% . "`n`n" . lOptionsArrDescriptions%intHotkeyIndex%)
 
 if InStr(g_arrHotkeyNames%intHotkeyIndex%, "Mouse")
 	intHotkeyType := 1 ; Mouse
 else
 	intHotkeyType := 2 ; Keyboard
 
-g_strNewFavoriteHotkey := g_arrHotkeys%intHotkeyType%
+g_arrHotkeys%intHotkeyIndex% := SelectHotkey(g_arrHotkeys%intHotkeyIndex%, g_arrOptionsTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
 
-g_strNewFavoriteHotkey := SelectHotkey(g_strNewFavoriteHotkey, g_arrOptionsTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
-
-###_D("g_strNewFavoriteHotkey: " . g_strNewFavoriteHotkey)
-
-SplitHotkey(g_strNewFavoriteHotkey, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
-GuiControl, 2:, f_strHotkeyText, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
+SplitHotkey(g_arrHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
+GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
 
 strNewModifiers := ""
 strNewMouse := ""
@@ -4648,84 +4623,6 @@ strNewMouseButtonsWithDefault := ""
 
 return
 ;------------------------------------------------------------
-
-
-/* AVANT
-;------------------------------------------------------------
-
-StringReplace, intIndex, A_ThisLabel, ButtonOptionsChangeHotkey
-
-intGui2WinID := WinExist("A")
-Gui, 2:Submit, NoHide
-
-Gui, 3:New, , % L(lOptionsChangeHotkeyTitle, g_strAppNameText, g_strAppVersion)
-if (g_blnUseColors)
-	Gui, 3:Color, %g_strGuiWindowColor%
-Gui, 3:+Owner2
-Gui, 3:Font, s10 w700, Verdana
-Gui, 3:Add, Text, x10 y10 w350 center, % L(lOptionsChangeHotkeyTitle, g_strAppNameText)
-Gui, 3:Font
-
-intHotkeyType := 3 ; Folders in Explorer, Groups, Recent folders, Clipboard and Settings
-if InStr(g_arrIniKeyNames%intIndex%, "Mouse")
-	intHotkeyType := 1
-if InStr(g_arrIniKeyNames%intIndex%, "Keyboard")
-	intHotkeyType := 2
-
-Gui, 3:Add, Text, y+15 x10 , %lOptionsTriggerFor%
-Gui, 3:Font, s8 w700
-Gui, 3:Add, Text, x+5 yp w300, % g_arrOptionsTitles%intIndex%
-Gui, 3:Font
-
-Gui, 3:Add, Text, x10 y+5 w350, % lOptionsArrDescriptions%intIndex%
-
-Gui, 3:Add, CheckBox, y+20 x50 vblnOptionsShift, %lOptionsShift%
-GuiControl, , blnOptionsShift, % InStr(strModifiers%intIndex%, "+") ? 1 : 0
-GuiControlGet, arrTop, Pos, blnOptionsShift
-Gui, 3:Add, CheckBox, y+10 x50 vblnOptionsCtrl, %lOptionsCtrl%
-GuiControl, , blnOptionsCtrl, % InStr(strModifiers%intIndex%, "^") ? 1 : 0
-Gui, 3:Add, CheckBox, y+10 x50 vblnOptionsAlt, %lOptionsAlt%
-GuiControl, , blnOptionsAlt, % InStr(strModifiers%intIndex%, "!") ? 1 : 0
-Gui, 3:Add, CheckBox, y+10 x50 vblnOptionsWin, %lOptionsWin%
-GuiControl, , blnOptionsWin, % InStr(strModifiers%intIndex%, "#") ? 1 : 0
-
-; initialize or we may have an error if another hotkey was changed before
-strOptionsMouse := ""
-strOptionsKey := ""
-
-if (intHotkeyType = 1)
-	Gui, 3:Add, DropDownList, % "y" . arrTopY . " x150 w200 vstrOptionsMouse gOptionsMouseChanged", % strMouseButtonsWithDefault%intIndex%
-if (intHotkeyType <> 1)
-{
-	Gui, 3:Add, Text, % "y" . arrTopY . " x150 w60", %lOptionsKeyboard%
-	Gui, 3:Add, Hotkey, yp x+10 w130 vstrOptionsKey gOptionsHotkeyChanged
-	GuiControl, , strOptionsKey, % strOptionsKey%intIndex%
-}
-if (intHotkeyType = 3)
-{
-	Gui, 3:Add, Text, % "y" . arrTopY + 30 . " x150 w60", %lOptionsMouse%
-	Gui, 3:Add, DropDownList, yp x+10 w130 vstrOptionsMouse gOptionsMouseChanged, % strMouseButtonsWithDefault%intIndex%
-}
-if (intHotkeyType <> 1)
-{
-	Gui, 3:Add, Link, y+10 x150 gOptionsSelectNoneHotkeyClicked, <a>%lOptionsMouseNone%</a>
-	Gui, 3:Add, Link, yp x+10 w130 gOptionsHotkeySpaceClicked, <a>%lOptionsSpacebar%</a>
-}
-
-Gui, 3:Add, Button, % "x10 y" . arrTopY + 100 . " vbtnResetHotkey gButtonResetHotkey" . intIndex, %lGuiResetDefault%
-GuiCenterButtons(L(lOptionsChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnResetHotkey")
-Gui, 3:Add, Button, y+20 x10 vbtnChangeHotkeySave gButtonChangeHotkeySave%intIndex%, %lGuiSave%
-Gui, 3:Add, Button, yp x+20 vbtnChangeHotkeyCancel gButtonChangeHotkeyCancel, %lGuiCancel%
-GuiCenterButtons(L(lOptionsChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnChangeHotkeySave", "btnChangeHotkeyCancel")
-
-Gui, 3:Add, Text
-GuiControl, Focus, btnChangeHotkeySave
-Gui, 3:Show, AutoSize Center
-Gui, 2:+Disabled
-
-return
-;------------------------------------------------------------
-*/
 
 
 ;------------------------------------------------------------
