@@ -232,8 +232,30 @@ Gosub, BuildClipboardMenuInit
 
 Gosub, BuildMainMenu
 Gosub, BuildGui
+Gosub, BuildTrayMenu
 
 Gosub, GuiShow
+
+if (g_blnCheck4Update)
+	Gosub, Check4Update
+
+IfExist, %A_Startup%\%g_strAppNameFile%.lnk ; update the shortcut in case the exe filename changed
+{
+	FileDelete, %A_Startup%\%g_strAppNameFile%.lnk
+	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
+	Menu, Tray, Check, %lMenuRunAtStartup%
+}
+
+if (g_blnDisplayTrayTip)
+	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
+		, % L(lTrayTipInstalledDetail, g_strAppNameText
+			, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1)
+			, Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3)
+			, Hotkey2Text(strModifiers2, strMouseButton2, strOptionsKey2)
+			, Hotkey2Text(strModifiers4, strMouseButton4, strOptionsKey4))
+		, , 17 ; 1 info icon + 16 no sound)
+
+g_blnMenuReady := true
 
 ; Load the cursor and start the "hook" - See WM_MOUSEMOVE function below
 objCursor := DllCall("LoadCursor", "UInt", NULL, "Int", 32649, "UInt") ; IDC_HAND
@@ -1603,6 +1625,14 @@ return
 ;========================================================================================================================
 
 ;-----------------------------------------------------------
+TrayMenuExitApp:
+;-----------------------------------------------------------
+
+ExitApp
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
 CleanUpBeforeExit:
 ;-----------------------------------------------------------
 
@@ -1647,6 +1677,41 @@ ExitApp
 ;========================================================================================================================
 !_020_BUILD:
 ;========================================================================================================================
+
+;------------------------------------------------------------
+BuildTrayMenu:
+;------------------------------------------------------------
+
+Menu, Tray, Icon, , , 1 ; last 1 to freeze icon during pause or suspend
+Menu, Tray, NoStandard
+;@Ahk2Exe-IgnoreBegin
+; Start of code for developement phase only - won't be compiled
+Menu, Tray, Icon, %A_ScriptDir%\qap-green-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
+Menu, Tray, Standard
+Menu, Tray, Add
+; / End of code for developement phase only - won't be compiled
+;@Ahk2Exe-IgnoreEnd
+; Menu, Tray, Add, % L(lMenuFPMenu, g_strAppNameText, lMenuMenu), :%lMainMenuName% ; REMOVED seems to cause a BUG in submenu display (first display only) - unexplained...
+Menu, Tray, Add, % L(lMenuSettings, g_strAppNameText) . "...", GuiShow
+Menu, Tray, Add, % g_strAppNameFile . ".ini", ShowIniFile
+Menu, Tray, Add
+Menu, Tray, Add, %lMenuRunAtStartup%, RunAtStartup
+Menu, Tray, Add, %lMenuSuspendHotkeys%, SuspendHotkeys
+Menu, Tray, Add
+Menu, Tray, Add, %lMenuUpdate%, Check4Update
+Menu, Tray, Add, %lMenuHelp%, GuiHelp
+Menu, Tray, Add, %lMenuAbout%, GuiAbout
+Menu, Tray, Add, %lDonateMenu%, GuiDonate
+Menu, Tray, Add
+Menu, Tray, Add, % L(lMenuExitApp, g_strAppNameText), TrayMenuExitApp
+Menu, Tray, Default, % L(lMenuSettings, g_strAppNameText) . "..."
+if (g_blnUseColors)
+	Menu, Tray, Color, %g_strMenuBackgroundColor%
+Menu, Tray, Tip, % g_strAppNameText . " " . g_strAppVersion . " (" . (A_PtrSize * 8) . "-bit)`n" . (g_blnDonor ? lDonateThankyou : lDonateButton) ; A_PtrSize * 8 = 32 or 64
+
+return
+;------------------------------------------------------------
+
 
 ;------------------------------------------------------------
 BuildFoldersInExplorerMenuInit:
@@ -2073,7 +2138,7 @@ Gui, 2:Tab, 2
 Gui, 2:Font
 Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabMouseAndKeyboardIntro, g_strAppNameText)
 
-loop, 4
+loop, % g_arrHotkeyNames%0%
 {
 	Gui, 2:Font, s8 w700
 	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsTitles%A_Index%
@@ -2279,6 +2344,9 @@ Gui, 2:Submit
 
 g_blnMenuReady := false
 
+;---------------------------------------
+; Tab 1: General options
+
 IfExist, %A_Startup%\%g_strAppNameFile%.lnk
 	FileDelete, %A_Startup%\%g_strAppNameFile%.lnk
 if (f_blnOptionsRunAtStartup)
@@ -2330,6 +2398,26 @@ IniWrite, %g_strTheme%, %g_strIniFile%, Global, Theme
 
 g_intIconSize := f_drpIconSize
 IniWrite, %g_intIconSize%, %g_strIniFile%, Global, IconSize
+
+;---------------------------------------
+; Tab 2: Popup menu hotkeys
+
+loop, % g_arrHotkeyNames%0%
+	if (g_arrHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
+		; ### OK? Hotkey, % "$" . arrHotkeys%A_Index%, Off, UseErrorLevel ; UseErrorLevel in case we had an invalid key name in the ini file
+		IniWrite, None, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index% ; do not write lOptionsMouseNone because it is translated
+	else
+		; Hotkey, % "$" . arrHotkeys%A_Index%, Off, UseErrorLevel ; UseErrorLevel in case we had an invalid key name in the ini file
+		IniWrite, % g_arrHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index%
+
+Gosub, LoadIniHotkeys ; reload ini variables and reset hotkeys
+
+;---------------------------------------
+; Tab 3: Exclusion list
+
+
+;---------------------------------------
+; Tab 4: File Managers
 
 g_strDirectoryOpusPath := f_strDirectoryOpusPath
 IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
@@ -4565,7 +4653,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 
 	GuiControl, , f_strHotkeyKey, %lDialogMouseNone%
 	GuiControl, Choose, f_drpHotkeyMouse, %lDialogMouseNone%
-	SplitHotkey("", strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
+	SplitHotkey("None", strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
 	Gosub, SetModifiersCheckBox
 
 	strModifiers := ""
@@ -5071,6 +5159,239 @@ return
 !_072_TRAY_MENU_ACTIONS:
 ;========================================================================================================================
 
+;------------------------------------------------------------
+ShowIniFile:
+;------------------------------------------------------------
+
+Run, %g_strIniFile%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RunAtStartup:
+;------------------------------------------------------------
+; Startup code adapted from Avi Aryan Ryan in Clipjump
+
+Menu, Tray, Togglecheck, %lMenuRunAtStartup%
+IfExist, %A_Startup%\%g_strAppNameFile%.lnk
+	FileDelete, %A_Startup%\%g_strAppNameFile%.lnk
+else
+	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SuspendHotkeys:
+;------------------------------------------------------------
+
+if (A_IsSuspended)
+	Suspend, Off
+else
+	Suspend, On
+
+Menu, Tray, % (A_IsSuspended ? "check" : "uncheck"), %lMenuSuspendHotkeys%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+Check4Update:
+;------------------------------------------------------------
+
+strUrlCheck4Update := "http://quickaccesspopup.com/latest/version.php"
+strAppLandingPage := "http://quickaccesspopup.com"
+strBetaLandingPage := "http://quickaccesspopup.com/latest/check4update-beta-redirect.html"
+
+IniRead, strLatestSkippedProd, %g_strIniFile%, Global, LatestVersionSkippedProd, 0.0
+IniRead, strLatestSkippedBeta, %g_strIniFile%, Global, LatestVersionSkippedBeta, 0.0
+IniRead, strLatestUsedProd, %g_strIniFile%, Global, LastVersionUsedProd, 0.0
+IniRead, strLatestUsedBeta, %g_strIniFile%, Global, LastVersionUsedBeta, 0.0
+
+IniRead, intStartups, %g_strIniFile%, Global, Startups, 1
+
+if (g_blnDiagMode)
+{
+	Diag("Check4Update strAppLandingPage", strAppLandingPage)
+	Diag("Check4Update strBetaLandingPage", strBetaLandingPage)
+}
+
+Gui, 1:+OwnDialogs
+
+if (A_ThisMenuItem <> lMenuUpdate)
+{
+	if Time2Donate(intStartups, g_blnDonor)
+	{
+		MsgBox, 36, % l(lDonateCheckTitle, intStartups, g_strAppNameText), % l(lDonateCheckPrompt, g_strAppNameText, intStartups)
+		IfMsgBox, Yes
+			Gosub, GuiDonate
+	}
+	IniWrite, % (intStartups + 1), %g_strIniFile%, Global, Startups
+}
+
+blnSetup := (FileExist(A_ScriptDir . "\_do_not_remove_or_rename.txt") = "" ? 0 : 1)
+
+strLatestVersions := Url2Var(strUrlCheck4Update
+	. "?v=" . g_strCurrentVersion
+	. "&os=" . A_OSVersion
+	. "&is64=" . A_Is64bitOS
+    . "&setup=" . (blnSetup)
+				+ (2 * (g_blnDonor ? 1 : 0))
+				+ (4 * (g_blnUseDirectoryOpus ? 1 : 0))
+				+ (8 * (g_blnUseTotalCommander ? 1 : 0))
+				+ (16 * (g_blnUseFPconnect ? 1 : 0))
+    . "&lsys=" . A_Language
+    . "&lfp=" . g_strLanguageCode)
+if !StrLen(strLatestVersions)
+	if (A_ThisMenuItem = lMenuUpdate)
+	{
+		Oops(lUpdateError)
+		return ; an error occured during ComObjCreate
+	}
+
+strLatestVersions := SubStr(strLatestVersions, InStr(strLatestVersions, "[[") + 2) 
+strLatestVersions := SubStr(strLatestVersions, 1, InStr(strLatestVersions, "]]") - 1) 
+strLatestVersions := Trim(strLatestVersions, "`n`l") ; remove en-of-line if present
+Loop, Parse, strLatestVersions, , 0123456789.| ; strLatestVersions should only contain digits, dots and one pipe (|) between prod and beta versions
+	; if we get here, the content returned by the URL above is wrong
+	if (A_ThisMenuItem <> lMenuUpdate)
+		return ; return silently
+	else
+	{
+		Oops(lUpdateError) ; return with an error message
+		return
+	}
+
+StringSplit, arrLatestVersions, strLatestVersions, |
+strLatestVersionProd := arrLatestVersions1
+strLatestVersionBeta := arrLatestVersions2
+
+if (g_blnDiagMode)
+{
+	Diag("Check4Update g_strCurrentVersion", g_strCurrentVersion)
+	Diag("Check4Update strLatestVersionProd", strLatestVersionProd)
+	Diag("Check4Update strLatestVersionBeta", strLatestVersionBeta)
+	Diag("Check4Update strLatestSkippedProd", strLatestSkippedProd)
+	Diag("Check4Update strLatestSkippedBeta", strLatestSkippedBeta)
+	Diag("Check4Update strLatestUsedProd", strLatestUsedProd)
+	Diag("Check4Update strLatestUsedBeta", strLatestUsedBeta)
+}
+
+Gui, 1:+OwnDialogs
+
+if (strLatestUsedBeta <> "0.0")
+{
+	if FirstVsSecondIs(strLatestVersionBeta, g_strCurrentVersion) = 1
+	{
+		SetTimer, Check4UpdateChangeButtonNames, 50
+
+		MsgBox, 3, % l(lUpdateTitle, g_strAppNameText) ; do not add BETA to keep buttons rename working
+			, % l(lUpdatePromptBeta, g_strAppNameText, g_strCurrentVersion, strLatestVersionBeta)
+		IfMsgBox, Yes
+			Run, %strBetaLandingPage%
+		IfMsgBox, Cancel ; Remind me
+			IniWrite, 0.0, %g_strIniFile%, Global, LatestVersionSkippedBeta
+		IfMsgBox, No
+		{
+			IniWrite, %strLatestVersionBeta%, %g_strIniFile%, Global, LatestVersionSkippedBeta
+			MsgBox, 4, % l(lUpdateTitle, g_strAppNameText . " BETA"), %lUpdatePromptBetaContinue%
+			IfMsgBox, No
+				IniWrite, 0.0, %g_strIniFile%, Global, LastVersionUsedBeta
+		}
+	}
+}
+
+if (FirstVsSecondIs(strLatestSkippedProd, strLatestVersionProd) >= 0 and (A_ThisMenuItem <> lMenuUpdate))
+	return
+
+if FirstVsSecondIs(strLatestVersionProd, g_strCurrentVersion) = 1
+{
+	SetTimer, Check4UpdateChangeButtonNames, 50
+
+	MsgBox, 3, % l(lUpdateTitle, g_strAppNameText)
+		, % l(lUpdatePrompt, g_strAppNameText, g_strCurrentVersion, strLatestVersionProd)
+	IfMsgBox, Yes
+		Run, %strAppLandingPage%
+	IfMsgBox, No
+		IniWrite, %strLatestVersionProd%, %g_strIniFile%, Global, LatestVersionSkipped ; do not add "Prod" to ini variable for backward compatibility
+	IfMsgBox, Cancel ; Remind me
+		IniWrite, 0.0, %g_strIniFile%, Global, LatestVersionSkipped ; do not add "Prod" to ini variable for backward compatibility
+}
+else if (A_ThisMenuItem = lMenuUpdate)
+{
+	MsgBox, 4, % l(lUpdateTitle, g_strAppNameText), % l(lUpdateYouHaveLatest, g_strAppVersion, g_strAppNameText)
+	IfMsgBox, Yes
+	{
+		if (g_blnDiagMode)
+		{
+			Diag("Check4Update lMenuUpdate g_strCurrentBranch", g_strCurrentBranch)
+			Diag("Check4Update lMenuUpdate strAppLandingPage", strAppLandingPage)
+			Diag("Check4Update lMenuUpdate strBetaLandingPage", strBetaLandingPage)
+		}
+		Run, %strAppLandingPage%
+	}
+}
+
+strLatestSkippedProd := ""
+strLatestSkippedBeta := ""
+strLatestUsedProd := ""
+strLatestUsedBeta := ""
+intStartups := ""
+
+return 
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+FirstVsSecondIs(strFirstVersion, strSecondVersion)
+;------------------------------------------------------------
+{
+	StringSplit, arrFirstVersion, strFirstVersion, `.
+	StringSplit, arrSecondVersion, strSecondVersion, `.
+	if (arrFirstVersion0 > arrSecondVersion0)
+		intLoop := arrFirstVersion0
+	else
+		intLoop := arrSecondVersion0
+
+	Loop %intLoop%
+		if (arrFirstVersion%A_index% > arrSecondVersion%A_index%)
+			return 1 ; greater
+		else if (arrFirstVersion%A_index% < arrSecondVersion%A_index%)
+			return -1 ; smaller
+		
+	return 0 ; equal
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+Check4UpdateChangeButtonNames:
+;------------------------------------------------------------
+
+IfWinNotExist, % l(lUpdateTitle, g_strAppNameText)
+    return  ; Keep waiting.
+SetTimer, Check4UpdateChangeButtonNames, Off
+WinActivate 
+ControlSetText, Button3, %lUpdateButtonRemind%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+Time2Donate(intStartups, g_blnDonor)
+;------------------------------------------------------------
+{
+	return !Mod(intStartups, 20) and (intStartups > 40) and !(g_blnDonor)
+}
+;------------------------------------------------------------
+
+
+
 ;========================================================================================================================
 ; END OF TRAY MENU ACTIONS
 ;========================================================================================================================
@@ -5560,8 +5881,9 @@ SplitHotkey(strHotkey, ByRef strModifiers, ByRef strKey, ByRef strMouseButton, B
 
 	if (strHotkey = "None") ; do not compare with lDialogMouseNone because it is translated
 	{
-		strMouseButton := "None" ; do not use lDialogMouseNone because it is translated
+		strModifiers := ""
 		strKey := ""
+		strMouseButton := "None" ; do not use lDialogMouseNone because it is translated
 		StringReplace, strMouseButtonsWithDefault, lDialogMouseButtonsText, % lDialogMouseNone . "|", % lDialogMouseNone . "||" ; use lDialogMouseNone because this is displayed
 	}
 	else 
@@ -5926,6 +6248,24 @@ ReplaceAllInString(strThis, strFrom, strTo)
 {
 	StringReplace, strThis, strThis, %strFrom%, %strTo%, A
 	return strThis
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+Url2Var(strUrl)
+;------------------------------------------------------------
+{
+	objWebRequest := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+	/*
+	if (A_LastError)
+		; an error occurred during ComObjCreate (A_LastError probably is E_UNEXPECTED = -2147418113 #0x8000FFFFL)
+		BUT DO NOT ABORT because the following commands will be executed even if an error occurred in ComObjCreate (!)
+	*/
+	objWebRequest.Open("GET", strUrl)
+	objWebRequest.Send()
+
+	Return objWebRequest.ResponseText()
 }
 ;------------------------------------------------------------
 
