@@ -18,6 +18,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- continuer ButtonOptionsChangeHotkey1:
+- save options and debug
+- add default hotkey to QAP Feature Object
 - rewrite lOptionsTitles
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - Options, 3rd party, one Browse in modal window
@@ -379,6 +382,7 @@ strHotkeyNames := "HotkeyMouse|HotkeyKeyboard|AlternateHotkeyMouse|AlternateHotk
 StringSplit, g_arrHotkeyNames, strHotkeyNames, |
 strHotkeyDefaults := "MButton|#a|!MButton|!#a"
 StringSplit, g_arrHotkeyDefaults, strHotkeyDefaults, |
+g_arrHotkeys := Array ; initialized by LoadIniHotkeys
 
 g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|WheelDown|WheelLeft|WheelRight|"
 ; leave last | to enable default value on the last item
@@ -1520,19 +1524,17 @@ strHotkeyNoneKey := "9"
 loop, % g_arrHotkeyNames%0%
 {
 	; Prepare global arrays used by SplitHotkey function
-	IniRead, arrHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index%, % g_arrHotkeyDefaults%A_Index%
-	SplitHotkey(arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
-	; example: Hotkey, $MButton, LaunchHotkeyMouse
+	IniRead, g_arrHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index%, % g_arrHotkeyDefaults%A_Index%
+	SplitHotkey(g_arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
 	
-	if (arrHotkeys%A_Index% = "None") ; do not compare with lDialogMouseNone because it is translated
+	if (g_arrHotkeys%A_Index% = "None") ; do not compare with lDialogMouseNone because it is translated
 		Hotkey, % "$" . strHotkeyNoneModifiers . strHotkeyNoneKey, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
 	else
-		Hotkey, % "$" . arrHotkeys%A_Index%, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
+		Hotkey, % "$" . g_arrHotkeys%A_Index%, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
 	if (ErrorLevel)
 		Oops(lDialogInvalidHotkey, Hotkey2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%), g_strAppNameText, g_arrOptionsTitles%A_Index%)
 }
 
-arrHotkeys := ""
 strHotkeyNoneModifiers := ""
 strHotkeyNoneKey := ""
 
@@ -2651,8 +2653,8 @@ Gui, 2:Add, Link, x20 ys+57 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
 g_strNewFavoriteHotkey := g_objEditedFavorite.FavoriteHotkey
 SplitHotkey(g_strNewFavoriteHotkey, strHotkeyModifiers, strHotkeyKey, strHotkeyMouse, strMouseButtonsWithDefault)
 Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
-Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeHotkey, % Hotkey2Text(strHotkeyModifiers, strHotkeyMouse, strHotkeyKey)
-Gui, 2:Add, Button, yp x+10 gButtonChangeHotkey, %lOptionsChangeHotkey%
+Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(strHotkeyModifiers, strHotkeyMouse, strHotkeyKey)
+Gui, 2:Add, Button, yp x+10 gButtonChangeFavoriteHotkey, %lOptionsChangeHotkey%
 
 ; ------ TAB Window Options ------
 
@@ -2830,7 +2832,7 @@ return
 
 
 ;------------------------------------------------------------
-ButtonChangeHotkey:
+ButtonChangeFavoriteHotkey:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
@@ -3982,13 +3984,15 @@ return
 ; Gui in function, see from daniel2 http://www.autohotkey.com/board/topic/19880-help-making-gui-work-inside-a-function/#entry130557
 
 ;------------------------------------------------------------
-SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "")
+SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
 ; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
 ; returns the new hotkey or empty string if cancel
 ;------------------------------------------------------------
 {
 	; safer that declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
 	global
+	
+	###_D(strActualHotkey)
 
 	SplitHotkey(strActualHotkey, strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
 
@@ -4007,9 +4011,12 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 
 	Gui, Add, Text, y+15 x10, %lDialogTriggerFor%
 	Gui, Font, s8 w700
-	Gui, Add, Text, x+5 yp w300 section, % strFavoriteName . " (" . strFavoriteType . ")"
+	Gui, Add, Text, x+5 yp w300 section, % strFavoriteName . (StrLen(strFavoriteType) ? " (" . strFavoriteType . ")" : "")
 	Gui, Font
-	Gui, Add, Text, xs y+5 w300, %strFavoriteLocation%
+	if StrLen(strFavoriteLocation)
+		Gui, Add, Text, xs y+5 w300, %strFavoriteLocation%
+	if StrLen(strDescription)
+		Gui, Add, Text, xs y+5 w300, %strDescription%
 
 	Gui, Add, CheckBox, y+20 x50 vf_blnShift, %lDialogShift%
 	GuiControlGet, arrTop, Pos, f_blnShift
@@ -4388,7 +4395,7 @@ GuiOptions:
 
 g_intGui1WinID := WinExist("A")
 
-StringSplit, arrOptionsTitlesSub, lOptionsTitlesSub, |
+StringSplit, g_arrOptionsTitlesSub, lOptionsTitlesSub, |
 
 ;---------------------------------------
 ; Build Gui header
@@ -4503,7 +4510,7 @@ loop, 4
 	Gui, 2:Font
 	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
 	Gui, 2:Font, s8 w500
-	Gui, 2:Add, Text, x15 ys w240, % arrOptionsTitlesSub%A_Index%
+	Gui, 2:Add, Text, x15 ys w240, % g_arrOptionsTitlesSub%A_Index%
 }
 
 ;---------------------------------------
@@ -4585,7 +4592,333 @@ GuiControl, Focus, f_btnOptionsSave
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
-arrOptionsTitlesSub := ""
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+PopupMenuPositionClicked:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_lblPopupFixPositionX
+GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_strPopupFixPositionX
+GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_lblPopupFixPositionY
+GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_strPopupFixPositionY
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonOptionsChangeHotkey1:
+ButtonOptionsChangeHotkey2:
+ButtonOptionsChangeHotkey3:
+ButtonOptionsChangeHotkey4:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+; SplitHotkey(arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouse
+
+; SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription)
+; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
+; strHotkeyNames := "HotkeyMouse|HotkeyKeyboard|AlternateHotkeyMouse|AlternateHotkeyKeyboard"
+
+StringReplace, intHotkeyIndex, A_ThisLabel, ButtonOptionsChangeHotkey
+###_D("intHotkeyIndex: " . intHotkeyIndex .  " / " . g_arrHotkeys%intHotkeyIndex% . " / " . g_arrHotkeyNames%intHotkeyIndex% . " / " . g_arrOptionsTitles%intHotkeyIndex% . "`n`n" . lOptionsArrDescriptions%intHotkeyIndex%)
+
+if InStr(g_arrHotkeyNames%intHotkeyIndex%, "Mouse")
+	intHotkeyType := 1 ; Mouse
+else
+	intHotkeyType := 2 ; Keyboard
+
+g_strNewFavoriteHotkey := g_arrHotkeys%intHotkeyType%
+
+g_strNewFavoriteHotkey := SelectHotkey(g_strNewFavoriteHotkey, g_arrOptionsTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
+
+###_D("g_strNewFavoriteHotkey: " . g_strNewFavoriteHotkey)
+
+SplitHotkey(g_strNewFavoriteHotkey, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
+GuiControl, 2:, f_strHotkeyText, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
+
+strNewModifiers := ""
+strNewMouse := ""
+strNewOptionsKey := ""
+strNewMouseButtonsWithDefault := ""
+
+return
+;------------------------------------------------------------
+
+
+/* AVANT
+;------------------------------------------------------------
+
+StringReplace, intIndex, A_ThisLabel, ButtonOptionsChangeHotkey
+
+intGui2WinID := WinExist("A")
+Gui, 2:Submit, NoHide
+
+Gui, 3:New, , % L(lOptionsChangeHotkeyTitle, g_strAppNameText, g_strAppVersion)
+if (g_blnUseColors)
+	Gui, 3:Color, %g_strGuiWindowColor%
+Gui, 3:+Owner2
+Gui, 3:Font, s10 w700, Verdana
+Gui, 3:Add, Text, x10 y10 w350 center, % L(lOptionsChangeHotkeyTitle, g_strAppNameText)
+Gui, 3:Font
+
+intHotkeyType := 3 ; Folders in Explorer, Groups, Recent folders, Clipboard and Settings
+if InStr(g_arrIniKeyNames%intIndex%, "Mouse")
+	intHotkeyType := 1
+if InStr(g_arrIniKeyNames%intIndex%, "Keyboard")
+	intHotkeyType := 2
+
+Gui, 3:Add, Text, y+15 x10 , %lOptionsTriggerFor%
+Gui, 3:Font, s8 w700
+Gui, 3:Add, Text, x+5 yp w300, % g_arrOptionsTitles%intIndex%
+Gui, 3:Font
+
+Gui, 3:Add, Text, x10 y+5 w350, % lOptionsArrDescriptions%intIndex%
+
+Gui, 3:Add, CheckBox, y+20 x50 vblnOptionsShift, %lOptionsShift%
+GuiControl, , blnOptionsShift, % InStr(strModifiers%intIndex%, "+") ? 1 : 0
+GuiControlGet, arrTop, Pos, blnOptionsShift
+Gui, 3:Add, CheckBox, y+10 x50 vblnOptionsCtrl, %lOptionsCtrl%
+GuiControl, , blnOptionsCtrl, % InStr(strModifiers%intIndex%, "^") ? 1 : 0
+Gui, 3:Add, CheckBox, y+10 x50 vblnOptionsAlt, %lOptionsAlt%
+GuiControl, , blnOptionsAlt, % InStr(strModifiers%intIndex%, "!") ? 1 : 0
+Gui, 3:Add, CheckBox, y+10 x50 vblnOptionsWin, %lOptionsWin%
+GuiControl, , blnOptionsWin, % InStr(strModifiers%intIndex%, "#") ? 1 : 0
+
+; initialize or we may have an error if another hotkey was changed before
+strOptionsMouse := ""
+strOptionsKey := ""
+
+if (intHotkeyType = 1)
+	Gui, 3:Add, DropDownList, % "y" . arrTopY . " x150 w200 vstrOptionsMouse gOptionsMouseChanged", % strMouseButtonsWithDefault%intIndex%
+if (intHotkeyType <> 1)
+{
+	Gui, 3:Add, Text, % "y" . arrTopY . " x150 w60", %lOptionsKeyboard%
+	Gui, 3:Add, Hotkey, yp x+10 w130 vstrOptionsKey gOptionsHotkeyChanged
+	GuiControl, , strOptionsKey, % strOptionsKey%intIndex%
+}
+if (intHotkeyType = 3)
+{
+	Gui, 3:Add, Text, % "y" . arrTopY + 30 . " x150 w60", %lOptionsMouse%
+	Gui, 3:Add, DropDownList, yp x+10 w130 vstrOptionsMouse gOptionsMouseChanged, % strMouseButtonsWithDefault%intIndex%
+}
+if (intHotkeyType <> 1)
+{
+	Gui, 3:Add, Link, y+10 x150 gOptionsSelectNoneHotkeyClicked, <a>%lOptionsMouseNone%</a>
+	Gui, 3:Add, Link, yp x+10 w130 gOptionsHotkeySpaceClicked, <a>%lOptionsSpacebar%</a>
+}
+
+Gui, 3:Add, Button, % "x10 y" . arrTopY + 100 . " vbtnResetHotkey gButtonResetHotkey" . intIndex, %lGuiResetDefault%
+GuiCenterButtons(L(lOptionsChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnResetHotkey")
+Gui, 3:Add, Button, y+20 x10 vbtnChangeHotkeySave gButtonChangeHotkeySave%intIndex%, %lGuiSave%
+Gui, 3:Add, Button, yp x+20 vbtnChangeHotkeyCancel gButtonChangeHotkeyCancel, %lGuiCancel%
+GuiCenterButtons(L(lOptionsChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "btnChangeHotkeySave", "btnChangeHotkeyCancel")
+
+Gui, 3:Add, Text
+GuiControl, Focus, btnChangeHotkeySave
+Gui, 3:Show, AutoSize Center
+Gui, 2:+Disabled
+
+return
+;------------------------------------------------------------
+*/
+
+
+;------------------------------------------------------------
+ButtonSelectDOpusPath:
+;------------------------------------------------------------
+
+if StrLen(g_strDirectoryOpusPath) and (g_strDirectoryOpusPath <> "NO")
+	strCurrentDOpusLocation := g_strDirectoryOpusPath
+else
+	strCurrentDOpusLocation := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
+
+FileSelectFile, strNewDOpusLocation, 3, %strCurrentDOpusLocation%, %lDialogAddFolderSelect%
+
+if !(StrLen(strNewDOpusLocation))
+	return
+
+GuiControl, 2:, f_strDirectoryOpusPath, %strNewDOpusLocation%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonSelectTCPath:
+;------------------------------------------------------------
+
+if StrLen(g_strTotalCommanderPath) and (g_strTotalCommanderPath <> "NO")
+	strCurrentTCLocation := g_strTotalCommanderPath
+else
+	strCurrentTCLocation := GetTotalCommanderPath()
+
+FileSelectFile, strNewTCLocation, 3, %strCurrentTCLocation%, %lDialogAddFolderSelect%
+
+if !(StrLen(strNewTCLocation))
+	return
+
+GuiControl, 2:, f_strTotalCommanderPath, %strNewTCLocation%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonSelectFPcPath:
+;------------------------------------------------------------
+
+if StrLen(g_strFPconnectPath) and (g_strFPconnectPath <> "NO")
+	strCurrentFPcLocation := g_strFPconnectPath
+else
+	strCurrentFPcLocation := A_ScriptDir . "\FPconnect\FPconnect.exe"
+
+FileSelectFile, strNewFPcLocation, 3, %strCurrentFPcLocation%, %lDialogAddFolderSelect%
+
+if !(StrLen(strNewFPcLocation))
+	return
+
+GuiControl, 2:, f_strFPconnectPath, %strNewFPcLocation%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonOptionsSave:
+;------------------------------------------------------------
+/*
+Gui, 2:Submit
+
+g_blnMenuReady := false
+
+IfExist, %A_Startup%\%g_strAppNameFile%.lnk
+	FileDelete, %A_Startup%\%g_strAppNameFile%.lnk
+if (blnOptionsRunAtStartup)
+	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
+Menu, Tray, % blnOptionsRunAtStartup ? "Check" : "Uncheck", %lMenuRunAtStartup%
+
+IniWrite, %g_blnDisplayTrayTip%, %g_strIniFile%, Global, DisplayTrayTip
+IniWrite, %g_blnDisplayIcons%, %g_strIniFile%, Global, DisplayIcons
+IniWrite, %g_blnDisplaySpecialMenusShortcuts%, %g_strIniFile%, Global, DisplaySpecialMenusShortcuts
+IniWrite, %blnDisplayRecentFolders%, %g_strIniFile%, Global, DisplayRecentFolders
+IniWrite, %g_intRecentFolders%, %g_strIniFile%, Global, RecentFolders
+IniWrite, %blnDisplayFoldersInExplorerMenu%, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu
+IniWrite, %blnDisplayGroupMenu%, %g_strIniFile%, Global, DisplayGroupMenu
+IniWrite, %blnDisplayClipboardMenu%, %g_strIniFile%, Global, DisplayClipboardMenu
+IniWrite, %blnDisplayCopyLocationMenu%, %g_strIniFile%, Global, DisplayCopyLocationMenu
+IniWrite, %g_blnDisplayMenuShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
+IniWrite, %g_blnCheck4Update%, %g_strIniFile%, Global, Check4Update
+IniWrite, %g_blnOpenMenuOnTaskbar%, %g_strIniFile%, Global, OpenMenuOnTaskbar
+IniWrite, %g_blnRememberSettingsPosition%, %g_strIniFile%, Global, RememberSettingsPosition
+
+if (radPopupMenuPosition1)
+	g_intPopupMenuPosition := 1
+else if (radPopupMenuPosition2)
+	g_intPopupMenuPosition := 2
+else
+	g_intPopupMenuPosition := 3
+IniWrite, %g_intPopupMenuPosition%, %g_strIniFile%, Global, PopupMenuPosition
+	
+IniWrite, %strPopupFixPositionX%`,%strPopupFixPositionY%, %g_strIniFile%, Global, PopupFixPosition
+g_arrPopupFixPosition1 := strPopupFixPositionX
+g_arrPopupFixPosition2 := strPopupFixPositionY
+
+g_strLanguageCodePrev := g_strLanguageCode
+g_strLanguageLabel := drpLanguage
+loop, %g_arrOptionsLanguageLabels0%
+	if (g_arrOptionsLanguageLabels%A_Index% = g_strLanguageLabel)
+		{
+			g_strLanguageCode := g_arrOptionsLanguageCodes%A_Index%
+			break
+		}
+IniWrite, %g_strLanguageCode%, %g_strIniFile%, Global, LanguageCode
+
+strThemePrev := g_strTheme
+g_strTheme := drpTheme
+IniWrite, %g_strTheme%, %g_strIniFile%, Global, Theme
+
+g_intIconSize := drpIconSize
+IniWrite, %g_intIconSize%, %g_strIniFile%, Global, IconSize
+
+IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
+IniWrite, %g_blnDirectoryOpusUseTabs%, %g_strIniFile%, Global, DirectoryOpusUseTabs
+g_blnUseDirectoryOpus := StrLen(g_strDirectoryOpusPath)
+if (g_blnUseDirectoryOpus)
+{
+	g_blnUseDirectoryOpus := FileExist(g_strDirectoryOpusPath)
+	if (g_blnUseDirectoryOpus)
+		Gosub, SetDOpusRt
+}
+if (g_blnDirectoryOpusUseTabs)
+	g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
+else
+	g_strDirectoryOpusNewTabOrWindow := "NEW" ; open new folder in a new DOpus lister (instance)
+
+IniWrite, %g_strTotalCommanderPath%, %g_strIniFile%, Global, TotalCommanderPath
+IniWrite, %g_blnTotalCommanderUseTabs%, %g_strIniFile%, Global, TotalCommanderUseTabs
+g_blnUseTotalCommander := StrLen(g_strTotalCommanderPath)
+if (g_blnUseTotalCommander)
+{
+	g_blnUseTotalCommander := FileExist(g_strTotalCommanderPath)
+	if (g_blnUseTotalCommander)
+		Gosub, SetTCCommand
+}
+if (g_blnTotalCommanderUseTabs)
+	g_strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
+else
+	g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
+
+IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
+g_blnUseFPconnect := StrLen(g_strFPconnectPath)
+if (g_blnUseFPconnect)
+{
+	g_blnUseFPconnect := FileExist(g_strFPconnectPath)
+	if (g_blnUseFPconnect)
+		Gosub, SetFPconnect
+}
+
+; if language or theme changed, offer to restart the app
+if (g_strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
+{
+	MsgBox, 52, %g_strAppNameText%, % L(lReloadPrompt, (g_strLanguageCodePrev <> g_strLanguageCode ? lOptionsLanguage : lOptionsTheme), (g_strLanguageCodePrev <> g_strLanguageCode ? g_strLanguageLabel : g_strTheme), g_strAppNameText)
+	IfMsgBox, Yes
+	{
+		Gosub, RestoreBackupMenuObjects
+		Reload
+	}
+}	
+
+; else rebuild special and Group menus
+Gosub, BuildFoldersInExplorerMenu
+Gosub, BuildGroupMenu
+
+; and rebuild Folders menus w/ or w/o optional folders and shortcuts
+for strMenuName, arrMenu in g_arrMenus
+{
+	Menu, %strMenuName%, Add
+	Menu, %strMenuName%, DeleteAll
+	arrMenu := ; free object's memory
+}
+Gosub, BuildMainMenuWithStatus
+
+Gosub, 2GuiClose
+
+g_blnMenuReady := true
+
+return
+*/
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonOptionsCancel:
+;------------------------------------------------------------
+Gosub, 2GuiClose
 
 return
 ;------------------------------------------------------------
