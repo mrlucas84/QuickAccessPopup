@@ -18,7 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- save options and debug
+- debug save options
 - add default hotkey to QAP Feature Object
 - rewrite lOptionsTitles
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -1201,6 +1201,7 @@ IniRead, g_intPopupMenuPosition, %g_strIniFile%, Global, PopupMenuPosition, 1
 IniRead, strPopupFixPosition, %g_strIniFile%, Global, PopupFixPosition, 20,20
 StringSplit, g_arrPopupFixPosition, strPopupFixPosition, `,
 IniRead, g_blnDisplayMenuShortcuts, %g_strIniFile%, Global, DisplayMenuShortcuts, 0
+IniRead, g_blnDisplayFavoritesHotkeysInMenus, %g_strIniFile%, Global, blnDisplayFavoritesHotkeysInMenus, 0
 IniRead, g_blnDiagMode, %g_strIniFile%, Global, DiagMode, 0
 IniRead, g_intRecentFolders, %g_strIniFile%, Global, RecentFolders, 10
 IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 24
@@ -1748,6 +1749,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 ;------------------------------------------------------------
 {
 	global g_blnDisplayMenuShortcuts
+	global g_blnDisplayFavoritesHotkeysInMenus ; ### todo
 	global g_blnDisplayIcons
 	global g_intIconSize
 	global g_strMenuBackgroundColor
@@ -2022,50 +2024,30 @@ GuiControl, , f_blnDisplayMenuShortcuts, %g_blnDisplayMenuShortcuts%
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayTrayTip, %lOptionsTrayTip%
 GuiControl, , f_blnDisplayTrayTip, %g_blnDisplayTrayTip%
 
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayIcons, %lOptionsDisplayIcons%
-GuiControl, , f_blnDisplayIcons, %g_blnDisplayIcons%
-if !OSVersionIsWorkstation()
-{
-	GuiControl, , f_blnDisplayIcons, 0
-	GuiControl, Disable, f_blnDisplayIcons
-}
-
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnCheck4Update, %lOptionsCheck4Update%
 GuiControl, , f_blnCheck4Update, %g_blnCheck4Update%
 
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
 GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
 
-; column 2
-Gui, 2:Add, Text, ys x240 Section, %lOptionsIconSize%
-Gui, 2:Add, DropDownList, ys x+10 w40 vf_drpIconSize Sort, 16|24|32|48|64
+Gui, 2:Add, Edit, y+20 xs w36 h17 vf_intRecentFolders center, %g_intRecentFolders%
+Gui, 2:Add, Text, yp x+10 w180, %lOptionsRecentFolders%
+
+if !OSVersionIsWorkstation()
+{
+	g_blnDisplayIcons := 0
+	GuiControl, Disable, f_blnDisplayIcons
+}
+Gui, 2:Add, CheckBox, y+20 xs w220 vf_blnDisplayIcons gDisplayIconsClicked, %lOptionsDisplayIcons%
+GuiControl, , f_blnDisplayIcons, %g_blnDisplayIcons%
+
+Gui, 2:Add, Text, % "y+10 xs vf_drpIconSizeLabel " . (g_blnDisplayIcons ? "" : "hidden"), %lOptionsIconSize%
+Gui, 2:Add, DropDownList, % "yp x+10 w40 vf_drpIconSize Sort " . (g_blnDisplayIcons ? "" : "hidden"), 16|24|32|48|64
 GuiControl, ChooseString, f_drpIconSize, %g_intIconSize%
 
-/*
-Gui, 2:Add, Text, y+7 x240 w200, %lOptionsDisplayMenus%
+; column 2
 
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayFoldersInExplorerMenu, %lOptionsDisplayFoldersInExplorerMenu%
-GuiControl, , blnDisplayFoldersInExplorerMenu, %blnDisplayFoldersInExplorerMenu%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayGroupMenu, %lOptionsDisplayGroupMenu%
-GuiControl, , blnDisplayGroupMenu, %blnDisplayGroupMenu%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayClipboardMenu, %lOptionsDisplayClipboardMenu%
-GuiControl, , blnDisplayClipboardMenu, %blnDisplayClipboardMenu%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayCopyLocationMenu, %lOptionsDisplayCopyLocationMenu%
-GuiControl, , blnDisplayCopyLocationMenu, %blnDisplayCopyLocationMenu%
-
-Gui, 2:Add, CheckBox, y+10 xs w180 vblnDisplayRecentFolders gDisplayRecentFoldersClicked, %lOptionsDisplayRecentFolders%
-GuiControl, , blnDisplayRecentFolders, %blnDisplayRecentFolders%
-
-Gui, 2:Add, Edit, % "y+5 xs+15 w36 h17 vintRecentFolders center " . (blnDisplayRecentFolders ? "" : "hidden"), %g_intRecentFolders%
-Gui, 2:Add, Text, % "yp x+10 vlblRecentFolders " . (blnDisplayRecentFolders ? "" : "hidden"), %lOptionsRecentFolders%
-*/
-
-; column 3
-
-Gui, 2:Add, Text, ys x430 Section, %lOptionsTheme%
+Gui, 2:Add, Text, ys x300 Section, %lOptionsTheme%
 Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpTheme, %g_strAvailableThemes%
 GuiControl, ChooseString, f_drpTheme, %g_strTheme%
 
@@ -2159,6 +2141,18 @@ GuiControl, Focus, f_btnOptionsSave
 
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DisplayIconsClicked:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+GuiControl, % (f_blnDisplayIcons ? "Show" : "Hide"), f_drpIconSizeLabel
+GuiControl, % (f_blnDisplayIcons ? "Show" : "Hide"), f_drpIconSize
 
 return
 ;------------------------------------------------------------
@@ -2281,45 +2275,47 @@ return
 ;------------------------------------------------------------
 ButtonOptionsSave:
 ;------------------------------------------------------------
-/*
 Gui, 2:Submit
 
 g_blnMenuReady := false
 
 IfExist, %A_Startup%\%g_strAppNameFile%.lnk
 	FileDelete, %A_Startup%\%g_strAppNameFile%.lnk
-if (blnOptionsRunAtStartup)
+if (f_blnOptionsRunAtStartup)
 	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
-Menu, Tray, % blnOptionsRunAtStartup ? "Check" : "Uncheck", %lMenuRunAtStartup%
+Menu, Tray, % f_blnOptionsRunAtStartup ? "Check" : "Uncheck", %lMenuRunAtStartup%
 
+g_blnDisplayTrayTip := f_blnDisplayTrayTip
 IniWrite, %g_blnDisplayTrayTip%, %g_strIniFile%, Global, DisplayTrayTip
+g_blnDisplayIcons := f_blnDisplayIcons
 IniWrite, %g_blnDisplayIcons%, %g_strIniFile%, Global, DisplayIcons
-IniWrite, %g_blnDisplaySpecialMenusShortcuts%, %g_strIniFile%, Global, DisplaySpecialMenusShortcuts
-IniWrite, %blnDisplayRecentFolders%, %g_strIniFile%, Global, DisplayRecentFolders
+g_intRecentFolders := f_intRecentFolders
 IniWrite, %g_intRecentFolders%, %g_strIniFile%, Global, RecentFolders
-IniWrite, %blnDisplayFoldersInExplorerMenu%, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu
-IniWrite, %blnDisplayGroupMenu%, %g_strIniFile%, Global, DisplayGroupMenu
-IniWrite, %blnDisplayClipboardMenu%, %g_strIniFile%, Global, DisplayClipboardMenu
-IniWrite, %blnDisplayCopyLocationMenu%, %g_strIniFile%, Global, DisplayCopyLocationMenu
+g_blnDisplayMenuShortcuts := f_blnDisplayMenuShortcuts
 IniWrite, %g_blnDisplayMenuShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
+g_blnDisplayFavoritesHotkeysInMenus := f_blnDisplayFavoritesHotkeysInMenus
+IniWrite, %g_blnDisplayFavoritesHotkeysInMenus%, %g_strIniFile%, Global, DisplayFavoritesHotkeysInMenus
+g_blnCheck4Update := f_blnCheck4Update
 IniWrite, %g_blnCheck4Update%, %g_strIniFile%, Global, Check4Update
+g_blnOpenMenuOnTaskbar := f_blnOpenMenuOnTaskbar
 IniWrite, %g_blnOpenMenuOnTaskbar%, %g_strIniFile%, Global, OpenMenuOnTaskbar
+g_blnRememberSettingsPosition := f_blnRememberSettingsPosition
 IniWrite, %g_blnRememberSettingsPosition%, %g_strIniFile%, Global, RememberSettingsPosition
 
-if (radPopupMenuPosition1)
+if (f_radPopupMenuPosition1)
 	g_intPopupMenuPosition := 1
-else if (radPopupMenuPosition2)
+else if (f_radPopupMenuPosition2)
 	g_intPopupMenuPosition := 2
 else
 	g_intPopupMenuPosition := 3
 IniWrite, %g_intPopupMenuPosition%, %g_strIniFile%, Global, PopupMenuPosition
-	
-IniWrite, %strPopupFixPositionX%`,%strPopupFixPositionY%, %g_strIniFile%, Global, PopupFixPosition
-g_arrPopupFixPosition1 := strPopupFixPositionX
-g_arrPopupFixPosition2 := strPopupFixPositionY
 
-g_strLanguageCodePrev := g_strLanguageCode
-g_strLanguageLabel := drpLanguage
+g_arrPopupFixPosition1 := f_strPopupFixPositionX
+g_arrPopupFixPosition2 := f_strPopupFixPositionY
+IniWrite, %g_arrPopupFixPosition1%`,%g_arrPopupFixPosition2%, %g_strIniFile%, Global, PopupFixPosition
+
+strLanguageCodePrev := g_strLanguageCode
+g_strLanguageLabel := f_drpLanguage
 loop, %g_arrOptionsLanguageLabels0%
 	if (g_arrOptionsLanguageLabels%A_Index% = g_strLanguageLabel)
 		{
@@ -2329,13 +2325,15 @@ loop, %g_arrOptionsLanguageLabels0%
 IniWrite, %g_strLanguageCode%, %g_strIniFile%, Global, LanguageCode
 
 strThemePrev := g_strTheme
-g_strTheme := drpTheme
+g_strTheme := f_drpTheme
 IniWrite, %g_strTheme%, %g_strIniFile%, Global, Theme
 
-g_intIconSize := drpIconSize
+g_intIconSize := f_drpIconSize
 IniWrite, %g_intIconSize%, %g_strIniFile%, Global, IconSize
 
+g_strDirectoryOpusPath := f_strDirectoryOpusPath
 IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
+g_blnDirectoryOpusUseTabs := f_blnDirectoryOpusUseTabs
 IniWrite, %g_blnDirectoryOpusUseTabs%, %g_strIniFile%, Global, DirectoryOpusUseTabs
 g_blnUseDirectoryOpus := StrLen(g_strDirectoryOpusPath)
 if (g_blnUseDirectoryOpus)
@@ -2349,7 +2347,9 @@ if (g_blnDirectoryOpusUseTabs)
 else
 	g_strDirectoryOpusNewTabOrWindow := "NEW" ; open new folder in a new DOpus lister (instance)
 
+g_strTotalCommanderPath := f_strTotalCommanderPath
 IniWrite, %g_strTotalCommanderPath%, %g_strIniFile%, Global, TotalCommanderPath
+g_blnTotalCommanderUseTabs := f_blnTotalCommanderUseTabs
 IniWrite, %g_blnTotalCommanderUseTabs%, %g_strIniFile%, Global, TotalCommanderUseTabs
 g_blnUseTotalCommander := StrLen(g_strTotalCommanderPath)
 if (g_blnUseTotalCommander)
@@ -2363,6 +2363,7 @@ if (g_blnTotalCommanderUseTabs)
 else
 	g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
 
+g_strFPconnectPath := f_strFPconnectPath
 IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
 g_blnUseFPconnect := StrLen(g_strFPconnectPath)
 if (g_blnUseFPconnect)
@@ -2373,26 +2374,22 @@ if (g_blnUseFPconnect)
 }
 
 ; if language or theme changed, offer to restart the app
-if (g_strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
+if (strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
 {
-	MsgBox, 52, %g_strAppNameText%, % L(lReloadPrompt, (g_strLanguageCodePrev <> g_strLanguageCode ? lOptionsLanguage : lOptionsTheme), (g_strLanguageCodePrev <> g_strLanguageCode ? g_strLanguageLabel : g_strTheme), g_strAppNameText)
+	MsgBox, 52, %g_strAppNameText%, % L(lReloadPrompt, (strLanguageCodePrev <> g_strLanguageCode ? lOptionsLanguage : lOptionsTheme), (strLanguageCodePrev <> g_strLanguageCode ? g_strLanguageLabel : g_strTheme), g_strAppNameText)
 	IfMsgBox, Yes
-	{
-		Gosub, RestoreBackupMenuObjects
 		Reload
-	}
 }	
 
-; else rebuild special and Group menus
+; else rebuild Explorers folder
 Gosub, BuildFoldersInExplorerMenu
-Gosub, BuildGroupMenu
 
 ; and rebuild Folders menus w/ or w/o optional folders and shortcuts
 for strMenuName, arrMenu in g_arrMenus
 {
 	Menu, %strMenuName%, Add
 	Menu, %strMenuName%, DeleteAll
-	arrMenu := ; free object's memory
+	arrMenu := "" ; free object's memory
 }
 Gosub, BuildMainMenuWithStatus
 
@@ -2400,8 +2397,10 @@ Gosub, 2GuiClose
 
 g_blnMenuReady := true
 
+strLanguageCodePrev := ""
+strThemePrev := ""
+
 return
-*/
 ;------------------------------------------------------------
 
 
