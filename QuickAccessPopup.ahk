@@ -1719,6 +1719,26 @@ return
 
 
 ;------------------------------------------------------------
+FoldersInExplorerMenuShortcut:
+;------------------------------------------------------------
+
+; ### COMPLETE blnNewWindow := !CanOpenFavorite("", strTargetWinId, strTargetClass, strTargetControl)
+Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
+
+Gosub, BuildFoldersInExplorerMenu
+if (g_intExplorersIndex) ; there are Folders in Explorer menu
+{
+	CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+	Menu, g_menuFoldersInExplorer, Show, %g_intMenuPosX%, %g_intMenuPosy%
+}
+else
+	TrayTip, % L(lTrayTipNoFoldersInExplorerMenuTitle, g_strAppNameText), %lTrayTipNoFoldersInExplorerMenuDetail%, , 2
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 BuildFoldersInExplorerMenuInit:
 BuildFoldersInExplorerMenu:
 ;------------------------------------------------------------
@@ -2033,6 +2053,26 @@ arrShortcutFullPath := ""
 strShortcutFullPath := ""
 strTargetPath := ""
 strMenuName := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ClipboardMenuShortcut:
+;------------------------------------------------------------
+
+; ### COMPLETE blnNewWindow := !CanOpenFavorite("", strTargetWinId, strTargetClass, strTargetControl)
+Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
+
+Gosub, RefreshClipboardMenu
+if (g_blnClipboardMenuEnable)
+{
+    CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+    Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosy%
+}
+else
+    TrayTip, % L(lTrayTipNoClipboardMenuTitle, g_strAppNameText), %lTrayTipNoClipboardMenuDetail%, , 2
 
 return
 ;------------------------------------------------------------
@@ -5542,30 +5582,6 @@ return
 
 
 ;------------------------------------------------------------
-FoldersInExplorerMenuShortcut:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ClipboardMenuShortcut:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GroupsMenuShortcut:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 SetMenuPosition:
 ;------------------------------------------------------------
 
@@ -5628,25 +5644,6 @@ OpenFavorite:
 OpenRecentFolder:
 OpenFolderInExplorer:
 OpenClipboard:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GuiGroupSaveFromMenu:
-GuiGroupSaveFromManage:
-GuiGroupEditFromManage:
-;------------------------------------------------------------
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GroupLoad:
-GroupLoadFromManage:
 ;------------------------------------------------------------
 
 return
