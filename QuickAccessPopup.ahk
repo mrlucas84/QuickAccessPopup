@@ -18,11 +18,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- debug save options
-- add default hotkey to QAP Feature Object
-- rewrite lOptionsTitles
+- build menu and POC actions
+- add default hotkey to QAP Feature Object and show select default button in gui
+- prevent 2 favorites to use the same .FavoriteHotkey
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
-- Options, 3rd party, one Browse in modal window
 - review help text
 - build menu "QAP Essentials" like My Special Folders
 - add Support freeware to main menu if user did not donate
@@ -270,6 +269,13 @@ OnMessage(0x404, "AHK_NOTIFYICON")
 
 ; Create a mutex to allow Inno Setup to detect if FP is running before uninstall or update
 DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex")
+
+; DEBUG
+
+; Gosub, BuildFoldersInExplorerMenu
+; Menu, g_menuFoldersInExplorer, Show
+
+Gosub, RecentFoldersShortcut
 
 return
 
@@ -1225,7 +1231,7 @@ StringSplit, g_arrPopupFixPosition, strPopupFixPosition, `,
 IniRead, g_blnDisplayMenuShortcuts, %g_strIniFile%, Global, DisplayMenuShortcuts, 0
 IniRead, g_blnDisplayFavoritesHotkeysInMenus, %g_strIniFile%, Global, blnDisplayFavoritesHotkeysInMenus, 0
 IniRead, g_blnDiagMode, %g_strIniFile%, Global, DiagMode, 0
-IniRead, g_intRecentFolders, %g_strIniFile%, Global, RecentFolders, 10
+IniRead, g_intRecentFoldersMax, %g_strIniFile%, Global, RecentFoldersMax, 10
 IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 24
 ; IniRead, g_strGroups, %g_strIniFile%, Global, Groups, %A_Space% ; empty string if not found
 IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, 1
@@ -1724,6 +1730,314 @@ if (A_ThisLabel = "BuildFoldersInExplorerMenuInit")
 	return
 }
 
+if (g_blnUseDirectoryOpus)
+{
+	FileDelete, %g_strDOpusTempFilePath%
+	RunDOpusRt("/info", g_strDOpusTempFilePath, ",paths") ; list opened listers in a text file
+	; Run, "%strDirectoryOpusRtPath%" /info "%g_strDOpusTempFilePath%"`,paths
+	loop, 10
+		if FileExist(g_strDOpusTempFilePath)
+			Break
+		else
+			Sleep, 50 ; was 10 and had some gliches with FP - is 50 enough?
+	FileRead, strDOpusListText, %g_strDOpusTempFilePath%
+
+	objDOpusListers := Object()
+	CollectDOpusListersList(objDOpusListers, strDOpusListText) ; list all listers, excluding special folders like Recycle Bin
+}
+
+objExplorersWindows := Object()
+CollectExplorers(objExplorersWindows, ComObjCreate("Shell.Application").Windows)
+
+objFoldersInExplorers := Object()
+
+intExplorersIndex := 0 ; used in PopupMenu and SaveGroup to check if we disable menu or button when empty
+
+if (g_blnUseDirectoryOpus)
+	for intIndex, objLister in objDOpusListers
+	{
+		; if we have no path or or DOpus collection, skip it
+		if !StrLen(objLister.LocationURL) or InStr(objLister.LocationURL, "coll://")
+			continue
+		
+		if NameIsInObject(objLister.LocationURL, objFoldersInExplorers)
+			continue
+		
+		intExplorersIndex := intExplorersIndex + 1
+			
+		objFolderInExplorer := Object()
+		objFolderInExplorer.LocationURL := objLister.LocationURL
+		objFolderInExplorer.Name := objLister.LocationURL
+		
+		; used for DOpus windows to discriminatre different listers
+		objFolderInExplorer.WindowId := objLister.Lister
+		
+		; info used to create groups
+		objFolderInExplorer.TabId := objLister.Tab
+		objFolderInExplorer.Position := objLister.Position
+		objFolderInExplorer.MinMax := objLister.MinMax
+		objFolderInExplorer.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
+		objFolderInExplorer.WindowType := "DO"
+		
+		objFoldersInExplorers.Insert(intExplorersIndex, objFolderInExplorer)
+	}
+
+for intIndex, objFolder in objExplorersWindows
+{
+	; if we have no path, skip it
+	if !StrLen(objFolder.LocationURL)
+		continue
+		
+	if NameIsInObject(objFolder.LocationName, objFoldersInExplorers)
+		continue
+	
+	intExplorersIndex := intExplorersIndex + 1
+	
+	objFolderInExplorer := Object()
+	objFolderInExplorer.LocationURL := objFolder.LocationURL
+	objFolderInExplorer.Name := objFolder.LocationName
+	objFolderInExplorer.IsSpecialFolder := objFolder.IsSpecialFolder
+	
+	; not used for Explorer windows, but keep it
+	objFolderInExplorer.WindowId := objFolder.WindowId
+
+	; info used to create groups
+	objFolderInExplorer.Position := objFolder.Position
+	objFolderInExplorer.MinMax := objFolder.MinMax
+	objFolderInExplorer.WindowType := "EX"
+
+	objFoldersInExplorers.Insert(intExplorersIndex, objFolderInExplorer)
+}
+
+Menu, g_menuFoldersInExplorer, Add
+Menu, g_menuFoldersInExplorer, DeleteAll
+if (g_blnUseColors)
+	Menu, g_menuFoldersInExplorer, Color, %g_strMenuBackgroundColor%
+
+intShortcutFoldersInExplorer := 0
+g_objFoldersInExplorerLocationUrlByName := Object()
+
+for intIndex, objFolderInExplorer in objFoldersInExplorers
+{
+	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutFoldersInExplorer <= 35) ? "&" . NextMenuShortcut(intShortcutFoldersInExplorer) . " " : "") . objFolderInExplorer.Name
+	g_objFoldersInExplorerLocationUrlByName.Insert(strMenuName, objFolderInExplorer.LocationURL) ; can include the numeric shortcut
+	AddMenuIcon("g_menuFoldersInExplorer", strMenuName, "OpenFolderInExplorer", "Folder")
+}
+
+objDOpusListers := ""
+objExplorersWindows := ""
+objFolderInExplorer := ""
+strDOpusListText := ""
+intExplorersIndex := ""
+intIndex := ""
+objLister := ""
+objFolder := ""
+intShortcutFoldersInExplorer := ""
+strMenuName := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CollectDOpusListersList(objListers, strList)
+; list all DirectoryOpus listers, excluding special folders like Recycle Bin, Network because they are not included in dopus-list.txt
+;------------------------------------------------------------
+{
+	strList := SubStr(strList, InStr(strList, "<path"))
+	Loop
+	{
+		objLister := Object()
+		
+		strList := SubStr(strList, InStr(strList, "<path"))
+		strSubStr := SubStr(strList, InStr(strList, "<path"))
+		strSubStr := SubStr(strSubStr, 1, InStr(strSubStr, "</path>") - 1)
+		
+		if (StrLen(strSubStr))
+		{
+			objLister.Active_lister := ParseDOpusListerProperty(strSubStr, "active_lister")
+			objLister.Active_tab := ParseDOpusListerProperty(strSubStr, "active_tab")
+			objLister.Lister := ParseDOpusListerProperty(strSubStr, "lister")
+			objLister.Side := ParseDOpusListerProperty(strSubStr, "side")
+			objLister.Tab := ParseDOpusListerProperty(strSubStr, "tab")
+			objLister.Tab_state := ParseDOpusListerProperty(strSubStr, "tab_state")
+			objLister.LocationURL := SubStr(strSubStr, InStr(strSubStr, ">") + 1)
+
+			WinGetPos, intX, intY, intW, intH, % "ahk_id " . objLister.lister
+			objLister.Position := intX . "|" . intY . "|" . intW . "|" . intH
+			WinGet, intMinMax, MinMax, % "ahk_id " . objLister.lister
+			objLister.MinMax := intMinMax
+			objLister.Pane := objLister.Side
+			
+			if !InStr(objLister.LocationURL, "ftp://")
+				; Swith Explorer to DOpus FTP folder not supported (see https://github.com/JnLlnd/FoldersPopup/issues/84)
+				objListers.Insert(A_Index, objLister)
+				
+			strList := SubStr(strList, StrLen(strSubStr))
+		}
+	} until	(!StrLen(strSubStr))
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ParseDOpusListerProperty(strSource, strProperty)
+;------------------------------------------------------------
+{
+	intStartPos := InStr(strSource, " " . strProperty . "=")
+	if !(intStartPos)
+		return ""
+	strSource := SubStr(strSource, intStartPos + StrLen(strProperty) + 3)
+	intEndPos := InStr(strSource, """")
+	return SubStr(strSource, 1, intEndPos - 1)
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CollectExplorers(objExplorers, pExplorers)
+;------------------------------------------------------------
+{
+	intExplorers := 0
+	
+	For pExplorer in pExplorers
+	; see http://msdn.microsoft.com/en-us/library/windows/desktop/aa752084(v=vs.85).aspx
+	{
+		/* in v.3.9.8: stop interupting Explorer collection if an error occurs - just check for content and continue
+		if (A_LastError)
+			; an error occurred during ComObjCreate (A_LastError probably is E_UNEXPECTED = -2147418113 #0x8000FFFFL)
+			break
+		*/
+
+		strType := ""
+		try strType := pExplorer.Type ; Gets the type name of the contained document object. "Document HTML" for IE windows. Should be empty for file Explorer windows.
+		strWindowID := ""
+		try strWindowID := pExplorer.HWND ; Try to get the handle of the window. Some ghost Explorer in the ComObjCreate may return an empty handle
+		
+		if !StrLen(strType) ; must be empty
+			and StrLen(strWindowID) ; must not be empty
+		{
+			intExplorers := intExplorers + 1
+			objExplorer := Object()
+			objExplorer.Position := pExplorer.Left . "|" . pExplorer.Top . "|" . pExplorer.Width . "|" . pExplorer.Height
+
+			objExplorer.IsSpecialFolder := !StrLen(pExplorer.LocationURL) ; empty for special folders like Recycle bin
+			
+			if (objExplorer.IsSpecialFolder)
+			{
+				objExplorer.LocationURL := pExplorer.Document.Folder.Self.Path
+				objExplorer.LocationName := pExplorer.LocationName ; see http://msdn.microsoft.com/en-us/library/aa752084#properties
+			}
+			else
+			{
+				objExplorer.LocationURL := pExplorer.LocationURL
+				strLocationName :=  UriDecode(pExplorer.LocationURL)
+				StringReplace, strLocationName, strLocationName, file:///
+				StringReplace, strLocationName, strLocationName, /, \, A
+				objExplorer.LocationName := strLocationName
+			}
+			
+			objExplorer.WindowId := pExplorer.HWND ; not used for Explorer windows, but keep it
+			WinGet, intMinMax, MinMax, % "ahk_id " . pExplorer.HWND
+			objExplorer.MinMax := intMinMax
+			
+			objExplorers.Insert(intExplorers, objExplorer) ; I was checking if StrLen(pExplorer.HWND) - any reason?
+		}
+	}
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RefreshRecentFolders:
+RecentFoldersShortcut:
+;------------------------------------------------------------
+
+blnCopyLocation := false
+
+; ### ? blnNewWindow := !CanOpenFavorite("", g_strTargetWinId, g_strTargetClass, g_strTargetControl)
+Gosub, SetMenuPosition ; sets g_strTargetWinId or activate the window g_strTargetWinId set by CanOpenFavorite
+
+ToolTip, %lMenuRefreshRecent%...
+soundbeep
+Gosub, BuildRecentFoldersMenu
+soundbeep
+ToolTip
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+Menu, menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+BuildRecentFoldersMenu:
+;------------------------------------------------------------
+
+Menu, menuRecentFolders, Add
+Menu, menuRecentFolders, DeleteAll ; had problem with DeleteAll making the Special menu to disappear 1/2 times - now OK
+if (g_blnUseColors)
+	Menu, menuRecentFolders, Color, %g_strMenuBackgroundColor%
+
+g_objRecentFolders := Object()
+g_intRecentFoldersIndex := 0 ; used in PopupMenu... to check if we disable the menu when empty
+
+RegRead, strRecentsFolder, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Recent
+
+/*
+; Alternative to collect recent files *** NOT WORKING with XP and SLOWER because all shortcuts are resolved before getting the list
+; See: post from Skan http://ahkscript.org/boards/viewtopic.php?f=5&t=4477#p25261
+; Implement for Win7+ if FileGetShortcut still produce Windows errors when external drive is not available (despite DllCall in initialization)
+
+strWinPathRecent := RegExReplace(SubStr(strRecentsFolder, 3) . "\", "\\", "\\")
+strDirList := ""
+for ObjItem in ComObjGet("winmgmts:")
+	.ExecQuery("Select * from Win32_ShortcutFile where path = '" . strWinPathRecent . "'")
+	strDirList .= ObjItem.LastModified . A_Tab . ObjItem.Extension . A_Tab . ObjItem.Target . "`n"
+*/
+
+Loop, %strRecentsFolder%\*.* ; tried to limit to number of recent but they are not sorted chronologically
+	strDirList := strDirList . A_LoopFileTimeModified . "`t`" . A_LoopFileFullPath . "`n"
+
+Sort, strDirList, R
+
+intShortcut := 0
+
+Loop, parse, strDirList, `n
+{
+	if !StrLen(A_LoopField) ; last line is empty
+		continue
+
+	arrShortcutFullPath := StrSplit(A_LoopField, A_Tab)
+	strShortcutFullPath := arrShortcutFullPath[2]
+	
+	FileGetShortcut, %strShortcutFullPath%, strTargetPath
+	
+	if (errorlevel) ; hidden or system files (like desktop.ini) returns an error
+		continue
+	if !FileExist(strTargetPath) ; if folder/document was delete or on a removable drive
+		continue
+	if LocationIsDocument(strTargetPath) ; not a folder
+		continue
+
+	g_intRecentFoldersIndex += 1
+	g_objRecentFolders.Insert(g_intRecentFoldersIndex, strTargetPath)
+	
+	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strTargetPath
+	AddMenuIcon("menuRecentFolders", strMenuName, "OpenRecentFolder", "Folder")
+
+	if (g_intRecentFoldersIndex >= g_intRecentFoldersMax)
+		break
+}
+
+strRecentsFolder := ""
+strDirList := ""
+intShortcut := ""
+arrShortcutFullPath := ""
+strShortcutFullPath := ""
+strTargetPath := ""
+strMenuName := ""
+
 return
 ;------------------------------------------------------------
 
@@ -2095,7 +2409,7 @@ GuiControl, , f_blnCheck4Update, %g_blnCheck4Update%
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
 GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
 
-Gui, 2:Add, Edit, y+20 xs w36 h17 vf_intRecentFolders center, %g_intRecentFolders%
+Gui, 2:Add, Edit, y+20 xs w36 h17 vf_intRecentFoldersMax center, %g_intRecentFoldersMax%
 Gui, 2:Add, Text, yp x+10 w180, %lOptionsRecentFolders%
 
 if !OSVersionIsWorkstation()
@@ -2280,6 +2594,7 @@ return
 ;------------------------------------------------------------
 ButtonSelectDOpusPath:
 ;------------------------------------------------------------
+Gui, 2:+OwnDialogs
 
 if StrLen(g_strDirectoryOpusPath) and (g_strDirectoryOpusPath <> "NO")
 	strCurrentDOpusLocation := g_strDirectoryOpusPath
@@ -2300,6 +2615,7 @@ return
 ;------------------------------------------------------------
 ButtonSelectTCPath:
 ;------------------------------------------------------------
+Gui, 2:+OwnDialogs
 
 if StrLen(g_strTotalCommanderPath) and (g_strTotalCommanderPath <> "NO")
 	strCurrentTCLocation := g_strTotalCommanderPath
@@ -2320,6 +2636,7 @@ return
 ;------------------------------------------------------------
 ButtonSelectFPcPath:
 ;------------------------------------------------------------
+Gui, 2:+OwnDialogs
 
 if StrLen(g_strFPconnectPath) and (g_strFPconnectPath <> "NO")
 	strCurrentFPcLocation := g_strFPconnectPath
@@ -2357,8 +2674,8 @@ g_blnDisplayTrayTip := f_blnDisplayTrayTip
 IniWrite, %g_blnDisplayTrayTip%, %g_strIniFile%, Global, DisplayTrayTip
 g_blnDisplayIcons := f_blnDisplayIcons
 IniWrite, %g_blnDisplayIcons%, %g_strIniFile%, Global, DisplayIcons
-g_intRecentFolders := f_intRecentFolders
-IniWrite, %g_intRecentFolders%, %g_strIniFile%, Global, RecentFolders
+g_intRecentFoldersMax := f_intRecentFoldersMax
+IniWrite, %g_intRecentFoldersMax%, %g_strIniFile%, Global, RecentFoldersMax
 g_blnDisplayMenuShortcuts := f_blnDisplayMenuShortcuts
 IniWrite, %g_blnDisplayMenuShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
 g_blnDisplayFavoritesHotkeysInMenus := f_blnDisplayFavoritesHotkeysInMenus
@@ -4945,7 +5262,7 @@ if (blnSaveEnabled)
 		Gosub, RestoreBackupMenusObjects
 		
 		; restore popup menu
-		; ### Gosub, BuildFoldersInExplorerMenu
+		Gosub, BuildFoldersInExplorerMenu
 		Gosub, BuildMainMenu ; need to be initialized here - will be updated at each call to popup menu
 		
 		GuiControl, Disable, f_btnGuiSave
@@ -5091,6 +5408,41 @@ return
 ;------------------------------------------------------------
 GroupsMenuShortcut:
 ;------------------------------------------------------------
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SetMenuPosition:
+;------------------------------------------------------------
+
+; relative to active window if option g_intPopupMenuPosition = 2
+CoordMode, Mouse, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+if (g_intPopupMenuPosition = 1) ; display menu near mouse pointer location
+	MouseGetPos, g_intMenuPosX, g_intMenuPosY
+else if (g_intPopupMenuPosition = 2) ; display menu at an offset of 20x20 pixel from top-left of active window area
+{
+	g_intMenuPosX := 20
+	g_intMenuPosY := 20
+}
+else ; (g_intPopupMenuPosition =  3) - fix position - use the g_intMenuPosX and g_intMenuPosY values from the ini file
+{
+	g_intMenuPosX := g_arrPopupFixPosition1
+	g_intMenuPosY := g_arrPopupFixPosition2
+}
+
+; not related to set position but this is a good place to execute it ;-)
+if (blnMouse)
+	if (blnNewWindow)
+		MouseGetPos, , , g_strTargetWinId ; sets strTargetWinId for PopupMenuNewWindowMouse
+	else
+		WinActivate, % "ahk_id " . g_strTargetWinId ; activate for PopupMenuMouse
+else ; (keyboard)
+	if (blnNewWindow)
+		g_strTargetWinId := WinExist("A") ; sets strTargetWinId for PopupMenuNewWindowKeyboard
 
 return
 ;------------------------------------------------------------
@@ -6268,6 +6620,35 @@ Url2Var(strUrl)
 	Return objWebRequest.ResponseText()
 }
 ;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+NameIsInObject(strName, obj)
+;------------------------------------------------------------
+{
+	loop, % obj.MaxIndex()
+		if (strName = obj[A_Index].Name)
+			return true
+		
+	return false
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------
+UriDecode(str)
+; by polyethene
+; http://www.autohotkey.com/board/topic/17367-url-encoding-and-decoding-of-special-characters/?p=112822
+;------------------------------------------------
+{
+	Loop
+		If RegExMatch(str, "i)(?<=%)[\da-f]{1,2}", hex)
+			StringReplace, str, str, `%%hex%, % Chr("0x" . hex), All
+		Else
+			Break
+	return str
+}
+;------------------------------------------------
 
 
 
