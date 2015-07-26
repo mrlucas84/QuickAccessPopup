@@ -101,7 +101,7 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 {
 	g_intCounterLaunch++
 	
-	if (strMouseOrKeyboard = g_strMouseHotkey or strMouseOrKeyboard = g_strMouseHotkey)
+	if (strMouseOrKeyboard = g_strMouseHotkey)
 	{
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
@@ -132,7 +132,7 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 {
 	g_intCounterNavigate++
 	
-	if (strMouseOrKeyboard = g_strMouseHotkey or strMouseOrKeyboard = g_strMouseHotkey)
+	if (strMouseOrKeyboard = g_strMouseHotkey)
 	{
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
