@@ -272,10 +272,9 @@ DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex
 
 ; DEBUG
 
-; Gosub, BuildFoldersInExplorerMenu
-; Menu, g_menuFoldersInExplorer, Show
+; Gosub, BuildClipboardMenu
+; Menu, g_menuClipboard, Show
 
-Gosub, RecentFoldersShortcut
 
 return
 
@@ -1399,7 +1398,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	Loop
 	{
 		IniRead, strLoadIniLine, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
-		g_intIniLine += 1
+		g_intIniLine++
 
 		if (strLoadIniLine = "ERROR")
 			Return, "EOF" ; end of file - should not happen if main menu ends with a "Z" type favorite as expected
@@ -1536,7 +1535,7 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 	}
 	
 	IniWrite, %strNewIniLine%, %g_strIniFile%, Favorites, Favorite%intNextFolderNumber%
-	intNextFolderNumber += 1
+	intNextFolderNumber++
 }
 ;------------------------------------------------------------
 
@@ -1724,11 +1723,10 @@ BuildFoldersInExplorerMenuInit:
 BuildFoldersInExplorerMenu:
 ;------------------------------------------------------------
 
+Menu, g_menuFoldersInExplorer, Add ; create the menu
+
 if (A_ThisLabel = "BuildFoldersInExplorerMenuInit")
-{
-	Menu, g_menuFoldersInExplorer, Add ; create the menu
 	return
-}
 
 if (g_blnUseDirectoryOpus)
 {
@@ -1763,7 +1761,7 @@ if (g_blnUseDirectoryOpus)
 		if NameIsInObject(objLister.LocationURL, objFoldersInExplorers)
 			continue
 		
-		intExplorersIndex := intExplorersIndex + 1
+		intExplorersIndex++
 			
 		objFolderInExplorer := Object()
 		objFolderInExplorer.LocationURL := objLister.LocationURL
@@ -1791,7 +1789,7 @@ for intIndex, objFolder in objExplorersWindows
 	if NameIsInObject(objFolder.LocationName, objFoldersInExplorers)
 		continue
 	
-	intExplorersIndex := intExplorersIndex + 1
+	intExplorersIndex++
 	
 	objFolderInExplorer := Object()
 	objFolderInExplorer.LocationURL := objFolder.LocationURL
@@ -1809,7 +1807,6 @@ for intIndex, objFolder in objExplorersWindows
 	objFoldersInExplorers.Insert(intExplorersIndex, objFolderInExplorer)
 }
 
-Menu, g_menuFoldersInExplorer, Add
 Menu, g_menuFoldersInExplorer, DeleteAll
 if (g_blnUseColors)
 	Menu, g_menuFoldersInExplorer, Color, %g_strMenuBackgroundColor%
@@ -1917,7 +1914,7 @@ CollectExplorers(objExplorers, pExplorers)
 		if !StrLen(strType) ; must be empty
 			and StrLen(strWindowID) ; must not be empty
 		{
-			intExplorers := intExplorers + 1
+			intExplorers++
 			objExplorer := Object()
 			objExplorer.Position := pExplorer.Left . "|" . pExplorer.Top . "|" . pExplorer.Width . "|" . pExplorer.Height
 
@@ -1955,14 +1952,13 @@ RecentFoldersShortcut:
 
 blnCopyLocation := false
 
-; ### ? blnNewWindow := !CanOpenFavorite("", g_strTargetWinId, g_strTargetClass, g_strTargetControl)
+; ### COMPLETE blnNewWindow := !CanOpenFavorite("", g_strTargetWinId, g_strTargetClass, g_strTargetControl)
 Gosub, SetMenuPosition ; sets g_strTargetWinId or activate the window g_strTargetWinId set by CanOpenFavorite
 
 ToolTip, %lMenuRefreshRecent%...
-soundbeep
 Gosub, BuildRecentFoldersMenu
-soundbeep
 ToolTip
+
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
@@ -1997,7 +1993,7 @@ for ObjItem in ComObjGet("winmgmts:")
 */
 
 Loop, %strRecentsFolder%\*.* ; tried to limit to number of recent but they are not sorted chronologically
-	strDirList := strDirList . A_LoopFileTimeModified . "`t`" . A_LoopFileFullPath . "`n"
+	strDirList .= A_LoopFileTimeModified . "`t`" . A_LoopFileFullPath . "`n"
 
 Sort, strDirList, R
 
@@ -2020,7 +2016,7 @@ Loop, parse, strDirList, `n
 	if LocationIsDocument(strTargetPath) ; not a folder
 		continue
 
-	g_intRecentFoldersIndex += 1
+	g_intRecentFoldersIndex++
 	g_objRecentFolders.Insert(g_intRecentFoldersIndex, strTargetPath)
 	
 	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strTargetPath
@@ -2047,13 +2043,169 @@ BuildClipboardMenuInit:
 BuildClipboardMenu:
 ;------------------------------------------------------------
 
+Menu, g_menuClipboard, Add ; create the menu
+
 if (A_ThisLabel = "BuildClipboardMenuInit")
-{
-	Menu, g_menuClipboard, Add ; create the menu
 	return
-}
+
+Menu, g_menuClipboard, DeleteAll
+if (g_blnUseColors)
+	Menu, g_menuClipboard, Color, %g_strMenuBackgroundColor%
+
+g_blnClipboardMenuEnable := 0
+
+Gosub, RefreshClipboardMenu
 
 return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RefreshClipboardMenu:
+;------------------------------------------------------------
+
+blnPreviousClipboardMenuDeleted := 0
+intShortcutClipboardMenu := 0
+strURLsInClipboard := ""
+
+; Parse Clipboard for folder, document or application filenames (filenames alone on one line)
+Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
+{
+    strClipboardLine = %A_LoopField%
+	strClipboardLineExpanded := EnvVars(strClipboardLine) ; only to test if file exist - will not be displayed in menu
+
+	if StrLen(FileExist(strClipboardLineExpanded))
+	{
+		if !(blnPreviousClipboardMenuDeleted)
+		{
+			Menu, g_menuClipboard, Add
+			Menu, g_menuClipboard, DeleteAll
+			blnPreviousClipboardMenuDeleted := 1
+		}
+		g_blnClipboardMenuEnable := 1
+
+		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutFoldersInExplorer <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . strClipboardLine
+		if (g_blnDisplayIcons)
+			if LocationIsDocument(strClipboardLineExpanded)
+			{
+				GetIcon4Location(strClipboardLineExpanded, strThisIconFile, intThisIconIndex)
+				strIconValue := strThisIconFile . "," . intThisIconIndex
+			}
+			else
+				strIconValue := "Folder"
+		AddMenuIcon("g_menuClipboard", strMenuName, "OpenClipboard", strIconValue)
+	}
+
+	; Parse Clipboard line for URLs (anywhere on the line)
+	strURLSearchString := strClipboardLine
+	Gosub, GetURLsInClipboardLine
+}
+
+Sort, strURLsInClipboard
+
+Loop, parse, strURLsInClipboard, `n
+{
+	if !StrLen(A_LoopField)
+		break
+	
+	; if we get here, we have at least one URL, check if we need to delete previous menu
+	if !(blnPreviousClipboardMenuDeleted)
+	{
+		Menu, g_menuClipboard, Add
+		Menu, g_menuClipboard, DeleteAll
+		blnPreviousClipboardMenuDeleted := 1
+	}
+	g_blnClipboardMenuEnable := 1
+
+	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutFoldersInExplorer <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . A_LoopField
+	if StrLen(strMenuName) < 260 ; skip too long URLs
+	{
+		Menu, g_menuClipboard, Add, %strMenuName%, OpenClipboard
+		if (blnDisplayIcon)
+			Menu, g_menuClipboard, Icon, %strMenuName%, %strThisIconFile%, %intThisIconIndex%, %g_intIconSize%
+	}
+}
+
+blnPreviousClipboardMenuDeleted := ""
+intShortcutClipboardMenu := ""
+strURLsInClipboard := ""
+strClipboardLine := ""
+strClipboardLineExpanded := ""
+strURLSearchString := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetURLsInClipboardLine:
+;------------------------------------------------------------
+; Adapted from AHK help file: http://ahkscript.org/docs/commands/LoopReadFile.htm
+; It's done this particular way because some URLs have other URLs embedded inside them:
+StringGetPos, intURLStart1, strURLSearchString, http://
+StringGetPos, intURLStart2, strURLSearchString, https://
+StringGetPos, intURLStart3, strURLSearchString, www.
+
+; Find the left-most starting position:
+intURLStart := intURLStart1 ; Set starting default.
+Loop
+{
+	; It helps performance (at least in a script with many variables) to resolve
+	; "intURLStart%A_Index%" only once:
+	intArrayElement := intURLStart%A_Index%
+	if (intArrayElement = "") ; End of the array has been reached.
+		break
+	if (intArrayElement = -1) ; This element is disqualified.
+		continue
+	if (intURLStart = -1)
+		intURLStart := intArrayElement
+	else ; intURLStart has a valid position in it, so compare it with intArrayElement.
+	{
+		if (intArrayElement <> -1)
+			if (intArrayElement < intURLStart)
+				intURLStart := intArrayElement
+	}
+}
+
+if (intURLStart = -1) ; No URLs exist in strURLSearchString.
+	return ; (exit loop)
+
+; Otherwise, extract this strURL:
+StringTrimLeft, strURL, strURLSearchString, %intURLStart% ; Omit the beginning/irrelevant part.
+Loop, parse, strURL, %A_Tab%%A_Space%<> ; Find the first space, tab, or angle (if any).
+{
+	strURL := A_LoopField
+	break ; i.e. perform only one loop iteration to fetch the first "field".
+}
+; If the above loop had zero iterations because there were no ending characters found,
+; leave the contents of the strURL var untouched.
+
+; If the strURL ends in a double quote, remove it.  For now, StringReplace is used, but
+; note that it seems that double quotes can legitimately exist inside URLs, so this
+; might damage them:
+StringReplace, strURLCleansed, strURL, ",, All
+
+
+; See if there are any other URLs in this line:
+StringLen, intCharactersToOmit, strURL
+intCharactersToOmit += intURLStart
+StringTrimLeft, strURLSearchString, strURLSearchString, %intCharactersToOmit%
+
+Gosub, GetURLsInClipboardLine ; Recursive call to self (end of loop)
+
+strURLsInClipboard .= strURLCleansed . "`n"
+
+intURLStart1 := ""
+intURLStart2 := ""
+intURLStart3 := ""
+intURLStart := ""
+intArrayElement := ""
+strURL := ""
+strURLCleansed := ""
+intCharactersToOmit := ""
+
+return
+
 ;------------------------------------------------------------
 
 
@@ -2147,8 +2299,8 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	
 	Loop, % objCurrentMenu.MaxIndex()
 	{	
-		intMenuItemsCount += 1 ; for objMenuColumnBreak
-		intMenuArrayItemsCount += 1 ; for objMenuColumnBreak
+		intMenuItemsCount++ ; for objMenuColumnBreak
+		intMenuArrayItemsCount++ ; for objMenuColumnBreak
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "B")
 			continue
@@ -4087,7 +4239,7 @@ if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|G
 {
 	Oops(lDialogFavoriteNameNotAllowed, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""), lDialogFavoriteParentMenu)
 	if (A_ThisLabel = "GuiMoveOneFavoriteSave")
-		g_intOriginalMenuPosition += 1
+		g_intOriginalMenuPosition++
 	return
 }
 /*
@@ -4150,7 +4302,7 @@ if !FolderNameIsNew((A_ThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorit
 	{
 		Oops(lDialogFavoriteNameNotNew, f_strFavoriteShortName)
 		if (A_ThisLabel = "GuiMoveOneFavoriteSave")
-			g_intOriginalMenuPosition += 1
+			g_intOriginalMenuPosition++
 		return
 	}
 
@@ -4158,7 +4310,7 @@ if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " "
 	and !InStr("K|X", g_objEditedFavorite.FavoriteType) ; no risk with separators
 {
 	Oops(lDialogMenuNotMoveUnderItself, g_objEditedFavorite.FavoriteName)
-	g_intOriginalMenuPosition += 1 ; will be reduced by GuiMoveMultipleFavoritesSave
+	g_intOriginalMenuPosition++ ; will be reduced by GuiMoveMultipleFavoritesSave
 	return
 }
 
@@ -4276,7 +4428,7 @@ GuiControl, , f_btnGuiCancel, %lDialogCancelButton%
 g_blnMenuReady := true
 
 if (A_ThisLabel = "GuiMoveOneFavoriteSave")
-	g_intNewItemPos += 1 ; move next favorite after this one in the destination menu (or will be deleted in GuiMoveOneFavoriteSave after the loop)
+	g_intNewItemPos++ ; move next favorite after this one in the destination menu (or will be deleted in GuiMoveOneFavoriteSave after the loop)
 else
 	g_intNewItemPos := "" ; delete it for next use
 
@@ -4780,7 +4932,7 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 			strIniLine .= objCurrentMenu[A_Index].FavoriteGroupSettings . "|" ; 12
 
 			IniWrite, %strIniLine%, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
-			g_intIniLine += 1
+			g_intIniLine++
 		}
 		
 		if InStr("Menu|Group", objCurrentMenu[A_Index].FavoriteType) and !(blnIsBackMenu)
@@ -4792,7 +4944,7 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 	}
 		
 	IniWrite, Z, %g_strIniFile%, Favorites, Favorite%g_intIniLine% ; end of menu marker
-	g_intIniLine += 1
+	g_intIniLine++
 	
 	return
 }
