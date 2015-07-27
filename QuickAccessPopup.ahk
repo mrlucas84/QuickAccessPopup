@@ -21,6 +21,8 @@ TO-DO
 - build menu and POC actions
 - add default hotkey to QAP Feature Object and show select default button in gui
 - prevent 2 favorites to use the same .FavoriteHotkey
+- check exclusion as "class contain the exclusion string"
+- exclusion list in options
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -173,6 +175,8 @@ g_strMouseButtons := ""
 g_arrMouseButtons := ""
 g_arrMouseButtonsText := ""
 
+g_strExclusionClassList := "|" ; must end with |
+
 g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and CollectExplorers
 g_objSpecialFolders := Object()
 g_strSpecialFoldersList := ""
@@ -233,7 +237,7 @@ Gosub, BuildMainMenu
 Gosub, BuildGui
 Gosub, BuildTrayMenu
 
-Gosub, GuiShow
+; Gosub, GuiShow
 
 if (g_blnCheck4Update)
 	Gosub, Check4Update
@@ -277,6 +281,24 @@ DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex
 
 
 return
+
+
+;------------------------------------------------------------
+;------------------------------------------------------------
+#If, CanNavigate(A_ThisHotkey)
+; empty - act as a handle for the "Hotkey, If" confition
+#If
+;------------------------------------------------------------
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+;------------------------------------------------------------
+#If, CanLaunch(A_ThisHotkey)
+; empty - act as a handle for the "Hotkey, If" confition
+#If
+;------------------------------------------------------------
+;------------------------------------------------------------
 
 
 ;========================================================================================================================
@@ -404,11 +426,12 @@ InitSystemArrays:
 ;-----------------------------------------------------------
 
 ; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
-strHotkeyNames := "HotkeyMouse|HotkeyKeyboard|AlternateHotkeyMouse|AlternateHotkeyKeyboard"
+strHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard"
 StringSplit, g_arrHotkeyNames, strHotkeyNames, |
 strHotkeyDefaults := "MButton|#a|!MButton|!#a"
 StringSplit, g_arrHotkeyDefaults, strHotkeyDefaults, |
 g_arrHotkeys := Array ; initialized by LoadIniHotkeys
+g_arrHotkeysPrevious := Array ; initialized by GuiOptions and checked in LoadIniHotkeys
 
 g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|WheelDown|WheelLeft|WheelRight|"
 ; leave last | to enable default value on the last item
@@ -1168,26 +1191,20 @@ g_objMainMenu.MenuType := "Menu" ; main menu is not a group
 
 IfNotExist, %g_strIniFile%
 {
-	strLaunchHotkeyMouseDefault := g_arrHotkeyDefaults1 ; "MButton"
-	strLaunchHotkeyKeyboard := g_arrHotkeyDefaults2 ; "#a"
-	strNavigateHotkeyMouseDefault := g_arrHotkeyDefaults3 ; "+MButton"
-	strNavigateHotkeyKeyboardDefault := g_arrHotkeyDefaults4 ; "+#a"
-	strPowerHotkeyMouseDefault := g_arrHotkeyDefaults5 ; "!MButton"
-	strPowerHotkeyKeyboardDefault := g_arrHotkeyDefaults6 ; "!#a"
-	strSettingsHotkeyDefault := g_arrHotkeyDefaults7 ; "+^s"
+	strNavigateOrLaunchHotkeyMouseDefault := g_arrHotkeyDefaults1 ; "MButton"
+	strNavigateOrLaunchHotkeyKeyboard := g_arrHotkeyDefaults2 ; "#a"
+	strPowerHotkeyMouseDefault := g_arrHotkeyDefaults3 ; "!MButton"
+	strPowerHotkeyKeyboardDefault := g_arrHotkeyDefaults4 ; "!#a"
 	
 	g_intIconSize := 24
 	
 	FileAppend,
 		(LTrim Join`r`n
 			[Global]
-			LaunchHotkeyMouse=%strLaunchHotkeyMouseDefault%
-			LaunchHotkeyKeyboard=%strLaunchHotkeyKeyboardDefault%
-			NavigateHotkeyMouseDefault=%strNavigateHotkeyMouseDefault%
-			NavigateHotkeyKeyboardDefault=%strNavigateHotkeyKeyboardDefault%
+			NavigateOrLaunchHotkeyMouse=%strNavigateOrLaunchHotkeyMouseDefault%
+			NavigateOrLaunchHotkeyKeyboard=%strNavigateOrLaunchHotkeyKeyboardDefault%
 			PowerHotkeyMouseDefault=%strPowerHotkeyMouseDefault%
 			PowerHotkeyKeyboardDefault=%strPowerHotkeyKeyboardDefault%
-			SettingsHotkey=%strSettingsHotkeyDefault%
 			DisplayTrayTip=1
 			DisplayIcons=1
 			RecentFolders=10
@@ -1345,6 +1362,9 @@ IniRead, blnMyQAPFeaturesBuilt, %g_strIniFile%, Global, MyQAPFeaturesBuilt, 0 ; 
 if !(blnMyQAPFeaturesBuilt)
  	Gosub, AddToIniMyQAPFeaturesMenu ; modify the ini file Folders section before reading it
 
+; ### load exclusion list todo
+g_strExclusionClassList := "SciTEWindow|Chrome_WidgetWin_1|" ; must end with |
+
 IfNotExist, %g_strIniFile%
 {
 	Oops(lOopsWriteProtectedError, g_strAppNameText)
@@ -1360,15 +1380,10 @@ else
 
 strIniBackupFile := ""
 arrMainMenu := ""
-strPopupHotkeyMouseDefault := ""
-strPopupHotkeyMouseNewDefault := ""
-strPopupHotkeyKeyboardDefault := ""
-strPopupHotkeyKeyboardNewDefault := ""
-strSettingsHotkeyDefault := ""
-strFoldersInExplorerHotkeyDefault := ""
-strGroupsHotkeyDefault := ""
-strRecentsHotkeyDefault := ""
-strClipboardHotkeyDefault := ""
+strNavigateOrLaunchHotkeyMouseDefault := ""
+strNavigateOrLaunchHotkeyKeyboard := ""
+strPowerHotkeyMouseDefault := ""
+strPowerHotkeyKeyboardDefault := ""
 strPopupFixPosition := ""
 blnMySystemFoldersBuilt := ""
 blnMyQAPFeaturesBuilt := ""
@@ -1544,26 +1559,63 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 LoadIniHotkeys:
 ;-----------------------------------------------------------
 
-strHotkeyNoneModifiers := ">^!+#" ; right-control/atl/shift/windows impossible keys combination
-strHotkeyNoneKey := "9"
-
 ; Read the values and set hotkey shortcuts
+; NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard
 loop, % g_arrHotkeyNames%0%
 {
 	; Prepare global arrays used by SplitHotkey function
 	IniRead, g_arrHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index%, % g_arrHotkeyDefaults%A_Index%
 	SplitHotkey(g_arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
-	
-	if (g_arrHotkeys%A_Index% = "None") ; do not compare with lDialogMouseNone because it is translated
-		Hotkey, % "$" . strHotkeyNoneModifiers . strHotkeyNoneKey, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
-	else
-		Hotkey, % "$" . g_arrHotkeys%A_Index%, % g_arrHotkeyNames%A_Index%, On UseErrorLevel
-	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, Hotkey2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%), g_strAppNameText, g_arrOptionsTitles%A_Index%)
 }
+; ###_V("Navigate or Launch`n`n", g_arrHotkeyNames1, g_arrHotkeysPrevious1, g_arrHotkeys1, g_arrHotkeyNames2, g_arrHotkeysPrevious2, g_arrHotkeys2)
 
-strHotkeyNoneModifiers := ""
-strHotkeyNoneKey := ""
+; First, if we can, navigate with Launch hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
+Hotkey, If, CanNavigate(A_ThisHotkey)
+	if (g_arrHotkeysPrevious1 <> "") and (g_arrHotkeysPrevious1 <> "None")
+		Hotkey, % g_arrHotkeysPrevious1, , Off
+	if (g_arrHotkeys1 <> "None")
+		Hotkey, % g_arrHotkeys1, NavigateHotkeyMouse, On UseErrorLevel
+	if (ErrorLevel)
+		Oops(lDialogInvalidHotkey, g_arrHotkeys1, g_strAppNameText, g_arrOptionsTitles1)
+	if (g_arrHotkeysPrevious2 <> "") and (g_arrHotkeysPrevious2 <> "None")
+		Hotkey, % g_arrHotkeysPrevious2, , Off
+	if (g_arrHotkeys2 <> "None")
+		Hotkey, % g_arrHotkeys2, NavigateHotkeyKeyboard, On UseErrorLevel
+	if (ErrorLevel)
+		Oops(lDialogInvalidHotkey, g_arrHotkeys2, g_strAppNameText, g_arrOptionsTitles2)
+Hotkey, If
+
+; Second, if we can't navigate but can launch, launch with Launch hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
+Hotkey, If, CanLaunch(A_ThisHotkey)
+	if (g_arrHotkeysPrevious1 <> "") and (g_arrHotkeysPrevious1 <> "None") ; ### continuer pour les autres
+		Hotkey, % g_arrHotkeysPrevious1, , Off
+	if (g_arrHotkeys1 <> "None")
+		Hotkey, % g_arrHotkeys1, LaunchHotkeyMouse, On UseErrorLevel
+	if (ErrorLevel)
+		Oops(lDialogInvalidHotkey, g_arrHotkeys1, g_strAppNameText, g_arrOptionsTitles1)
+	if (g_arrHotkeysPrevious2 <> "") and (g_arrHotkeysPrevious2 <> "None")
+		Hotkey, % g_arrHotkeysPrevious2, , Off
+	if (g_arrHotkeys2 <> "None")
+		Hotkey, % g_arrHotkeys2, LaunchHotkeyKeyboard, On UseErrorLevel
+	if (ErrorLevel)
+		Oops(lDialogInvalidHotkey, g_arrHotkeys2, g_strAppNameText, g_arrOptionsTitles2)
+Hotkey, If
+
+; ###_V("Power`n`n", g_arrHotkeyNames3, g_arrHotkeysPrevious3, g_arrHotkeys3, g_arrHotkeyNames4, g_arrHotkeysPrevious4, g_arrHotkeys4)
+
+; Then, in any case, open the Power menu with the alternate hotkeys (3 PowerHotkeyMouse and 4 PowerHotkeyKeyboard)
+if (g_arrHotkeysPrevious3 <> "") and (g_arrHotkeysPrevious3 <> "None")
+	Hotkey, % g_arrHotkeysPrevious3, , Off
+if (g_arrHotkeys3 <> "None") ; do not compare with lOptionsMouseNone because it is translated
+	Hotkey, % g_arrHotkeys3, PowerHotkeyMouse, On UseErrorLevel
+if (ErrorLevel)
+	Oops(lDialogInvalidHotkey, g_arrHotkeys3, g_strAppNameText, g_arrOptionsTitles3)
+if (g_arrHotkeysPrevious4 <> "") and (g_arrHotkeysPrevious4 <> "None")
+	Hotkey, % g_arrHotkeysPrevious4, , Off
+if (g_arrHotkeys4 <> "None") ; do not compare with lOptionsMouseNone because it is translated
+	Hotkey, % g_arrHotkeys4, PowerHotkeyKeyboard, On UseErrorLevel
+if (ErrorLevel)
+	Oops(lDialogInvalidHotkey, g_arrHotkeys4, g_strAppNameText, g_arrOptionsTitles4)
 
 return
 ;------------------------------------------------------------
@@ -1691,7 +1743,7 @@ Menu, Tray, Icon, , , 1 ; last 1 to freeze icon during pause or suspend
 Menu, Tray, NoStandard
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for developement phase only - won't be compiled
-Menu, Tray, Icon, %A_ScriptDir%\qap-green-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
+Menu, Tray, Icon, %A_ScriptDir%\qap-red-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
 Menu, Tray, Standard
 Menu, Tray, Add
 ; / End of code for developement phase only - won't be compiled
@@ -2245,7 +2297,6 @@ strURLCleansed := ""
 intCharactersToOmit := ""
 
 return
-
 ;------------------------------------------------------------
 
 
@@ -2557,6 +2608,8 @@ GuiOptions:
 ;------------------------------------------------------------
 
 g_intGui1WinID := WinExist("A")
+loop, 4
+	g_arrHotkeysPrevious%A_Index% := g_arrHotkeys%A_Index% ; allow to turn off replaced hotkeys
 
 StringSplit, g_arrOptionsTitlesSub, lOptionsTitlesSub, |
 
@@ -2659,6 +2712,7 @@ loop, % g_arrHotkeyNames%0%
 ;---------------------------------------
 ; Tab 3: Exclusion list
 
+; ### to-do
 
 ;---------------------------------------
 ; Tab 4: File Managers
@@ -2913,10 +2967,8 @@ IniWrite, %g_intIconSize%, %g_strIniFile%, Global, IconSize
 
 loop, % g_arrHotkeyNames%0%
 	if (g_arrHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
-		; ### OK? Hotkey, % "$" . arrHotkeys%A_Index%, Off, UseErrorLevel ; UseErrorLevel in case we had an invalid key name in the ini file
 		IniWrite, None, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index% ; do not write lOptionsMouseNone because it is translated
 	else
-		; Hotkey, % "$" . arrHotkeys%A_Index%, Off, UseErrorLevel ; UseErrorLevel in case we had an invalid key name in the ini file
 		IniWrite, % g_arrHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index%
 
 Gosub, LoadIniHotkeys ; reload ini variables and reset hotkeys
@@ -2924,6 +2976,9 @@ Gosub, LoadIniHotkeys ; reload ini variables and reset hotkeys
 ;---------------------------------------
 ; Tab 3: Exclusion list
 
+; ### to-do
+
+g_strExclusionClassList := "SciTEWindow|Chrome_WidgetWin_1|" ; must end with |
 
 ;---------------------------------------
 ; Tab 4: File Managers
@@ -4993,7 +5048,6 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 
 ;------------------------------------------------------------
 GuiShow:
-SettingsHotkey:
 ;------------------------------------------------------------
 
 ; should not be required but safer
@@ -5469,7 +5523,7 @@ Gui, 1:Cancel
 blnSaveEnabled := ""
 
 ; ### TEMP
-Gosub, CleanUpBeforeExit ; ExitApp
+; Gosub, CleanUpBeforeExit ; ExitApp
 
 return
 ;------------------------------------------------------------
@@ -5566,18 +5620,27 @@ return
 !_060_POPUP_MENU:
 ;========================================================================================================================
 
-HotkeyMouse:
-HotkeyKeyboard:
+NavigateHotkeyMouse:
+NavigateHotkeyKeyboard:
+
+###_D(A_ThisLabel)
+
 return
 
 
-; NavigateHotkeyMouse:
-; NavigateHotkeyKeyboard:
-; return
+LaunchHotkeyMouse:
+LaunchHotkeyKeyboard:
+
+###_D(A_ThisLabel)
+
+return
 
 
-AlternateHotkeyMouse:
-AlternateHotkeyKeyboard:
+PowerHotkeyMouse:
+PowerHotkeyKeyboard:
+
+###_D(A_ThisLabel)
+
 return
 
 
@@ -5613,6 +5676,211 @@ else ; (keyboard)
 		g_strTargetWinId := WinExist("A") ; sets strTargetWinId for PopupMenuNewWindowKeyboard
 
 return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expression
+; "CabinetWClass" and "ExploreWClass" -> Explorer
+; "ProgMan" -> Desktop
+; "WorkerW" -> Desktop
+; "ConsoleWindowClass" -> Console (CMD)
+; "#32770" -> Dialog
+; "bosa_sdm_" (...) -> Dialog MS Office under WinXP
+;------------------------------------------------------------
+{
+	global
+	
+	g_intCounterNavigate++
+	
+	if (strMouseOrKeyboard = g_arrHotkeys1) ; Mouse hotkey
+	{
+		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		; TrayTip, Navigate Mouse, %strMouseOrKeyboard% = %g_strMouseNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%`n%g_strTargetControl%
+	}
+	else ; Keyboard
+	{
+		g_strTargetWinId := WinExist("A")
+		g_strTargetControl := ""
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
+	}
+
+	blnCanOpenFavorite := WindowIsAnExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
+		or WindowIsDialog(g_strTargetClass, g_strTargetWinId)
+		or (g_blnUseDirectoryOpus and WindowIsDirectoryOpus(g_strTargetClass))
+		or (g_blnUseTotalCommander and WindowIsTotalCommander(g_strTargetClass))
+		or (g_blnUseFPconnect and WindowIsFPconnect(g_strTargetWinId))
+		or WindowIsQuickAccessPopup(g_strTargetClass)
+
+	return blnCanOpenFavorite
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsAnExplorer(strClass)
+;------------------------------------------------------------
+{
+	return (strClass = "CabinetWClass") or (strClass = "ExploreWClass")
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsDesktop(strClass)
+;------------------------------------------------------------
+{
+	global g_blnOpenMenuOnTaskbar
+	global blnClickOnTrayIcon
+	
+	blnWindowIsDesktop := (strClass = "ProgMan")
+		or (strClass = "WorkerW")
+		or (strClass = "Shell_TrayWnd" and (g_blnOpenMenuOnTaskbar or blnClickOnTrayIcon))
+		or (strClass = "NotifyIconOverflowWindow")
+
+	blnClickOnTrayIcon := 0
+	; blnClickOnTrayIcon was turned on by AHK_NOTIFYICON
+	; turn it off to avoid further clicks on taskbar to be accepted if g_blnOpenMenuOnTaskbar is off
+
+	return blnWindowIsDesktop
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsTray(strClass)
+;------------------------------------------------------------
+{
+	return (strClass = "Shell_TrayWnd") or (strClass = "NotifyIconOverflowWindow")
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsConsole(strClass)
+;------------------------------------------------------------
+{
+	return (strClass = "ConsoleWindowClass")
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsDialog(strClass, strWinId)
+;------------------------------------------------------------
+{
+	return (strClass = "#32770") and !WindowIsTreeview(strWinId)
+	
+	; or InStr(strClass, "bosa_sdm_")
+	; Removed 2014-09-27  (see http://code.jeanlalonde.ca/folderspopupv3archives/#comment-7912)
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsTreeview(strWinId)
+; Disable popup menu in folder select dialog boxes (like those displayed by FileSelectFolder)
+; because their Edit1 control does not react as expected in NavigateDialog.
+; Signature: contains both SysTreeView321 and SHBrowseForFolder controls (tested on Win7 only)
+; but NOT 100% sure this is a unique signature...
+;------------------------------------------------------------
+{
+	global g_strAppNameText
+	
+	WinGet, strControlsList, ControlList, ahk_id %strWinId%
+	blnIsTreeView := InStr(strControlsList, "SysTreeView321") and InStr(strControlsList, "SHBrowseForFolder")
+	if (blnIsTreeView)
+		TrayTip, %lWindowIsTreeviewTitle%, % L(lWindowIsTreeviewText, g_strAppNameText), , 2
+	
+	return blnIsTreeView
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsDirectoryOpus(strClass)
+;------------------------------------------------------------
+{
+	return InStr(strClass, "dopus")
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsTotalCommander(strClass)
+;------------------------------------------------------------
+{
+	return InStr(strClass, "TTOTAL_CMD")
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsFPconnect(strWinId)
+;------------------------------------------------------------
+{
+	global g_strFPconnectAppFilename
+	global g_strFPconnectTargetFilename
+
+	if (strTargetWinId = 0)
+		return false
+
+	; get path and filename of the app controling window strWinId
+	; first get process ID
+    intPID := 0
+    DllCall("GetWindowThreadProcessId", "UInt", strWinId, "UInt *", intPID)
+	; get filename of process
+    hProcess := DllCall("OpenProcess", "UInt", 0x400 | 0x10, "Int", False, "UInt", intPID)
+    intPathLength = 260*2
+    VarSetCapacity(strFCAppFile, intPathLength, 0)
+    DllCall("Psapi.dll\GetModuleFileNameExW", "UInt", hProcess, "Int", 0, "Str", strFCAppFile, "UInt", intPathLength)
+    DllCall("CloseHandle", "UInt", hProcess)
+	
+	; get filename only and compare with FPconnect filename or FPconnect target filename (see FPconnect doc)
+	SplitPath, strFCAppFile, strFCAppFile
+	return (strFCAppFile = g_strFPconnectAppFilename) or (strFCAppFile = g_strFPconnectTargetFilename)
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WindowIsQuickAccessPopup(strClass)
+; enabled only when compiled
+;------------------------------------------------------------
+{
+	return (strClass = "JeanLalonde.ca")
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expression
+;------------------------------------------------------------
+{
+	global
+
+	g_intCounterLaunch++
+
+	if (strMouseOrKeyboard = g_arrHotkeys1) ; Mouse hotkey
+	{
+		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		TrayTip, CanLaunch Mouse, %strMouseOrKeyboard% = %g_strMouseHotkey%`n%g_strTargetControl%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
+	}
+	else ; Keyboard
+	{
+		g_strTargetWinId := WinExist("A")
+		g_strTargetControl := ""
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		TrayTip, CanLaunch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardHotkey%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
+	}
+	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
+
+	### to-do exclusion as "class contain the exclusion string" (looping in exclusion strings)
+	return !InStr(g_strExclusionClassList, g_strTargetClass . "|")
+}
 ;------------------------------------------------------------
 
 
@@ -6044,7 +6312,7 @@ Gui, 2:Add, Link, x10 w%intWidth%, %lHelpTextLead%
 Gui, 2:Font, s8 w600, Verdana
 Gui, 2:Add, Tab2, vf_intHelpTab w640 h350 AltSubmit, %A_Space%%lHelpTabGettingStarted% | %lHelpTabAddingFavorite% | %lHelpTabTitlesTipsAndTricks%%A_Space%
 
-; Hotkeys: 1) PopupHotkeyMouse 2) PopupHotkeyNewMouse 3) PopupHotkeyKeyboard 4) PopupHotkeyNewKeyboard
+; ### REVIEW Hotkeys: 1) PopupHotkeyMouse 2) PopupHotkeyNewMouse 3) PopupHotkeyKeyboard 4) PopupHotkeyNewKeyboard
 ; 5) SettingsHotkey 6) FoldersInExplorerHotkey 7) GroupsHotkey 8) RecentsHotkey 9) ClipboardHotkey 10) CopyLocationHotkey
 Gui, 2:Font, s8 w400, Verdana
 Gui, 2:Tab, 1
@@ -6875,7 +7143,7 @@ AHK_NOTIFYICON(wParam, lParam)
 	if (lParam = 0x202) ; WM_LBUTTONUP
 	{
 		blnClickOnTrayIcon := 1
-		SetTimer, HotkeyMouse, -1
+		SetTimer, LaunchHotkeyMouse, -1
 		return 0
 	}
 } 
