@@ -1821,7 +1821,7 @@ CollectExplorers(objExplorersWindows, ComObjCreate("Shell.Application").Windows)
 
 objFoldersInExplorers := Object()
 
-intExplorersIndex := 0 ; used in PopupMenu and SaveGroup to check if we disable menu or button when empty
+g_intExplorersIndex := 0 ; used in PopupMenu and SaveGroup to check if we disable menu or button when empty
 
 if (g_blnUseDirectoryOpus)
 	for intIndex, objLister in objDOpusListers
@@ -1833,7 +1833,7 @@ if (g_blnUseDirectoryOpus)
 		if NameIsInObject(objLister.LocationURL, objFoldersInExplorers)
 			continue
 		
-		intExplorersIndex++
+		g_intExplorersIndex++
 			
 		objFolderInExplorer := Object()
 		objFolderInExplorer.LocationURL := objLister.LocationURL
@@ -1849,7 +1849,7 @@ if (g_blnUseDirectoryOpus)
 		objFolderInExplorer.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
 		objFolderInExplorer.WindowType := "DO"
 		
-		objFoldersInExplorers.Insert(intExplorersIndex, objFolderInExplorer)
+		objFoldersInExplorers.Insert(g_intExplorersIndex, objFolderInExplorer)
 	}
 
 for intIndex, objFolder in objExplorersWindows
@@ -1861,7 +1861,7 @@ for intIndex, objFolder in objExplorersWindows
 	if NameIsInObject(objFolder.LocationName, objFoldersInExplorers)
 		continue
 	
-	intExplorersIndex++
+	g_intExplorersIndex++
 	
 	objFolderInExplorer := Object()
 	objFolderInExplorer.LocationURL := objFolder.LocationURL
@@ -1876,7 +1876,7 @@ for intIndex, objFolder in objExplorersWindows
 	objFolderInExplorer.MinMax := objFolder.MinMax
 	objFolderInExplorer.WindowType := "EX"
 
-	objFoldersInExplorers.Insert(intExplorersIndex, objFolderInExplorer)
+	objFoldersInExplorers.Insert(g_intExplorersIndex, objFolderInExplorer)
 }
 
 Menu, g_menuFoldersInExplorer, DeleteAll
@@ -1897,7 +1897,6 @@ objDOpusListers := ""
 objExplorersWindows := ""
 objFolderInExplorer := ""
 strDOpusListText := ""
-intExplorersIndex := ""
 intIndex := ""
 objLister := ""
 objFolder := ""
@@ -3074,7 +3073,6 @@ return
 ;========================================================================================================================
 !_030_FAVORITES_LIST:
 ;========================================================================================================================
-
 
 ;------------------------------------------------------------
 BuildGui:
@@ -5620,28 +5618,91 @@ return
 !_060_POPUP_MENU:
 ;========================================================================================================================
 
+;------------------------------------------------------------
 NavigateHotkeyMouse:
 NavigateHotkeyKeyboard:
+;------------------------------------------------------------
 
 ###_D(A_ThisLabel)
 
+if !(g_blnMenuReady)
+	return
+
+blnMouse := InStr(A_ThisLabel, "Mouse")
+
+Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
+WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; ### already set by CanNavigate?
+
+if (blnMouse) and (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass))
+{
+	Click ; to make sure the DOpus lister or TC pane under the mouse become active
+	Sleep, 20
+}
+
+if (g_blnDisplayFoldersInExplorerMenu) ; ### check or track that we have a FoldersInExplorerMenu
+{
+	Gosub, BuildFoldersInExplorerMenu
+	Menu, %lMainMenuName% ; ### find in what menu we have the FoldersInExplorerMenu
+		, % (!intExplorersIndex ? "Disable" : "Enable") ; disable Folders in Explorer menu if no Explorer
+		, %lMenuCurrentFolders%
+}
+
+if (g_blnDisplayClipboardMenu) ; ### check or track that we have a ClipboardMenu
+{
+	Gosub, RefreshClipboardMenu
+	Menu, %lMainMenuName% ; ### find in what menu we have the ClipboardMenu
+		, % (g_blnClipboardMenuEnable ? "Enable" : "Disable")
+		, %lMenuClipboard%
+}
+
+; Enable "Add This Folder" only if the target window is an Explorer, TotalCommander,
+; Directory Opus or a dialog box under WIN_7 (does not work under WIN_XP). Tested on WIN_XP and WIN_7.
+
+/*
+Menu, %lMainMenuName% ; ### find in what menu we have the lMenuAddThisFolder
+	, % WindowIsAnExplorer(g_strTargetClass) ; removed for FPconnect: or WindowIsFreeCommander(strTargetClass)
+	or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
+	or (WindowIsDialog(g_strTargetClass, g_strTargetWinId)) ? "Enable" : "Disable"
+	, %lMenuAddThisFolder%...
+*/
+
+Gosub, InsertColumnBreaks
+
+Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosy% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
+
+
+blnMouse := ""
+
 return
+;------------------------------------------------------------
 
 
+;------------------------------------------------------------
 LaunchHotkeyMouse:
 LaunchHotkeyKeyboard:
+;------------------------------------------------------------
 
 ###_D(A_ThisLabel)
 
+if !(g_blnMenuReady)
+	return
+
+blnMouse := InStr(A_ThisLabel, "Mouse")
+
+
 return
+;------------------------------------------------------------
 
 
+;------------------------------------------------------------
 PowerHotkeyMouse:
 PowerHotkeyKeyboard:
+;------------------------------------------------------------
 
 ###_D(A_ThisLabel)
 
 return
+;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
@@ -5707,17 +5768,58 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
 	}
 
-	blnCanOpenFavorite := WindowIsAnExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
+	blnCanNavigate := WindowIsAnExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
 		or WindowIsDialog(g_strTargetClass, g_strTargetWinId)
 		or (g_blnUseDirectoryOpus and WindowIsDirectoryOpus(g_strTargetClass))
 		or (g_blnUseTotalCommander and WindowIsTotalCommander(g_strTargetClass))
 		or (g_blnUseFPconnect and WindowIsFPconnect(g_strTargetWinId))
 		or WindowIsQuickAccessPopup(g_strTargetClass)
 
-	return blnCanOpenFavorite
+	return blnCanNavigate
 }
 ;------------------------------------------------------------
 
+
+;------------------------------------------------------------
+CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expression
+;------------------------------------------------------------
+{
+	global
+
+	g_intCounterLaunch++
+
+	if (strMouseOrKeyboard = g_arrHotkeys1) ; Mouse hotkey
+	{
+		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		TrayTip, CanLaunch Mouse, %strMouseOrKeyboard% = %g_strMouseHotkey%`n%g_strTargetControl%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
+	}
+	else ; Keyboard
+	{
+		g_strTargetWinId := WinExist("A")
+		g_strTargetControl := ""
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		TrayTip, CanLaunch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardHotkey%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
+	}
+	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
+
+	; ### to-do exclusion as "class contain the exclusion string" (looping in exclusion strings)
+	return !InStr(g_strExclusionClassList, g_strTargetClass . "|")
+}
+;------------------------------------------------------------
+
+
+
+;========================================================================================================================
+; END OF POPUP MENU
+;========================================================================================================================
+
+
+
+;========================================================================================================================
+!_070_CLASS:
+return
+;========================================================================================================================
 
 ;------------------------------------------------------------
 WindowIsAnExplorer(strClass)
@@ -5855,46 +5957,6 @@ WindowIsQuickAccessPopup(strClass)
 ;------------------------------------------------------------
 
 
-;------------------------------------------------------------
-CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expression
-;------------------------------------------------------------
-{
-	global
-
-	g_intCounterLaunch++
-
-	if (strMouseOrKeyboard = g_arrHotkeys1) ; Mouse hotkey
-	{
-		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
-		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, CanLaunch Mouse, %strMouseOrKeyboard% = %g_strMouseHotkey%`n%g_strTargetControl%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
-	}
-	else ; Keyboard
-	{
-		g_strTargetWinId := WinExist("A")
-		g_strTargetControl := ""
-		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, CanLaunch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardHotkey%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
-	}
-	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
-
-	### to-do exclusion as "class contain the exclusion string" (looping in exclusion strings)
-	return !InStr(g_strExclusionClassList, g_strTargetClass . "|")
-}
-;------------------------------------------------------------
-
-
-
-;========================================================================================================================
-; END OF POPUP MENU
-;========================================================================================================================
-
-
-
-;========================================================================================================================
-!_070_CLASS:
-;========================================================================================================================
-
 
 ;========================================================================================================================
 ; END OF CLASS
@@ -5914,7 +5976,36 @@ OpenFolderInExplorer:
 OpenClipboard:
 ;------------------------------------------------------------
 
+; is this navigate or launch?
+
+if (g_blnDisplayMenuShortcuts)
+	StringTrimLeft, strThisMenu, A_ThisMenuItem, 3 ; remove "&1 " from menu item
+else
+	strThisMenu := A_ThisMenuItem
+GetFavoriteProperties(A_ThisMenu, strThisMenu, strLocation, strFavoriteType, strAppArguments, strAppWorkingDir)
+
+###_V("Menu Action`n`n", A_ThisLabel, A_ThisMenu, strThisMenu, strLocation, strFavoriteType, strAppArguments, strAppWorkingDir)
+
 return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetFavoriteProperties(strMenu, strName, ByRef strLocation, ByRef strFavoriteType, ByRef strAppArguments, ByRef strAppWorkingDir)
+;------------------------------------------------------------
+{
+	global g_arrMenus
+	
+	Loop, % g_arrMenus[strMenu].MaxIndex()
+		if (strName = g_arrMenus[strMenu][A_Index].FavoriteName)
+		{
+			strLocation := g_arrMenus[strMenu][A_Index].FavoriteLocation
+			strFavoriteType := g_arrMenus[strMenu][A_Index].FavoriteType
+			strAppArguments := g_arrMenus[strMenu][A_Index].AppArguments
+			strAppWorkingDir := g_arrMenus[strMenu][A_Index].AppWorkingDir
+			break
+		}
+}
 ;------------------------------------------------------------
 
 
