@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- QAP features and groups icons in menu
 
 TO-DO
 - build menu and POC actions
@@ -162,9 +163,9 @@ g_objIconsFile := Object()
 g_objIconsIndex := Object()
 
 g_strMenuPathSeparator := ">" ; spaces before/after are added only when submenus are added
-g_strGroupPathSeparator := "[]"
 g_strGuiMenuSeparator := "----------------"
 g_strGuiMenuColumnBreak := "==="
+g_strGroupItemSuffix := "[]"
 
 g_intListW := "" ; Gui width captured by GuiSize
 g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file
@@ -1185,6 +1186,7 @@ FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
 ; reinit after Settings save if already exist
 g_objMenuInGui := Object() ; object of menu currently in Gui
 g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
+g_objQAPfeaturesInMenus := Object() ; index of QAP features in menu
 g_objMainMenu := Object() ; object of menu structure entry point
 g_objMainMenu.MenuPath := lMainMenuName ; localized name of the main menu
 g_objMainMenu.MenuType := "Menu" ; main menu is not a group
@@ -1405,8 +1407,10 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	global g_strIniFile
 	global g_intIniLine
 	global g_strMenuPathSeparator
-	global g_strGroupPathSeparator
+	global g_strGroupItemSuffix
 	global g_strEscapePipe
+	global g_objQAPfeaturesInMenus
+
 	
 	g_objMenusIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
 
@@ -1431,7 +1435,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		if InStr("Menu|Group", arrThisFavorite1) ; begin a submenu
 		{
 			objNewMenu := Object() ; create the submenu object
-			objNewMenu.MenuPath := objCurrentMenu.MenuPath . " " . (arrThisFavorite1 = "Menu" ? g_strMenuPathSeparator : g_strGroupPathSeparator) . " " . arrThisFavorite2
+			objNewMenu.MenuPath := objCurrentMenu.MenuPath . " " . g_strMenuPathSeparator . " " . arrThisFavorite2 . (arrThisFavorite1 = "Group" ? " " . g_strGroupItemSuffix : "")
 			objNewMenu.MenuType := arrThisFavorite1
 			
 			; create a navigation entry to navigate to the parent menu
@@ -1448,6 +1452,12 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 				Return, %strResult%
 		}
 		
+		if (arrThisFavorite1 = "QAP") ; to keep track of QAP features in menus to allo enable/disable befor showing the menus
+			if g_objQAPfeaturesInMenus.HasKey(arrThisFavorite3) ; QAP feature already in object
+				g_objQAPfeaturesInMenus[arrThisFavorite3] .= objCurrentMenu.MenuPath . "|"
+			else
+				g_objQAPfeaturesInMenus.Insert(arrThisFavorite3, objCurrentMenu.MenuPath . "|") ; add it with menu path
+
 		; this is a regular favorite, add it to the current menu
 		objLoadIniFavorite.FavoriteType := arrThisFavorite1 ; see Favorite Types
 		objLoadIniFavorite.FavoriteName := ReplaceAllInString(arrThisFavorite2, g_strEscapePipe, "|") ; display name of this menu item
@@ -1465,7 +1475,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		; this is a submenu favorite, link to the submenu object
 		if InStr("Menu|Group", arrThisFavorite1)
 			objLoadIniFavorite.SubMenu := objNewMenu
-
+		
 		; update the current menu object
 		objCurrentMenu.Insert(objLoadIniFavorite)
 	}
@@ -2315,41 +2325,9 @@ if (g_blnUseColors)
 
 RecursiveBuildOneMenu(g_objMainMenu) ; recurse for submenus
 
-if (g_arrMenus[lMainMenuName][g_arrMenus[lMainMenuName].MaxIndex()].FavoriteType <> "K")
+if (g_objMenusIndex[lMainMenuName][g_objMenusIndex[lMainMenuName].MaxIndex()].FavoriteType <> "K")
 ; column break not allowed if first item is a separator
 	Menu, %lMainMenuName%, Add
-
-/* ### later
-if (blnDisplayFoldersInExplorerMenu)
-{
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(6, lMenuCurrentFolders), ":g_menuFoldersInExplorer", "iconCurrentFolders")
-	if (g_blnUseColors)
-		Menu, g_menuFoldersInExplorer, Color, %g_strMenuBackgroundColor%
-}
-
-if (blnDisplayGroupMenu)
-{
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(7, lMenuGroup), ":g_menuGroups", "iconGroup")
-	if (g_blnUseColors)
-		Menu, g_menuGroups, Color, %g_strMenuBackgroundColor%
-}
-
-if (blnDisplayRecentFolders)
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(8, lMenuRecentFolders), "RefreshRecentFolders", "iconRecentFolders")
-
-if (blnDisplayClipboardMenu)
-	AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(9, lMenuClipboard), ":g_menuClipboard", "iconClipboard")
-
-if (blnDisplayRecentFolders or blnDisplayFoldersInExplorerMenu or blnDisplayGroupMenu or blnDisplayClipboardMenu)
-	Menu, %lMainMenuName%, Add
-
-AddMenuIcon(lMainMenuName, BuildSpecialMenuItemName(5, L(lMenuSettings, g_strAppNameText) . "..."), "GuiShow", "iconSettings")
-Menu, %lMainMenuName%, Default, %  BuildSpecialMenuItemName(5, L(lMenuSettings, g_strAppNameText) . "...")
-AddMenuIcon(lMainMenuName, lMenuAddThisFolder . "...", "AddThisFolder", "iconAddThisFolder")
-
-if (blnDisplayCopyLocationMenu)
-	AddMenuIcon(lMainMenuName, lMenuCopyLocation . "...", "PopupMenuCopyLocation", "iconClipboard")
-*/
 
 if !(g_blnDonor)
 {
@@ -2377,12 +2355,13 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	global g_objIconsFile
 	global g_objIconsIndex
 	global g_blnUseColors
+	global g_strGroupItemSuffix
 	
 	intShortcut := 0
 	
 	; try because at first execution the strMenu menu does not exist and produces an error,
 	; but DeleteAll is required later for menu updates
-	try Menu, %strMenu%, DeleteAll
+	try Menu, % objCurrentMenu.MenuPath, DeleteAll
 	
 	intMenuItemsCount := 0
 	intMenuArrayItemsCount := 0
@@ -2392,7 +2371,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		intMenuItemsCount++ ; for objMenuColumnBreak
 		intMenuArrayItemsCount++ ; for objMenuColumnBreak
 		
-		if (objCurrentMenu[A_Index].FavoriteType = "B")
+		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
 			continue
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "Menu")
@@ -2437,11 +2416,14 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			objMenuColumnBreak.MenuArrayPosition := intMenuArrayItemsCount
 			g_objMenuColumnBreaks.Insert(objMenuColumnBreak)
 		}
-		else ; this is a favorite (folder, document, application or link)
+		else ; this is a favorite (Folder, Document, Application, Special, URL, FTP, QAP or Group)
 		{
 			strSubMenuDisplayName := objCurrentMenu[A_Index].FavoriteName
 			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "")
 				. strSubMenuDisplayName
+			if (objCurrentMenu[A_Index].FavoriteType = "Group")
+				strMenuName .= " " . SubStr(g_strGroupItemSuffix, 1, 1) . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . SubStr(g_strGroupItemSuffix, 0, 1)
+			
 			Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavorite
 
 			if (g_blnDisplayIcons)
@@ -3036,7 +3018,7 @@ if (strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
 Gosub, BuildFoldersInExplorerMenu
 
 ; and rebuild Folders menus w/ or w/o optional folders and shortcuts
-for strMenuName, arrMenu in g_arrMenus
+for strMenuName, arrMenu in g_objMenusIndex
 {
 	Menu, %strMenuName%, Add
 	Menu, %strMenuName%, DeleteAll
@@ -3181,7 +3163,7 @@ Loop, % g_objMenuInGui.MaxIndex()
 	
 	if InStr("Menu|Group", g_objMenuInGui[A_Index].FavoriteType) ; this is a menu or a group
 		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objFavoriteTypesShortNames[g_objMenuInGui[A_Index].FavoriteType]
-			, (g_objMenuInGui[A_Index].FavoriteType = "Menu" ? g_strMenuPathSeparator : g_strGroupPathSeparator))
+			, (g_objMenuInGui[A_Index].FavoriteType = "Menu" ? g_strMenuPathSeparator : " " . g_strGroupItemSuffix))
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "X") ; this is a separator
 		LV_Add(, g_strGuiMenuSeparator, "---", g_strGuiMenuSeparator . g_strGuiMenuSeparator)
@@ -4370,9 +4352,9 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	}
 
 	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
-		and InStr(f_strFavoriteShortName, g_strMenuPathSeparator) or InStr(f_strFavoriteShortName, g_strGroupPathSeparator)
+		and InStr(f_strFavoriteShortName, g_strMenuPathSeparator) or InStr(f_strFavoriteShortName, g_strGroupItemSuffix)
 	{
-		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator, g_strGroupPathSeparator))
+		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator, g_strGroupItemSuffix))
 		return
 	}
 
@@ -4412,7 +4394,7 @@ if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " "
 if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (A_ThisLabel = "GuiAddFavoriteSave"))
 {
 	objNewMenu := Object() ; object for the new menu or group
-	objNewMenu.MenuPath := strDestinationMenu . " " . (g_objEditedFavorite.FavoriteType = "Menu" ? g_strMenuPathSeparator : g_strGroupPathSeparator) . " " . f_strFavoriteShortName
+	objNewMenu.MenuPath := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName . (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupItemSuffix : "")
 	objNewMenu.MenuType := g_objEditedFavorite.FavoriteType
 
 	; create a navigation entry to navigate to the parent menu
@@ -4433,7 +4415,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteName := f_strFavoriteShortName
 	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
 	{
-		strMenuLocation := strDestinationMenu . " " . (g_objEditedFavorite.FavoriteType = "Menu" ? g_strMenuPathSeparator : g_strGroupPathSeparator) . " " . f_strFavoriteShortName
+		strMenuLocation := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName . (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupItemSuffix : "")
 		RecursiveUpdateMenuPath(g_objEditedFavorite.Submenu, strMenuLocation)
 		
 		StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
@@ -4497,7 +4479,8 @@ if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if 
 	if (g_objEditedFavorite.FavoriteType = "Menu")
 		strThisLocation := g_strMenuPathSeparator
 	else if (g_objEditedFavorite.FavoriteType = "Group")
-		strThisLocation := g_strGroupPathSeparator
+		strThisLocation := g_strGroupItemSuffix
+
 	else
 		strThisLocation := g_objEditedFavorite.FavoriteLocation
 	
@@ -4540,7 +4523,7 @@ RecursiveUpdateMenuPath(objEditedMenu, strMenuPath)
 ;------------------------------------------------------------
 {
 	global g_strMenuPathSeparator
-	global g_strGroupPathSeparator
+	global g_strGroupItemSuffix
 	
 	Loop, % objEditedMenu.MaxIndex()
 	{
@@ -4552,7 +4535,7 @@ RecursiveUpdateMenuPath(objEditedMenu, strMenuPath)
 		
 		if InStr("Menu|Group", objEditedMenu[A_Index].FavoriteType)
 			RecursiveUpdateMenuPath(objEditedMenu[A_Index].SubMenu
-				, objEditedMenu.MenuPath . " " . (objEditedMenu[A_Index].FavoriteType = "Menu" ? g_strMenuPathSeparator : g_strGroupPathSeparator) . " " . objEditedMenu[A_Index].FavoriteName) ; RECURSIVE
+				, objEditedMenu.MenuPath . " " . g_strMenuPathSeparator . " " . objEditedMenu[A_Index].FavoriteName . (objEditedMenu[A_Index].FavoriteType = "Group" ? " " . g_strGroupItemSuffix : "") ) ; RECURSIVE
 	}
 }
 ;------------------------------------------------------------
@@ -5621,6 +5604,8 @@ return
 ;------------------------------------------------------------
 NavigateHotkeyMouse:
 NavigateHotkeyKeyboard:
+LaunchHotkeyMouse:
+LaunchHotkeyKeyboard:
 ;------------------------------------------------------------
 
 ###_D(A_ThisLabel)
@@ -5628,21 +5613,23 @@ NavigateHotkeyKeyboard:
 if !(g_blnMenuReady)
 	return
 
+g_strHokeyTypeDetected := SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1) ; "Navigate" or "Launch"
 blnMouse := InStr(A_ThisLabel, "Mouse")
 
 Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
 WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; ### already set by CanNavigate?
 
-if (blnMouse) and (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass))
+if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass)
+	and (blnMouse) and (g_strHokeyTypeDetected = "Navigate"))
 {
 	Click ; to make sure the DOpus lister or TC pane under the mouse become active
 	Sleep, 20
 }
 
-if (g_blnDisplayFoldersInExplorerMenu) ; ### check or track that we have a FoldersInExplorerMenu
+if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; QAP feature already in object
 {
 	Gosub, BuildFoldersInExplorerMenu
-	Menu, %lMainMenuName% ; ### find in what menu we have the FoldersInExplorerMenu
+	Menu, %lMainMenuName% ; ### find in g_objQAPfeaturesInMenus in what menu we have the FoldersInExplorerMenu (do not forget to unescape pipe chars)
 		, % (!intExplorersIndex ? "Disable" : "Enable") ; disable Folders in Explorer menu if no Explorer
 		, %lMenuCurrentFolders%
 }
@@ -5678,28 +5665,13 @@ return
 
 
 ;------------------------------------------------------------
-LaunchHotkeyMouse:
-LaunchHotkeyKeyboard:
-;------------------------------------------------------------
-
-###_D(A_ThisLabel)
-
-if !(g_blnMenuReady)
-	return
-
-blnMouse := InStr(A_ThisLabel, "Mouse")
-
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 PowerHotkeyMouse:
 PowerHotkeyKeyboard:
 ;------------------------------------------------------------
 
 ###_D(A_ThisLabel)
+
+g_strHokeyTypeDetected := "Power"
 
 return
 ;------------------------------------------------------------
@@ -5976,37 +5948,15 @@ OpenFolderInExplorer:
 OpenClipboard:
 ;------------------------------------------------------------
 
-; is this navigate or launch?
+objThisFavorite := g_objMenusIndex[A_ThisMenu][A_ThisMenuItemPos + (strThisMenu = lMainMenuName ? 0 : 1)]
 
-if (g_blnDisplayMenuShortcuts)
-	StringTrimLeft, strThisMenu, A_ThisMenuItem, 3 ; remove "&1 " from menu item
-else
-	strThisMenu := A_ThisMenuItem
-GetFavoriteProperties(A_ThisMenu, strThisMenu, strLocation, strFavoriteType, strAppArguments, strAppWorkingDir)
+###_V(A_ThisLabel, g_strHokeyTypeDetected, objThisFavorite.FavoriteName)
 
-###_V("Menu Action`n`n", A_ThisLabel, A_ThisMenu, strThisMenu, strLocation, strFavoriteType, strAppArguments, strAppWorkingDir)
+objThisFavorite := ""
 
 return
 ;------------------------------------------------------------
 
-
-;------------------------------------------------------------
-GetFavoriteProperties(strMenu, strName, ByRef strLocation, ByRef strFavoriteType, ByRef strAppArguments, ByRef strAppWorkingDir)
-;------------------------------------------------------------
-{
-	global g_arrMenus
-	
-	Loop, % g_arrMenus[strMenu].MaxIndex()
-		if (strName = g_arrMenus[strMenu][A_Index].FavoriteName)
-		{
-			strLocation := g_arrMenus[strMenu][A_Index].FavoriteLocation
-			strFavoriteType := g_arrMenus[strMenu][A_Index].FavoriteType
-			strAppArguments := g_arrMenus[strMenu][A_Index].AppArguments
-			strAppWorkingDir := g_arrMenus[strMenu][A_Index].AppWorkingDir
-			break
-		}
-}
-;------------------------------------------------------------
 
 
 ;========================================================================================================================
