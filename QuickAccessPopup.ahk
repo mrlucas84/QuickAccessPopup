@@ -17,6 +17,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 BUGS
 - QAP features and groups icons in menu
+- "Please, choose a new name" is not logic when QAP feature is added for the 2nd time
+- Adding fav with menu option After End of menu is assing before last in Main
 
 TO-DO
 - build menu and POC actions
@@ -1042,7 +1044,7 @@ InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate:", "iconDonat
 InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp:", "iconHelp")
 InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions:", "iconOptions")
 InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder:", "iconAddThisFolder")
-InitQAPFeatureObject("Copy a Favorite's Path or URL", lMenuCopyLocation, "", "PopupMenuCopyLocation:", "iconClipboard")
+InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "PopupMenuCopyLocation:", "iconClipboard")
 ; removed InitQAPFeatureObject("Groups of Favorites", lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
 InitQAPFeatureObject("Settings", L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "iconSettings")
 
@@ -5626,39 +5628,44 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 	Sleep, 20
 }
 
-if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; QAP feature already in object
+if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; we have this QAP feature in at least one menu
 {
 	Gosub, BuildFoldersInExplorerMenu
-	Menu, %lMainMenuName% ; ### find in g_objQAPfeaturesInMenus in what menu we have the FoldersInExplorerMenu (do not forget to unescape pipe chars)
-		, % (!intExplorersIndex ? "Disable" : "Enable") ; disable Folders in Explorer menu if no Explorer
-		, %lMenuCurrentFolders%
+	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Current Folders}"]
+	Loop, Parse, strQAPfeatureMenusPaths, |
+		if StrLen(A_LoopField)
+			; disable Folders in Explorer menu if no Explorer
+			Menu, %A_LoopField%, % (g_intExplorersIndex ? "Enable" : "Disable"), % g_objQAPFeatures["{Current Folders}"].DefaultName
 }
 
-if (g_blnDisplayClipboardMenu) ; ### check or track that we have a ClipboardMenu
+if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
 {
 	Gosub, RefreshClipboardMenu
-	Menu, %lMainMenuName% ; ### find in what menu we have the ClipboardMenu
-		, % (g_blnClipboardMenuEnable ? "Enable" : "Disable")
-		, %lMenuClipboard%
+	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Clipboard}"]
+	Loop, Parse, strQAPfeatureMenusPaths, |
+		if StrLen(A_LoopField)
+			; disable Clipboard menu if no Explorer
+			Menu, %A_LoopField%, % (g_blnClipboardMenuEnable ? "Enable" : "Disable"), % g_objQAPFeatures["{Clipboard}"].DefaultName ; disable Clipboard menu if no Explorer
 }
 
-; Enable "Add This Folder" only if the target window is an Explorer, TotalCommander,
-; Directory Opus or a dialog box under WIN_7 (does not work under WIN_XP). Tested on WIN_XP and WIN_7.
-
-/*
-Menu, %lMainMenuName% ; ### find in what menu we have the lMenuAddThisFolder
-	, % WindowIsAnExplorer(g_strTargetClass) ; removed for FPconnect: or WindowIsFreeCommander(strTargetClass)
-	or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
-	or (WindowIsDialog(g_strTargetClass, g_strTargetWinId)) ? "Enable" : "Disable"
-	, %lMenuAddThisFolder%...
-*/
+if g_objQAPfeaturesInMenus.HasKey("{Add This Folder}") ; we have this QAP feature in at least one menu
+{
+	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Add This Folder}"]
+	Loop, Parse, strQAPfeatureMenusPaths, |
+		if StrLen(A_LoopField)
+			; Enable "Add This Folder" only if the target window is an Explorer, TotalCommander*, Directory Opus* or a dialog box (*: even if not enabled in options)
+			Menu, %A_LoopField%
+				, % WindowIsAnExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
+				or (WindowIsDialog(g_strTargetClass, g_strTargetWinId)) ? "Enable" : "Disable"
+				, % g_objQAPFeatures["{Add This Folder}"].DefaultName
+}
 
 Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosy% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
-
 blnMouse := ""
+strQAPfeatureMenusPaths := ""
 
 return
 ;------------------------------------------------------------
