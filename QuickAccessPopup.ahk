@@ -16,9 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- QAP features and groups icons in menu
-- "Please, choose a new name" is not logic when QAP feature is added for the 2nd time
-- Adding fav with menu option After End of menu is assing before last in Main
 
 TO-DO
 - build menu and POC actions
@@ -185,6 +182,7 @@ g_objSpecialFolders := Object()
 g_strSpecialFoldersList := ""
 
 g_objQAPFeaturesCodeByDefaultName := Object()
+g_objQAPFeaturesDefaultNameByCode := Object()
 g_objQAPFeatures := Object()
 g_strQAPFeaturesList := ""
 
@@ -1029,13 +1027,13 @@ InitQAPFeatures:
 ; 		strUse4TC
 ;		strUse4FPc
 
-InitQAPFeatureObject("Current Folders", lMenuCurrentFolders, ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "iconCurrentFolders"
+InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "iconCurrentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
 ; removed InitQAPFeatureObject("Manage Groups", lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
 ;	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject("Recent Folders", lMenuRecentFolders, "", "RefreshRecentFolders:", "iconRecentFolders"
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RefreshRecentFolders:", "iconRecentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject("Clipboard", lMenuClipboard, ":g_menuClipboard", "ClipboardMenuShortcut:", "iconClipboard"
+InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", ":g_menuClipboard", "ClipboardMenuShortcut:", "iconClipboard"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 
 InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout:", "iconAbout")
@@ -1044,11 +1042,11 @@ InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate:", "iconDonat
 InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp:", "iconHelp")
 InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions:", "iconOptions")
 InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder:", "iconAddThisFolder")
-InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "PopupMenuCopyLocation:", "iconClipboard")
+InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "", "PopupMenuCopyLocation:", "iconClipboard")
 ; removed InitQAPFeatureObject("Groups of Favorites", lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
 InitQAPFeatureObject("Settings", L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey:", "iconSettings")
 
-;------------------------------------------------------------
+;--------------------------------
 ; Build folders list for dropdown
 
 g_strQAPFeaturesList := ""
@@ -1089,6 +1087,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenu, s
 	global g_objIconsIndex
 	global g_objQAPFeatures
 	global g_objQAPFeaturesCodeByDefaultName
+	global g_objQAPFeaturesDefaultNameByCode
 	
 	objOneQAPFeature := Object()
 	
@@ -1104,6 +1103,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenu, s
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisDefaultName, "{" . strQAPFeatureCode . "}")
+	g_objQAPFeaturesDefaultNameByCode.Insert("{" . strQAPFeatureCode . "}", strThisDefaultName)
 }
 ;------------------------------------------------------------
 
@@ -1412,7 +1412,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	global g_strGroupItemSuffix
 	global g_strEscapePipe
 	global g_objQAPfeaturesInMenus
-
+	global g_objQAPFeaturesDefaultNameByCode
 	
 	g_objMenusIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
 
@@ -1454,11 +1454,17 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 				Return, %strResult%
 		}
 		
-		if (arrThisFavorite1 = "QAP") ; to keep track of QAP features in menus to allo enable/disable befor showing the menus
+		if (arrThisFavorite1 = "QAP")
+		{
+			; get QAP feature's name in current language (QAP features names are not saved to ini file)
+			arrThisFavorite2 := g_objQAPFeaturesDefaultNameByCode[arrThisFavorite3]
+			
+			; to keep track of QAP features in menus to allow enable/disable menu items
 			if g_objQAPfeaturesInMenus.HasKey(arrThisFavorite3) ; QAP feature already in object
 				g_objQAPfeaturesInMenus[arrThisFavorite3] .= objCurrentMenu.MenuPath . "|"
 			else
 				g_objQAPfeaturesInMenus.Insert(arrThisFavorite3, objCurrentMenu.MenuPath . "|") ; add it with menu path
+		}
 
 		; this is a regular favorite, add it to the current menu
 		objLoadIniFavorite.FavoriteType := arrThisFavorite1 ; see Favorite Types
@@ -3967,13 +3973,12 @@ DropdownParentMenuChanged:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-strDropdownParentMenuItems := ""
-
 Loop, % g_objMenusIndex[f_drpParentMenu].MaxIndex()
 {
 	if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "B") ; skip ".." back link to parent menu
 		or (g_objEditedFavorite.FavoriteName = g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteName)
-			and (g_objMenuInGui.MenuPath = g_objMenusIndex[f_drpParentMenu].MenuPath) ; skip edited item itself
+			and (g_objMenuInGui.MenuPath = g_objMenusIndex[f_drpParentMenu].MenuPath ; skip edited item itself if not a separator
+			and !InStr("XK", g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType)) ; but make sure to keep separators
 		Continue
 	else if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "X")
 		strDropdownParentMenuItems .= g_strGuiMenuSeparator . g_strGuiMenuSeparator . "|"
@@ -3988,6 +3993,8 @@ if (f_drpParentMenu = g_objMenuInGui.MenuPath) and (g_intOriginalMenuPosition <>
 	GuiControl, Choose, f_drpParentMenuItems, % g_intOriginalMenuPosition - (g_objMenusIndex[f_drpParentMenu][1].FavoriteType = "B" ? 1 : 0)
 else
 	GuiControl, ChooseString, f_drpParentMenuItems, % g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
+
+strDropdownParentMenuItems := ""
 
 return
 ;------------------------------------------------------------
@@ -4377,7 +4384,10 @@ if !FolderNameIsNew((A_ThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorit
 	; if this is the same menu and the same name, this is OK
 	if (strDestinationMenu <> strOriginalMenu) or (f_strFavoriteShortName <> g_objEditedFavorite.FavoriteName)
 	{
-		Oops(lDialogFavoriteNameNotNew, f_strFavoriteShortName)
+		if (g_objEditedFavorite.FavoriteType = "QAP")
+			Oops(lDialogFavoriteNameNotNewQAPfeature, f_strFavoriteShortName)
+		else
+			Oops(lDialogFavoriteNameNotNew, f_strFavoriteShortName)
 		if (A_ThisLabel = "GuiMoveOneFavoriteSave")
 			g_intOriginalMenuPosition++
 		return
@@ -4756,6 +4766,9 @@ if (intCurrentLastPosition) ; we went to a previous menu
 	LV_Modify(intCurrentLastPosition, "Select Focus Vis")
 }
 
+if (A_ThisLabel = "GuiMenusListChanged") ; keep focus on dropdown list
+	GuiControl, Focus, f_drpMenusList
+
 return
 ;------------------------------------------------------------
 
@@ -4997,7 +5010,10 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 		if !(blnIsBackMenu)
 		{
 			strIniLine := objCurrentMenu[A_Index].FavoriteType . "|" ; 1
-			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteName, "|", g_strEscapePipe) . "|" ; 2
+			if (objCurrentMenu[A_Index].FavoriteType <> "QAP")
+				strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteName, "|", g_strEscapePipe) . "|" ; 2
+			else
+				strIniLine .= "|" ; do not save name to ini file, use current language feature name when loading ini file
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLocation, "|", g_strEscapePipe) . "|" ; 3
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteIconResource, "|", g_strEscapePipe) . "|" ; 4
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteArguments, "|", g_strEscapePipe) . "|" ; 5
