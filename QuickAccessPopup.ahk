@@ -19,6 +19,7 @@ BUGS
 
 TO-DO
 - build menu and POC actions
+- add Quit to QAP features
 - add default hotkey to QAP Feature Object and show select default button in gui
 - prevent 2 favorites to use the same .FavoriteHotkey
 - check exclusion as "class contain the exclusion string"
@@ -228,9 +229,9 @@ if (g_blnDiagMode)
 if (g_blnUseColors)
 	Gosub, LoadThemeGlobal
 
-; build even if blnDisplayFoldersInExplorerMenu (etc.) are false because they could become true
+; build even if not used because they could become used
 ; no need to build Recent folders menu at startup since this menu is refreshed/recreated on demand
-Gosub, BuildFoldersInExplorerMenuInit ; need to be initialized here - will be updated at each call to popup menu
+Gosub, BuildCurrentFoldersMenuInit ; need to be initialized here - will be updated at each call to popup menu
 ; Gosub, BuildGroupMenuInit not needed with new Grup favorite type
 Gosub, BuildClipboardMenuInit
 
@@ -1027,7 +1028,7 @@ InitQAPFeatures:
 ; 		strUse4TC
 ;		strUse4FPc
 
-InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", ":g_menuFoldersInExplorer", "FoldersInExplorerMenuShortcut:", "iconCurrentFolders"
+InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", ":g_menuCurrentFolders", "CurrentFoldersMenuShortcut:", "iconCurrentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
 ; removed InitQAPFeatureObject("Manage Groups", lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
 ;	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
@@ -1241,7 +1242,7 @@ IniRead, g_blnDisplayIcons, %g_strIniFile%, Global, DisplayIcons, 1
 g_blnDisplayIcons := (g_blnDisplayIcons and OSVersionIsWorkstation())
 ; IniRead, g_blnDisplaySpecialMenusShortcuts, %g_strIniFile%, Global, DisplaySpecialMenusShortcuts, 1
 ; IniRead, blnDisplayRecentFolders, %g_strIniFile%, Global, DisplayRecentFolders, 1
-; IniRead, blnDisplayFoldersInExplorerMenu, %g_strIniFile%, Global, DisplayFoldersInExplorerMenu, 1
+; IniRead, blnDisplayCurrentFoldersMenu, %g_strIniFile%, Global, DisplayCurrentFoldersMenu, 1
 ; IniRead, blnDisplayGroupMenu, %g_strIniFile%, Global, DisplayGroupMenu, 1
 ; IniRead, blnDisplayClipboardMenu, %g_strIniFile%, Global, DisplayClipboardMenu, 1
 ; IniRead, blnDisplayCopyLocationMenu, %g_strIniFile%, Global, DisplayCopyLocationMenu, 1
@@ -1789,33 +1790,33 @@ return
 
 
 ;------------------------------------------------------------
-FoldersInExplorerMenuShortcut:
+CurrentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
 ; ### COMPLETE blnNewWindow := !CanOpenFavorite("", strTargetWinId, strTargetClass, strTargetControl)
 Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
 
-Gosub, BuildFoldersInExplorerMenu
+Gosub, BuildCurrentFoldersMenu
 if (g_intExplorersIndex) ; there are Folders in Explorer menu
 {
 	CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-	Menu, g_menuFoldersInExplorer, Show, %g_intMenuPosX%, %g_intMenuPosy%
+	Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosy%
 }
 else
-	TrayTip, % L(lTrayTipNoFoldersInExplorerMenuTitle, g_strAppNameText), %lTrayTipNoFoldersInExplorerMenuDetail%, , 2
+	TrayTip, % L(lTrayTipNoCurrentFoldersMenuTitle, g_strAppNameText), %lTrayTipNoCurrentFoldersMenuDetail%, , 2
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-BuildFoldersInExplorerMenuInit:
-BuildFoldersInExplorerMenu:
+BuildCurrentFoldersMenuInit:
+BuildCurrentFoldersMenu:
 ;------------------------------------------------------------
 
-Menu, g_menuFoldersInExplorer, Add ; create the menu
+Menu, g_menuCurrentFolders, Add ; create the menu
 
-if (A_ThisLabel = "BuildFoldersInExplorerMenuInit")
+if (A_ThisLabel = "BuildCurrentFoldersMenuInit")
 	return
 
 if (g_blnUseDirectoryOpus)
@@ -1837,7 +1838,7 @@ if (g_blnUseDirectoryOpus)
 objExplorersWindows := Object()
 CollectExplorers(objExplorersWindows, ComObjCreate("Shell.Application").Windows)
 
-objFoldersInExplorers := Object()
+objCurrentFoldersList := Object()
 
 g_intExplorersIndex := 0 ; used in PopupMenu and SaveGroup to check if we disable menu or button when empty
 
@@ -1848,26 +1849,26 @@ if (g_blnUseDirectoryOpus)
 		if !StrLen(objLister.LocationURL) or InStr(objLister.LocationURL, "coll://")
 			continue
 		
-		if NameIsInObject(objLister.LocationURL, objFoldersInExplorers)
+		if NameIsInObject(objLister.LocationURL, objCurrentFoldersList)
 			continue
 		
 		g_intExplorersIndex++
 			
-		objFolderInExplorer := Object()
-		objFolderInExplorer.LocationURL := objLister.LocationURL
-		objFolderInExplorer.Name := objLister.LocationURL
+		objCurrentFolder := Object()
+		objCurrentFolder.LocationURL := objLister.LocationURL
+		objCurrentFolder.Name := objLister.LocationURL
 		
 		; used for DOpus windows to discriminatre different listers
-		objFolderInExplorer.WindowId := objLister.Lister
+		objCurrentFolder.WindowId := objLister.Lister
 		
 		; info used to create groups
-		objFolderInExplorer.TabId := objLister.Tab
-		objFolderInExplorer.Position := objLister.Position
-		objFolderInExplorer.MinMax := objLister.MinMax
-		objFolderInExplorer.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
-		objFolderInExplorer.WindowType := "DO"
+		objCurrentFolder.TabId := objLister.Tab
+		objCurrentFolder.Position := objLister.Position
+		objCurrentFolder.MinMax := objLister.MinMax
+		objCurrentFolder.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
+		objCurrentFolder.WindowType := "DO"
 		
-		objFoldersInExplorers.Insert(g_intExplorersIndex, objFolderInExplorer)
+		objCurrentFolders.Insert(g_intExplorersIndex, objCurrentFolder)
 	}
 
 for intIndex, objFolder in objExplorersWindows
@@ -1876,49 +1877,49 @@ for intIndex, objFolder in objExplorersWindows
 	if !StrLen(objFolder.LocationURL)
 		continue
 		
-	if NameIsInObject(objFolder.LocationName, objFoldersInExplorers)
+	if NameIsInObject(objFolder.LocationName, objCurrentFolders)
 		continue
 	
 	g_intExplorersIndex++
 	
-	objFolderInExplorer := Object()
-	objFolderInExplorer.LocationURL := objFolder.LocationURL
-	objFolderInExplorer.Name := objFolder.LocationName
-	objFolderInExplorer.IsSpecialFolder := objFolder.IsSpecialFolder
+	objCurrentFolder := Object()
+	objCurrentFolder.LocationURL := objFolder.LocationURL
+	objCurrentFolder.Name := objFolder.LocationName
+	objCurrentFolder.IsSpecialFolder := objFolder.IsSpecialFolder
 	
 	; not used for Explorer windows, but keep it
-	objFolderInExplorer.WindowId := objFolder.WindowId
+	objCurrentFolder.WindowId := objFolder.WindowId
 
 	; info used to create groups
-	objFolderInExplorer.Position := objFolder.Position
-	objFolderInExplorer.MinMax := objFolder.MinMax
-	objFolderInExplorer.WindowType := "EX"
+	objCurrentFolder.Position := objFolder.Position
+	objCurrentFolder.MinMax := objFolder.MinMax
+	objCurrentFolder.WindowType := "EX"
 
-	objFoldersInExplorers.Insert(g_intExplorersIndex, objFolderInExplorer)
+	objCurrentFolders.Insert(g_intExplorersIndex, objCurrentFolder)
 }
 
-Menu, g_menuFoldersInExplorer, DeleteAll
+Menu, g_menuCurrentFolders, DeleteAll
 if (g_blnUseColors)
-	Menu, g_menuFoldersInExplorer, Color, %g_strMenuBackgroundColor%
+	Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
 
-intShortcutFoldersInExplorer := 0
-g_objFoldersInExplorerLocationUrlByName := Object()
+intShortcutCurrentFolders := 0
+g_objCurrentFoldersLocationUrlByName := Object()
 
-for intIndex, objFolderInExplorer in objFoldersInExplorers
+for intIndex, objCurrentFolder in objCurrentFolders
 {
-	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutFoldersInExplorer <= 35) ? "&" . NextMenuShortcut(intShortcutFoldersInExplorer) . " " : "") . objFolderInExplorer.Name
-	g_objFoldersInExplorerLocationUrlByName.Insert(strMenuName, objFolderInExplorer.LocationURL) ; can include the numeric shortcut
-	AddMenuIcon("g_menuFoldersInExplorer", strMenuName, "OpenFolderInExplorer", "Folder")
+	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
+	g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
+	AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "Folder")
 }
 
 objDOpusListers := ""
 objExplorersWindows := ""
-objFolderInExplorer := ""
+objCurrentFolder := ""
 strDOpusListText := ""
 intIndex := ""
 objLister := ""
 objFolder := ""
-intShortcutFoldersInExplorer := ""
+intShortcutCurrentFolders := ""
 strMenuName := ""
 
 return
@@ -2193,7 +2194,7 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 		}
 		g_blnClipboardMenuEnable := 1
 
-		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutFoldersInExplorer <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . strClipboardLine
+		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . strClipboardLine
 		if (g_blnDisplayIcons)
 			if LocationIsDocument(strClipboardLineExpanded)
 			{
@@ -2226,7 +2227,7 @@ Loop, parse, strURLsInClipboard, `n
 	}
 	g_blnClipboardMenuEnable := 1
 
-	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutFoldersInExplorer <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . A_LoopField
+	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . A_LoopField
 	if StrLen(strMenuName) < 260 ; skip too long URLs
 	{
 		Menu, g_menuClipboard, Add, %strMenuName%, OpenClipboard
@@ -3023,7 +3024,7 @@ if (strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
 }	
 
 ; else rebuild Explorers folder
-Gosub, BuildFoldersInExplorerMenu
+Gosub, BuildCurrentFoldersMenu
 
 ; and rebuild Folders menus w/ or w/o optional folders and shortcuts
 for strMenuName, arrMenu in g_objMenusIndex
@@ -5336,7 +5337,7 @@ GuiGroupsManage:
 
 intWidth := 350
 
-Gosub, BuildFoldersInExplorerMenu ; refresh explorers object and intExplorersIndex counter
+Gosub, BuildCurrentFoldersMenu ; refresh explorers object and intExplorersIndex counter
 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
@@ -5507,7 +5508,7 @@ if (blnSaveEnabled)
 		Gosub, RestoreBackupMenusObjects
 		
 		; restore popup menu
-		Gosub, BuildFoldersInExplorerMenu
+		Gosub, BuildCurrentFoldersMenu
 		Gosub, BuildMainMenu ; need to be initialized here - will be updated at each call to popup menu
 		
 		GuiControl, Disable, f_btnGuiSave
@@ -5626,7 +5627,7 @@ LaunchHotkeyMouse:
 LaunchHotkeyKeyboard:
 ;------------------------------------------------------------
 
-###_D(A_ThisLabel)
+; ###_D(A_ThisLabel)
 
 if !(g_blnMenuReady)
 	return
@@ -5646,7 +5647,7 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 
 if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; we have this QAP feature in at least one menu
 {
-	Gosub, BuildFoldersInExplorerMenu
+	Gosub, BuildCurrentFoldersMenu
 	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Current Folders}"]
 	Loop, Parse, strQAPfeatureMenusPaths, |
 		if StrLen(A_LoopField)
@@ -5695,6 +5696,12 @@ PowerHotkeyKeyboard:
 ###_D(A_ThisLabel)
 
 g_strHokeyTypeDetected := "Power"
+
+StringReplace, strNewLabel, A_ThisLabel, Power, Launch
+
+Gosub, %strNewLabel%
+
+strNewLabel := ""
 
 return
 ;------------------------------------------------------------
@@ -5967,7 +5974,7 @@ WindowIsQuickAccessPopup(strClass)
 ;------------------------------------------------------------
 OpenFavorite:
 OpenRecentFolder:
-OpenFolderInExplorer:
+OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
@@ -6377,7 +6384,7 @@ Gui, 2:Font, s8 w600, Verdana
 Gui, 2:Add, Tab2, vf_intHelpTab w640 h350 AltSubmit, %A_Space%%lHelpTabGettingStarted% | %lHelpTabAddingFavorite% | %lHelpTabTitlesTipsAndTricks%%A_Space%
 
 ; ### REVIEW Hotkeys: 1) PopupHotkeyMouse 2) PopupHotkeyNewMouse 3) PopupHotkeyKeyboard 4) PopupHotkeyNewKeyboard
-; 5) SettingsHotkey 6) FoldersInExplorerHotkey 7) GroupsHotkey 8) RecentsHotkey 9) ClipboardHotkey 10) CopyLocationHotkey
+; 5) SettingsHotkey 6) CurrentFoldersHotkey 7) GroupsHotkey 8) RecentsHotkey 9) ClipboardHotkey 10) CopyLocationHotkey
 Gui, 2:Font, s8 w400, Verdana
 Gui, 2:Tab, 1
 Gui, 2:Add, Link, w%intWidth%, % L(lHelpText1, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1), Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3))
