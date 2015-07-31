@@ -19,7 +19,7 @@ BUGS
 
 TO-DO
 - build menu and POC actions
-- add Quit to QAP features
+- add current folders in favorite objects and retrieve object by its menu position when open current folder
 - add default hotkey to QAP Feature Object and show select default button in gui
 - prevent 2 favorites to use the same .FavoriteHotkey
 - check exclusion as "class contain the exclusion string"
@@ -1028,25 +1028,25 @@ InitQAPFeatures:
 ; 		strUse4TC
 ;		strUse4FPc
 
-InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "CurrentFoldersMenuShortcut", "iconCurrentFolders"
+InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", "iconCurrentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
 ; removed InitQAPFeatureObject("Manage Groups", lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
 ;	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "RefreshRecentFolders", "iconRecentFolders"
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RefreshRecentFolders", "iconRecentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "ClipboardMenuShortcut", "iconClipboard"
+InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", "iconClipboard"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 
-InitQAPFeatureObject("About", lGuiAbout . "...", "GuiAbout", "iconAbout")
-InitQAPFeatureObject("Support", lGuiDonate . "...", "GuiDonate", "iconDonate"
+InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout", "iconAbout")
+InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", "iconDonate"
 	, "NOT", "NOT", "NOT", "NOT", "NOT", "NOT", "NOT")
-InitQAPFeatureObject("Help", lGuiHelp . "...", "GuiHelp", "iconHelp")
-InitQAPFeatureObject("Options", lGuiOptions . "...", "GuiOptions", "iconOptions")
-InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "AddThisFolder", "iconAddThisFolder")
-InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "PopupMenuCopyLocation", "iconClipboard")
+InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp", "iconHelp")
+InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions", "iconOptions")
+InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", "iconAddThisFolder")
+InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "", "PopupMenuCopyLocation", "iconClipboard")
 ; removed InitQAPFeatureObject("Groups of Favorites", lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
-InitQAPFeatureObject("Settings", L(lMenuSettings, g_strAppNameText) . "...", "SettingsHotkey", "iconSettings")
-InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "ExitApp", "iconExit")
+InitQAPFeatureObject("Settings", L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey", "iconSettings")
+InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "", "ExitApp", "iconExit")
 
 ;--------------------------------
 ; Build folders list for dropdown
@@ -1063,7 +1063,7 @@ return
 
 
 ;------------------------------------------------------------
-InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureCommand, strThisDefaultIcon
+InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon
 	, strUse4NavigateExplorer := "NOT", strUse4NewExplorer := "NOT", strUse4Dialog := "NOT", strUse4Console := "NOT", strUse4DOpus := "NOT", strUse4TC := "NOT", strUse4FPc := "NOT")
 
 ; QAP Feature Objects (g_objQAPFeatures) definition:
@@ -1072,6 +1072,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureCommand
 
 ; QAP Features Object (objOneQAPFeature) definition:
 ;		objOneQAPFeature.DefaultName: QAP Feature localized label, key to access one QAP Feature object (example: g_objQAPFeatures[strThisDefaultName]
+;		strQAPFeatureMenuName: menu to be added to the menu (excluding the starting ":"), empty if no submenu associated to this QAP feature
 ;		strQAPFeatureCommand: command to be executed when this favorite is selected (excluding the ending ":")
 ;		objOneQAPFeature.DefaultIcon: default icon (in the "file,index" format)
 ;		objOneQAPFeature.Use4NavigateExplorer:
@@ -1094,7 +1095,8 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureCommand
 	
 	objOneQAPFeature.DefaultName := strThisDefaultName
 	objOneQAPFeature.DefaultIcon := g_objIconsFile[strThisDefaultIcon] . "," . g_objIconsIndex[strThisDefaultIcon]
-	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand ; command to be executed when this favorite is selected (excluding the ending ":")
+	objOneQAPFeature.QAPFeatureMenuName := strQAPFeatureMenuName
+	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
 	objOneQAPFeature.Use4NavigateExplorer := strUse4NavigateExplorer
 	objOneQAPFeature.Use4NewExplorer := strUse4NewExplorer
 	objOneQAPFeature.Use4Dialog := strUse4Dialog
@@ -1799,7 +1801,7 @@ CurrentFoldersMenuShortcut:
 Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
 
 Gosub, BuildCurrentFoldersMenu
-###_V("", A_ThisLabel, g_intExplorersIndex, g_intMenuPosX, g_intMenuPosY)
+
 if (g_intExplorersIndex) ; there are Folders in Explorer menu
 {
 	CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
@@ -1871,7 +1873,7 @@ if (g_blnUseDirectoryOpus)
 		objCurrentFolder.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
 		objCurrentFolder.WindowType := "DO"
 		
-		objCurrentFolders.Insert(g_intExplorersIndex, objCurrentFolder)
+		objCurrentFoldersList.Insert(g_intExplorersIndex, objCurrentFolder)
 	}
 
 for intIndex, objFolder in objExplorersWindows
@@ -1880,7 +1882,7 @@ for intIndex, objFolder in objExplorersWindows
 	if !StrLen(objFolder.LocationURL)
 		continue
 		
-	if NameIsInObject(objFolder.LocationName, objCurrentFolders)
+	if NameIsInObject(objFolder.LocationName, objCurrentFoldersList)
 		continue
 	
 	g_intExplorersIndex++
@@ -1898,7 +1900,7 @@ for intIndex, objFolder in objExplorersWindows
 	objCurrentFolder.MinMax := objFolder.MinMax
 	objCurrentFolder.WindowType := "EX"
 
-	objCurrentFolders.Insert(g_intExplorersIndex, objCurrentFolder)
+	objCurrentFoldersList.Insert(g_intExplorersIndex, objCurrentFolder)
 }
 
 Menu, g_menuCurrentFolders, DeleteAll
@@ -1908,7 +1910,7 @@ if (g_blnUseColors)
 intShortcutCurrentFolders := 0
 g_objCurrentFoldersLocationUrlByName := Object()
 
-for intIndex, objCurrentFolder in objCurrentFolders
+for intIndex, objCurrentFolder in objCurrentFoldersList
 {
 	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
 	g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
@@ -1918,6 +1920,7 @@ for intIndex, objCurrentFolder in objCurrentFolders
 objDOpusListers := ""
 objExplorersWindows := ""
 objCurrentFolder := ""
+objCurrentFoldersList := ""
 strDOpusListText := ""
 intIndex := ""
 objLister := ""
@@ -2368,6 +2371,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	global g_objIconsIndex
 	global g_blnUseColors
 	global g_strGroupItemSuffix
+	global g_objQAPFeatures
 	
 	intShortcut := 0
 	
@@ -2436,7 +2440,11 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			if (objCurrentMenu[A_Index].FavoriteType = "Group")
 				strMenuName .= " " . SubStr(g_strGroupItemSuffix, 1, 1) . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . SubStr(g_strGroupItemSuffix, 0, 1)
 			
-			Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavorite
+			if (objCurrentMenu[A_Index].FavoriteType = "QAP") and Strlen(g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName)
+				; ###_V("", objCurrentMenu.MenuPath, strMenuName, objCurrentMenu[A_Index].FavoriteLocation, ":" . g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName)
+				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, % ":" . g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName
+			else
+				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavorite
 
 			if (g_blnDisplayIcons)
 			{
@@ -5051,6 +5059,7 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 
 ;------------------------------------------------------------
 GuiShow:
+SettingsHotkey:
 ;------------------------------------------------------------
 
 ; should not be required but safer
@@ -5651,6 +5660,7 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; we have this QAP feature in at least one menu
 {
 	Gosub, BuildCurrentFoldersMenu
+
 	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Current Folders}"]
 	Loop, Parse, strQAPfeatureMenusPaths, |
 		if StrLen(A_LoopField)
@@ -5982,17 +5992,18 @@ OpenClipboard:
 ;------------------------------------------------------------
 
 ; ####
-objThisFavorite := g_objMenusIndex[A_ThisMenu][A_ThisMenuItemPos + (strThisMenu = lMainMenuName ? 0 : 1)]
+if (A_ThisLabel = "OpenFavorite")
+	objThisFavorite := g_objMenusIndex[A_ThisMenu][A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)]
+else if (A_ThisLabel = "OpenCurrentFolder")
+	###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisMenuItemPos)
 
 ; ###_V(A_ThisLabel, g_strHokeyTypeDetected, objThisFavorite.FavoriteName)
-###_V("", objThisFavorite.FavoriteName, objThisFavorite.FavoriteLocation, g_objQAPFeatures.HasKey(objThisFavorite.FolderLocation))
-###_O("", g_objQAPFeatures[objThisFavorite.FavoriteLocation])
+; ###_V(A_ThisLabel, objThisFavorite.FavoriteName, objThisFavorite.FavoriteLocation, g_objQAPFeatures.HasKey(objThisFavorite.FolderLocation), g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+; ###_O("g_objQAPFeatures", g_objQAPFeatures[objThisFavorite.FavoriteLocation])
 
-if (objThisFavorite.FavoriteType = "QAP")
-	if StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+if (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+		; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
-	else
-		###_D("QAP feature unknown")
 
 objThisFavorite := ""
 
