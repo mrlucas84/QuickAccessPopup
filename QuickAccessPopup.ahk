@@ -265,9 +265,13 @@ if (g_blnDisplayTrayTip)
 
 g_blnMenuReady := true
 
-; Load the cursor and start the "hook" - See WM_MOUSEMOVE function below
+/* Disable when debugging with lines
+*/
+; Load the cursor and start the "hook" to change mouse cursor in Settings - See WM_MOUSEMOVE function below
 objCursor := DllCall("LoadCursor", "UInt", NULL, "Int", 32649, "UInt") ; IDC_HAND
 OnMessage(0x200, "WM_MOUSEMOVE")
+/* Disable when debugging with lines
+*/
 
 ; To prevent double-click on image static controls to copy their path to the clipboard - See WM_LBUTTONDBLCLK function below
 ; see http://www.autohotkey.com/board/topic/94962-doubleclick-on-gui-pictures-puts-their-path-in-your-clipboard/#entry682595
@@ -1035,7 +1039,7 @@ InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurr
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
 ; removed InitQAPFeatureObject("Manage Groups", lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
 ;	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RefreshRecentFolders", "iconRecentFolders"
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", "iconRecentFolders"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
 InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", "iconClipboard"
 	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
@@ -1917,7 +1921,7 @@ for intIndex, objCurrentFolder in objCurrentFoldersList
 {
 	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
 	g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
-	AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "Folder")
+	AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
 }
 
 objDOpusListers := ""
@@ -2045,8 +2049,7 @@ CollectExplorers(objExplorers, pExplorers)
 
 
 ;------------------------------------------------------------
-RefreshRecentFolders:
-RecentFoldersShortcut:
+RecentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
 blnCopyLocation := false
@@ -2059,7 +2062,7 @@ Gosub, BuildRecentFoldersMenu
 ToolTip
 
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2069,10 +2072,10 @@ return
 BuildRecentFoldersMenu:
 ;------------------------------------------------------------
 
-Menu, menuRecentFolders, Add
-Menu, menuRecentFolders, DeleteAll ; had problem with DeleteAll making the Special menu to disappear 1/2 times - now OK
+Menu, g_menuRecentFolders, Add
+Menu, g_menuRecentFolders, DeleteAll ; had problem with DeleteAll making the Special menu to disappear 1/2 times - now OK
 if (g_blnUseColors)
-	Menu, menuRecentFolders, Color, %g_strMenuBackgroundColor%
+	Menu, g_menuRecentFolders, Color, %g_strMenuBackgroundColor%
 
 g_objRecentFolders := Object()
 g_intRecentFoldersIndex := 0 ; used in PopupMenu... to check if we disable the menu when empty
@@ -2119,7 +2122,7 @@ Loop, parse, strDirList, `n
 	g_objRecentFolders.Insert(g_intRecentFoldersIndex, strTargetPath)
 	
 	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strTargetPath
-	AddMenuIcon("menuRecentFolders", strMenuName, "OpenRecentFolder", "Folder")
+	AddMenuIcon("g_menuRecentFolders", strMenuName, "OpenRecentFolder", "iconFolder")
 
 	if (g_intRecentFoldersIndex >= g_intRecentFoldersMax)
 		break
@@ -2211,7 +2214,7 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 				strIconValue := strThisIconFile . "," . intThisIconIndex
 			}
 			else
-				strIconValue := "Folder"
+				strIconValue := "iconFolder"
 		AddMenuIcon("g_menuClipboard", strMenuName, "OpenClipboard", strIconValue)
 	}
 
@@ -2515,7 +2518,7 @@ AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue)
 		strMenuItemName := SubStr(strMenuItemName, 1, 256) . "..." ; minus one for the luck ;-)
 	
 	Menu, %strMenuName%, Add, %strMenuItemName%, %strLabel%
-	if (g_blnDisplayIcons) and ((A_OSVersion <> "WIN_XP") or g_blnMainIsFirstColumn or (strMenuName <> lMainMenuName))
+	if (g_blnDisplayIcons)
 		; under Win_XP, display icons in main menu only when in first column (for other menus, this fuction is not called)
 	{
 		Menu, %strMenuName%, UseErrorLevel, on
@@ -5999,12 +6002,16 @@ if (A_ThisLabel = "OpenFavorite")
 	objThisFavorite := g_objMenusIndex[A_ThisMenu][A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)]
 else if (A_ThisLabel = "OpenCurrentFolder")
 	###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisMenuItemPos)
-
+else if (A_ThisLabel = "OpenRecentFolder")
+	###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisMenuItemPos)
+else if (A_ThisLabel = "OpenClipboard")
+	###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisMenuItemPos)
+	
 ; ###_V(A_ThisLabel, g_strHokeyTypeDetected, objThisFavorite.FavoriteName)
 ; ###_V(A_ThisLabel, objThisFavorite.FavoriteName, objThisFavorite.FavoriteLocation, g_objQAPFeatures.HasKey(objThisFavorite.FolderLocation), g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 ; ###_O("g_objQAPFeatures", g_objQAPFeatures[objThisFavorite.FavoriteLocation])
 
-if (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+if (A_ThisLabel = "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
 
