@@ -16,6 +16,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- recent folders menu does not have icons
+- make clipboard launch
+
 
 TO-DO
 - build menu and POC actions
@@ -3281,7 +3284,7 @@ intCol1 := 0 ; column index, zero-based
 SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %g_strAppHwnd%
 intCol1 := ErrorLevel ; column width
 
-intCol2 := 0 ; column index, zero-based
+intCol2 := 1 ; column index, zero-based
 SendMessage, 0x1000+29, %intCol2%, 0, SysListView321, ahk_id %g_strAppHwnd%
 intCol2 := ErrorLevel ; column width
 
@@ -4964,10 +4967,10 @@ g_objMenuInGui.Insert(intInsertPosition, objNewFavorite)
 LV_Modify(0, "-Select")
 
 if (A_ThisLabel = "GuiAddSeparator")
-	LV_Insert(intInsertPosition, "Select Focus", "---", g_strGuiMenuSeparator, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
+	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuSeparator, "---", g_strGuiMenuSeparator . g_strGuiMenuSeparator)
 else ; GuiAddColumnBreak
-	LV_Insert(intInsertPosition, "Select Focus", "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
-		, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
+	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
+		, "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
 
 LV_Modify(LV_GetNext(), "Vis")
 Gosub, AjustColumnWidth
@@ -5706,7 +5709,7 @@ PowerHotkeyMouse:
 PowerHotkeyKeyboard:
 ;------------------------------------------------------------
 
-###_D(A_ThisLabel)
+; ###_D(A_ThisLabel)
 
 g_strHokeyTypeDetected := "Power"
 
