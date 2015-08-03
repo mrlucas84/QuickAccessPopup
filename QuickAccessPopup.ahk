@@ -307,7 +307,7 @@ return
 
 
 ;========================================================================================================================
-!_012_HOTKEYS:
+!_012_GUI_HOTKEYS:
 ;========================================================================================================================
 
 ; Gui Hotkeys
@@ -364,7 +364,7 @@ return
 
 
 ;========================================================================================================================
-; END OF HOTKEYS
+; END OF GUI HOTKEYS
 ;========================================================================================================================
 
 
@@ -431,12 +431,12 @@ InitSystemArrays:
 ;-----------------------------------------------------------
 
 ; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
-strHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard"
-StringSplit, g_arrHotkeyNames, strHotkeyNames, |
-strHotkeyDefaults := "MButton|#a|!MButton|!#a"
-StringSplit, g_arrHotkeyDefaults, strHotkeyDefaults, |
-g_arrHotkeys := Array ; initialized by LoadIniHotkeys
-g_arrHotkeysPrevious := Array ; initialized by GuiOptions and checked in LoadIniHotkeys
+strPopupHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard"
+StringSplit, g_arrPopupHotkeyNames, strPopupHotkeyNames, |
+strPopupHotkeyDefaults := "MButton|#a|!MButton|!#a"
+StringSplit, g_arrPopupHotkeyDefaults, strPopupHotkeyDefaults, |
+g_arrPopupHotkeys := Array ; initialized by LoadIniPopupHotkeys
+g_arrPopupHotkeysPrevious := Array ; initialized by GuiOptions and checked in LoadIniPopupHotkeys
 
 g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|WheelDown|WheelLeft|WheelRight|"
 ; leave last | to enable default value on the last item
@@ -493,8 +493,8 @@ Loop, %g_arrFavoriteTypes0%
 ; 1 Basic Settings, 2 Menu Options, 3 Window Options, 4 Advanced Settings
 StringSplit, g_arrFavoriteGuiTabs, lDialogAddFavoriteTabs, |
 
-strHotkeyNames := ""
-strHotkeyDefaults := ""
+strPopupHotkeyNames := ""
+strPopupHotkeyDefaults := ""
 strIconsMenus := ""
 strIconsFile := ""
 strIconsIndex := ""
@@ -559,7 +559,7 @@ return
 ;------------------------------------------------------------
 InitLanguageArrays:
 ;------------------------------------------------------------
-StringSplit, g_arrOptionsTitles, lOptionsTitles, |
+StringSplit, g_arrOptionsPopupHotkeyTitles, lOptionsPopupHotkeyTitles, |
 strOptionsLanguageCodes := "EN|FR|DE|NL|KO|SV|IT|ES|PT-BR"
 StringSplit, g_arrOptionsLanguageCodes, strOptionsLanguageCodes, |
 StringSplit, g_arrOptionsLanguageLabels, lOptionsLanguageLabels, |
@@ -1206,7 +1206,7 @@ IfNotExist, %g_strIniFile%
 		, %g_strIniFile%
 }
 
-Gosub, LoadIniHotkeys
+Gosub, LoadIniPopupHotkeys
 
 IniRead, g_blnDisplayTrayTip, %g_strIniFile%, Global, DisplayTrayTip, 1
 IniRead, g_blnDisplayIcons, %g_strIniFile%, Global, DisplayIcons, 1
@@ -1447,7 +1447,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteAppWorkingDir := ReplaceAllInString(arrThisFavorite6, g_strEscapePipe, "|") ; application working directory
 		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height (comma delimited)
 		; objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
-		objLoadIniFavorite.FavoriteHotkey := HotkeyAvailable(arrThisFavorite8, objLoadIniFavorite.FavoriteLocation) ; hotkey to launch this favorite
+		objLoadIniFavorite.FavoriteHotkey := HotkeyIfAvailable(arrThisFavorite8, objLoadIniFavorite.FavoriteLocation, true) ; assign hotkey to launch this favorite
 		objLoadIniFavorite.FavoriteLaunchWith := ReplaceAllInString(arrThisFavorite9, g_strEscapePipe, "|") ; launch favorite with this executable
 		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; login name for FTP favorite
 		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite11, g_strEscapePipe, "|") ; password for FTP favorite
@@ -1547,66 +1547,66 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 
 
 ;-----------------------------------------------------------
-LoadIniHotkeys:
+LoadIniPopupHotkeys:
 ;-----------------------------------------------------------
 
 ; Read the values and set hotkey shortcuts
 ; NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard
-loop, % g_arrHotkeyNames%0%
+loop, % g_arrPopupHotkeyNames%0%
 {
 	; Prepare global arrays used by SplitHotkey function
-	IniRead, g_arrHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index%, % g_arrHotkeyDefaults%A_Index%
-	SplitHotkey(g_arrHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
+	IniRead, g_arrPopupHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index%, % g_arrPopupHotkeyDefaults%A_Index%
+	SplitHotkey(g_arrPopupHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
 }
-; ###_V("Navigate or Launch`n`n", g_arrHotkeyNames1, g_arrHotkeysPrevious1, g_arrHotkeys1, g_arrHotkeyNames2, g_arrHotkeysPrevious2, g_arrHotkeys2)
+; ###_V("Navigate or Launch`n`n", g_arrHotkeyNames1, g_arrPopupHotkeysPrevious1, g_arrPopupHotkeys1, g_arrHotkeyNames2, g_arrPopupHotkeysPrevious2, g_arrPopupHotkeys2)
 
 ; First, if we can, navigate with Launch hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
 Hotkey, If, CanNavigate(A_ThisHotkey)
-	if (g_arrHotkeysPrevious1 <> "") and (g_arrHotkeysPrevious1 <> "None")
-		Hotkey, % g_arrHotkeysPrevious1, , Off
-	if (g_arrHotkeys1 <> "None")
-		Hotkey, % g_arrHotkeys1, NavigateHotkeyMouse, On UseErrorLevel
+	if (g_arrPopupHotkeysPrevious1 <> "") and (g_arrPopupHotkeysPrevious1 <> "None")
+		Hotkey, % g_arrPopupHotkeysPrevious1, , Off
+	if (g_arrPopupHotkeys1 <> "None")
+		Hotkey, % g_arrPopupHotkeys1, NavigateHotkeyMouse, On UseErrorLevel
 	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, g_arrHotkeys1, g_arrOptionsTitles1)
-	if (g_arrHotkeysPrevious2 <> "") and (g_arrHotkeysPrevious2 <> "None")
-		Hotkey, % g_arrHotkeysPrevious2, , Off
-	if (g_arrHotkeys2 <> "None")
-		Hotkey, % g_arrHotkeys2, NavigateHotkeyKeyboard, On UseErrorLevel
+		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys1, g_arrOptionsTitles1)
+	if (g_arrPopupHotkeysPrevious2 <> "") and (g_arrPopupHotkeysPrevious2 <> "None")
+		Hotkey, % g_arrPopupHotkeysPrevious2, , Off
+	if (g_arrPopupHotkeys2 <> "None")
+		Hotkey, % g_arrPopupHotkeys2, NavigateHotkeyKeyboard, On UseErrorLevel
 	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, g_arrHotkeys2, g_arrOptionsTitles2)
+		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
 ; Second, if we can't navigate but can launch, launch with Launch hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
 Hotkey, If, CanLaunch(A_ThisHotkey)
-	if (g_arrHotkeysPrevious1 <> "") and (g_arrHotkeysPrevious1 <> "None") ; ### continuer pour les autres
-		Hotkey, % g_arrHotkeysPrevious1, , Off
-	if (g_arrHotkeys1 <> "None")
-		Hotkey, % g_arrHotkeys1, LaunchHotkeyMouse, On UseErrorLevel
+	if (g_arrPopupHotkeysPrevious1 <> "") and (g_arrPopupHotkeysPrevious1 <> "None") ; ### continuer pour les autres
+		Hotkey, % g_arrPopupHotkeysPrevious1, , Off
+	if (g_arrPopupHotkeys1 <> "None")
+		Hotkey, % g_arrPopupHotkeys1, LaunchHotkeyMouse, On UseErrorLevel
 	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, g_arrHotkeys1, g_arrOptionsTitles1)
-	if (g_arrHotkeysPrevious2 <> "") and (g_arrHotkeysPrevious2 <> "None")
-		Hotkey, % g_arrHotkeysPrevious2, , Off
-	if (g_arrHotkeys2 <> "None")
-		Hotkey, % g_arrHotkeys2, LaunchHotkeyKeyboard, On UseErrorLevel
+		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys1, g_arrOptionsTitles1)
+	if (g_arrPopupHotkeysPrevious2 <> "") and (g_arrPopupHotkeysPrevious2 <> "None")
+		Hotkey, % g_arrPopupHotkeysPrevious2, , Off
+	if (g_arrPopupHotkeys2 <> "None")
+		Hotkey, % g_arrPopupHotkeys2, LaunchHotkeyKeyboard, On UseErrorLevel
 	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, g_arrHotkeys2, g_arrOptionsTitles2)
+		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
-; ###_V("Power`n`n", g_arrHotkeyNames3, g_arrHotkeysPrevious3, g_arrHotkeys3, g_arrHotkeyNames4, g_arrHotkeysPrevious4, g_arrHotkeys4)
+; ###_V("Power`n`n", g_arrHotkeyNames3, g_arrPopupHotkeysPrevious3, g_arrPopupHotkeys3, g_arrHotkeyNames4, g_arrPopupHotkeysPrevious4, g_arrPopupHotkeys4)
 
 ; Then, in any case, open the Power menu with the alternate hotkeys (3 PowerHotkeyMouse and 4 PowerHotkeyKeyboard)
-if (g_arrHotkeysPrevious3 <> "") and (g_arrHotkeysPrevious3 <> "None")
-	Hotkey, % g_arrHotkeysPrevious3, , Off
-if (g_arrHotkeys3 <> "None") ; do not compare with lOptionsMouseNone because it is translated
-	Hotkey, % g_arrHotkeys3, PowerHotkeyMouse, On UseErrorLevel
+if (g_arrPopupHotkeysPrevious3 <> "") and (g_arrPopupHotkeysPrevious3 <> "None")
+	Hotkey, % g_arrPopupHotkeysPrevious3, , Off
+if (g_arrPopupHotkeys3 <> "None") ; do not compare with lOptionsMouseNone because it is translated
+	Hotkey, % g_arrPopupHotkeys3, PowerHotkeyMouse, On UseErrorLevel
 if (ErrorLevel)
-	Oops(lDialogInvalidHotkey, g_arrHotkeys3, g_arrOptionsTitles3)
-if (g_arrHotkeysPrevious4 <> "") and (g_arrHotkeysPrevious4 <> "None")
-	Hotkey, % g_arrHotkeysPrevious4, , Off
-if (g_arrHotkeys4 <> "None") ; do not compare with lOptionsMouseNone because it is translated
-	Hotkey, % g_arrHotkeys4, PowerHotkeyKeyboard, On UseErrorLevel
+	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys3, g_arrOptionsTitles3)
+if (g_arrPopupHotkeysPrevious4 <> "") and (g_arrPopupHotkeysPrevious4 <> "None")
+	Hotkey, % g_arrPopupHotkeysPrevious4, , Off
+if (g_arrPopupHotkeys4 <> "None") ; do not compare with lOptionsMouseNone because it is translated
+	Hotkey, % g_arrPopupHotkeys4, PowerHotkeyKeyboard, On UseErrorLevel
 if (ErrorLevel)
-	Oops(lDialogInvalidHotkey, g_arrHotkeys4, g_arrOptionsTitles4)
+	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys4, g_arrOptionsTitles4)
 
 return
 ;------------------------------------------------------------
@@ -2578,9 +2578,9 @@ GuiOptions:
 
 g_intGui1WinID := WinExist("A")
 loop, 4
-	g_arrHotkeysPrevious%A_Index% := g_arrHotkeys%A_Index% ; allow to turn off replaced hotkeys
+	g_arrPopupHotkeysPrevious%A_Index% := g_arrPopupHotkeys%A_Index% ; allow to turn off replaced hotkeys
 
-StringSplit, g_arrOptionsTitlesSub, lOptionsTitlesSub, |
+StringSplit, g_arrOptionsTitlesSub, lOptionsPopupHotkeyTitlesSub, |
 
 ;---------------------------------------
 ; Build Gui header
@@ -2666,10 +2666,10 @@ Gui, 2:Tab, 2
 Gui, 2:Font
 Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabMouseAndKeyboardIntro, g_strAppNameText)
 
-loop, % g_arrHotkeyNames%0%
+loop, % g_arrPopupHotkeyNames%0%
 {
 	Gui, 2:Font, s8 w700
-	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsTitles%A_Index%
+	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsPopupHotkeyTitles%A_Index%
 	Gui, 2:Font, s9 w500, Courier New
 	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % Hotkey2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
 	Gui, 2:Font
@@ -2787,14 +2787,14 @@ Gui, 2:Submit, NoHide
 
 StringReplace, intHotkeyIndex, A_ThisLabel, ButtonOptionsChangeHotkey
 
-if InStr(g_arrHotkeyNames%intHotkeyIndex%, "Mouse")
+if InStr(g_arrPopupHotkeyNames%intHotkeyIndex%, "Mouse")
 	intHotkeyType := 1 ; Mouse
 else
 	intHotkeyType := 2 ; Keyboard
 
-g_arrHotkeys%intHotkeyIndex% := SelectHotkey(g_arrHotkeys%intHotkeyIndex%, g_arrOptionsTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
+g_arrPopupHotkeys%intHotkeyIndex% := SelectHotkey(g_arrPopupHotkeys%intHotkeyIndex%, g_arrOptionsPopupHotkeyTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrPopupHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
 
-SplitHotkey(g_arrHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
+SplitHotkey(g_arrPopupHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
 GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
 
 strNewModifiers := ""
@@ -2934,13 +2934,13 @@ IniWrite, %g_intIconSize%, %g_strIniFile%, Global, IconSize
 ;---------------------------------------
 ; Tab 2: Popup menu hotkeys
 
-loop, % g_arrHotkeyNames%0%
-	if (g_arrHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
-		IniWrite, None, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index% ; do not write lOptionsMouseNone because it is translated
+loop, % g_arrPopupHotkeyNames%0%
+	if (g_arrPopupHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
+		IniWrite, None, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index% ; do not write lOptionsMouseNone because it is translated
 	else
-		IniWrite, % g_arrHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrHotkeyNames%A_Index%
+		IniWrite, % g_arrPopupHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index%
 
-Gosub, LoadIniHotkeys ; reload ini variables and reset hotkeys
+Gosub, LoadIniPopupHotkeys ; reload ini variables and reset hotkeys
 
 ;---------------------------------------
 ; Tab 3: Exclusion list
@@ -5146,8 +5146,13 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	Gui, 2:+Disabled
 	WinWaitClose,  % L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion) ; waiting for Gui to close
 
+	; second parameter of HotkeyIfAvailable contains the popup menu trigger's name or the favorites's location
+	; last parameter indicate if the hotkey is for a favorite; if yes, hotkey will be assigned immediately
+	; if not, it is for a popup menu trigger and hotkey will be assigned after Options save
+	strNewHotkey := HotkeyIfAvailable(strNewHotkey, StrLen(strFavoriteLocation) ? strFavoriteLocation : strFavoriteName, StrLen(strFavoriteLocation))
+	
 	return strNewHotkey ; returning value
-
+	;------------------------------------------------------------
 
 	;------------------------------------------------------------
 	MouseChanged:
@@ -5310,7 +5315,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 
 
 ;-----------------------------------------------------------
-HotkeyAvailable(strHotkey, strLocation)
+HotkeyIfAvailable(strHotkey, strLocation, blnAssignFavorite := false)
 ;-----------------------------------------------------------
 {
 ; ####
@@ -5320,39 +5325,42 @@ HotkeyAvailable(strHotkey, strLocation)
 	if !StrLen(strHotkey)
 		return ""
 	
-	blnHotkeyAlreadyAssigned := false
-	for strMenuPath, objMenu in g_objMenusIndex
-	{
-		loop, % objMenu.MaxIndex()
-			if (objMenu[A_Index].FavoriteHotkey = strHotkey)
-			{
-				Oops("### The hotkey ""~1~"" is already used for the location ""~2~"".`n`nPlease, chooose another hotkey for location ""~3~"".", strHotkey, objMenu[A_Index].FavoriteLocation, strLocation)
-				blnHotkeyAlreadyAssigned := true
-				break
-			}
-		if (blnHotkeyAlreadyAssigned)
+	###_V("HotkeyIfAvailable", strLocation, blnAssignFavorite)
+	
+	loop, % g_arrPopupHotkeys0
+		if (g_arrPopupHotkeys%A_Index% = strHotkey)
+		{
+			strActualAssignment := "the popup menu hotkey " . g_arrOptionsPopupHotkeyTitles%A_Index% ; ### language
 			break
-		; ###_O(strMenuPath . " (" . objMenu.MaxIndex() . ")", objMenu, "FavoriteHotkey")
-		; for i, v in g_objMenusIndex[A_Index]
-	}
-	if (blnHotkeyAlreadyAssigned)
+		}
+	
+	if !StrLen(strActualAssignment)
+		for strMenuPath, objMenu in g_objMenusIndex
+		{
+			loop, % objMenu.MaxIndex()
+				if (objMenu[A_Index].FavoriteHotkey = strHotkey)
+				{
+					strActualAssignment := "the favorite hotkey " . g_arrOptionsPopupHotkeyTitles%A_Index% ; ### language
+					break
+				}
+			if StrLen(strActualAssignment)
+				break
+			; ###_O(strMenuPath . " (" . objMenu.MaxIndex() . ")", objMenu, "FavoriteHotkey")
+			; for i, v in g_objMenusIndex[A_Index]
+		}
+		
+	if StrLen(strActualAssignment)
+	{
+		Oops("### The hotkey ""~1~"" is already used for the ""~2~"".`n`nPlease, choose another hotkey for ""~3~"".", strHotkey, strActualAssignment, strLocation)
 		return ""
+	}
 	else
 	{
-		Hotkey, %strHotkey%, GetHotkeyFavoriteObject
+		 if (blnAssignFavorite)
+			Hotkey, %strHotkey%, OpenFavoriteFromHotkey
 		return strHotkey
 	}
 }
-;-----------------------------------------------------------
-
-
-;-----------------------------------------------------------
-GetHotkeyFavoriteObject:
-;-----------------------------------------------------------
-
-###_D(A_ThisHotkey)
-
-return
 ;-----------------------------------------------------------
 
 
@@ -5792,9 +5800,7 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 {
 	global
 	
-	g_intCounterNavigate++
-	
-	if (strMouseOrKeyboard = g_arrHotkeys1) ; Mouse hotkey
+	if (strMouseOrKeyboard = g_arrPopupHotkeys1) ; Mouse hotkey
 	{
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
@@ -5828,7 +5834,7 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 
 	g_intCounterLaunch++
 
-	if (strMouseOrKeyboard = g_arrHotkeys1) ; Mouse hotkey
+	if (strMouseOrKeyboard = g_arrPopupHotkeys1) ; Mouse hotkey
 	{
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
@@ -6008,26 +6014,55 @@ WindowIsQuickAccessPopup(strClass)
 !_080_MENU_ACTIONS:
 ;========================================================================================================================
 
-
 ;------------------------------------------------------------
 OpenFavorite:
+OpenFavoriteFromHotkey:
 OpenRecentFolder:
 OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
 ; ####
-intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
-		+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItem)
 if (A_ThisLabel = "OpenFavorite")
+{
+	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
+			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItem)
 	objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
+}
+else if (A_ThisLabel = "OpenFavoriteFromHotkey")
+{
+	blnHotkeyFound := false
+	for strMenuPath, objMenu in g_objMenusIndex
+	{
+		loop, % objMenu.MaxIndex()
+			if (objMenu[A_Index].FavoriteHotkey = A_ThisHotkey)
+			{
+				objThisFavorite := objMenu[A_Index]
+				blnHotkeyFound := true
+				break
+			}
+		if (blnHotkeyFound)
+			break
+	}
+	if !(blnHotkeyFound)
+	{
+		Oops("### Error:hotkey not found in menus")
+		return
+	}
+	if CanNavigate(A_ThisHotkey)
+		g_strHokeyTypeDetected := "Navigate"
+	else if CanLaunch(A_ThisHotkey)
+		g_strHokeyTypeDetected := "Launch"
+	else
+		return ; active window is on exclusion list
+}
 else
 {
 	objThisFavorite.FavoriteName := A_ThisMenuItemPos
 	objThisFavorite.FavoritePosition := A_ThisMenuItemPos
 }
 
-###_O(g_strHokeyTypeDetected, objThisFavorite)
+###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
 
 if (A_ThisLabel = "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
@@ -6035,6 +6070,9 @@ if (A_ThisLabel = "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and
 
 objThisFavorite := ""
 intMenuItemPos := ""
+strMenuPath := ""
+objMenu := ""
+blnHotkeyFound := ""
 
 return
 ;------------------------------------------------------------
