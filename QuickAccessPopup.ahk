@@ -16,14 +16,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- recent folders menu does not have icons
-- make clipboard launch
 
 
 TO-DO
-- build menu and POC actions
-- add current folders in favorite objects and retrieve object by its menu position when open current folder
-- add default hotkey to QAP Feature Object and show select default button in gui
 - prevent 2 favorites to use the same .FavoriteHotkey
 - check exclusion as "class contain the exclusion string"
 - exclusion list in options
@@ -157,7 +152,6 @@ g_objMenuInGui := Object() ; object of menu currently in Gui
 g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
 g_objMainMenu := Object() ; object of menu structure entry point
 */
-g_objMenuColumnBreaks := Object()
 
 g_arrSubmenuStack := Object()
 g_arrSubmenuStackPosition := Object()
@@ -284,6 +278,8 @@ OnMessage(0x404, "AHK_NOTIFYICON")
 DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex")
 
 ; DEBUG
+
+; ###_D(HotkeyAvailable("+^C", "strLocation"))
 
 ; Gosub, BuildClipboardMenu
 ; Menu, g_menuClipboard, Show
@@ -1018,41 +1014,19 @@ TranslateMUI(resDll, resID)
 InitQAPFeatures:
 ;------------------------------------------------------------
 
-; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureCommand, strThisDefaultIcon
-;	, strUse4NavigateExplorer, strUse4NewExplorer, strUse4Dialog, strUse4Console, strUse4DOpus, strUse4TC, strUse4FPc)
+; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey)
 
-; Constants for "use" flags:
-; 		NAV: Navigate
-;		NEW: New Explorer
-;		NOT: Not supported
-
-; Usage flags:
-; 		strUse4NavigateExplorer
-; 		strUse4NewExplorer
-; 		strUse4Dialog
-; 		strUse4Console
-; 		strUse4DOpus
-; 		strUse4TC
-;		strUse4FPc
-
-InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", "iconCurrentFolders"
-	, "NAV", "NEW", "NAV", "NAV", "NAV", "NOT", "NOT")
-; removed InitQAPFeatureObject("Manage Groups", lMenuGroupManage . "...", "", "GuiGroupsManage:", "iconGroup"
-;	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", "iconRecentFolders"
-	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
-InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", "iconClipboard"
-	, "NAV", "NEW", "NAV", "NAV", "NAV", "NAV", "NAV")
+InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", "iconCurrentFolders", "+^f")
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", "iconRecentFolders", "+^r")
+InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", "iconClipboard", "+^c")
 
 InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout", "iconAbout")
-InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", "iconDonate"
-	, "NOT", "NOT", "NOT", "NOT", "NOT", "NOT", "NOT")
+InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", "iconDonate")
 InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp", "iconHelp")
 InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions", "iconOptions")
 InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", "iconAddThisFolder")
-InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "", "PopupMenuCopyLocation", "iconClipboard")
-; removed InitQAPFeatureObject("Groups of Favorites", lMenuGroup, ":g_menuGroups", "GroupsMenuShortcut:", "iconGroup")
-InitQAPFeatureObject("Settings", L(lMenuSettings, g_strAppNameText) . "...", "", "SettingsHotkey", "iconSettings")
+InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "", "PopupMenuCopyLocation", "iconClipboard", "+^v")
+InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", "iconSettings", "+^s")
 InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "", "ExitApp", "iconExit")
 
 ;--------------------------------
@@ -1070,8 +1044,7 @@ return
 
 
 ;------------------------------------------------------------
-InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon
-	, strUse4NavigateExplorer := "NOT", strUse4NewExplorer := "NOT", strUse4Dialog := "NOT", strUse4Console := "NOT", strUse4DOpus := "NOT", strUse4TC := "NOT", strUse4FPc := "NOT")
+InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey := "")
 
 ; QAP Feature Objects (g_objQAPFeatures) definition:
 ;		Key: strQAPFeatureInternalName
@@ -1082,13 +1055,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuNam
 ;		strQAPFeatureMenuName: menu to be added to the menu (excluding the starting ":"), empty if no submenu associated to this QAP feature
 ;		strQAPFeatureCommand: command to be executed when this favorite is selected (excluding the ending ":")
 ;		objOneQAPFeature.DefaultIcon: default icon (in the "file,index" format)
-;		objOneQAPFeature.Use4NavigateExplorer:
-;		objOneQAPFeature.Use4NewExplorer:
-;		objOneQAPFeature.Use4Dialog:
-;		objOneQAPFeature.Use4Console:
-;		objOneQAPFeature.Use4DOpus:
-;		objOneQAPFeature.Use4TC:
-;		objOneQAPFeature.Use4FPc:
+;		objOneQAPFeature.DefaultHotkey: default hotkey (string like "+^s")
 
 ;------------------------------------------------------------
 {
@@ -1104,13 +1071,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuNam
 	objOneQAPFeature.DefaultIcon := g_objIconsFile[strThisDefaultIcon] . "," . g_objIconsIndex[strThisDefaultIcon]
 	objOneQAPFeature.QAPFeatureMenuName := strQAPFeatureMenuName
 	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
-	objOneQAPFeature.Use4NavigateExplorer := strUse4NavigateExplorer
-	objOneQAPFeature.Use4NewExplorer := strUse4NewExplorer
-	objOneQAPFeature.Use4Dialog := strUse4Dialog
-	objOneQAPFeature.Use4Console := strUse4Console
-	objOneQAPFeature.Use4DOpus := strUse4DOpus
-	objOneQAPFeature.Use4TC := strUse4TC
-	objOneQAPFeature.Use4FPc := strUse4FPc
+	objOneQAPFeature.DefaultHotkey := strDefaultHotkey
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisDefaultName, "{" . strQAPFeatureCode . "}")
@@ -1485,7 +1446,8 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteArguments := ReplaceAllInString(arrThisFavorite5, g_strEscapePipe, "|") ; application arguments
 		objLoadIniFavorite.FavoriteAppWorkingDir := ReplaceAllInString(arrThisFavorite6, g_strEscapePipe, "|") ; application working directory
 		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height (comma delimited)
-		objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
+		; objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
+		objLoadIniFavorite.FavoriteHotkey := HotkeyAvailable(arrThisFavorite8, objLoadIniFavorite.FavoriteLocation) ; hotkey to launch this favorite
 		objLoadIniFavorite.FavoriteLaunchWith := ReplaceAllInString(arrThisFavorite9, g_strEscapePipe, "|") ; launch favorite with this executable
 		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; login name for FTP favorite
 		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite11, g_strEscapePipe, "|") ; password for FTP favorite
@@ -1605,13 +1567,13 @@ Hotkey, If, CanNavigate(A_ThisHotkey)
 	if (g_arrHotkeys1 <> "None")
 		Hotkey, % g_arrHotkeys1, NavigateHotkeyMouse, On UseErrorLevel
 	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, g_arrHotkeys1, g_strAppNameText, g_arrOptionsTitles1)
+		Oops(lDialogInvalidHotkey, g_arrHotkeys1, g_arrOptionsTitles1)
 	if (g_arrHotkeysPrevious2 <> "") and (g_arrHotkeysPrevious2 <> "None")
 		Hotkey, % g_arrHotkeysPrevious2, , Off
 	if (g_arrHotkeys2 <> "None")
 		Hotkey, % g_arrHotkeys2, NavigateHotkeyKeyboard, On UseErrorLevel
 	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, g_arrHotkeys2, g_strAppNameText, g_arrOptionsTitles2)
+		Oops(lDialogInvalidHotkey, g_arrHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
 ; Second, if we can't navigate but can launch, launch with Launch hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
@@ -1621,13 +1583,13 @@ Hotkey, If, CanLaunch(A_ThisHotkey)
 	if (g_arrHotkeys1 <> "None")
 		Hotkey, % g_arrHotkeys1, LaunchHotkeyMouse, On UseErrorLevel
 	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, g_arrHotkeys1, g_strAppNameText, g_arrOptionsTitles1)
+		Oops(lDialogInvalidHotkey, g_arrHotkeys1, g_arrOptionsTitles1)
 	if (g_arrHotkeysPrevious2 <> "") and (g_arrHotkeysPrevious2 <> "None")
 		Hotkey, % g_arrHotkeysPrevious2, , Off
 	if (g_arrHotkeys2 <> "None")
 		Hotkey, % g_arrHotkeys2, LaunchHotkeyKeyboard, On UseErrorLevel
 	if (ErrorLevel)
-		Oops(lDialogInvalidHotkey, g_arrHotkeys2, g_strAppNameText, g_arrOptionsTitles2)
+		Oops(lDialogInvalidHotkey, g_arrHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
 ; ###_V("Power`n`n", g_arrHotkeyNames3, g_arrHotkeysPrevious3, g_arrHotkeys3, g_arrHotkeyNames4, g_arrHotkeysPrevious4, g_arrHotkeys4)
@@ -1638,13 +1600,13 @@ if (g_arrHotkeysPrevious3 <> "") and (g_arrHotkeysPrevious3 <> "None")
 if (g_arrHotkeys3 <> "None") ; do not compare with lOptionsMouseNone because it is translated
 	Hotkey, % g_arrHotkeys3, PowerHotkeyMouse, On UseErrorLevel
 if (ErrorLevel)
-	Oops(lDialogInvalidHotkey, g_arrHotkeys3, g_strAppNameText, g_arrOptionsTitles3)
+	Oops(lDialogInvalidHotkey, g_arrHotkeys3, g_arrOptionsTitles3)
 if (g_arrHotkeysPrevious4 <> "") and (g_arrHotkeysPrevious4 <> "None")
 	Hotkey, % g_arrHotkeysPrevious4, , Off
 if (g_arrHotkeys4 <> "None") ; do not compare with lOptionsMouseNone because it is translated
 	Hotkey, % g_arrHotkeys4, PowerHotkeyKeyboard, On UseErrorLevel
 if (ErrorLevel)
-	Oops(lDialogInvalidHotkey, g_arrHotkeys4, g_strAppNameText, g_arrOptionsTitles4)
+	Oops(lDialogInvalidHotkey, g_arrHotkeys4, g_arrOptionsTitles4)
 
 return
 ;------------------------------------------------------------
@@ -1779,7 +1741,7 @@ Menu, Tray, Add
 ; / End of code for developement phase only - won't be compiled
 ;@Ahk2Exe-IgnoreEnd
 ; Menu, Tray, Add, % L(lMenuFPMenu, g_strAppNameText, lMenuMenu), :%lMainMenuName% ; REMOVED seems to cause a BUG in submenu display (first display only) - unexplained...
-Menu, Tray, Add, % L(lMenuSettings, g_strAppNameText) . "...", GuiShow
+Menu, Tray, Add, % lMenuSettings . "...", GuiShow
 Menu, Tray, Add, % g_strAppNameFile . ".ini", ShowIniFile
 Menu, Tray, Add
 Menu, Tray, Add, %lMenuRunAtStartup%, RunAtStartup
@@ -1791,7 +1753,7 @@ Menu, Tray, Add, %lMenuAbout%, GuiAbout
 Menu, Tray, Add, %lDonateMenu%, GuiDonate
 Menu, Tray, Add
 Menu, Tray, Add, % L(lMenuExitApp, g_strAppNameText), TrayMenuExitApp
-Menu, Tray, Default, % L(lMenuSettings, g_strAppNameText) . "..."
+Menu, Tray, Default, % lMenuSettings . "..."
 if (g_blnUseColors)
 	Menu, Tray, Color, %g_strMenuBackgroundColor%
 Menu, Tray, Tip, % g_strAppNameText . " " . g_strAppVersion . " (" . (A_PtrSize * 8) . "-bit)`n" . (g_blnDonor ? lDonateThankyou : lDonateButton) ; A_PtrSize * 8 = 32 or 64
@@ -2344,6 +2306,8 @@ Menu, %lMainMenuName%, DeleteAll
 if (g_blnUseColors)
 	Menu, %lMainMenuName%, Color, %g_strMenuBackgroundColor%
 
+g_objMenuColumnBreaks := Object() ; re-init before rebuilding menu
+
 RecursiveBuildOneMenu(g_objMainMenu) ; recurse for submenus
 
 if (g_objMenusIndex[lMainMenuName][g_objMenusIndex[lMainMenuName].MaxIndex()].FavoriteType <> "K")
@@ -2378,6 +2342,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	global g_blnUseColors
 	global g_strGroupItemSuffix
 	global g_objQAPFeatures
+	global g_objMenuColumnBreaks
 	
 	intShortcut := 0
 	
@@ -2386,12 +2351,10 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	try Menu, % objCurrentMenu.MenuPath, DeleteAll
 	
 	intMenuItemsCount := 0
-	intMenuArrayItemsCount := 0
 	
 	Loop, % objCurrentMenu.MaxIndex()
 	{	
 		intMenuItemsCount++ ; for objMenuColumnBreak
-		intMenuArrayItemsCount++ ; for objMenuColumnBreak
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
 			continue
@@ -2434,8 +2397,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			intMenuItemsCount -= 1
 			objMenuColumnBreak := Object()
 			objMenuColumnBreak.MenuPath := objCurrentMenu.MenuPath
-			objMenuColumnBreak.MenuPosition := intMenuItemsCount
-			objMenuColumnBreak.MenuArrayPosition := intMenuArrayItemsCount
+			objMenuColumnBreak.MenuPosition := intMenuItemsCount - (objCurrentMenu.MenuPath <> lMainMenuName ? 1 : 0)
 			g_objMenuColumnBreaks.Insert(objMenuColumnBreak)
 		}
 		else ; this is a favorite (Folder, Document, Application, Special, URL, FTP, QAP or Group)
@@ -2553,7 +2515,7 @@ NumPut(0x20, mii, 8, "uint") ; fType = MFT_MENUBARBREAK
 
 for intIndex, objMenuColumnBreak in g_objMenuColumnBreaks
 {
-	pMenuHandle := GetMenuHandle(objMenuColumnBreak.MenuName) 
+	pMenuHandle := GetMenuHandle(objMenuColumnBreak.MenuPath) 
 	DllCall("SetMenuItemInfo", "ptr", pMenuHandle, "uint", objMenuColumnBreak.MenuPosition, "int", 1, "ptr", &mii)
 }
 
@@ -3410,7 +3372,7 @@ FavoriteSelectTypeRadioButtonsChanged:
 Gui, 2:Submit, NoHide
 
 if (g_arrFavoriteTypes%f_intRadioFavoriteType% = "QAP")
-	GuiControl, , f_lblAddFavoriteTypeHelp, % L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, L(lMenuSettings, g_strAppNameText), lGuiOptions)
+	GuiControl, , f_lblAddFavoriteTypeHelp, % L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, lMenuSettings, lGuiOptions)
 else
 	GuiControl, , f_lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[g_arrFavoriteTypes%f_intRadioFavoriteType%]
 
@@ -3605,6 +3567,7 @@ if (A_ThisLabel = "GuiEditFavorite")
 
 	g_strNewFavoriteIconResource := g_objEditedFavorite.FavoriteIconResource
 	g_strNewFavoriteWindowPosition := g_objEditedFavorite.FavoriteWindowPosition
+	g_strNewFavoriteHotkey := g_objEditedFavorite.FavoriteHotkey
 
 	if (g_objEditedFavorite.FavoriteType = "Group")
 	{
@@ -3627,6 +3590,7 @@ else
 		g_objEditedFavorite.FavoriteName := GetDeepestFolderName(g_strNewLocation)
 	}
 	g_objEditedFavorite.FavoriteHotkey := "None" ; internal name
+	g_strNewFavoriteHotkey := g_objEditedFavorite.FavoriteHotkey
 
 	if (A_ThisLabel = "GuiAddFavorite")
 		g_objEditedFavorite.FavoriteType := g_strAddFavoriteType
@@ -3668,7 +3632,7 @@ Gui, 2:Add, Text, x20 y40 w400, % lDialogFavoriteType . ": " . g_objFavoriteType
 Gui, 2:Font
 
 if (g_objEditedFavorite.FavoriteType = "QAP")
-	Gui, 2:Add, Text, x20 y+10 w400, % ReplaceAllInString(L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, L(lMenuSettings, g_strAppNameText), lGuiOptions), "`n`n", "`n")
+	Gui, 2:Add, Text, x20 y+10 w400, % ReplaceAllInString(L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, lMenuSettings, lGuiOptions), "`n`n", "`n")
 else
 	Gui, 2:Add, Text, x20 y+10 w400, % "> " . ReplaceAllInString(g_objFavoriteTypesHelp[g_objEditedFavorite.FavoriteType], "`n`n", "`n> ")
 
@@ -3751,7 +3715,6 @@ Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
 Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
 Gui, 2:Add, Link, x20 ys+57 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
 
-g_strNewFavoriteHotkey := g_objEditedFavorite.FavoriteHotkey
 SplitHotkey(g_strNewFavoriteHotkey, strHotkeyModifiers, strHotkeyKey, strHotkeyMouse, strMouseButtonsWithDefault)
 Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
 Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(strHotkeyModifiers, strHotkeyMouse, strHotkeyKey)
@@ -3937,7 +3900,10 @@ ButtonChangeFavoriteHotkey:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-g_strNewFavoriteHotkey := SelectHotkey(g_strNewFavoriteHotkey, f_strFavoriteShortName, g_objEditedFavorite.FavoriteType, f_strFavoriteLocation, 3)
+if (g_objEditedFavorite.FavoriteType = "QAP")
+	strQAPDefaultHotkey := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultName[f_drpQAP]].DefaultHotkey
+
+g_strNewFavoriteHotkey := SelectHotkey(g_strNewFavoriteHotkey, f_strFavoriteShortName, g_objEditedFavorite.FavoriteType, f_strFavoriteLocation, 3, strQAPDefaultHotkey)
 
 SplitHotkey(g_strNewFavoriteHotkey, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
 GuiControl, 2:, f_strHotkeyText, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
@@ -3946,6 +3912,7 @@ strNewModifiers := ""
 strNewMouse := ""
 strNewOptionsKey := ""
 strNewMouseButtonsWithDefault := ""
+strQAPDefaultHotkey = ""
 
 return
 ;------------------------------------------------------------
@@ -4069,6 +4036,10 @@ GuiControl, , f_strFavoriteLocation, % g_objQAPFeaturesCodeByDefaultName[f_drpQA
 
 g_strNewFavoriteIconResource := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultName[f_drpQAP]].DefaultIcon
 g_strDefaultIconResource := g_strNewFavoriteIconResource 
+
+g_strNewFavoriteHotkey := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultName[f_drpQAP]].DefaultHotkey
+SplitHotkey(g_strNewFavoriteHotkey, strHotkeyModifiers, strHotkeyKey, strHotkeyMouse, strMouseButtonsWithDefault)
+GuiControl, , f_strHotkeyText, % Hotkey2Text(strHotkeyModifiers, strHotkeyMouse, strHotkeyKey)
 
 return
 ;------------------------------------------------------------
@@ -5337,6 +5308,54 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 }
 ;------------------------------------------------------------
 
+
+;-----------------------------------------------------------
+HotkeyAvailable(strHotkey, strLocation)
+;-----------------------------------------------------------
+{
+; ####
+
+	global g_objMenusIndex
+	
+	if !StrLen(strHotkey)
+		return ""
+	
+	blnHotkeyAlreadyAssigned := false
+	for strMenuPath, objMenu in g_objMenusIndex
+	{
+		loop, % objMenu.MaxIndex()
+			if (objMenu[A_Index].FavoriteHotkey = strHotkey)
+			{
+				Oops("### The hotkey ""~1~"" is already used for the location ""~2~"".`n`nPlease, chooose another hotkey for location ""~3~"".", strHotkey, objMenu[A_Index].FavoriteLocation, strLocation)
+				blnHotkeyAlreadyAssigned := true
+				break
+			}
+		if (blnHotkeyAlreadyAssigned)
+			break
+		; ###_O(strMenuPath . " (" . objMenu.MaxIndex() . ")", objMenu, "FavoriteHotkey")
+		; for i, v in g_objMenusIndex[A_Index]
+	}
+	if (blnHotkeyAlreadyAssigned)
+		return ""
+	else
+	{
+		Hotkey, %strHotkey%, GetHotkeyFavoriteObject
+		return strHotkey
+	}
+}
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
+GetHotkeyFavoriteObject:
+;-----------------------------------------------------------
+
+###_D(A_ThisHotkey)
+
+return
+;-----------------------------------------------------------
+
+
 ;========================================================================================================================
 ; END OF !_035_GUI_CHANGE_HOTKEY:
 ;========================================================================================================================
@@ -5998,26 +6017,42 @@ OpenClipboard:
 ;------------------------------------------------------------
 
 ; ####
+intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
+		+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItem)
 if (A_ThisLabel = "OpenFavorite")
-	objThisFavorite := g_objMenusIndex[A_ThisMenu][A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)]
-else if (A_ThisLabel = "OpenCurrentFolder")
-	###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisMenuItemPos)
-else if (A_ThisLabel = "OpenRecentFolder")
-	###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisMenuItemPos)
-else if (A_ThisLabel = "OpenClipboard")
-	###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisMenuItemPos)
-	
-; ###_V(A_ThisLabel, g_strHokeyTypeDetected, objThisFavorite.FavoriteName)
-; ###_V(A_ThisLabel, objThisFavorite.FavoriteName, objThisFavorite.FavoriteLocation, g_objQAPFeatures.HasKey(objThisFavorite.FolderLocation), g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
-; ###_O("g_objQAPFeatures", g_objQAPFeatures[objThisFavorite.FavoriteLocation])
+	objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
+else
+{
+	objThisFavorite.FavoriteName := A_ThisMenuItemPos
+	objThisFavorite.FavoritePosition := A_ThisMenuItemPos
+}
+
+###_O(g_strHokeyTypeDetected, objThisFavorite)
 
 if (A_ThisLabel = "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
 
 objThisFavorite := ""
+intMenuItemPos := ""
 
 return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+NumberOfColumnBreaksBeforeThisItem(objMenu, strThisMenuItem)
+;------------------------------------------------------------
+{
+	intNumberOfColumnBreaks := 0
+	Loop
+		if (objMenu[A_Index].FavoriteName = strThisMenuItem)
+			break
+		else if (objMenu[A_Index].FavoriteType = "K")
+			intNumberOfColumnBreaks++
+
+	return intNumberOfColumnBreaks
+}
 ;------------------------------------------------------------
 
 
