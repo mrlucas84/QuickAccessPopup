@@ -19,7 +19,8 @@ BUGS
 
 
 TO-DO
-- prevent 2 favorites to use the same .FavoriteHotkey
+- prevent 2 favorites to use the same .FavoriteHotkey - debug
+- add list of current hotkeys in Options
 - check exclusion as "class contain the exclusion string"
 - exclusion list in options
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -147,12 +148,6 @@ g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . ".ini"
 
 g_blnMenuReady := false
 
-/* not needed here because initialized in LoadIniFile
-g_objMenuInGui := Object() ; object of menu currently in Gui
-g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
-g_objMainMenu := Object() ; object of menu structure entry point
-*/
-
 g_arrSubmenuStack := Object()
 g_arrSubmenuStackPosition := Object()
 
@@ -167,7 +162,7 @@ g_strGroupItemSuffix := "[]"
 g_intListW := "" ; Gui width captured by GuiSize
 g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file
 
-g_objGuiControls := Object()
+g_objGuiControls := Object() ; to build Settings gui
 
 g_strMouseButtons := ""
 g_arrMouseButtons := ""
@@ -226,17 +221,14 @@ if (g_blnDiagMode)
 if (g_blnUseColors)
 	Gosub, LoadThemeGlobal
 
-; build even if not used because they could become used
-; no need to build Recent folders menu at startup since this menu is refreshed/recreated on demand
-Gosub, BuildCurrentFoldersMenuInit ; need to be initialized here - will be updated at each call to popup menu
-; Gosub, BuildGroupMenuInit not needed with new Grup favorite type
+; build even if not used because they could become used - will be updated at each call to popup menu
+Gosub, BuildCurrentFoldersMenuInit 
 Gosub, BuildClipboardMenuInit
+; no need to build Recent folders menu at startup because this menu is refreshed/recreated on demand
 
 Gosub, BuildMainMenu
 Gosub, BuildGui
 Gosub, BuildTrayMenu
-
-; Gosub, GuiShow
 
 if (g_blnCheck4Update)
 	Gosub, Check4Update
@@ -249,22 +241,21 @@ IfExist, %A_Startup%\%g_strAppNameFile%.lnk ; update the shortcut in case the ex
 }
 
 if (g_blnDisplayTrayTip)
+; 1 NavigateOrLaunchHotkeyMouse, 2 NavigateOrLaunchHotkeyKeyboard, 3 PowerHotkeyMouse, 4 PowerHotkeyKeyboard
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
 		, % L(lTrayTipInstalledDetail, g_strAppNameText
 			, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1)
-			, Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3)
 			, Hotkey2Text(strModifiers2, strMouseButton2, strOptionsKey2)
+			, Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3)
 			, Hotkey2Text(strModifiers4, strMouseButton4, strOptionsKey4))
 		, , 17 ; 1 info icon + 16 no sound)
 
 g_blnMenuReady := true
 
-/* Disable when debugging with lines
-*/
+/* Enable after debugging
 ; Load the cursor and start the "hook" to change mouse cursor in Settings - See WM_MOUSEMOVE function below
 objCursor := DllCall("LoadCursor", "UInt", NULL, "Int", 32649, "UInt") ; IDC_HAND
 OnMessage(0x200, "WM_MOUSEMOVE")
-/* Disable when debugging with lines
 */
 
 ; To prevent double-click on image static controls to copy their path to the clipboard - See WM_LBUTTONDBLCLK function below
@@ -278,12 +269,11 @@ OnMessage(0x404, "AHK_NOTIFYICON")
 DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex")
 
 ; DEBUG
-
+; -----
+; Gosub, GuiShow
 ; ###_D(HotkeyAvailable("+^C", "strLocation"))
-
 ; Gosub, BuildClipboardMenu
 ; Menu, g_menuClipboard, Show
-
 
 return
 
@@ -1442,13 +1432,13 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteType := arrThisFavorite1 ; see Favorite Types
 		objLoadIniFavorite.FavoriteName := ReplaceAllInString(arrThisFavorite2, g_strEscapePipe, "|") ; display name of this menu item
 		objLoadIniFavorite.FavoriteLocation := ReplaceAllInString(arrThisFavorite3, g_strEscapePipe, "|") ; path, URL or menu path (without "Main") for this menu item
-		objLoadIniFavorite.FavoriteIconResource := ReplaceAllInString(arrThisFavorite4, g_strEscapePipe, "|") ; icon resource in format "iconfile,iconindex"
+		objLoadIniFavorite.FavoriteIconResource := arrThisFavorite4 ; icon resource in format "iconfile,iconindex"
 		objLoadIniFavorite.FavoriteArguments := ReplaceAllInString(arrThisFavorite5, g_strEscapePipe, "|") ; application arguments
-		objLoadIniFavorite.FavoriteAppWorkingDir := ReplaceAllInString(arrThisFavorite6, g_strEscapePipe, "|") ; application working directory
+		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
 		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height (comma delimited)
 		; objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
 		objLoadIniFavorite.FavoriteHotkey := HotkeyIfAvailable(arrThisFavorite8, objLoadIniFavorite.FavoriteLocation, true) ; assign hotkey to launch this favorite
-		objLoadIniFavorite.FavoriteLaunchWith := ReplaceAllInString(arrThisFavorite9, g_strEscapePipe, "|") ; launch favorite with this executable
+		objLoadIniFavorite.FavoriteLaunchWith := arrThisFavorite9 ; launch favorite with this executable
 		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; login name for FTP favorite
 		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite11, g_strEscapePipe, "|") ; password for FTP favorite
 		objLoadIniFavorite.FavoriteGroupSettings := arrThisFavorite12 ; coma separated values for group restore settings
@@ -4999,17 +4989,17 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 		if !(blnIsBackMenu)
 		{
 			strIniLine := objCurrentMenu[A_Index].FavoriteType . "|" ; 1
-			if (objCurrentMenu[A_Index].FavoriteType <> "QAP")
-				strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteName, "|", g_strEscapePipe) . "|" ; 2
-			else
+			if (objCurrentMenu[A_Index].FavoriteType = "QAP")
 				strIniLine .= "|" ; do not save name to ini file, use current language feature name when loading ini file
+			else
+				strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteName, "|", g_strEscapePipe) . "|" ; 2
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLocation, "|", g_strEscapePipe) . "|" ; 3
-			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteIconResource, "|", g_strEscapePipe) . "|" ; 4
+			strIniLine .= objCurrentMenu[A_Index].FavoriteIconResource . "|" ; 4
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteArguments, "|", g_strEscapePipe) . "|" ; 5
-			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteAppWorkingDir, "|", g_strEscapePipe) . "|" ; 6
+			strIniLine .= objCurrentMenu[A_Index].FavoriteAppWorkingDir . "|" ; 6
 			strIniLine .= objCurrentMenu[A_Index].FavoriteWindowPosition . "|" ; 7
 			strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|" ; 8
-			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLaunchWith, "|", g_strEscapePipe) . "|" ; 9
+			strIniLine .= objCurrentMenu[A_Index].FavoriteLaunchWith . "|" ; 9
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLoginName, "|", g_strEscapePipe) . "|" ; 10
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoritePassword, "|", g_strEscapePipe) . "|" ; 11
 			strIniLine .= objCurrentMenu[A_Index].FavoriteGroupSettings . "|" ; 12
