@@ -21,8 +21,13 @@ BUGS
 TO-DO
 - prevent 2 favorites to use the same .FavoriteHotkey - debug
 - add list of current hotkeys in Options
+
 - check exclusion as "class contain the exclusion string"
-- exclusion list in options
+- exclusion list in options, save to ini
+- load exclusion list from ini
+
+- add QAP features default menu (AddToIniMyQAPFeaturesMenu)
+
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 - build menu "QAP Essentials" like My Special Folders
@@ -159,7 +164,7 @@ g_strGuiMenuSeparator := "----------------"
 g_strGuiMenuColumnBreak := "==="
 g_strGroupItemSuffix := "[]"
 
-g_intListW := "" ; Gui width captured by GuiSize
+g_intListW := "" ; Gui width captured by GuiSize and used to adjust columns in fav list
 g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file
 
 g_objGuiControls := Object() ; to build Settings gui
@@ -186,7 +191,6 @@ g_strDirectoryOpusRtPath := ""
 g_strFPconnectPath := ""
 g_strFPconnectAppFilename := ""
 g_strFPconnectTargetFilename := ""
-
 
 ; if the app runs from a zip file, the script directory is created under the system Temp folder
 if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
@@ -594,11 +598,10 @@ InitSpecialFolders:
 ;		DOA: Directory Opus Alias
 ;		TCC: Total Commander Commands
 ;		NEW: Open in new Explorer anyway
-/*
-NOTES
-- Total Commander commands: cm_OpenDesktop (2121), cm_OpenDrives (2122), cm_OpenControls (2123), cm_OpenFonts (2124), cm_OpenNetwork (2125), cm_OpenPrinters (2126), cm_OpenRecycled (2127)
-- DOpus see http://resource.dopus.com/viewtopic.php?f=3&t=23691
-*/
+;
+; NOTES
+; - Total Commander commands: cm_OpenDesktop (2121), cm_OpenDrives (2122), cm_OpenControls (2123), cm_OpenFonts (2124), cm_OpenNetwork (2125), cm_OpenPrinters (2126), cm_OpenRecycled (2127)
+; - DOpus see http://resource.dopus.com/viewtopic.php?f=3&t=23691
 
 ;---------------------
 ; CLSID giving localized name and icon, with valid Shell Command
@@ -939,21 +942,6 @@ InitSpecialFolderObject(strClassIdOrPath, strShellConstantText, intShellConstant
 GetLocalizedNameForClassId(strClassId)
 ;------------------------------------------------------------
 {
-    /*
-        Question: What's the best Registry key should I use for this to work on Win 7, 8+ ?
-		
-        HKEY_CLASSES_ROOT\CLSID\{20D04FE0-3AEA-1069-A2D8-08002B30309D}
-        HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{20D04FE0-3AEA-1069-A2D8-08002B30309D}
-        HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\{20D04FE0-3AEA-1069-A2D8-08002B30309D}
-        HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Wow6432Node\CLSID\{20D04FE0-3AEA-1069-A2D8-08002B30309D}
-        HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Classes\CLSID\{20D04FE0-3AEA-1069-A2D8-08002B30309D}
-		
-		Seems to be HKEY_CLASSES_ROOT for XP compatibility accorging to
-		http://msdn.microsoft.com/en-us/library/windows/desktop/ms724475(v=vs.85).aspx
-		But what if XP support is not needed in QAP?
-		
-		See: http://superuser.com/questions/916401/registry-keys-for-clsid-info
-    */
     RegRead, strLocalizedString, HKEY_CLASSES_ROOT, CLSID\%strClassId%, LocalizedString
     ; strLocalizedString example: "@%SystemRoot%\system32\shell32.dll,-9216"
 
@@ -963,15 +951,6 @@ GetLocalizedNameForClassId(strClassId)
     strDllIndex := arrLocalizedString2
     strTranslatedName := TranslateMUI(strDllFile, Abs(strDllIndex))
     
-	/*
-    MsgBox, % ""
-        . "strClassId: " . strClassId . "`n"
-        . "strLocalizedString: " . strLocalizedString . "`n"
-        . "strDllFile: " . strDllFile . "`n"
-        . "strDllIndex: " . strDllIndex . "`n"
-        . "strTranslatedName: " . strTranslatedName . "`n"
-    */
-	
     return strTranslatedName
 }
 ;------------------------------------------------------------
@@ -1201,12 +1180,6 @@ Gosub, LoadIniPopupHotkeys
 IniRead, g_blnDisplayTrayTip, %g_strIniFile%, Global, DisplayTrayTip, 1
 IniRead, g_blnDisplayIcons, %g_strIniFile%, Global, DisplayIcons, 1
 g_blnDisplayIcons := (g_blnDisplayIcons and OSVersionIsWorkstation())
-; IniRead, g_blnDisplaySpecialMenusShortcuts, %g_strIniFile%, Global, DisplaySpecialMenusShortcuts, 1
-; IniRead, blnDisplayRecentFolders, %g_strIniFile%, Global, DisplayRecentFolders, 1
-; IniRead, blnDisplayCurrentFoldersMenu, %g_strIniFile%, Global, DisplayCurrentFoldersMenu, 1
-; IniRead, blnDisplayGroupMenu, %g_strIniFile%, Global, DisplayGroupMenu, 1
-; IniRead, blnDisplayClipboardMenu, %g_strIniFile%, Global, DisplayClipboardMenu, 1
-; IniRead, blnDisplayCopyLocationMenu, %g_strIniFile%, Global, DisplayCopyLocationMenu, 1
 IniRead, g_intPopupMenuPosition, %g_strIniFile%, Global, PopupMenuPosition, 1
 IniRead, strPopupFixPosition, %g_strIniFile%, Global, PopupFixPosition, 20,20
 StringSplit, g_arrPopupFixPosition, strPopupFixPosition, `,
@@ -1215,11 +1188,9 @@ IniRead, g_blnDisplayFavoritesHotkeysInMenus, %g_strIniFile%, Global, blnDisplay
 IniRead, g_blnDiagMode, %g_strIniFile%, Global, DiagMode, 0
 IniRead, g_intRecentFoldersMax, %g_strIniFile%, Global, RecentFoldersMax, 10
 IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 24
-; IniRead, g_strGroups, %g_strIniFile%, Global, Groups, %A_Space% ; empty string if not found
 IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, 1
 IniRead, g_blnOpenMenuOnTaskbar, %g_strIniFile%, Global, OpenMenuOnTaskbar, 1
 IniRead, g_blnRememberSettingsPosition, %g_strIniFile%, Global, RememberSettingsPosition, 1
-
 IniRead, g_blnDonor, %g_strIniFile%, Global, Donor, 0 ; Please, be fair. Don't cheat with this.
 
 IniRead, g_strDirectoryOpusPath, %g_strIniFile%, Global, DirectoryOpusPath, %A_Space% ; empty string if not found
@@ -1458,15 +1429,16 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 AddToIniMySystemFoldersMenu:
 ;------------------------------------------------------------
 
+; find next favorite number in ini file and check if menu name exists
 strInstance := ""
 Loop
 {
 	IniRead, strIniLine, %g_strIniFile%, Favorites, Favorite%A_Index%
 	if InStr(strIniLine, lMenuMySystemMenu . strInstance)
-		strInstance := strInstance . "+"
+		strInstance .= "+"
 	if (strIniLine = "ERROR")
 	{
-		intNextFolderNumber := A_Index - 1 ; overwrite end of main menu marker
+		g_intNextFavoriteNumber := A_Index - 1 ; overwrite end of main menu marker
 		Break
 	}
 }
@@ -1489,7 +1461,7 @@ AddToIniOneSystemFolderMenu("", "", "Z") ; restore end of main menu marker
 
 IniWrite, 1, %g_strIniFile%, Global, MySystemFoldersBuilt
 
-intNextFolderNumber := ""
+g_intNextFavoriteNumber := ""
 strMySystemMenu := ""
 
 return
@@ -1501,6 +1473,41 @@ AddToIniMyQAPFeaturesMenu:
 ;------------------------------------------------------------
 
 ; base on AddToIniMySystemFoldersMenu: and re-use AddToIniOneSystemFolderMenu
+/*
+strInstance := ""
+Loop
+{
+	IniRead, strIniLine, %g_strIniFile%, Favorites, Favorite%A_Index%
+	if InStr(strIniLine, lMenuMySystemMenu . strInstance)
+		strInstance .= "+"
+	if (strIniLine = "ERROR")
+	{
+		g_intNextFavoriteNumber := A_Index - 1 ; overwrite end of main menu marker
+		Break
+	}
+}
+strMySystemMenu := lMenuMySystemMenu . strInstance
+
+AddToIniOneSystemFolderMenu("", "", "X")
+AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . " " . strMySystemMenu, strMySystemMenu, "Menu")
+AddToIniOneSystemFolderMenu(A_Desktop, lMenuDesktop) ; Desktop
+AddToIniOneSystemFolderMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}") ; Documents
+AddToIniOneSystemFolderMenu(g_strMyPicturesPath) ; Pictures
+AddToIniOneSystemFolderMenu(g_strDownloadPath) ; Downloads
+AddToIniOneSystemFolderMenu("", "", "X")
+AddToIniOneSystemFolderMenu("{20D04FE0-3AEA-1069-A2D8-08002B30309D}") ; Computer
+AddToIniOneSystemFolderMenu("{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}") ; Network
+AddToIniOneSystemFolderMenu("", "", "X")
+AddToIniOneSystemFolderMenu("{21EC2020-3AEA-1069-A2DD-08002B30309D}") ; Control Panel
+AddToIniOneSystemFolderMenu("{645FF040-5081-101B-9F08-00AA002F954E}") ; Recycle Bin
+AddToIniOneSystemFolderMenu("", "", "Z") ; close special menu
+AddToIniOneSystemFolderMenu("", "", "Z") ; restore end of main menu marker
+
+IniWrite, 1, %g_strIniFile%, Global, MySystemFoldersBuilt
+
+g_intNextFavoriteNumber := ""
+strMySystemMenu := ""
+*/
 
 return
 ;------------------------------------------------------------
@@ -1514,7 +1521,7 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 	global g_objIconsFile
 	global g_objIconsIndex
 	global g_objSpecialFolders
-	global intNextFolderNumber
+	global g_intNextFavoriteNumber
 	
 	if (strFavoriteType = "Z")
 		strNewIniLine := strFavoriteType
@@ -1530,8 +1537,8 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 		strNewIniLine := strFavoriteType . "|" . strSpecialFolderName . "|" . strSpecialFolderLocation . "|" . strIconResource . "|||"
 	}
 	
-	IniWrite, %strNewIniLine%, %g_strIniFile%, Favorites, Favorite%intNextFolderNumber%
-	intNextFolderNumber++
+	IniWrite, %strNewIniLine%, %g_strIniFile%, Favorites, Favorite%g_intNextFavoriteNumber%
+	g_intNextFavoriteNumber++
 }
 ;------------------------------------------------------------
 
@@ -1541,14 +1548,13 @@ LoadIniPopupHotkeys:
 ;-----------------------------------------------------------
 
 ; Read the values and set hotkey shortcuts
-; NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard
 loop, % g_arrPopupHotkeyNames%0%
+; NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard
 {
 	; Prepare global arrays used by SplitHotkey function
 	IniRead, g_arrPopupHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index%, % g_arrPopupHotkeyDefaults%A_Index%
 	SplitHotkey(g_arrPopupHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
 }
-; ###_V("Navigate or Launch`n`n", g_arrHotkeyNames1, g_arrPopupHotkeysPrevious1, g_arrPopupHotkeys1, g_arrHotkeyNames2, g_arrPopupHotkeysPrevious2, g_arrPopupHotkeys2)
 
 ; First, if we can, navigate with Launch hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
 Hotkey, If, CanNavigate(A_ThisHotkey)
@@ -1581,8 +1587,6 @@ Hotkey, If, CanLaunch(A_ThisHotkey)
 	if (ErrorLevel)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
-
-; ###_V("Power`n`n", g_arrHotkeyNames3, g_arrPopupHotkeysPrevious3, g_arrPopupHotkeys3, g_arrHotkeyNames4, g_arrPopupHotkeysPrevious4, g_arrPopupHotkeys4)
 
 ; Then, in any case, open the Power menu with the alternate hotkeys (3 PowerHotkeyMouse and 4 PowerHotkeyKeyboard)
 if (g_arrPopupHotkeysPrevious3 <> "") and (g_arrPopupHotkeysPrevious3 <> "None")
@@ -1650,7 +1654,6 @@ IniRead, g_strMenuBackgroundColor, %g_strIniFile%, Gui-%g_strTheme%, MenuBackgro
 
 return
 ;------------------------------------------------------------
-
 
 
 ;========================================================================================================================
