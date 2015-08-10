@@ -1759,8 +1759,11 @@ return
 CurrentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
-; ### COMPLETE blnNewWindow := !CanOpenFavorite("", strTargetWinId, strTargetClass, strTargetControl)
-Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
+g_blnMouse := false
+g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
+; ### using g_blnNewWindow ?
+
+Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
 
 Gosub, BuildCurrentFoldersMenu
 
@@ -2007,10 +2010,13 @@ CollectExplorers(objExplorers, pExplorers)
 RecentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
-blnCopyLocation := false
+blnCopyLocation := false ; ### used? should be named as global?
 
-; ### COMPLETE blnNewWindow := !CanOpenFavorite("", g_strTargetWinId, g_strTargetClass, g_strTargetControl)
-Gosub, SetMenuPosition ; sets g_strTargetWinId or activate the window g_strTargetWinId set by CanOpenFavorite
+g_blnMouse := false
+g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
+; ### using g_blnNewWindow ?
+
+Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed ### OK?)
 
 ToolTip, %lMenuRefreshRecent%...
 Gosub, BuildRecentFoldersMenu
@@ -2099,8 +2105,11 @@ return
 ClipboardMenuShortcut:
 ;------------------------------------------------------------
 
-; ### COMPLETE blnNewWindow := !CanOpenFavorite("", strTargetWinId, strTargetClass, strTargetControl)
-Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
+g_blnMouse := false
+g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
+; ### using g_blnNewWindow ?
+
+Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
 
 Gosub, RefreshClipboardMenu
 if (g_blnClipboardMenuEnable)
@@ -5671,13 +5680,13 @@ if !(g_blnMenuReady)
 	return
 
 g_strHokeyTypeDetected := SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1) ; "Navigate" or "Launch"
-blnMouse := InStr(A_ThisLabel, "Mouse")
+g_blnMouse := InStr(A_ThisLabel, "Mouse")
 
-Gosub, SetMenuPosition ; sets strTargetWinId or activate the window strTargetWinId set by CanOpenFavorite
-WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; ### already set by CanNavigate?
+Gosub, SetMenuPosition ; sets menu position (was seting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
+; WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; already set by CanNavigate. OK?
 
 if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass)
-	and (blnMouse) and (g_strHokeyTypeDetected = "Navigate"))
+	and (g_blnMouse) and (g_strHokeyTypeDetected = "Navigate"))
 {
 	Click ; to make sure the DOpus lister or TC pane under the mouse become active
 	Sleep, 20
@@ -5720,7 +5729,7 @@ Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
-blnMouse := ""
+g_blnMouse := ""
 strQAPfeatureMenusPaths := ""
 
 return
@@ -5767,15 +5776,18 @@ else ; (g_intPopupMenuPosition =  3) - fix position - use the g_intMenuPosX and 
 	g_intMenuPosY := g_arrPopupFixPosition2
 }
 
+; ### REMOVED should not be required - to be tested
 ; not related to set position but this is a good place to execute it ;-)
-if (blnMouse)
-	if (blnNewWindow)
+/*
+if (g_blnMouse)
+	if (g_blnNewWindow)
 		MouseGetPos, , , g_strTargetWinId ; sets strTargetWinId for PopupMenuNewWindowMouse
 	else
-		WinActivate, % "ahk_id " . g_strTargetWinId ; activate for PopupMenuMouse
+		WinActivate, % "ahk_id " . g_strTargetWinId ; activate for PopupMenuMouse - ### still required?
 else ; (keyboard)
-	if (blnNewWindow)
+	if (g_blnNewWindow)
 		g_strTargetWinId := WinExist("A") ; sets strTargetWinId for PopupMenuNewWindowKeyboard
+*/
 
 return
 ;------------------------------------------------------------
@@ -5791,9 +5803,9 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 ; "bosa_sdm_" (...) -> Dialog MS Office under WinXP
 ;------------------------------------------------------------
 {
-	global
+	global ; sets g_strTargetWinId, g_strTargetControl, g_strTargetClass
 	
-	if (strMouseOrKeyboard = g_arrPopupHotkeys1) ; Mouse hotkey
+	if (strMouseOrKeyboard = g_arrPopupHotkeys1) ; Mouse hotkey (g_arrPopupHotkeys1 is NavigateOrLaunchHotkeyMouse value in ini file)
 	{
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
