@@ -19,6 +19,8 @@ BUGS
 
 
 TO-DO
+- debug mouse and keyboard triggers, and target identification
+
 - prevent 2 favorites to use the same .FavoriteHotkey - debug
 - add list of current hotkeys in Options
 
@@ -1759,9 +1761,8 @@ return
 CurrentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
-g_blnMouse := false
-g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
-; ### using g_blnNewWindow ?
+; g_blnMouse not used. OK? g_blnMouse := false
+; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
 
 Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
 
@@ -2012,9 +2013,8 @@ RecentFoldersMenuShortcut:
 
 blnCopyLocation := false ; ### used? should be named as global?
 
-g_blnMouse := false
-g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
-; ### using g_blnNewWindow ?
+; g_blnMouse not used. OK? g_blnMouse := false
+; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
 
 Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed ### OK?)
 
@@ -2105,9 +2105,8 @@ return
 ClipboardMenuShortcut:
 ;------------------------------------------------------------
 
-g_blnMouse := false
-g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
-; ### using g_blnNewWindow ?
+; g_blnMouse not used. OK? g_blnMouse := false
+; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
 
 Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
 
@@ -5680,13 +5679,13 @@ if !(g_blnMenuReady)
 	return
 
 g_strHokeyTypeDetected := SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1) ; "Navigate" or "Launch"
-g_blnMouse := InStr(A_ThisLabel, "Mouse")
+; g_blnMouse not used. OK? g_blnMouse := InStr(A_ThisLabel, "Mouse")
 
 Gosub, SetMenuPosition ; sets menu position (was seting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
 ; WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; already set by CanNavigate. OK?
 
 if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass)
-	and (g_blnMouse) and (g_strHokeyTypeDetected = "Navigate"))
+	and InStr(A_ThisLabel, "Mouse") and (g_strHokeyTypeDetected = "Navigate"))
 {
 	Click ; to make sure the DOpus lister or TC pane under the mouse become active
 	Sleep, 20
@@ -5729,7 +5728,7 @@ Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
-g_blnMouse := ""
+; g_blnMouse not used. OK? g_blnMouse := ""
 strQAPfeatureMenusPaths := ""
 
 return
@@ -6066,8 +6065,10 @@ else
 	objThisFavorite.FavoriteName := A_ThisMenuItemPos
 	objThisFavorite.FavoritePosition := A_ThisMenuItemPos
 }
+; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
 
-###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
+###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
+; ###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
 
 if (A_ThisLabel = "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
