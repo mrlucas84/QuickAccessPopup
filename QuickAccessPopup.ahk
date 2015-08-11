@@ -17,12 +17,12 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 BUGS
 
-
 TO-DO
-- debug mouse and keyboard triggers, and target identification
+- make a simplified Hotkey2Text
 
+- add show full hotkey names to list of current hotkeys in Options
 - prevent 2 favorites to use the same .FavoriteHotkey - debug
-- add list of current hotkeys in Options
+- edit shortcuts from Options - debug
 
 - check exclusion as "class contain the exclusion string"
 - exclusion list in options, save to ini
@@ -2594,7 +2594,7 @@ Gui, 2:Font, s10 w700, Verdana
 Gui, 2:Add, Text, x10 y10 w595 center, % L(lOptionsGuiTitle, g_strAppNameText)
 
 Gui, 2:Font, s8 w600, Verdana
-Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsHotkeys% | %lOptionsThirdParty%%A_Space%
+Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsHotkeys% | %lOptionsExclusionList% | %lOptionsThirdParty%%A_Space%
 
 ;---------------------------------------
 ; Tab 1: General options
@@ -2680,14 +2680,27 @@ loop, % g_arrPopupHotkeyNames%0%
 }
 
 ;---------------------------------------
-; Tab 3: Exclusion list
+; Tab 4: Hotkeys
 
+Gui, 2:Tab, 3
+Gui, 2:Add, Listview
+	, % "vf_lvHotkeysList Count32 " . (g_blnUseColors ? "c" . g_strGuiListviewTextColor . " Background" . g_strGuiListviewBackgroundColor : "") 
+	. " gOptionsHotkeysListEvents x10 y+10 w600 h340"
+	, %lOptionsHotkeysListHeader%|Menu path (hidden)|Position (hidden)
+Gui, 2:Add, Checkbox, vf_blnSeeAllFavorites gCheckboxSeeAllFavoritesClicked, %lOptionsHotkeysListSeeAllFavorites%
+Gui, 2:Add, Checkbox, x+50 yp vf_blnSeeFullHotkeyNames gCheckboxSeeFullHotkeyNames, %lOptionsHotkeysListSeeFullHotkeyNames%
+Gosub, LoadHotkeysInOptionsGui
+
+;---------------------------------------
+; Tab 4: Exclusion list
+
+Gui, 2:Tab, 4
 ; ### to-do
 
 ;---------------------------------------
-; Tab 4: File Managers
+; Tab 5: File Managers
 
-Gui, 2:Tab, 4
+Gui, 2:Tab, 5
 
 Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabFileManagersIntro%
 
@@ -2736,6 +2749,93 @@ GuiControl, Focus, f_btnOptionsSave
 
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CheckboxSeeAllFavoritesClicked:
+CheckboxSeeFullHotkeyNames:
+;------------------------------------------------------------
+
+Gosub, LoadHotkeysInOptionsGui
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OptionsHotkeysListEvents:
+;------------------------------------------------------------
+
+Gui, 2:ListView, f_lvHotkeysList
+
+if (A_GuiEvent = "DoubleClick")
+{
+	intItemPosition := LV_GetNext()
+	LV_GetText(strMenuPath, intItemPosition, 4)
+	LV_GetText(strFavoritePosition, intItemPosition, 5)
+	###_V("OptionsHotkeysListEvents", intItemPosition, strMenuPath, strFavoritePosition)
+	
+	if !StrLen(strMenuPath)
+		GuiControl, Choose, f_intOptionsTab, 2
+	else
+	{
+		; prepare variables for GuiEditFavorite
+		###_O("avant", g_objMenusIndex[strMenuPath][strFavoritePosition])
+		strNewHotkey := SelectHotkey(g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey
+			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
+			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
+			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, 3)
+		if StrLen(strNewHotkey)
+		{
+			g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey := strNewHotkey
+			; #### flag to save favorites
+		}
+		/*
+		SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
+		; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
+		; returns the new hotkey or empty string if cancel
+		*/
+		###_O("après", g_objMenusIndex[strMenuPath][strFavoritePosition])
+		x := 1
+		Gosub, LoadHotkeysInOptionsGui
+	}
+}
+
+objEditedFavorite:= ""
+intItemPosition := ""
+strMenuPath := ""
+strFavoritePosition := ""
+strNewHotkey := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+LoadHotkeysInOptionsGui:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+Gui, 2:Default
+Gui, 2:ListView, f_lvHotkeysList
+LV_Delete()
+
+loop, 4
+	LV_Add(, (f_blnSeeFullHotkeyNames ? "FULL ###" : g_arrPopupHotkeys%A_Index%)
+		, g_arrOptionsPopupHotkeyTitles%A_Index%, lOptionsMouseAndKeyboard)
+
+for strMenuPath, objMenu in g_objMenusIndex
+	loop, % objMenu.MaxIndex()
+		if StrLen(objMenu[A_Index].FavoriteLocation)
+			and (StrLen(objMenu[A_Index].FavoriteHotkey) or f_blnSeeAllFavorites)
+			LV_Add(, (f_blnSeeFullHotkeyNames ? "FULL ###" : objMenu[A_Index].FavoriteHotkey),
+				, objMenu[A_Index].FavoriteName, objMenu[A_Index].FavoriteLocation, strMenuPath, A_Index)
+
+LV_ModifyCol(2, "Sort")
+Gosub, Ajust3ColumnsWidth
 
 return
 ;------------------------------------------------------------
@@ -2795,6 +2895,7 @@ else
 
 strPopupHotkeysBackup := g_arrPopupHotkeys%intHotkeyIndex%
 g_arrPopupHotkeys%intHotkeyIndex% := SelectHotkey(g_arrPopupHotkeys%intHotkeyIndex%, g_arrOptionsPopupHotkeyTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrPopupHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
+
 if StrLen(g_arrPopupHotkeys%intHotkeyIndex%)
 {
 	SplitHotkey(g_arrPopupHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
@@ -3056,8 +3157,8 @@ BuildGui:
 ;------------------------------------------------------------
 
 IniRead, strTextColor, %g_strIniFile%, Gui-%g_strTheme%, TextColor, 000000
-IniRead, strGuiListviewBackgroundColor, %g_strIniFile%, Gui-%g_strTheme%, ListviewBackground, FFFFFF
-IniRead, strGuiListviewTextColor, %g_strIniFile%, Gui-%g_strTheme%, ListviewText, 000000
+IniRead, g_strGuiListviewBackgroundColor, %g_strIniFile%, Gui-%g_strTheme%, ListviewBackground, FFFFFF
+IniRead, g_strGuiListviewTextColor, %g_strIniFile%, Gui-%g_strTheme%, ListviewText, 000000
 
 lGuiFullTitle := L(lGuiTitle, g_strAppNameText, g_strAppVersion)
 Gui, 1:New, +Resize -MinimizeBox +MinSize636x538, %lGuiFullTitle%
@@ -3108,7 +3209,7 @@ Gui, 1:Add, Text, vf_lblSubmenuDropdownLabel x+1 yp, %lGuiSubmenuDropdownLabel%
 Gui, 1:Add, DropDownList, vf_drpMenusList gGuiMenusListChanged x0 y+1
 
 Gui, 1:Add, ListView
-	, % "vf_lvFavoritesList Count32 AltSubmit NoSortHdr LV0x10 " . (g_blnUseColors ? "c" . strGuiListviewTextColor . " Background" . strGuiListviewBackgroundColor : "") . " gGuiFavoritesListEvents x+1 yp"
+	, % "vf_lvFavoritesList Count32 AltSubmit NoSortHdr LV0x10 " . (g_blnUseColors ? "c" . g_strGuiListviewTextColor . " Background" . g_strGuiListviewBackgroundColor : "") . " gGuiFavoritesListEvents x+1 yp"
 	, %lGuiLvFavoritesHeader%
 
 Gui, 1:Font, s9 w600, Verdana
@@ -3140,8 +3241,6 @@ if (arrSettingsPosition1 <> -1)
 strSettingsPosition := ""
 arrSettingsPosition := ""
 strTextColor := ""
-strGuiListviewBackgroundColor := ""
-strGuiListviewTextColor := ""
 
 return
 ;------------------------------------------------------------
@@ -3175,7 +3274,7 @@ Loop, % g_objMenuInGui.MaxIndex()
 
 LV_Modify(1 + (g_objMenuInGui[1].FavoriteType = "B" ? 1 : 0), "Select Focus") 
 
-Gosub, AjustColumnWidth
+Gosub, Ajust3ColumnsWidth
 
 GuiControl, , f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|"
 
@@ -3230,7 +3329,7 @@ for intIndex, objGuiControl in g_objGuiControls
 GuiControl, 1:Move, f_drpMenusList, w%g_intListW%
 GuiControl, 1:Move, f_lvFavoritesList, w%g_intListW% h%intListH%
 
-Gosub, AjustColumnWidth
+Gosub, Ajust3ColumnsWidth
 
 intListH := ""
 intButtonSpacing := ""
@@ -3239,31 +3338,6 @@ objGuiControl := ""
 intX := ""
 intY := ""
 arrPos := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-AjustColumnWidth:
-;------------------------------------------------------------
-
-LV_ModifyCol(1, "Auto") ; adjust column width
-LV_ModifyCol(2, "Auto") ; adjust column width
-
-; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
-intCol1 := 0 ; column index, zero-based
-SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %g_strAppHwnd%
-intCol1 := ErrorLevel ; column width
-
-intCol2 := 1 ; column index, zero-based
-SendMessage, 0x1000+29, %intCol2%, 0, SysListView321, ahk_id %g_strAppHwnd%
-intCol2 := ErrorLevel ; column width
-
-LV_ModifyCol(3, g_intListW - intCol1 - intCol2 - 21) ; adjust column width (-21 is for vertical scroll bar width)
-
-intCol1 := ""
-intCol2 := ""
 
 return
 ;------------------------------------------------------------
@@ -4507,7 +4581,7 @@ if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if 
 }
 
 GuiControl, 1:, f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|" ; required if submenu was added
-Gosub, AjustColumnWidth
+Gosub, Ajust3ColumnsWidth
 
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	Gosub, BuildMainMenuWithStatus ; update menus
@@ -4663,7 +4737,7 @@ if (A_ThisLabel = "GuiRemoveFavorite")
 	if !LV_GetNext() ; if last item was deleted, select the new last item
 		LV_Modify(LV_GetCount(), "Select Focus")
 }
-Gosub, AjustColumnWidth
+Gosub, Ajust3ColumnsWidth
 
 GuiControl, Enable, f_btnGuiSave
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
@@ -4960,7 +5034,7 @@ else ; GuiAddColumnBreak
 		, "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
 
 LV_Modify(LV_GetNext(), "Vis")
-Gosub, AjustColumnWidth
+Gosub, Ajust3ColumnsWidth
 
 GuiControl, Enable, f_btnGuiSave
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
@@ -5163,6 +5237,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	; last parameter indicate if the hotkey is for a favorite; if yes, hotkey will be assigned immediately
 	; if not, it is for a popup menu trigger and hotkey will be assigned after Options save
 	strNewHotkey := HotkeyIfAvailable(strNewHotkey, StrLen(strFavoriteLocation) ? strFavoriteLocation : strFavoriteName, StrLen(strFavoriteLocation) > 0)
+	; ###_V(1, strMouse, strKey, strNewHotkey)
 	
 	return strNewHotkey ; returning value
 	
@@ -5227,7 +5302,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	SplitHotkey("None", strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
 	Gosub, SetModifiersCheckBox
 
-	strModifiers := ""
+	; OUT OK? strModifiers := ""
 
 	return
 	;------------------------------------------------------------
@@ -5278,7 +5353,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	GuiControlGet, blnAlt, , f_blnAlt
 	GuiControlGet, blnCtrl, , f_blnCtrl
 	GuiControlGet, blnShift, , f_blnShift
-	
+
 	if StrLen(strMouse)
 		strMouse := GetMouseButton4Text(strMouse) ; get mouse button system name from dropdown localized text
 	; else ???
@@ -5287,7 +5362,8 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	strNewHotkey := Trim(strKey . (strMouse = "None" ? "" : strMouse))
 	if !StrLen(strNewHotkey)
 		strNewHotkey := "None"
-
+	; ###_V(0, strMouse, strKey, strNewHotkey)
+	
 	if (strNewHotkey <> "None") ; do not compare with lDialogMouseNone because it is translated
 	{
 		; Order of modifiers important to keep modifiers labels in correct order
@@ -5339,9 +5415,8 @@ HotkeyIfAvailable(strHotkey, strLocation, blnAssignFavorite := false)
 	global g_arrOptionsPopupHotkeyTitles
 	
 	if !StrLen(strHotkey) or (strHotkey = "None")
-		return ""
-	
-	###_V("HotkeyIfAvailable", strLocation, blnAssignFavorite)
+		return strHotkey
+	; ###_V("HotkeyIfAvailable 1", strHotkey, strLocation, blnAssignFavorite)
 	
 	loop, 4
 		if (g_arrPopupHotkeys%A_Index% = strHotkey)
@@ -6083,7 +6158,7 @@ else
 }
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
 
-###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
+; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
 ; ###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
 
 if (A_ThisLabel = "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
@@ -7346,6 +7421,31 @@ AHK_NOTIFYICON(wParam, lParam)
 		return 0
 	}
 } 
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+Ajust3ColumnsWidth:
+;------------------------------------------------------------
+
+LV_ModifyCol(1, "Auto") ; adjust column width
+LV_ModifyCol(2, "Auto") ; adjust column width
+
+; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
+intCol1 := 0 ; column index, zero-based
+SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %g_strAppHwnd%
+intCol1 := ErrorLevel ; column width
+
+intCol2 := 1 ; column index, zero-based
+SendMessage, 0x1000+29, %intCol2%, 0, SysListView321, ahk_id %g_strAppHwnd%
+intCol2 := ErrorLevel ; column width
+
+LV_ModifyCol(3, g_intListW - intCol1 - intCol2 - 21) ; adjust column width (-21 is for vertical scroll bar width)
+
+intCol1 := ""
+intCol2 := ""
+
+return
 ;------------------------------------------------------------
 
 
