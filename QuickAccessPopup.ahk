@@ -277,7 +277,7 @@ DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex
 ; DEBUG
 ; -----
 ; Gosub, GuiShow
-; ###_D(HotkeyAvailable("+^C", "strLocation"))
+; ###_D(HotkeyIfAvailable("+^C", "strLocation"))
 ; Gosub, BuildClipboardMenu
 ; Menu, g_menuClipboard, Show
 
@@ -429,7 +429,7 @@ InitSystemArrays:
 ; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
 strPopupHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard"
 StringSplit, g_arrPopupHotkeyNames, strPopupHotkeyNames, |
-strPopupHotkeyDefaults := "MButton|#a|!MButton|!#a"
+strPopupHotkeyDefaults := "MButton|#a|+MButton|+#a"
 StringSplit, g_arrPopupHotkeyDefaults, strPopupHotkeyDefaults, |
 g_arrPopupHotkeys := Array ; initialized by LoadIniPopupHotkeys
 g_arrPopupHotkeysPrevious := Array ; initialized by GuiOptions and checked in LoadIniPopupHotkeys
@@ -1140,8 +1140,8 @@ IfNotExist, %g_strIniFile%
 {
 	strNavigateOrLaunchHotkeyMouseDefault := g_arrHotkeyDefaults1 ; "MButton"
 	strNavigateOrLaunchHotkeyKeyboard := g_arrHotkeyDefaults2 ; "#a"
-	strPowerHotkeyMouseDefault := g_arrHotkeyDefaults3 ; "!MButton"
-	strPowerHotkeyKeyboardDefault := g_arrHotkeyDefaults4 ; "!#a"
+	strPowerHotkeyMouseDefault := g_arrHotkeyDefaults3 ; "+MButton"
+	strPowerHotkeyKeyboardDefault := g_arrHotkeyDefaults4 ; "+#a"
 	
 	g_intIconSize := 24
 	
@@ -2793,15 +2793,21 @@ if InStr(g_arrPopupHotkeyNames%intHotkeyIndex%, "Mouse")
 else
 	intHotkeyType := 2 ; Keyboard
 
+strPopupHotkeysBackup := g_arrPopupHotkeys%intHotkeyIndex%
 g_arrPopupHotkeys%intHotkeyIndex% := SelectHotkey(g_arrPopupHotkeys%intHotkeyIndex%, g_arrOptionsPopupHotkeyTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrPopupHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
-
-SplitHotkey(g_arrPopupHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
-GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
-
+if StrLen(g_arrPopupHotkeys%intHotkeyIndex%)
+{
+	SplitHotkey(g_arrPopupHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
+	GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
+}
+else
+	g_arrPopupHotkeys%intHotkeyIndex% := strPopupHotkeysBackup
+	
 strNewModifiers := ""
 strNewMouse := ""
 strNewOptionsKey := ""
 strNewMouseButtonsWithDefault := ""
+strPopupHotkeysBackup := ""
 
 return
 ;------------------------------------------------------------
@@ -3904,16 +3910,22 @@ Gui, 2:Submit, NoHide
 if (g_objEditedFavorite.FavoriteType = "QAP")
 	strQAPDefaultHotkey := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultName[f_drpQAP]].DefaultHotkey
 
+strBackupFavoriteHotkey := g_strNewFavoriteHotkey
 g_strNewFavoriteHotkey := SelectHotkey(g_strNewFavoriteHotkey, f_strFavoriteShortName, g_objEditedFavorite.FavoriteType, f_strFavoriteLocation, 3, strQAPDefaultHotkey)
-
-SplitHotkey(g_strNewFavoriteHotkey, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
-GuiControl, 2:, f_strHotkeyText, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
+if StrLen(g_strNewFavoriteHotkey)
+{
+	SplitHotkey(g_strNewFavoriteHotkey, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
+	GuiControl, 2:, f_strHotkeyText, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
+}
+else
+	g_strNewFavoriteHotkey := strBackupFavoriteHotkey
 
 strNewModifiers := ""
 strNewMouse := ""
 strNewOptionsKey := ""
 strNewMouseButtonsWithDefault := ""
 strQAPDefaultHotkey = ""
+strBackupFavoriteHotkey := ""
 
 return
 ;------------------------------------------------------------
@@ -5073,7 +5085,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 ; returns the new hotkey or empty string if cancel
 ;------------------------------------------------------------
 {
-	; safer that declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
+	; safer than declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
 	global
 	
 	SplitHotkey(strActualHotkey, strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
@@ -5150,9 +5162,10 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	; second parameter of HotkeyIfAvailable contains the popup menu trigger's name or the favorites's location
 	; last parameter indicate if the hotkey is for a favorite; if yes, hotkey will be assigned immediately
 	; if not, it is for a popup menu trigger and hotkey will be assigned after Options save
-	strNewHotkey := HotkeyIfAvailable(strNewHotkey, StrLen(strFavoriteLocation) ? strFavoriteLocation : strFavoriteName, StrLen(strFavoriteLocation))
+	strNewHotkey := HotkeyIfAvailable(strNewHotkey, StrLen(strFavoriteLocation) ? strFavoriteLocation : strFavoriteName, StrLen(strFavoriteLocation) > 0)
 	
 	return strNewHotkey ; returning value
+	
 	;------------------------------------------------------------
 
 	;------------------------------------------------------------
@@ -5321,17 +5334,19 @@ HotkeyIfAvailable(strHotkey, strLocation, blnAssignFavorite := false)
 {
 ; ####
 
+	global g_arrPopupHotkeys
 	global g_objMenusIndex
+	global g_arrOptionsPopupHotkeyTitles
 	
-	if !StrLen(strHotkey)
+	if !StrLen(strHotkey) or (strHotkey = "None")
 		return ""
 	
 	###_V("HotkeyIfAvailable", strLocation, blnAssignFavorite)
 	
-	loop, % g_arrPopupHotkeys0
+	loop, 4
 		if (g_arrPopupHotkeys%A_Index% = strHotkey)
 		{
-			strActualAssignment := "the popup menu hotkey " . g_arrOptionsPopupHotkeyTitles%A_Index% ; ### language
+			strActualAssignment := L(lOopsHotkeyPopupMenu, g_arrOptionsPopupHotkeyTitles%A_Index%)
 			break
 		}
 	
@@ -5341,7 +5356,7 @@ HotkeyIfAvailable(strHotkey, strLocation, blnAssignFavorite := false)
 			loop, % objMenu.MaxIndex()
 				if (objMenu[A_Index].FavoriteHotkey = strHotkey)
 				{
-					strActualAssignment := "the favorite hotkey " . g_arrOptionsPopupHotkeyTitles%A_Index% ; ### language
+					strActualAssignment := L(lOopsHotkeyFavorite, objMenu[A_Index].FavoriteLocation)
 					break
 				}
 			if StrLen(strActualAssignment)
@@ -5352,7 +5367,8 @@ HotkeyIfAvailable(strHotkey, strLocation, blnAssignFavorite := false)
 		
 	if StrLen(strActualAssignment)
 	{
-		Oops("### The hotkey ""~1~"" is already used for the ""~2~"".`n`nPlease, choose another hotkey for ""~3~"".", strHotkey, strActualAssignment, strLocation)
+		SplitHotkey(strHotkey, strHotkeyModifiers, strHotkeyKey, strHotkkeyMouse, strHotkeyMouseButtonsWithDefault)
+		Oops(lOopsHotkeyAlreadyUsed, Hotkey2Text(strHotkeyModifiers, strHotkkeyMouse, strHotkeyKey), strActualAssignment, strLocation)
 		return ""
 	}
 	else
@@ -6048,9 +6064,9 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 		if (blnHotkeyFound)
 			break
 	}
-	if !(blnHotkeyFound)
+	if !(blnHotkeyFound) ; should not happen
 	{
-		Oops("### Error:hotkey not found in menus")
+		Oops("### Error:hotkey not found in menus") ; ### language
 		return
 	}
 	if CanNavigate(A_ThisHotkey)
@@ -6062,7 +6078,7 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 }
 else
 {
-	objThisFavorite.FavoriteName := A_ThisMenuItemPos
+	objThisFavorite.FavoriteName := A_ThisMenuItem
 	objThisFavorite.FavoritePosition := A_ThisMenuItemPos
 }
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
