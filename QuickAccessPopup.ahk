@@ -18,11 +18,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- make a simplified Hotkey2Text
-
-- add show full hotkey names to list of current hotkeys in Options
-- prevent 2 favorites to use the same .FavoriteHotkey - debug
 - edit shortcuts from Options - debug
+- prevent 2 favorites to use the same .FavoriteHotkey - debug
 
 - check exclusion as "class contain the exclusion string"
 - exclusion list in options, save to ini
@@ -250,10 +247,10 @@ if (g_blnDisplayTrayTip)
 ; 1 NavigateOrLaunchHotkeyMouse, 2 NavigateOrLaunchHotkeyKeyboard, 3 PowerHotkeyMouse, 4 PowerHotkeyKeyboard
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
 		, % L(lTrayTipInstalledDetail, g_strAppNameText
-			, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1)
-			, Hotkey2Text(strModifiers2, strMouseButton2, strOptionsKey2)
-			, Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3)
-			, Hotkey2Text(strModifiers4, strMouseButton4, strOptionsKey4))
+			, HotkeySections2Text(strModifiers1, strMouseButton1, strOptionsKey1)
+			, HotkeySections2Text(strModifiers2, strMouseButton2, strOptionsKey2)
+			, HotkeySections2Text(strModifiers3, strMouseButton3, strOptionsKey3)
+			, HotkeySections2Text(strModifiers4, strMouseButton4, strOptionsKey4))
 		, , 17 ; 1 info icon + 16 no sound)
 
 g_blnMenuReady := true
@@ -2672,7 +2669,7 @@ loop, % g_arrPopupHotkeyNames%0%
 	Gui, 2:Font, s8 w700
 	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsPopupHotkeyTitles%A_Index%
 	Gui, 2:Font, s9 w500, Courier New
-	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % Hotkey2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
+	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % HotkeySections2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
 	Gui, 2:Font
 	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
 	Gui, 2:Font, s8 w500
@@ -2687,6 +2684,7 @@ Gui, 2:Add, Listview
 	, % "vf_lvHotkeysList Count32 " . (g_blnUseColors ? "c" . g_strGuiListviewTextColor . " Background" . g_strGuiListviewBackgroundColor : "") 
 	. " gOptionsHotkeysListEvents x10 y+10 w600 h340"
 	, %lOptionsHotkeysListHeader%|Menu path (hidden)|Position (hidden)
+
 Gui, 2:Add, Checkbox, vf_blnSeeAllFavorites gCheckboxSeeAllFavoritesClicked, %lOptionsHotkeysListSeeAllFavorites%
 Gui, 2:Add, Checkbox, x+50 yp vf_blnSeeFullHotkeyNames gCheckboxSeeFullHotkeyNames, %lOptionsHotkeysListSeeFullHotkeyNames%
 Gosub, LoadHotkeysInOptionsGui
@@ -2791,7 +2789,7 @@ if (A_GuiEvent = "DoubleClick")
 		if StrLen(strNewHotkey)
 		{
 			g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey := strNewHotkey
-			; #### flag to save favorites
+			g_blnOptionsHotkeySaveToIni := true ; flag to save favorites
 		}
 		/*
 		SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
@@ -2824,18 +2822,20 @@ Gui, 2:ListView, f_lvHotkeysList
 LV_Delete()
 
 loop, 4
-	LV_Add(, (f_blnSeeFullHotkeyNames ? "FULL ###" : g_arrPopupHotkeys%A_Index%)
-		, g_arrOptionsPopupHotkeyTitles%A_Index%, lOptionsMouseAndKeyboard)
+	LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(g_arrPopupHotkeys%A_Index%) : g_arrPopupHotkeys%A_Index%)
+		, g_arrOptionsPopupHotkeyTitles%A_Index%, , lOptionsMouseAndKeyboard)
 
 for strMenuPath, objMenu in g_objMenusIndex
 	loop, % objMenu.MaxIndex()
 		if StrLen(objMenu[A_Index].FavoriteLocation)
 			and (StrLen(objMenu[A_Index].FavoriteHotkey) or f_blnSeeAllFavorites)
-			LV_Add(, (f_blnSeeFullHotkeyNames ? "FULL ###" : objMenu[A_Index].FavoriteHotkey),
-				, objMenu[A_Index].FavoriteName, objMenu[A_Index].FavoriteLocation, strMenuPath, A_Index)
+			LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(objMenu[A_Index].FavoriteHotkey) : objMenu[A_Index].FavoriteHotkey)
+				, objMenu[A_Index].FavoriteName, objMenu[A_Index].FavoriteType, objMenu[A_Index].FavoriteLocation, strMenuPath, A_Index)
 
 LV_ModifyCol(2, "Sort")
-Gosub, Ajust3ColumnsWidth
+LV_ModifyCol(, "Auto")
+LV_ModifyCol(5, 0)
+LV_ModifyCol(6, 0)
 
 return
 ;------------------------------------------------------------
@@ -2897,17 +2897,10 @@ strPopupHotkeysBackup := g_arrPopupHotkeys%intHotkeyIndex%
 g_arrPopupHotkeys%intHotkeyIndex% := SelectHotkey(g_arrPopupHotkeys%intHotkeyIndex%, g_arrOptionsPopupHotkeyTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrPopupHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
 
 if StrLen(g_arrPopupHotkeys%intHotkeyIndex%)
-{
-	SplitHotkey(g_arrPopupHotkeys%intHotkeyIndex%, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
-	GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
-}
+	GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(g_arrPopupHotkeys%intHotkeyIndex%)
 else
 	g_arrPopupHotkeys%intHotkeyIndex% := strPopupHotkeysBackup
 	
-strNewModifiers := ""
-strNewMouse := ""
-strNewOptionsKey := ""
-strNewMouseButtonsWithDefault := ""
 strPopupHotkeysBackup := ""
 
 return
@@ -3274,7 +3267,7 @@ Loop, % g_objMenuInGui.MaxIndex()
 
 LV_Modify(1 + (g_objMenuInGui[1].FavoriteType = "B" ? 1 : 0), "Select Focus") 
 
-Gosub, Ajust3ColumnsWidth
+Gosub, Adjust3ColumnsWidth
 
 GuiControl, , f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|"
 
@@ -3329,7 +3322,7 @@ for intIndex, objGuiControl in g_objGuiControls
 GuiControl, 1:Move, f_drpMenusList, w%g_intListW%
 GuiControl, 1:Move, f_lvFavoritesList, w%g_intListW% h%intListH%
 
-Gosub, Ajust3ColumnsWidth
+Gosub, Adjust3ColumnsWidth
 
 intListH := ""
 intButtonSpacing := ""
@@ -3796,9 +3789,8 @@ Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
 Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
 Gui, 2:Add, Link, x20 ys+57 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
 
-SplitHotkey(g_strNewFavoriteHotkey, strHotkeyModifiers, strHotkeyKey, strHotkeyMouse, strMouseButtonsWithDefault)
 Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
-Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(strHotkeyModifiers, strHotkeyMouse, strHotkeyKey)
+Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
 Gui, 2:Add, Button, yp x+10 gButtonChangeFavoriteHotkey, %lOptionsChangeHotkey%
 
 ; ------ TAB Window Options ------
@@ -3921,10 +3913,6 @@ Gui, 1:+Disabled
 
 g_strNewLocation := ""
 arrTop := ""
-strHotkeyModifiers := ""
-strHotkeyMouse := ""
-strHotkeyKey := ""
-arrNewFavoriteWindowPosition := ""
 
 return
 ;------------------------------------------------------------
@@ -3987,17 +3975,10 @@ if (g_objEditedFavorite.FavoriteType = "QAP")
 strBackupFavoriteHotkey := g_strNewFavoriteHotkey
 g_strNewFavoriteHotkey := SelectHotkey(g_strNewFavoriteHotkey, f_strFavoriteShortName, g_objEditedFavorite.FavoriteType, f_strFavoriteLocation, 3, strQAPDefaultHotkey)
 if StrLen(g_strNewFavoriteHotkey)
-{
-	SplitHotkey(g_strNewFavoriteHotkey, strNewModifiers, strNewKey, strNewMouse, strNewMouseButtonsWithDefault)
-	GuiControl, 2:, f_strHotkeyText, % Hotkey2Text(strNewModifiers, strNewMouse, strNewKey)
-}
+	GuiControl, 2:, f_strHotkeyText, % Hotkey2Text(g_strNewFavoriteHotkey)
 else
 	g_strNewFavoriteHotkey := strBackupFavoriteHotkey
 
-strNewModifiers := ""
-strNewMouse := ""
-strNewOptionsKey := ""
-strNewMouseButtonsWithDefault := ""
 strQAPDefaultHotkey = ""
 strBackupFavoriteHotkey := ""
 
@@ -4125,8 +4106,7 @@ g_strNewFavoriteIconResource := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultNa
 g_strDefaultIconResource := g_strNewFavoriteIconResource 
 
 g_strNewFavoriteHotkey := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultName[f_drpQAP]].DefaultHotkey
-SplitHotkey(g_strNewFavoriteHotkey, strHotkeyModifiers, strHotkeyKey, strHotkeyMouse, strMouseButtonsWithDefault)
-GuiControl, , f_strHotkeyText, % Hotkey2Text(strHotkeyModifiers, strHotkeyMouse, strHotkeyKey)
+GuiControl, , f_strHotkeyText, % Hotkey2Text(g_strNewFavoriteHotkey)
 
 return
 ;------------------------------------------------------------
@@ -4581,7 +4561,7 @@ if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if 
 }
 
 GuiControl, 1:, f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|" ; required if submenu was added
-Gosub, Ajust3ColumnsWidth
+Gosub, Adjust3ColumnsWidth
 
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	Gosub, BuildMainMenuWithStatus ; update menus
@@ -4737,7 +4717,7 @@ if (A_ThisLabel = "GuiRemoveFavorite")
 	if !LV_GetNext() ; if last item was deleted, select the new last item
 		LV_Modify(LV_GetCount(), "Select Focus")
 }
-Gosub, Ajust3ColumnsWidth
+Gosub, Adjust3ColumnsWidth
 
 GuiControl, Enable, f_btnGuiSave
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
@@ -5034,7 +5014,7 @@ else ; GuiAddColumnBreak
 		, "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
 
 LV_Modify(LV_GetNext(), "Vis")
-Gosub, Ajust3ColumnsWidth
+Gosub, Adjust3ColumnsWidth
 
 GuiControl, Enable, f_btnGuiSave
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
@@ -5221,13 +5201,13 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 		Gui, Add, Text, % "x10 y" . arrTopY + 100
 		GuiCenterButtons(L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNoneHotkey")
 	}
-	Gui, Add, Button, y+30 x10 vf_btnChangeHotkeySave gButtonChangeHotkeySave, %lGuiSave%
+	Gui, Add, Button, y+30 x10 vf_btnChangeHotkeyOK gButtonChangeHotkeyOK, %lDialogOK%
 	Gui, Add, Button, yp x+20 vf_btnChangeHotkeyCancel gButtonChangeHotkeyCancel, %lGuiCancel%
 	
-	GuiCenterButtons(L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnChangeHotkeySave", "f_btnChangeHotkeyCancel")
+	GuiCenterButtons(L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnChangeHotkeyOK", "f_btnChangeHotkeyCancel")
 
 	Gui, Add, Text
-	GuiControl, Focus, f_btnChangeHotkeySave
+	GuiControl, Focus, f_btnChangeHotkeyOK
 	Gui, Show, AutoSize Center
 
 	Gui, 2:+Disabled
@@ -5344,7 +5324,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	;------------------------------------------------------------
 
 	;------------------------------------------------------------
-	ButtonChangeHotkeySave:
+	ButtonChangeHotkeyOK:
 	;------------------------------------------------------------
 	
 	GuiControlGet, strMouse, , f_drpHotkeyMouse
@@ -5442,8 +5422,7 @@ HotkeyIfAvailable(strHotkey, strLocation, blnAssignFavorite := false)
 		
 	if StrLen(strActualAssignment)
 	{
-		SplitHotkey(strHotkey, strHotkeyModifiers, strHotkeyKey, strHotkkeyMouse, strHotkeyMouseButtonsWithDefault)
-		Oops(lOopsHotkeyAlreadyUsed, Hotkey2Text(strHotkeyModifiers, strHotkkeyMouse, strHotkeyKey), strActualAssignment, strLocation)
+		Oops(lOopsHotkeyAlreadyUsed, Hotkey2Text(strHotkey), strActualAssignment, strLocation)
 		return ""
 	}
 	else
@@ -6590,26 +6569,26 @@ Gui, 2:Add, Tab2, vf_intHelpTab w640 h350 AltSubmit, %A_Space%%lHelpTabGettingSt
 ; 5) SettingsHotkey 6) CurrentFoldersHotkey 7) GroupsHotkey 8) RecentsHotkey 9) ClipboardHotkey 10) CopyLocationHotkey
 Gui, 2:Font, s8 w400, Verdana
 Gui, 2:Tab, 1
-Gui, 2:Add, Link, w%intWidth%, % L(lHelpText1, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1), Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3))
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText1, HotkeySections2Text(strModifiers1, strMouseButton1, strOptionsKey1), HotkeySections2Text(strModifiers3, strMouseButton3, strOptionsKey3))
 Gui, 2:Add, Link, w%intWidth%, % lHelpText2
 Gui, 2:Add, Button, vf_btnNext1 gNextHelpButtonClicked, %lDialogTabNext%
 GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNext1")
 
 Gui, 2:Tab, 2
-Gui, 2:Add, Link, w%intWidth%, % L(lHelpText3, Hotkey2Text(strModifiers1, strMouseButton1, strOptionsKey1), Hotkey2Text(strModifiers3, strMouseButton3, strOptionsKey3))
-Gui, 2:Add, Link, w%intWidth%, % L(lHelpText4, Hotkey2Text(strModifiers5, strMouseButton5, strOptionsKey5))
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText3, HotkeySections2Text(strModifiers1, strMouseButton1, strOptionsKey1), HotkeySections2Text(strModifiers3, strMouseButton3, strOptionsKey3))
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText4, HotkeySections2Text(strModifiers5, strMouseButton5, strOptionsKey5))
 Gui, 2:Add, Button, vf_btnNext2 gNextHelpButtonClicked, %lDialogTabNext%
 GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNext2")
 
 Gui, 2:Tab, 3
 Gui, 2:Add, Link, w%intWidth%, % L(lHelpText5
-	, Hotkey2Text(strModifiers2, strMouseButton2, strOptionsKey2)
-	, Hotkey2Text(strModifiers4, strMouseButton4, strOptionsKey4)
-	, Hotkey2Text(strModifiers8, strMouseButton8, strOptionsKey8)
-	, Hotkey2Text(strModifiers6, strMouseButton6, strOptionsKey6)
-	, Hotkey2Text(strModifiers7, strMouseButton7, strOptionsKey7)
-	, Hotkey2Text(strModifiers9, strMouseButton9, strOptionsKey9)
-	, Hotkey2Text(strModifiers10, strMouseButton10, strOptionsKey10))
+	, HotkeySections2Text(strModifiers2, strMouseButton2, strOptionsKey2)
+	, HotkeySections2Text(strModifiers4, strMouseButton4, strOptionsKey4)
+	, HotkeySections2Text(strModifiers8, strMouseButton8, strOptionsKey8)
+	, HotkeySections2Text(strModifiers6, strMouseButton6, strOptionsKey6)
+	, HotkeySections2Text(strModifiers7, strMouseButton7, strOptionsKey7)
+	, HotkeySections2Text(strModifiers9, strMouseButton9, strOptionsKey9)
+	, HotkeySections2Text(strModifiers10, strMouseButton10, strOptionsKey10))
 Gui, 2:Add, Link, w%intWidth%, % lHelpText6
 
 Gui, 2:Tab
@@ -6947,7 +6926,18 @@ SplitHotkey(strHotkey, ByRef strModifiers, ByRef strKey, ByRef strMouseButton, B
 
 
 ;------------------------------------------------------------
-Hotkey2Text(strModifiers, strMouseButton, strKey, blnShort := false)
+Hotkey2Text(strHotkey, blnShort := false)
+;------------------------------------------------------------
+{
+	SplitHotkey(strHotkey, strModifiers, strOptionsKey, strMouseButto, strMouseButtonsWithDefault)
+
+	return HotkeySections2Text(strModifiers, strMouseButto, strOptionsKey, blnShort)
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+HotkeySections2Text(strModifiers, strMouseButton, strKey, blnShort := false)
 ;------------------------------------------------------------
 {
 	if (strMouseButton = "None") ; do not compare with lDialogNone because it is translated
@@ -7425,25 +7415,25 @@ AHK_NOTIFYICON(wParam, lParam)
 
 
 ;------------------------------------------------------------
-Ajust3ColumnsWidth:
+Adjust3ColumnsWidth:
 ;------------------------------------------------------------
 
-LV_ModifyCol(1, "Auto") ; adjust column width
-LV_ModifyCol(2, "Auto") ; adjust column width
+intNbColAuto := 2
+
+Loop, %intNbColAuto%
+	LV_ModifyCol(A_Index, "Auto") ; adjust column width
 
 ; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
-intCol1 := 0 ; column index, zero-based
-SendMessage, 0x1000+29, %intCol1%, 0, SysListView321, ahk_id %g_strAppHwnd%
-intCol1 := ErrorLevel ; column width
+Loop, %intNbColAuto%
+{
+	intColZeroBased := A_Index - 1 ; column index, zero-based
+	SendMessage, 0x1000+29, %intColZeroBased%, 0, SysListView321, ahk_id %g_strAppHwnd%
+	intColSum += ErrorLevel ; column width
+}
 
-intCol2 := 1 ; column index, zero-based
-SendMessage, 0x1000+29, %intCol2%, 0, SysListView321, ahk_id %g_strAppHwnd%
-intCol2 := ErrorLevel ; column width
+LV_ModifyCol(intNbColAuto + 1, g_intListW - intColSum - 21) ; adjust column width (-21 is for vertical scroll bar width)
 
-LV_ModifyCol(3, g_intListW - intCol1 - intCol2 - 21) ; adjust column width (-21 is for vertical scroll bar width)
-
-intCol1 := ""
-intCol2 := ""
+intColSum := ""
 
 return
 ;------------------------------------------------------------
