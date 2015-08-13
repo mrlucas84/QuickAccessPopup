@@ -16,8 +16,11 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- check menu names for QAP features when numeric shortcuts active (line 5782)
+- check if disable previous fav hotkeys when save
 
 TO-DO
+- remove Options from QAP features
 - edit shortcuts from Options - debug
 - prevent 2 favorites to use the same .FavoriteHotkey - debug
 
@@ -564,7 +567,7 @@ loop, %g_arrOptionsLanguageCodes0%
 			break
 		}
 
-lDialogMouseButtonsText := lDialogMouseNone . "|" . lDialogMouseButtonsText ; use lDialogMouseNone because this is displayed
+lDialogMouseButtonsText := lDialogNone . "|" . lDialogMouseButtonsText ; use lDialogNone because this is displayed
 StringSplit, g_arrMouseButtonsText, lDialogMouseButtonsText, |
 
 strOptionsLanguageCodes := ""
@@ -1054,42 +1057,42 @@ InitGuiControls:
 
 ; Order of controls important to avoid drawgins gliches when resizing
 
-InsertGuiControlPos("f_lnkGuiDropHelpClicked",	 -88, -130)
+InsertGuiControlPos("f_lnkGuiDropHelpClicked",		 -88, -130)
 InsertGuiControlPos("f_lnkGuiHotkeysHelpClicked",	  40, -130)
 
-InsertGuiControlPos("f_picGuiOptions",			 -44,   10, true) ; true = center
-InsertGuiControlPos("f_picGuiAddFavorite",		 -44,  122, true)
-InsertGuiControlPos("f_picGuiEditFavorite",		 -44,  199, true)
+InsertGuiControlPos("f_picGuiOptions",				 -44,   10, true) ; true = center
+InsertGuiControlPos("f_picGuiAddFavorite",			 -44,  122, true)
+InsertGuiControlPos("f_picGuiEditFavorite",			 -44,  199, true)
 InsertGuiControlPos("f_picGuiRemoveFavorite",		 -44,  274, true)
-InsertGuiControlPos("f_picGuiGroupsManage",		 -44, -150, true, true) ; true = center, true = draw
+InsertGuiControlPos("f_picGuiHotkeysManage",			 -44, -150, true, true) ; true = center, true = draw
 InsertGuiControlPos("f_picGuiDonate",				  50,  -62, true, true)
-InsertGuiControlPos("f_picGuiHelp",				 -44,  -62, true, true)
+InsertGuiControlPos("f_picGuiHelp",					 -44,  -62, true, true)
 InsertGuiControlPos("f_picGuiAbout",				-104,  -62, true, true)
 
-InsertGuiControlPos("f_picAddColumnBreak",		  10,  230)
+InsertGuiControlPos("f_picAddColumnBreak",			  10,  230)
 InsertGuiControlPos("f_picAddSeparator",			  10,  200)
 InsertGuiControlPos("f_picMoveFavoriteDown",		  10,  170)
-InsertGuiControlPos("f_picMoveFavoriteUp",		  10,  140)
+InsertGuiControlPos("f_picMoveFavoriteUp",			  10,  140)
 InsertGuiControlPos("f_picPreviousMenu",			  10,   84)
 ; InsertGuiControlPos("picSortFavorites",			  10, -165) ; REMOVED
-InsertGuiControlPos("f_picUpMenu",				  25,   84)
+InsertGuiControlPos("f_picUpMenu",					  25,   84)
 
-InsertGuiControlPos("f_btnGuiSave",				   0,  -90, , true)				
+InsertGuiControlPos("f_btnGuiSaveFavorites",		   0,  -90, , true)				
 InsertGuiControlPos("f_btnGuiCancel",				   0,  -90, , true)
 
 InsertGuiControlPos("f_drpMenusList",				  40,   84)
 
 InsertGuiControlPos("f_lblGuiDonate",				  50,  -20, true)
 InsertGuiControlPos("f_lblGuiAbout",				-104,  -20, true)
-InsertGuiControlPos("f_lblGuiHelp",				 -44,  -20, true)
-InsertGuiControlPos("f_lblAppName",				  10,   10)
-InsertGuiControlPos("f_lblAppTagLine",			  10,   42)
-InsertGuiControlPos("f_lblGuiAddFavorite",		 -44,  172, true)
-InsertGuiControlPos("f_lblGuiEditFavorite",		 -44,  249, true)
-InsertGuiControlPos("f_lblGuiOptions",			 -44,   45, true)
+InsertGuiControlPos("f_lblGuiHelp",					 -44,  -20, true)
+InsertGuiControlPos("f_lblAppName",					  10,   10)
+InsertGuiControlPos("f_lblAppTagLine",				  10,   42)
+InsertGuiControlPos("f_lblGuiAddFavorite",			 -44,  172, true)
+InsertGuiControlPos("f_lblGuiEditFavorite",			 -44,  249, true)
+InsertGuiControlPos("f_lblGuiOptions",				 -44,   45, true)
 InsertGuiControlPos("f_lblGuiRemoveFavorite",		 -44,  324, true)
 InsertGuiControlPos("f_lblSubmenuDropdownLabel",	  40,   66)
-InsertGuiControlPos("f_lblGuiGroupsManage",		 -44,  -95, true)
+InsertGuiControlPos("f_lblGuiHotkeysManage",		 -44,  -95, true)
 
 InsertGuiControlPos("f_lvFavoritesList",			  40,  115)
 
@@ -2591,7 +2594,7 @@ Gui, 2:Font, s10 w700, Verdana
 Gui, 2:Add, Text, x10 y10 w595 center, % L(lOptionsGuiTitle, g_strAppNameText)
 
 Gui, 2:Font, s8 w600, Verdana
-Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsHotkeys% | %lOptionsExclusionList% | %lOptionsThirdParty%%A_Space%
+Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsExclusionList% | %lOptionsThirdParty%%A_Space%
 
 ;---------------------------------------
 ; Tab 1: General options
@@ -2677,28 +2680,15 @@ loop, % g_arrPopupHotkeyNames%0%
 }
 
 ;---------------------------------------
-; Tab 4: Hotkeys
+; Tab 3: Exclusion list
 
 Gui, 2:Tab, 3
-Gui, 2:Add, Listview
-	, % "vf_lvHotkeysList Count32 " . (g_blnUseColors ? "c" . g_strGuiListviewTextColor . " Background" . g_strGuiListviewBackgroundColor : "") 
-	. " gOptionsHotkeysListEvents x10 y+10 w600 h340"
-	, %lOptionsHotkeysListHeader%|Menu path (hidden)|Position (hidden)
-
-Gui, 2:Add, Checkbox, vf_blnSeeAllFavorites gCheckboxSeeAllFavoritesClicked, %lOptionsHotkeysListSeeAllFavorites%
-Gui, 2:Add, Checkbox, x+50 yp vf_blnSeeFullHotkeyNames gCheckboxSeeFullHotkeyNames, %lOptionsHotkeysListSeeFullHotkeyNames%
-Gosub, LoadHotkeysInOptionsGui
-
-;---------------------------------------
-; Tab 4: Exclusion list
-
-Gui, 2:Tab, 4
 ; ### to-do
 
 ;---------------------------------------
-; Tab 5: File Managers
+; Tab 4: File Managers
 
-Gui, 2:Tab, 5
+Gui, 2:Tab, 4
 
 Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabFileManagersIntro%
 
@@ -2747,95 +2737,6 @@ GuiControl, Focus, f_btnOptionsSave
 
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-CheckboxSeeAllFavoritesClicked:
-CheckboxSeeFullHotkeyNames:
-;------------------------------------------------------------
-
-Gosub, LoadHotkeysInOptionsGui
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-OptionsHotkeysListEvents:
-;------------------------------------------------------------
-
-Gui, 2:ListView, f_lvHotkeysList
-
-if (A_GuiEvent = "DoubleClick")
-{
-	intItemPosition := LV_GetNext()
-	LV_GetText(strMenuPath, intItemPosition, 4)
-	LV_GetText(strFavoritePosition, intItemPosition, 5)
-	###_V("OptionsHotkeysListEvents", intItemPosition, strMenuPath, strFavoritePosition)
-	
-	if !StrLen(strMenuPath)
-		GuiControl, Choose, f_intOptionsTab, 2
-	else
-	{
-		; prepare variables for GuiEditFavorite
-		###_O("avant", g_objMenusIndex[strMenuPath][strFavoritePosition])
-		strNewHotkey := SelectHotkey(g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, 3)
-		if StrLen(strNewHotkey)
-		{
-			g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey := strNewHotkey
-			g_blnOptionsHotkeySaveToIni := true ; flag to save favorites
-		}
-		/*
-		SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
-		; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
-		; returns the new hotkey or empty string if cancel
-		*/
-		###_O("après", g_objMenusIndex[strMenuPath][strFavoritePosition])
-		x := 1
-		Gosub, LoadHotkeysInOptionsGui
-	}
-}
-
-objEditedFavorite:= ""
-intItemPosition := ""
-strMenuPath := ""
-strFavoritePosition := ""
-strNewHotkey := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-LoadHotkeysInOptionsGui:
-;------------------------------------------------------------
-Gui, 2:Submit, NoHide
-
-Gui, 2:Default
-Gui, 2:ListView, f_lvHotkeysList
-LV_Delete()
-
-loop, 4
-	LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(g_arrPopupHotkeys%A_Index%) : g_arrPopupHotkeys%A_Index%)
-		, g_arrOptionsPopupHotkeyTitles%A_Index%, , lOptionsMouseAndKeyboard)
-
-for strMenuPath, objMenu in g_objMenusIndex
-	loop, % objMenu.MaxIndex()
-		if StrLen(objMenu[A_Index].FavoriteLocation)
-			and (StrLen(objMenu[A_Index].FavoriteHotkey) or f_blnSeeAllFavorites)
-			LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(objMenu[A_Index].FavoriteHotkey) : objMenu[A_Index].FavoriteHotkey)
-				, objMenu[A_Index].FavoriteName, objMenu[A_Index].FavoriteType, objMenu[A_Index].FavoriteLocation, strMenuPath, A_Index)
-
-LV_ModifyCol(2, "Sort")
-LV_ModifyCol(, "Auto")
-LV_ModifyCol(5, 0)
-LV_ModifyCol(6, 0)
 
 return
 ;------------------------------------------------------------
@@ -3172,7 +3073,7 @@ Gui, 1:Add, Text, vf_lblAppTagLine, %lAppTagline%
 Gui, 1:Add, Picture, vf_picGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static3
 Gui, 1:Add, Picture, vf_picGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
 Gui, 1:Add, Picture, vf_picGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static5
-; Gui, 1:Add, Picture, vf_picGuiGroupsManage gGuiGroupsManage x+1 yp, %g_strTempDir%\channel_mosaic-48.png ; Static6
+Gui, 1:Add, Picture, vf_picGuiHotkeysManage gGuiHotkeysManage x+1 yp, %g_strTempDir%\channel_mosaic-48.png ; Static6 #### change button image
 Gui, 1:Add, Picture, vf_picGuiOptions gGuiOptions x+1 yp, %g_strTempDir%\settings-32.png ; Static7
 Gui, 1:Add, Picture, vf_picPreviousMenu gGuiGotoPreviousMenu hidden x+1 yp, %g_strTempDir%\left-12.png ; Static8
 Gui, 1:Add, Picture, vf_picUpMenu gGuiGotoUpMenu hidden x+1 yp, %g_strTempDir%\up-12.png ; Static9
@@ -3189,7 +3090,7 @@ Gui, 1:Add, Text, vf_lblGuiOptions gGuiOptions x0 y+20, %lGuiOptions% ; Static17
 Gui, 1:Add, Text, vf_lblGuiAddFavorite center gGuiAddFavoriteSelectType x+1 yp, %lGuiAddFavorite% ; Static18
 Gui, 1:Add, Text, vf_lblGuiEditFavorite center gGuiEditFavorite x+1 yp w88, %lGuiEditFavorite% ; Static19, w88 to make room fot when multiple favorites are selected
 Gui, 1:Add, Text, vf_lblGuiRemoveFavorite center gGuiRemoveFavorite x+1 yp, %lGuiRemoveFavorite% ; Static20
-; Gui, 1:Add, Text, vf_lblGuiGroupsManage center gGuiGroupsManage x+1 yp, %lDialogGroups% ; Static21
+Gui, 1:Add, Text, vf_lblGuiHotkeysManage center gGuiHotkeysManage x+1 yp, %lDialogHotkeys% ; Static21
 Gui, 1:Add, Text, vf_lblGuiAbout center gGuiAbout x+1 yp, %lGuiAbout% ; Static22
 Gui, 1:Add, Text, vf_lblGuiHelp center gGuiHelp x+1 yp, %lGuiHelp% ; Static23
 
@@ -3206,7 +3107,7 @@ Gui, 1:Add, ListView
 	, %lGuiLvFavoritesHeader%
 
 Gui, 1:Font, s9 w600, Verdana
-Gui, 1:Add, Button, vf_btnGuiSave Disabled Default gGuiSave x200 y400 w100 h50, %lGuiSave% ; Button1
+Gui, 1:Add, Button, vf_btnGuiSaveFavorites Disabled Default gGuiSaveFavorites x200 y400 w100 h50, %lGuiSave% ; Button1
 Gui, 1:Add, Button, vf_btnGuiCancel gGuiCancel x350 yp w100 h50, %lGuiClose% ; Close until changes occur - Button2
 
 if !(g_blnDonor)
@@ -3310,7 +3211,7 @@ for intIndex, objGuiControl in g_objGuiControls
 		GuiControlGet, arrPos, Pos, f_lnkGuiDropHelpClicked
 		intX := intX - arrPosW
 	}
-	else if (objGuiControl.Name = "f_btnGuiSave")
+	else if (objGuiControl.Name = "f_btnGuiSaveFavorites")
 		intX := 40 + intButtonSpacing
 	else if (objGuiControl.Name = "f_btnGuiCancel")
 		intX := 40 + (2 * intButtonSpacing) + 100
@@ -4566,7 +4467,7 @@ Gosub, Adjust3ColumnsWidth
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	Gosub, BuildMainMenuWithStatus ; update menus
 
-GuiControl, Enable, f_btnGuiSave
+GuiControl, Enable, f_btnGuiSaveFavorites
 GuiControl, , f_btnGuiCancel, %lDialogCancelButton%
 
 g_blnMenuReady := true
@@ -4719,7 +4620,7 @@ if (A_ThisLabel = "GuiRemoveFavorite")
 }
 Gosub, Adjust3ColumnsWidth
 
-GuiControl, Enable, f_btnGuiSave
+GuiControl, Enable, f_btnGuiSaveFavorites
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
 intItemToRemove := ""
@@ -4938,7 +4839,7 @@ LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), , arrThis1, ar
 if !InStr(A_ThisLabel, "One")
 	LV_Modify(g_intSelectedRow + (InStr(A_ThisLabel, "Up") ? -1 : 1), "Select Focus Vis")
 
-GuiControl, Enable, f_btnGuiSave
+GuiControl, Enable, f_btnGuiSaveFavorites
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
 return
@@ -4968,6 +4869,133 @@ MoveFavoriteInMenuObject(objMenu, intItem, intDirection)
 	objMenu.Insert(intItem + intDirection + (intDirection > 0 ? 1 : 0), objMenu[intItem])
 	objMenu.Remove(intItem + (intDirection > 0 ? 0 : 1))
 }	
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiHotkeysManage:
+;------------------------------------------------------------
+
+intWidth := 640
+
+g_intGui1WinID := WinExist("A")
+Gui, 1:Submit, NoHide
+
+Gui, 2:New, , % L(lDialogHotkeysManageTitle, strAppName, strAppVersion)
+Gui, 2:+Owner1
+Gui, 2:+OwnDialogs
+if (g_blnUseColors)
+	Gui, 2:Color, %g_strGuiWindowColor%
+
+Gui, 2:Font, w600 
+Gui, 2:Add, Text, x10 y10, %lDialogHotkeysManageAbout%
+Gui, 2:Font
+
+Gui, 2:Add, Text, x10 y+10 w%intWidth%, %lDialogHotkeysManageIntro%
+
+Gui, 2:Add, Listview
+	, % "vf_lvHotkeysManageList Count32 " . (g_blnUseColors ? "c" . g_strGuiListviewTextColor . " Background" . g_strGuiListviewBackgroundColor : "") 
+	. " gHotkeysManageListEvents x10 y+10 w600 h340"
+	, %lDialogHotkeysManageListHeader%|Menu path (hidden)|Position (hidden)
+
+Gui, 2:Add, Checkbox, vf_blnSeeAllFavorites gCheckboxSeeAllFavoritesClicked, %lDialogHotkeysManageListSeeAllFavorites%
+Gui, 2:Add, Checkbox, x+50 yp vf_blnSeeFullHotkeyNames gCheckboxSeeFullHotkeyNames, %lDialogHotkeysManageListSeeFullHotkeyNames%
+Gosub, LoadHotkeysManageList
+
+; ####
+Gui, 2:Add, Button, x+10 y+30 vf_btnHotkeysManageClose g2GuiClose h33, %lGui2Close%
+GuiCenterButtons(L(lDialogHotkeysManageTitle, strAppName, strAppVersion), , , , "f_btnHotkeysManageClose")
+Gui, 2:Add, Text, x10, %A_Space%
+
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+intWidth := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+HotkeysManageListEvents:
+;------------------------------------------------------------
+
+Gui, 2:ListView, f_lvHotkeysList
+
+if (A_GuiEvent = "DoubleClick")
+{
+	intItemPosition := LV_GetNext()
+	LV_GetText(strMenuPath, intItemPosition, 5)
+	LV_GetText(strFavoritePosition, intItemPosition, 6)
+	
+	if !StrLen(strMenuPath)
+		GuiControl, Choose, f_intOptionsTab, 2
+	else
+	{
+		; prepare variables for GuiEditFavorite
+		strNewHotkey := SelectHotkey(g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey
+			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
+			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
+			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, 3)
+		; SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
+		; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
+		; returns the new hotkey or empty string if cancel
+		if StrLen(strNewHotkey)
+		{
+			g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey := strNewHotkey
+			GuiControl, 1:Enable, f_btnGuiSaveFavorites
+			Gosub, LoadHotkeysManageList
+		}
+	}
+}
+
+intItemPosition := ""
+strMenuPath := ""
+strFavoritePosition := ""
+strNewHotkey := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+LoadHotkeysManageList:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+Gui, 2:Default
+Gui, 2:ListView, f_lvHotkeysManageList
+LV_Delete()
+
+loop, 4
+	LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(g_arrPopupHotkeys%A_Index%) : g_arrPopupHotkeys%A_Index%)
+		, g_arrOptionsPopupHotkeyTitles%A_Index%, lDialogHotkeysManagePopup)
+
+for strMenuPath, objMenu in g_objMenusIndex
+	loop, % objMenu.MaxIndex()
+		if StrLen(objMenu[A_Index].FavoriteLocation) and (objMenu[A_Index].FavoriteLocation <> lDialogMouseNone)
+			and (StrLen(objMenu[A_Index].FavoriteHotkey) or f_blnSeeAllFavorites)
+			LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(objMenu[A_Index].FavoriteHotkey) : objMenu[A_Index].FavoriteHotkey)
+				, objMenu[A_Index].FavoriteName, objMenu[A_Index].FavoriteType, objMenu[A_Index].FavoriteLocation, strMenuPath, A_Index)
+
+LV_ModifyCol(2, "Sort")
+LV_ModifyCol(, "Auto")
+; ### reactivate after debug
+; LV_ModifyCol(5, 0)
+; LV_ModifyCol(6, 0)
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CheckboxSeeAllFavoritesClicked:
+CheckboxSeeFullHotkeyNames:
+;------------------------------------------------------------
+
+Gosub, LoadHotkeysManageList
+
+return
 ;------------------------------------------------------------
 
 
@@ -5016,7 +5044,7 @@ else ; GuiAddColumnBreak
 LV_Modify(LV_GetNext(), "Vis")
 Gosub, Adjust3ColumnsWidth
 
-GuiControl, Enable, f_btnGuiSave
+GuiControl, Enable, f_btnGuiSaveFavorites
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
 intInsertPosition := ""
@@ -5027,7 +5055,7 @@ return
 
 
 ;------------------------------------------------------------
-GuiSave:
+GuiSaveFavorites:
 ;------------------------------------------------------------
 
 g_blnMenuReady := false
@@ -5190,7 +5218,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	if (intHotkeyType <> 1)
 		Gui, Add, Link, y+5 xs w130 gHotkeySpaceTabClicked, %lDialogSpacebarTab% ; space or tab
 
-	Gui, Add, Button, % "x10 y" . arrTopY + 100 . " vf_btnNoneHotkey gSelectNoneHotkeyClicked", %lDialogMouseNone%
+	Gui, Add, Button, % "x10 y" . arrTopY + 100 . " vf_btnNoneHotkey gSelectNoneHotkeyClicked", %lDialogNone%
 	if StrLen(strDefaultHotkey)
 	{
 		Gui, Add, Button, % "x10 y" . arrTopY + 100 . " vf_btnResetHotkey gButtonResetHotkey", %lGuiResetDefault%
@@ -5230,7 +5258,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	strMouseControl := A_GuiControl ; hotkey var name
 	GuiControlGet, strMouseValue, , %strMouseControl%
 
-	if (strMouseValue = lDialogMouseNone) ; this is the translated "None"
+	if (strMouseValue = lDialogNone) ; this is the translated "None"
 	{
 		GuiControl, , f_blnShift, 0
 		GuiControl, , f_blnCtrl, 0
@@ -5277,8 +5305,8 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	SelectNoneHotkeyClicked:
 	;------------------------------------------------------------
 
-	GuiControl, , f_strHotkeyKey, %lDialogMouseNone%
-	GuiControl, Choose, f_drpHotkeyMouse, %lDialogMouseNone%
+	GuiControl, , f_strHotkeyKey, %lDialogNone%
+	GuiControl, Choose, f_drpHotkeyMouse, %lDialogNone%
 	SplitHotkey("None", strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
 	Gosub, SetModifiersCheckBox
 
@@ -5344,7 +5372,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 		strNewHotkey := "None"
 	; ###_V(0, strMouse, strKey, strNewHotkey)
 	
-	if (strNewHotkey <> "None") ; do not compare with lDialogMouseNone because it is translated
+	if (strNewHotkey <> "None") ; do not compare with lDialogNone because it is translated
 	{
 		; Order of modifiers important to keep modifiers labels in correct order
 		if (blnWin)
@@ -5613,7 +5641,7 @@ return
 GuiCancel:
 ;------------------------------------------------------------
 
-GuiControlGet, blnSaveEnabled, Enabled, f_btnGuiSave
+GuiControlGet, blnSaveEnabled, Enabled, f_btnGuiSaveFavorites
 if (blnSaveEnabled)
 {
 	Gui, 1:+OwnDialogs
@@ -5627,7 +5655,7 @@ if (blnSaveEnabled)
 		Gosub, BuildCurrentFoldersMenu
 		Gosub, BuildMainMenu ; need to be initialized here - will be updated at each call to popup menu
 		
-		GuiControl, Disable, f_btnGuiSave
+		GuiControl, Disable, f_btnGuiSaveFavorites
 		GuiControl, , f_btnGuiCancel, %lGuiClose%
 		g_blnMenuReady := true
 	}
@@ -6901,12 +6929,12 @@ SplitHotkey(strHotkey, ByRef strModifiers, ByRef strKey, ByRef strMouseButton, B
 	; safer that declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
 	global
 
-	if (strHotkey = "None") ; do not compare with lDialogMouseNone because it is translated
+	if (strHotkey = "None") ; do not compare with lDialogNone because it is translated
 	{
 		strModifiers := ""
 		strKey := ""
-		strMouseButton := "None" ; do not use lDialogMouseNone because it is translated
-		StringReplace, strMouseButtonsWithDefault, lDialogMouseButtonsText, % lDialogMouseNone . "|", % lDialogMouseNone . "||" ; use lDialogMouseNone because this is displayed
+		strMouseButton := "None" ; do not use lDialogNone because it is translated
+		StringReplace, strMouseButtonsWithDefault, lDialogMouseButtonsText, % lDialogNone . "|", % lDialogNone . "||" ; use lDialogNone because this is displayed
 	}
 	else 
 	{
@@ -6942,7 +6970,7 @@ HotkeySections2Text(strModifiers, strMouseButton, strKey, blnShort := false)
 {
 	if (strMouseButton = "None") ; do not compare with lDialogNone because it is translated
 		or !StrLen(strModifiers . strMouseButton . strKey) ; if all parameters are empty
-		str := lDialogMouseNone ; use lDialogMouseNone because this is displayed
+		str := lDialogNone ; use lDialogNone because this is displayed
 	else
 	{
 		str := ""
