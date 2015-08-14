@@ -18,7 +18,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 - check menu names for QAP features when numeric shortcuts active (line 5782)
 - when reading icons for apps or docs, resolve envvar
-- infinite loop when saving to ini with a new fav at the end of main menu
 
 TO-DO
 - remove Options from QAP features
@@ -5032,7 +5031,7 @@ Gui, 1:ListView, f_lvFavoritesList
 if (LV_GetCount("Selected") > 1)
 	return
 
-intInsertPosition := LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : 0xFFFF) : 1
+intInsertPosition := LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : LV_GetCount() + 1) : 1
 
 ; --- ### add in menu object ---
 
@@ -5051,7 +5050,6 @@ else ; GuiAddColumnBreak
 	objNewFavorite.FavoriteLocation := ""
 }
 g_objMenuInGui.Insert(intInsertPosition, objNewFavorite)
-; ###_D(list(g_objMenuInGui, g_intSelectedRow))
 
 ; --- add in Gui ---
 
@@ -5137,9 +5135,9 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 		
 		if InStr("Menu|Group", objCurrentMenu[A_Index].FavoriteType) and !(blnIsBackMenu)
 		{
-			; ###_D("Going down in: " . objCurrentMenu[A_Index].SubMenu.MenuPath)
+			; ###_V("Going down in:", objCurrentMenu[A_Index].SubMenu.MenuPath, objCurrentMenu[A_Index].FavoriteType)
 			RecursiveSaveFavoritesToIniFile(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
-			; ###_D("Going up back in: " . objCurrentMenu.MenuPath)
+			; ###_V("Going up back in", objCurrentMenu.MenuPath, objCurrentMenu[A_Index].FavoriteType)
 		}
 	}
 		
