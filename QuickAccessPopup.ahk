@@ -17,7 +17,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 BUGS
 - check menu names for QAP features when numeric shortcuts active (line 5782)
-- check if disable previous fav hotkeys when save
+- when reading icons for apps or docs, resolve envvar
+- infinite loop when saving to ini with a new fav at the end of main menu
 
 TO-DO
 - remove Options from QAP features
@@ -277,7 +278,6 @@ DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex
 ; DEBUG
 ; -----
 ; Gosub, GuiShow
-; ###_D(HotkeyIfAvailable("+^C", "strLocation"))
 ; Gosub, BuildClipboardMenu
 ; Menu, g_menuClipboard, Show
 
@@ -1144,7 +1144,7 @@ IfNotExist, %g_strIniFile%
 	strPowerHotkeyKeyboardDefault := g_arrHotkeyDefaults4 ; "+#a"
 	
 	g_intIconSize := 24
-	
+
 	FileAppend,
 		(LTrim Join`r`n
 			[Global]
@@ -1165,12 +1165,13 @@ IfNotExist, %g_strIniFile%
 			IconSize=%g_intIconSize%
 			OpenMenuOnTaskbar=1
 			[Favorites]
-			Favorite1=F|C:\|C:\
-			Favorite2=F|Windows|%A_WinDir%
-			Favorite3=F|Program Files|%A_ProgramFiles%
-			Favorite4=F|User Profile|`%USERPROFILE`%
-			Favorite5=A|Notepad|%A_WinDir%\system32\notepad.exe
-			Favorite6=U|%g_strAppNameText% web site|http://www.QuickAccessPopup.com
+			Favorite1=Folder|C:\|C:\
+			Favorite2=Folder|Windows|%A_WinDir%
+			Favorite3=Folder|Program Files|%A_ProgramFiles%
+			Favorite4=Folder|User Profile|`%USERPROFILE`%
+			Favorite5=Application|Notepad|%A_WinDir%\system32\notepad.exe
+			Favorite6=URL|QAP's web site|http://www.QuickAccessPopup.com
+			Favorite7=Z
 
 
 )
@@ -1409,8 +1410,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteArguments := ReplaceAllInString(arrThisFavorite5, g_strEscapePipe, "|") ; application arguments
 		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
 		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height (comma delimited)
-		; objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
-		objLoadIniFavorite.FavoriteHotkey := HotkeyIfAvailable(arrThisFavorite8, objLoadIniFavorite.FavoriteLocation, true) ; assign hotkey to launch this favorite
+		objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
 		objLoadIniFavorite.FavoriteLaunchWith := arrThisFavorite9 ; launch favorite with this executable
 		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; login name for FTP favorite
 		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite11, g_strEscapePipe, "|") ; password for FTP favorite
@@ -1730,7 +1730,7 @@ Menu, Tray, Icon, , , 1 ; last 1 to freeze icon during pause or suspend
 Menu, Tray, NoStandard
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for developement phase only - won't be compiled
-Menu, Tray, Icon, %A_ScriptDir%\qap-red-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
+Menu, Tray, Icon, %A_ScriptDir%\qap-white-rounded-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
 Menu, Tray, Standard
 Menu, Tray, Add
 ; / End of code for developement phase only - won't be compiled
@@ -2311,13 +2311,11 @@ g_objMenuColumnBreaks := Object() ; re-init before rebuilding menu
 
 RecursiveBuildOneMenu(g_objMainMenu) ; recurse for submenus
 
-if (g_objMenusIndex[lMainMenuName][g_objMenusIndex[lMainMenuName].MaxIndex()].FavoriteType <> "K")
-; column break not allowed if first item is a separator
-	Menu, %lMainMenuName%, Add
-
 if !(g_blnDonor)
 {
-	Menu, %lMainMenuName%, Add
+	if (g_objMenusIndex[lMainMenuName][g_objMenusIndex[lMainMenuName].MaxIndex()].FavoriteType <> "K")
+	; column break not allowed if first item is a separator ### ?
+		Menu, %lMainMenuName%, Add
 	AddMenuIcon(lMainMenuName, lDonateMenu . "...", "GuiDonate", "iconDonate")
 }
 
@@ -2360,7 +2358,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
 			continue
 		
-		if (objCurrentMenu[A_Index].FavoriteType = "Menu")
+		if InStr("Menu|Group", objCurrentMenu[A_Index].FavoriteType)
 		{
 			RecursiveBuildOneMenu(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
 			
@@ -2410,7 +2408,6 @@ RecursiveBuildOneMenu(objCurrentMenu)
 				strMenuName .= " " . SubStr(g_strGroupItemSuffix, 1, 1) . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . SubStr(g_strGroupItemSuffix, 0, 1)
 			
 			if (objCurrentMenu[A_Index].FavoriteType = "QAP") and Strlen(g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName)
-				; ###_V("", objCurrentMenu.MenuPath, strMenuName, objCurrentMenu[A_Index].FavoriteLocation, ":" . g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName)
 				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, % ":" . g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName
 			else
 				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavorite
@@ -2441,6 +2438,16 @@ RecursiveBuildOneMenu(objCurrentMenu)
 						
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, off
 			}
+			if (objCurrentMenu[A_Index].FavoriteName = lMenuSettings . "...")
+				Menu, % objCurrentMenu.MenuPath, Default, %strMenuName%
+		}
+		
+		; for any type of favorite, if we have a hotkey, set it
+		if StrLen(objCurrentMenu[A_Index].FavoriteHotkey) and (objCurrentMenu[A_Index].FavoriteHotkey <> "None")
+		{
+			Hotkey, % objCurrentMenu[A_Index].FavoriteHotkey, OpenFavoriteFromHotkey, On UseErrorLevel
+			if (ErrorLevel)
+				Oops(lDialogInvalidHotkeyFavorite, objCurrentMenu[A_Index].FavoriteHotkey, objCurrentMenu[A_Index].FavoriteName)
 		}
 	}
 }
@@ -4393,8 +4400,23 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	else
 		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
 	
+	; if hotkey is changed, disable previous hotkey and set new hotkey
+	if (g_objEditedFavorite.FavoriteHotkey <> g_strNewFavoriteHotkey)
+	{
+		if StrLen(g_objEditedFavorite.FavoriteHotkey) and (g_objEditedFavorite.FavoriteHotkey <> "None")
+			Hotkey, % g_objEditedFavorite.FavoriteHotkey, , Off
+		if StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
+		{
+			Hotkey, %g_strNewFavoriteHotkey%, OpenFavoriteFromHotkey, On UseErrorLevel
+			g_objHotkeysToDisableIfCancel.Insert(g_strNewFavoriteHotkey)
+		}
+		if (ErrorLevel)
+			Oops(lDialogInvalidHotkeyFavorite, g_strNewFavoriteHotkey, g_objEditedFavorite.FavoriteName)
+		else
+			g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
+	}
+
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
-	g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
 	
 	g_objEditedFavorite.FavoriteGroupSettings := f_blnRadioGroupReplace
@@ -4410,7 +4432,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 
 ; updating original and destination menu objects (these can be the same)
 
-if (strOriginalMenu <> "") ; we are moving a favorite
+if (strOriginalMenu <> "")
 	g_objMenusIndex[strOriginalMenu].Remove(g_intOriginalMenuPosition)
 if (g_intNewItemPos)
 	g_objMenusIndex[strDestinationMenu].Insert(g_intNewItemPos, g_objEditedFavorite)
@@ -4419,6 +4441,7 @@ else
 
 /*
 ###_D(""
+	. "strOriginalMenu: " . strOriginalMenu . "`n"
 	. "g_intNewItemPos: " . g_intNewItemPos . "`n"
 	. "g_objEditedFavorite.FavoriteType : " . g_objEditedFavorite.FavoriteType . "`n"
 	. "g_objEditedFavorite.FavoriteName : " . g_objEditedFavorite.FavoriteName . "`n"
@@ -4902,7 +4925,6 @@ Gui, 2:Add, Checkbox, vf_blnSeeAllFavorites gCheckboxSeeAllFavoritesClicked, %lD
 Gui, 2:Add, Checkbox, x+50 yp vf_blnSeeFullHotkeyNames gCheckboxSeeFullHotkeyNames, %lDialogHotkeysManageListSeeFullHotkeyNames%
 Gosub, LoadHotkeysManageList
 
-; ####
 Gui, 2:Add, Button, x+10 y+30 vf_btnHotkeysManageClose g2GuiClose h33, %lGui2Close%
 GuiCenterButtons(L(lDialogHotkeysManageTitle, strAppName, strAppVersion), , , , "f_btnHotkeysManageClose")
 Gui, 2:Add, Text, x10, %A_Space%
@@ -5139,10 +5161,12 @@ GuiControlGet, blnSaveEnabled, Enabled, %lGuiSave%
 if (blnSaveEnabled)
 	return
 
-g_objMenuInGui := g_objMainMenu ; was g_strCurrentMenu := lMainMenuName
+g_objMenuInGui := g_objMainMenu
+
 Gosub, BackupMenusObjects
 
-; ### test Gosub, RestoreBackupMenusObjects
+g_objHotkeysToDisableIfCancel := Object() ; to track hotkeys chanded in fav before saving
+
 Gosub, LoadMenuInGui
 Gui, 1:Show
 
@@ -5244,8 +5268,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	; second parameter of HotkeyIfAvailable contains the popup menu trigger's name or the favorites's location
 	; last parameter indicate if the hotkey is for a favorite; if yes, hotkey will be assigned immediately
 	; if not, it is for a popup menu trigger and hotkey will be assigned after Options save
-	strNewHotkey := HotkeyIfAvailable(strNewHotkey, StrLen(strFavoriteLocation) ? strFavoriteLocation : strFavoriteName, StrLen(strFavoriteLocation) > 0)
-	; ###_V(1, strMouse, strKey, strNewHotkey)
+	strNewHotkey := HotkeyIfAvailable(strNewHotkey, StrLen(strFavoriteLocation) ? strFavoriteLocation : strFavoriteName)
 	
 	return strNewHotkey ; returning value
 	
@@ -5413,11 +5436,9 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 
 
 ;-----------------------------------------------------------
-HotkeyIfAvailable(strHotkey, strLocation, blnAssignFavorite := false)
+HotkeyIfAvailable(strHotkey, strLocation)
 ;-----------------------------------------------------------
 {
-; ####
-
 	global g_arrPopupHotkeys
 	global g_objMenusIndex
 	global g_arrOptionsPopupHotkeyTitles
@@ -5454,11 +5475,7 @@ HotkeyIfAvailable(strHotkey, strLocation, blnAssignFavorite := false)
 		return ""
 	}
 	else
-	{
-		 if (blnAssignFavorite)
-			Hotkey, %strHotkey%, OpenFavoriteFromHotkey
 		return strHotkey
-	}
 }
 ;-----------------------------------------------------------
 
@@ -5649,8 +5666,13 @@ if (blnSaveEnabled)
 	IfMsgBox, Yes
 	{
 		g_blnMenuReady := false
-		Gosub, RestoreBackupMenusObjects
 		
+		; disable hotkeys changed before cancel
+		loop, % g_objHotkeysToDisableIfCancel.MaxIndex()
+			Hotkey, % g_objHotkeysToDisableIfCancel[A_Index], , Off
+		
+		Gosub, RestoreBackupMenusObjects
+
 		; restore popup menu
 		Gosub, BuildCurrentFoldersMenu
 		Gosub, BuildMainMenu ; need to be initialized here - will be updated at each call to popup menu
@@ -5665,9 +5687,6 @@ if (blnSaveEnabled)
 Gui, 1:Cancel
 
 blnSaveEnabled := ""
-
-; ### TEMP
-; Gosub, CleanUpBeforeExit ; ExitApp
 
 return
 ;------------------------------------------------------------
@@ -5706,18 +5725,22 @@ RestoreBackupMenusObjects:
 ;------------------------------------------------------------
 
 if (A_ThisLabel = "BackupMenusObjects")
+{
 	objMenusSource := g_objMenusIndex
+	g_objMenusBK := Object() ; re-init
+}
 else ; RestoreBackupMenusObjects
+{
 	objMenusSource := g_objMenusBK
-
-
-objMenusDest := Object() ; reset object
+	g_objMenusIndex := Object() ; re-init
+}
 
 for strMenuPath, objMenuSource in objMenusSource
 {
 	objMenuDest := Object()
-	objMenuDest.MenuPath := objMenu.MenuPath
-	
+	objMenuDest.MenuPath := objMenuSource.MenuPath
+	objMenuDest.MenuType := objMenuSource.MenuType
+
 	loop, % objMenuSource.MaxIndex()
 	{
 		objFavorite := Object()
@@ -5730,25 +5753,39 @@ for strMenuPath, objMenuSource in objMenusSource
 		objFavorite.FavoriteWindowPosition := objMenuSource[A_Index].FavoriteWindowPosition
 		objFavorite.FavoriteHotkey := objMenuSource[A_Index].FavoriteHotkey
 		objFavorite.FavoriteLaunchWith := objMenuSource[A_Index].FavoriteLaunchWith
-		objFavorite.SubMenu := objMenuSource[A_Index].SubMenu
-		
-		objMenuDest.Insert(A_Index, objFavorite)
+		; do not backup objMenuSource[A_Index].SubMenu because we have to recreate them
+		; after menu/groups objects are recreated during restore
+		objMenuDest.Insert(objFavorite)
 	}
 	
-	objMenusDest.Insert(strMenuPath, objMenuDest)
+	if (A_ThisLabel = "BackupMenusObjects")
+		g_objMenusBK.Insert(strMenuPath, objMenuDest)
+	else ; RestoreBackupMenusObjects
+		g_objMenusIndex.Insert(strMenuPath, objMenuDest)
 }
 
-if (A_ThisLabel = "BackupMenusObjects")
-	g_objMenusBK := objMenusDest
-else ; RestoreBackupMenusObjects
-	g_objMenusIndex := objMenusDest
+if (A_ThisLabel = "RestoreBackupMenusObjects")
+{
+	g_objMainMenu := g_objMenusIndex[lMainMenuName] ; re-connect main menu
+	for strMenuPath, objMenuDest in g_objMenusIndex
+		loop, % objMenuDest.MaxIndex()
+			if InStr("Menu|Group", objMenuDest[A_Index].FavoriteType)
+			{
+				objSubMenu := Object()
+				objSubMenu.MenuPath := lMainMenuName . " " . objMenuDest[A_Index].FavoriteLocation
+				objSubMenu.MenuType := objMenuDest[A_Index].FavoriteType
+				objMenuDest[A_Index].SubMenu := g_objMenusIndex[objSubMenu.MenuPath] ; re-connect sub menu
+			}
+
+	g_objMenusBK :=
+}
 
 objMenusSource := ""
-objMenusDest := ""
 strMenuPath := ""
 objMenuSource := ""
 objMenuDest := ""
 objFavorite := ""
+objSubMenu := ""
 
 return
 ;------------------------------------------------------------
@@ -6148,7 +6185,7 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 	}
 	if !(blnHotkeyFound) ; should not happen
 	{
-		Oops("### Error:hotkey not found in menus") ; ### language
+		Oops(lOopsHotkeyNotInMenus, A_ThisHotkey)
 		return
 	}
 	if CanNavigate(A_ThisHotkey)
@@ -6160,15 +6197,34 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 }
 else
 {
-	objThisFavorite.FavoriteName := A_ThisMenuItem
-	objThisFavorite.FavoritePosition := A_ThisMenuItemPos
+	if (g_blnDisplayMenuShortcuts)
+		StringTrimLeft, strLocation, A_ThisMenuItem, 3 ; remove "&1 " from menu item
+	else
+		strLocation :=  A_ThisMenuItem
+
+	if InStr(strLocation, "http://") = 1 or InStr(strLocation, "https://") = 1 or InStr(strLocation, "www.") = 1
+		strFavoriteType := "URL"
+	else
+	{
+		strLocation :=  EnvVars(strLocation)
+		SplitPath, strLocation, , , strExtension
+		if StrLen(strExtension) and InStr("exe.com.bat", strExtension)
+			strFavoriteType := "Application" ; application
+		else
+			strFavoriteType := (LocationIsDocument(strLocation) ? "Document" : "Folder")
+	}
+	
+	objThisFavorite := Object()
+	objThisFavorite.FavoriteName := strLocation
+	objThisFavorite.FavoriteLocation := strLocation
+	objThisFavorite.FavoriteType := strFavoriteType
 }
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-; ###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
+###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
 
-if (A_ThisLabel = "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+if InStr(A_ThisLabel, "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 		Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
 
@@ -6177,6 +6233,8 @@ intMenuItemPos := ""
 strMenuPath := ""
 objMenu := ""
 blnHotkeyFound := ""
+strLocation := ""
+strFavoriteType := ""
 
 return
 ;------------------------------------------------------------
