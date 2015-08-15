@@ -3505,6 +3505,15 @@ return
 ;------------------------------------------------------------
 
 
+;========================================================================================================================
+; END OF FAVORITES_LIST
+;========================================================================================================================
+
+
+;========================================================================================================================
+!_032_FAVORITE_GUI:
+;========================================================================================================================
+
 ;------------------------------------------------------------
 GuiAddFavorite:
 GuiAddThisFolder:
@@ -3512,6 +3521,105 @@ GuiAddFromDropFiles:
 GuiEditFavorite:
 ;------------------------------------------------------------
 
+strGuiFavoriteLabel := A_ThisLabel
+
+Gosub, GuiFavoriteInit
+
+g_intGui1WinID := WinExist("A")
+Gui, 1:Submit, NoHide
+if (strGuiFavoriteLabel = "GuiAddFavorite")
+	Gosub, 2GuiClose ; to avoid flashing Gui 1:
+
+Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (strGuiFavoriteLabel = "GuiEditFavorite" ? lDialogEdit : lDialogAdd), g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType)
+Gui, 2:+Owner1
+Gui, 2:+OwnDialogs
+if (g_blnUseColors)
+	Gui, 2:Color, %g_strGuiWindowColor%
+
+Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h380 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
+intTabNumber := 0
+
+; ------ BUILD TABS ------
+
+Gosub, GuiFavoriteTabBasic
+
+Gosub, GuiFavoriteTabMenuOptions
+
+Gosub, GuiFavoriteTabWindowOptions
+
+Gosub, GuiFavoriteTabAdvancedSettings
+
+; ------ TABS End ------
+
+Gui, 2:Tab
+
+if (strGuiFavoriteLabel = "GuiEditFavorite")
+{
+	Gui, 2:Add, Button, y420 vf_btnEditFavoriteSave gGuiEditFavoriteSave default, %lDialogSave%
+	Gui, 2:Add, Button, yp vf_btnEditFavoriteCancel gGuiEditFavoriteCancel, %lGuiCancel%
+	
+	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnEditFavoriteSave", "f_btnEditFavoriteCancel")
+}
+else
+{
+	Gui, 2:Add, Button, y400 vf_btnAddFavoriteAdd gGuiAddFavoriteSave default, %lDialogAdd%
+	Gui, 2:Add, Button, yp vf_btnAddFavoriteCancel gGuiAddFavoriteCancel, %lGuiCancel%
+	
+	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnAddFavoriteAdd", "f_btnAddFavoriteCancel")
+}
+
+if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
+	GuiControl, 2:+Default, f_btnSelectFolderLocation
+else
+	GuiControl, 2:+Default, f_btnAddFavoriteAdd
+
+if InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
+	GuiControl, 2:Focus, % "f_drp" . g_objEditedFavorite.FavoriteType
+else
+{
+	GuiControl, 2:Focus, f_strFavoriteShortName
+	if (strGuiFavoriteLabel = "GuiEditFavorite") 
+		SendInput, ^a
+}
+
+Gosub, DropdownParentMenuChanged ; to init the content of menu items
+
+Gui, 2:Add, Text
+Gui, 2:Show, AutoSize Center
+Gui, 1:+Disabled
+
+strGuiFavoriteLabel := ""
+g_strNewLocation := ""
+arrTop := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+BuildTabsList(strFavoriteType)
+;------------------------------------------------------------
+{
+	global
+
+	; 1 Basic Settings, 2 Menu Options, 3 Window Options, 4 Advanced Settings
+	strTabsList := g_arrFavoriteGuiTabs1 . " | " . g_arrFavoriteGuiTabs2
+	
+	if InStr("Folder|Special", strFavoriteType)
+		strTabsList .= " | " . g_arrFavoriteGuiTabs3
+	if InStr("Folder|Document|Application|Special|URL|FTP|Group", strFavoriteType)
+		strTabsList .= " | " . g_arrFavoriteGuiTabs4
+	
+	strTabsList .= " "
+	
+	return strTabsList
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiFavoriteInit:
+;------------------------------------------------------------
 ; Icon resource in the format "iconfile,index", examnple "shell32.dll,2"
 ; g_strDefaultIconResource -> default icon for the current type of favorite
 ; g_strNewFavoriteIconResource -> icon currently displayed in the Add/Edit dialog box
@@ -3525,7 +3633,7 @@ g_objEditedFavorite := Object()
 g_strDefaultIconResource := ""
 g_strNewFavoriteIconResource := ""
 
-if (A_ThisLabel = "GuiEditFavorite")
+if (strGuiFavoriteLabel = "GuiEditFavorite")
 {
 	Gui, 1:ListView, f_lvFavoritesList
 	g_intOriginalMenuPosition := LV_GetNext()
@@ -3559,10 +3667,10 @@ if (A_ThisLabel = "GuiEditFavorite")
 }
 else
 {
-	if (A_ThisLabel <> "GuiAddThisFolder") ; else position is set in AddThisFolder
+	if (strGuiFavoriteLabel <> "GuiAddThisFolder") ; else position is set in AddThisFolder
 		g_strNewFavoriteWindowPosition := ""
 
-	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", A_ThisLabel)
+	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", strGuiFavoriteLabel)
 	{
 		; g_strNewLocation is received from AddThisFolder or GuiDropFiles
 		g_objEditedFavorite.FavoriteLocation := g_strNewLocation
@@ -3571,11 +3679,11 @@ else
 	g_objEditedFavorite.FavoriteHotkey := "None" ; internal name
 	g_strNewFavoriteHotkey := g_objEditedFavorite.FavoriteHotkey
 
-	if (A_ThisLabel = "GuiAddFavorite")
+	if (strGuiFavoriteLabel = "GuiAddFavorite")
 		g_objEditedFavorite.FavoriteType := g_strAddFavoriteType
-	else if (A_ThisLabel = "GuiAddThisFolder")
+	else if (strGuiFavoriteLabel = "GuiAddThisFolder")
 		g_objEditedFavorite.FavoriteType := "Folder"
-	else if (A_ThisLabel = "GuiAddFromDropFiles")
+	else if (strGuiFavoriteLabel = "GuiAddFromDropFiles")
 	{
 		SplitPath, g_strNewLocation, , , strExtension
 		if StrLen(strExtension) and InStr("exe|com|bat", strExtension)
@@ -3587,22 +3695,14 @@ else
 	}
 }
 g_strNewFavoriteWindowPosition .= ",,,,,,," ; extra coma to avoid having phantom values if in case string is empty
- 
-g_intGui1WinID := WinExist("A")
-Gui, 1:Submit, NoHide
-if (A_ThisLabel = "GuiAddFavorite")
-	Gosub, 2GuiClose ; to avoid flashing Gui 1:
 
-Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (A_ThisLabel = "GuiEditFavorite" ? lDialogEdit : lDialogAdd), g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType)
-Gui, 2:+Owner1
-Gui, 2:+OwnDialogs
-if (g_blnUseColors)
-	Gui, 2:Color, %g_strGuiWindowColor%
+return
+;------------------------------------------------------------
 
-Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h380 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
-intTabNumber := 0
 
-; ------ TAB Basic Settings ------
+;------------------------------------------------------------
+GuiFavoriteTabBasic:
+;------------------------------------------------------------
 
 Gui, 2:Tab, % ++intTabNumber
 
@@ -3626,7 +3726,7 @@ else
 		, % g_objEditedFavorite.FavoriteName
 }
 
-if (g_objEditedFavorite.FavoriteType = "Menu" and A_ThisLabel = "GuiEditFavorite")
+if (g_objEditedFavorite.FavoriteType = "Menu" and strGuiFavoriteLabel = "GuiEditFavorite")
 	Gui, 2:Add, Button, x+10 yp gGuiOpenThisMenu, %lDialogOpenThisMenu%
 
 if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
@@ -3654,7 +3754,7 @@ else ; "Special" or "QAP"
 	Gui, 2:Add, DropDownList
 		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
 		, % lDialogSelectItemToAdd . "...||" . (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : g_strQAPFeaturesList)
-	if (A_ThisLabel = "GuiEditFavorite")
+	if (strGuiFavoriteLabel = "GuiEditFavorite")
 		if (g_objEditedFavorite.FavoriteType = "Special")
 			GuiControl, ChooseString, f_drpSpecial, % g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultName
 		else ; QAP
@@ -3677,7 +3777,13 @@ if (g_objEditedFavorite.FavoriteType = "Group")
 	Gui, 2:Add, Radio, % "x20 y+5 vf_blnRadioGroupReplace " . (arrGroupSettings1 ? "checked" : ""), %lGuiGroupSaveReplaceWindowsLabel%
 }
 
-; ------ TAB Menu Options ------
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiFavoriteTabMenuOptions:
+;------------------------------------------------------------
 
 Gui, 2:Tab, % ++intTabNumber
 
@@ -3698,7 +3804,13 @@ Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
 Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
 Gui, 2:Add, Button, yp x+10 gButtonChangeFavoriteHotkey, %lOptionsChangeHotkey%
 
-; ------ TAB Window Options ------
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiFavoriteTabWindowOptions:
+;------------------------------------------------------------
 
 if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 {
@@ -3731,7 +3843,13 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 	Gui, 2:Add, Edit, % "ys+80 xs+72 w36 h17 vf_intWindowPositionH center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition6%
 }
 
-; ------ TAB Advanced Settings ------
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiFavoriteTabAdvancedSettings:
+;------------------------------------------------------------
 
 if InStr("Folder|Document|Application|Special|URL|FTP|Group", g_objEditedFavorite.FavoriteType)
 {
@@ -3775,72 +3893,7 @@ if InStr("Folder|Document|Application|Special|URL|FTP|Group", g_objEditedFavorit
 	Gosub, CheckboxUseDefaultSettingsClicked ; init controls hidden
 }
 
-; ------ TAB End ------
-
-Gui, 2:Tab
-
-; ------ TAB End ------
-
-if (A_ThisLabel = "GuiEditFavorite")
-{
-	Gui, 2:Add, Button, y420 vf_btnEditFavoriteSave gGuiEditFavoriteSave default, %lDialogSave%
-	Gui, 2:Add, Button, yp vf_btnEditFavoriteCancel gGuiEditFavoriteCancel, %lGuiCancel%
-	
-	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnEditFavoriteSave", "f_btnEditFavoriteCancel")
-}
-else
-{
-	Gui, 2:Add, Button, y400 vf_btnAddFavoriteAdd gGuiAddFavoriteSave default, %lDialogAdd%
-	Gui, 2:Add, Button, yp vf_btnAddFavoriteCancel gGuiAddFavoriteCancel, %lGuiCancel%
-	
-	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogAdd, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnAddFavoriteAdd", "f_btnAddFavoriteCancel")
-}
-
-if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
-	GuiControl, 2:+Default, f_btnSelectFolderLocation
-else
-	GuiControl, 2:+Default, f_btnAddFavoriteAdd
-
-if InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
-	GuiControl, 2:Focus, % "f_drp" . g_objEditedFavorite.FavoriteType
-else
-{
-	GuiControl, 2:Focus, f_strFavoriteShortName
-	if (A_ThisLabel = "GuiEditFavorite") 
-		SendInput, ^a
-}
-
-Gosub, DropdownParentMenuChanged ; to init the content of menu items
-
-Gui, 2:Add, Text
-Gui, 2:Show, AutoSize Center
-Gui, 1:+Disabled
-
-g_strNewLocation := ""
-arrTop := ""
-
 return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-BuildTabsList(strFavoriteType)
-;------------------------------------------------------------
-{
-	global
-
-	; 1 Basic Settings, 2 Menu Options, 3 Window Options, 4 Advanced Settings
-	strTabsList := g_arrFavoriteGuiTabs1 . " | " . g_arrFavoriteGuiTabs2
-	
-	if InStr("Folder|Special", strFavoriteType)
-		strTabsList .= " | " . g_arrFavoriteGuiTabs3
-	if InStr("Folder|Document|Application|Special|URL|FTP|Group", strFavoriteType)
-		strTabsList .= " | " . g_arrFavoriteGuiTabs4
-	
-	strTabsList .= " "
-	
-	return strTabsList
-}
 ;------------------------------------------------------------
 
 
@@ -4220,6 +4273,138 @@ return
 
 
 ;------------------------------------------------------------
+HotkeyChangeMenu:
+;------------------------------------------------------------
+
+Gui, 1:ListView, f_lvFavoritesList
+
+g_intOriginalMenuPosition := LV_GetNext()
+
+if (g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType = "Menu")
+	Gosub, OpenMenuFromGuiHotkey
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiMenusListChanged:
+GuiGotoUpMenu:
+GuiGotoPreviousMenu:
+OpenMenuFromEditForm:
+OpenMenuFromGuiHotkey:
+;------------------------------------------------------------
+intCurrentLastPosition := 0
+
+if (A_ThisLabel = "GuiMenusListChanged")
+{
+	GuiControlGet, strNewDropdownMenu, , f_drpMenusList
+	; ###_D("GuiMenusListChanged: " . strNewDropdownMenu . "`ng_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath) 
+
+	if (strNewDropdownMenu = g_objMenuInGui.MenuPath) ; user selected the current menu in the dropdown
+		return
+}
+
+; ### not required if object updated Gosub, SaveCurrentListviewToMenuObject ; save current LV
+
+/*
+###_D(A_ThisLabel . "`n"
+	. "intCurrentLastPosition: " . intCurrentLastPosition . "`n"
+	. "g_intOriginalMenuPosition: " . g_intOriginalMenuPosition . "`n"
+	. "strNewDropdownMenu: " . strNewDropdownMenu . "`n"
+	. "g_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath . "`n"
+	. "g_objMenusIndex[strNewDropdownMenu].MenuPath: " . g_objMenusIndex[strNewDropdownMenu].MenuPath . "`n"
+	. "g_objMenuInGui[1].SubMenu.MenuPath: " . g_objMenuInGui[1].SubMenu.MenuPath . "`n"
+	. "g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath: " . g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath . "`n"
+	. ": " . "`n"
+	. "")
+*/
+
+if (A_ThisLabel = "GuiGotoPreviousMenu")
+{
+	g_objMenuInGui := g_objMenusIndex[g_arrSubmenuStack[1]] ; pull the top menu from the left arrow stack
+	g_arrSubmenuStack.Remove(1) ; remove the top menu from the left arrow stack
+
+	intCurrentLastPosition := g_arrSubmenuStackPosition[1] ; pull the focus position in top menu from the left arrow stack
+	g_arrSubmenuStackPosition.Remove(1) ; remove the top position from the left arrow stack
+}
+else
+{
+	g_arrSubmenuStack.Insert(1, g_objMenuInGui.MenuPath) ; push the current menu to the left arrow stack
+	
+	if (A_ThisLabel = "GuiMenusListChanged")
+		g_objMenuInGui := g_objMenusIndex[strNewDropdownMenu]
+	else if (A_ThisLabel = "GuiGotoUpMenu")
+		g_objMenuInGui := g_objMenuInGui[1].SubMenu
+	else if (A_ThisLabel = "OpenMenuFromEditForm") or (A_ThisLabel = "OpenMenuFromGuiHotkey")
+		g_objMenuInGui := g_objMenuInGui[g_intOriginalMenuPosition].SubMenu
+
+	g_arrSubmenuStackPosition.Insert(1, LV_GetNext("Focused")) ; ### ???
+}
+
+GuiControl, % (g_arrSubmenuStack.MaxIndex() ? "Show" : "Hide"), f_picPreviousMenu
+GuiControl, % (g_objMenuInGui.MenuPath <> lMainMenuName ? "Show" : "Hide"), f_picUpMenu
+
+; ### if blnSaveEnabled load will abort - need to save before (where in FP?)
+Gosub, LoadMenuInGui
+
+if (intCurrentLastPosition) ; we went to a previous menu
+{
+	LV_Modify(0, "-Select")
+	LV_Modify(intCurrentLastPosition, "Select Focus Vis")
+}
+
+if (A_ThisLabel = "GuiMenusListChanged") ; keep focus on dropdown list
+	GuiControl, Focus, f_drpMenusList
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiAddFavoriteCancel:
+GuiEditFavoriteCancel:
+;------------------------------------------------------------
+
+Gosub, 2GuiClose
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiShow:
+SettingsHotkey:
+;------------------------------------------------------------
+
+; should not be required but safer
+GuiControlGet, blnSaveEnabled, Enabled, %lGuiSave%
+if (blnSaveEnabled)
+	return
+
+g_objMenuInGui := g_objMainMenu
+
+Gosub, BackupMenusObjects
+
+g_objHotkeysToDisableIfCancel := Object() ; to track hotkeys chanded in fav before saving
+
+Gosub, LoadMenuInGui
+Gui, 1:Show
+
+return
+;------------------------------------------------------------
+
+
+;========================================================================================================================
+; END OF FAVORITE_GUI
+;========================================================================================================================
+
+
+;========================================================================================================================
+!_034_FAVORITE_GUI_SAVE:
+;========================================================================================================================
+
+;------------------------------------------------------------
 GuiMoveMultipleFavoritesSave:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
@@ -4570,6 +4755,15 @@ FolderNameIsNew(strCandidateName, objMenu)
 ;------------------------------------------------------------
 
 
+;========================================================================================================================
+; END OF FAVORITE_GUI_SAVE
+;========================================================================================================================
+
+
+;========================================================================================================================
+!_036_FAVORITE_GUI_OTHER:
+;========================================================================================================================
+
 ;------------------------------------------------------------
 GuiRemoveMultipleFavorites:
 ;------------------------------------------------------------
@@ -4645,106 +4839,6 @@ GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
 intItemToRemove := ""
 blnItemIsMenu := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GuiAddFavoriteCancel:
-GuiEditFavoriteCancel:
-;------------------------------------------------------------
-
-Gosub, 2GuiClose
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-HotkeyChangeMenu:
-;------------------------------------------------------------
-
-Gui, 1:ListView, f_lvFavoritesList
-
-g_intOriginalMenuPosition := LV_GetNext()
-
-if (g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType = "Menu")
-	Gosub, OpenMenuFromGuiHotkey
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GuiMenusListChanged:
-GuiGotoUpMenu:
-GuiGotoPreviousMenu:
-OpenMenuFromEditForm:
-OpenMenuFromGuiHotkey:
-;------------------------------------------------------------
-intCurrentLastPosition := 0
-
-if (A_ThisLabel = "GuiMenusListChanged")
-{
-	GuiControlGet, strNewDropdownMenu, , f_drpMenusList
-	; ###_D("GuiMenusListChanged: " . strNewDropdownMenu . "`ng_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath) 
-
-	if (strNewDropdownMenu = g_objMenuInGui.MenuPath) ; user selected the current menu in the dropdown
-		return
-}
-
-; ### not required if object updated Gosub, SaveCurrentListviewToMenuObject ; save current LV
-
-/*
-###_D(A_ThisLabel . "`n"
-	. "intCurrentLastPosition: " . intCurrentLastPosition . "`n"
-	. "g_intOriginalMenuPosition: " . g_intOriginalMenuPosition . "`n"
-	. "strNewDropdownMenu: " . strNewDropdownMenu . "`n"
-	. "g_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath . "`n"
-	. "g_objMenusIndex[strNewDropdownMenu].MenuPath: " . g_objMenusIndex[strNewDropdownMenu].MenuPath . "`n"
-	. "g_objMenuInGui[1].SubMenu.MenuPath: " . g_objMenuInGui[1].SubMenu.MenuPath . "`n"
-	. "g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath: " . g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath . "`n"
-	. ": " . "`n"
-	. "")
-*/
-
-if (A_ThisLabel = "GuiGotoPreviousMenu")
-{
-	g_objMenuInGui := g_objMenusIndex[g_arrSubmenuStack[1]] ; pull the top menu from the left arrow stack
-	g_arrSubmenuStack.Remove(1) ; remove the top menu from the left arrow stack
-
-	intCurrentLastPosition := g_arrSubmenuStackPosition[1] ; pull the focus position in top menu from the left arrow stack
-	g_arrSubmenuStackPosition.Remove(1) ; remove the top position from the left arrow stack
-}
-else
-{
-	g_arrSubmenuStack.Insert(1, g_objMenuInGui.MenuPath) ; push the current menu to the left arrow stack
-	
-	if (A_ThisLabel = "GuiMenusListChanged")
-		g_objMenuInGui := g_objMenusIndex[strNewDropdownMenu]
-	else if (A_ThisLabel = "GuiGotoUpMenu")
-		g_objMenuInGui := g_objMenuInGui[1].SubMenu
-	else if (A_ThisLabel = "OpenMenuFromEditForm") or (A_ThisLabel = "OpenMenuFromGuiHotkey")
-		g_objMenuInGui := g_objMenuInGui[g_intOriginalMenuPosition].SubMenu
-
-	g_arrSubmenuStackPosition.Insert(1, LV_GetNext("Focused")) ; ### ???
-}
-
-GuiControl, % (g_arrSubmenuStack.MaxIndex() ? "Show" : "Hide"), f_picPreviousMenu
-GuiControl, % (g_objMenuInGui.MenuPath <> lMainMenuName ? "Show" : "Hide"), f_picUpMenu
-
-; ### if blnSaveEnabled load will abort - need to save before (where in FP?)
-Gosub, LoadMenuInGui
-
-if (intCurrentLastPosition) ; we went to a previous menu
-{
-	LV_Modify(0, "-Select")
-	LV_Modify(intCurrentLastPosition, "Select Focus Vis")
-}
-
-if (A_ThisLabel = "GuiMenusListChanged") ; keep focus on dropdown list
-	GuiControl, Focus, f_drpMenusList
 
 return
 ;------------------------------------------------------------
@@ -5072,6 +5166,15 @@ return
 ;------------------------------------------------------------
 
 
+;========================================================================================================================
+; END OF FAVORITE_GUI_OTHER
+;========================================================================================================================
+
+
+;========================================================================================================================
+!_038_FAVORITE_GUI_SAVE:
+;========================================================================================================================
+
 ;------------------------------------------------------------
 GuiSaveFavorites:
 ;------------------------------------------------------------
@@ -5147,35 +5250,13 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 ;------------------------------------------------------------
 
 
-;------------------------------------------------------------
-GuiShow:
-SettingsHotkey:
-;------------------------------------------------------------
-
-; should not be required but safer
-GuiControlGet, blnSaveEnabled, Enabled, %lGuiSave%
-if (blnSaveEnabled)
-	return
-
-g_objMenuInGui := g_objMainMenu
-
-Gosub, BackupMenusObjects
-
-g_objHotkeysToDisableIfCancel := Object() ; to track hotkeys chanded in fav before saving
-
-Gosub, LoadMenuInGui
-Gui, 1:Show
-
-return
-;------------------------------------------------------------
-
 ;========================================================================================================================
 ; END OF FAVORITES LIST
 ;========================================================================================================================
 
 
 ;========================================================================================================================
-!_035_GUI_CHANGE_HOTKEY:
+!_040_GUI_CHANGE_HOTKEY:
 return
 ;========================================================================================================================
 
@@ -5477,161 +5558,8 @@ HotkeyIfAvailable(strHotkey, strLocation)
 
 
 ;========================================================================================================================
-; END OF !_035_GUI_CHANGE_HOTKEY:
+; END OF GUI_CHANGE_HOTKEY:
 ;========================================================================================================================
-
-
-;========================================================================================================================
-!_040_GROUPS:
-;========================================================================================================================
-
-/*
-;------------------------------------------------------------
-GuiGroupsManage:
-;------------------------------------------------------------
-
-; ### not reviewed, not tested
-
-intWidth := 350
-
-Gosub, BuildCurrentFoldersMenu ; refresh explorers object and intExplorersIndex counter
-
-g_intGui1WinID := WinExist("A")
-Gui, 1:Submit, NoHide
-
-Gui, 2:New, , % L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion)
-Gui, 2:+Owner1
-Gui, 2:+OwnDialogs
-if (g_blnUseColors)
-	Gui, 2:Color, %g_strGuiWindowColor%
-
-Gui, 2:Font, w600 
-Gui, 2:Add, Text, x10 y10, %lDialogGroupManageAbout%
-Gui, 2:Font
-
-Gui, 2:Add, Text, x10 y+10 w%intWidth%, %lDialogGroupManageIntro%
-
-Gui, 2:Font, w600 
-Gui, 2:Add, Text, x10 y+20, %lDialogGroupManageCreatingTitle%
-Gui, 2:Font 
-
-strUseMenuSave := lMenuGroup . " > " . lMenuGroupSave
-Gui, 2:Add, Text, x10 y+10 w%intWidth%, % L(lDialogGroupManageCreatingPrompt, lDialogGroupNew, strUseMenuSave)
-Gui, 2:Add, Button, x10 y+10 vf_btnGroupManageNew gGuiGroupManageNew, %lDialogGroupNew%
-GuiControl, % (!intExplorersIndex ? "Disable" : "Enable") ; disable Save group menu if no Explorer
-	, f_btnGroupManageNew
-GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "f_btnGroupManageNew")
-if !(intExplorersIndex)
-	Gui, 2:Add, Text, x10 y+10 w%intWidth%, %lDialogGroupManageCannotSave%
-
-Gui, 2:Font, w600 
-Gui, 2:Add, Text, x10 y+20, %lDialogGroupManageManagingTitle%
-Gui, 2:Font
-
-Gui, 2:Add, DropDownList, x10 y+10 w%intWidth% vf_drpGroupsList, %lDialogGroupSelect%||%g_strGroups%
-
-Gui, 2:Add, Button, x10 y+10 vf_btnGroupManageLoad gGuiGroupManageLoad, %lDialogGroupLoad%
-Gui, 2:Add, Button, x10 yp vf_btnGroupManageEdit gGuiGroupManageEdit, %lDialogGroupEdit%
-Gui, 2:Add, Button, x10 yp vf_btnGroupManageDelete gGuiGroupManageDelete, %lDialogGroupDelete%
-GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "f_btnGroupManageLoad", "f_btnGroupManageEdit", "f_btnGroupManageDelete")
-
-Gui, 2:Add, Button, x+10 y+30 vf_btnGroupManageClose g2GuiClose h33, %lGui2Close%
-GuiCenterButtons(L(lDialogGroupManageGroupsTitle, g_strAppNameText, g_strAppVersion), , , , "f_btnGroupManageClose")
-Gui, 2:Add, Text, x10, %A_Space%
-
-Gui, 2:Show, AutoSize Center
-Gui, 1:+Disabled
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GuiGroupManageEdit:
-;------------------------------------------------------------
-Gui, 2:Submit, NoHide
-Gui, 2:+OwnDialogs
-
-if !StrLen(f_drpGroupsList) or (f_drpGroupsList = lDialogGroupSelect)
-{
-	Oops(lDialogGroupSelectError, lDialogGroupEditError)
-	return
-}
-
-strGroupToEdit := f_drpGroupsList
-Gosub, GuiGroupEditFromManage
-GuiControl, 2:, f_drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GuiGroupManageDelete:
-;------------------------------------------------------------
-Gui, 2:Submit, NoHide
-Gui, 2:+OwnDialogs
-
-if !StrLen(f_drpGroupsList) or (f_drpGroupsList = lDialogGroupSelect)
-{
-	Oops(lDialogGroupSelectError, lDialogGroupDeleteError)
-	return
-}
-
-MsgBox, 52, % L(lDialogGroupDeleteTitle, g_strAppNameText), % L(lDialogGroupDeletePrompt, f_drpGroupsList)
-IfMsgBox, No
-	return
-
-g_strGroups := g_strGroups . "|"
-StringReplace, g_strGroups, g_strGroups, %f_drpGroupsList%|
-StringTrimRight, g_strGroups, g_strGroups, 1
-GuiControl, 2:, f_drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
-
-IniDelete, %g_strIniFile%, Group-%f_drpGroupsList%
-IniWrite, %g_strGroups%, %g_strIniFile%, Global, Groups
-
-Gosub, BuildGroupMenu
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GuiGroupManageLoad:
-;------------------------------------------------------------
-Gui, 2:Submit, NoHide
-
-if !StrLen(f_drpGroupsList) or (f_drpGroupsList = lDialogGroupSelect)
-{
-	Oops(lDialogGroupSelectError, lDialogGroupLoadError)
-	return
-}
-
-strSelectedGroup := f_drpGroupsList
-
-Gosub, 2GuiClose
-Gosub, GuiClose
-Gosub, GroupLoadFromManage
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GuiGroupManageNew:
-;------------------------------------------------------------
-
-Gosub, GuiGroupSaveFromManage
-GuiControl, 2:, f_drpGroupsList, |%lDialogGroupSelect%||%g_strGroups%
-
-return
-;------------------------------------------------------------
-*/
-
-;========================================================================================================================
-; END OF GROUPS
-;========================================================================================================================
-
 
 
 ;========================================================================================================================
@@ -5998,7 +5926,7 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 
 
 ;========================================================================================================================
-!_070_CLASS:
+!_065_CLASS:
 return
 ;========================================================================================================================
 
@@ -6146,7 +6074,7 @@ WindowIsQuickAccessPopup(strClass)
 
 
 ;========================================================================================================================
-!_080_MENU_ACTIONS:
+!_070_MENU_ACTIONS:
 ;========================================================================================================================
 
 ;------------------------------------------------------------
