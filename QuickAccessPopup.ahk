@@ -16,8 +16,11 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- from hotkeys list, when saving hotkey on itself, do not refuse same hotkey
 
 TO-DO
+- compose hotkey list intro
+- add message when double-click on popup hotkeys in hotkeys list (change in options)
 - remove Options from QAP features
 - edit shortcuts from Options - debug
 - prevent 2 favorites to use the same .FavoriteHotkey - debug
@@ -104,6 +107,7 @@ f_typNameOfVariable
 #KeyHistory 0
 ListLines, Off
 DetectHiddenWindows, On
+StringCaseSense, Off
 ComObjError(False) ; we will do our own error handling
 
 ; avoid error message when shortcut destination is missing
@@ -440,17 +444,17 @@ strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetw
 	. "|iconRecentFolders|iconSpecialFolders|iconGroup|iconCurrentFolders"
 	. "|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu|iconNetwork|iconUnknown|iconFolder"
 	. "|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic|iconMyVideo|iconHistory|iconFavorites|iconTemporary|iconWinver"
-	. "|iconFonts|iconApplication|iconClipboard|iconAbout|iconHelp|iconOptions|iconFTP|iconExit"
+	. "|iconFonts|iconApplication|iconClipboard|iconAbout|iconHelp|iconFTP|iconExit"
 strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
 			. "|imageres|imageres|shell32|imageres"
 			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
 			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
-			. "|shell32|shell32|shell32|shell32|shell32|imageres|shell32|shell32"
+			. "|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
 strIconsIndex := "106|189|68|105|115|23|50"
 			. "|113|203|99|96"
 			. "|113|110|217|208|298|29|176|4"
 			. "|297|46|176|55|104|179|240|87|153|1"
-			. "|39|304|261|222|24|166|104|216"
+			. "|39|304|261|222|24|104|216"
 
 StringSplit, arrIconsFile, strIconsFile, |
 StringSplit, arrIconsIndex, strIconsIndex, |
@@ -984,17 +988,17 @@ InitQAPFeatures:
 
 ; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey)
 
-InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", "iconCurrentFolders", "+^f")
-InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", "iconRecentFolders", "+^r")
-InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", "iconClipboard", "+^c")
+InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", "iconCurrentFolders", "+^F")
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", "iconRecentFolders", "+^R")
+InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", "iconClipboard", "+^C")
 
 InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout", "iconAbout")
 InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", "iconDonate")
 InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp", "iconHelp")
-InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions", "iconOptions")
+; OUT cannot be safely invokes without the Settings window - InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions", "iconOptions")
 InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", "iconAddThisFolder")
-InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "", "PopupMenuCopyLocation", "iconClipboard", "+^v")
-InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", "iconSettings", "+^s")
+InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "", "PopupMenuCopyLocation", "iconClipboard", "+^V")
+InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", "iconSettings", "+^S")
 InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "", "ExitApp", "iconExit")
 
 ;--------------------------------
@@ -3351,7 +3355,7 @@ FavoriteSelectTypeRadioButtonsChanged:
 Gui, 2:Submit, NoHide
 
 if (g_arrFavoriteTypes%f_intRadioFavoriteType% = "QAP")
-	GuiControl, , f_lblAddFavoriteTypeHelp, % L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, lMenuSettings, lGuiOptions)
+	GuiControl, , f_lblAddFavoriteTypeHelp, % L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, lMenuClipboard, lMenuSettings)
 else
 	GuiControl, , f_lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[g_arrFavoriteTypes%f_intRadioFavoriteType%]
 
@@ -5049,7 +5053,8 @@ if (A_GuiEvent = "DoubleClick")
 		strNewHotkey := SelectHotkey(g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, 3)
+			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, 3
+			, g_objQAPFeatures[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation].DefaultHotkey)
 		; SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
 		; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
 		; returns the new hotkey or empty string if cancel
