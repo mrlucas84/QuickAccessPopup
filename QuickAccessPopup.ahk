@@ -16,8 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- check menu names for QAP features when numeric shortcuts active (line 5782)
-- when reading icons for apps or docs, resolve envvar
 
 TO-DO
 - remove Options from QAP features
@@ -1063,7 +1061,7 @@ InsertGuiControlPos("f_picGuiOptions",				 -44,   10, true) ; true = center
 InsertGuiControlPos("f_picGuiAddFavorite",			 -44,  122, true)
 InsertGuiControlPos("f_picGuiEditFavorite",			 -44,  199, true)
 InsertGuiControlPos("f_picGuiRemoveFavorite",		 -44,  274, true)
-InsertGuiControlPos("f_picGuiHotkeysManage",			 -44, -150, true, true) ; true = center, true = draw
+InsertGuiControlPos("f_picGuiHotkeysManage",		 -44, -150, true, true) ; true = center, true = draw
 InsertGuiControlPos("f_picGuiDonate",				  50,  -62, true, true)
 InsertGuiControlPos("f_picGuiHelp",					 -44,  -62, true, true)
 InsertGuiControlPos("f_picGuiAbout",				-104,  -62, true, true)
@@ -1137,10 +1135,10 @@ g_objMainMenu.MenuType := "Menu" ; main menu is not a group
 
 IfNotExist, %g_strIniFile%
 {
-	strNavigateOrLaunchHotkeyMouseDefault := g_arrHotkeyDefaults1 ; "MButton"
-	strNavigateOrLaunchHotkeyKeyboard := g_arrHotkeyDefaults2 ; "#a"
-	strPowerHotkeyMouseDefault := g_arrHotkeyDefaults3 ; "+MButton"
-	strPowerHotkeyKeyboardDefault := g_arrHotkeyDefaults4 ; "+#a"
+	strNavigateOrLaunchHotkeyMouseDefault := g_arrPopupHotkeyDefaults1 ; "MButton"
+	strNavigateOrLaunchHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults2 ; "#a"
+	strPowerHotkeyMouseDefault := g_arrPopupHotkeyDefaults3 ; "+MButton"
+	strPowerHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults4 ; "+#a"
 	
 	g_intIconSize := 24
 
@@ -1169,7 +1167,7 @@ IfNotExist, %g_strIniFile%
 			Favorite3=Folder|Program Files|%A_ProgramFiles%
 			Favorite4=Folder|User Profile|`%USERPROFILE`%
 			Favorite5=Application|Notepad|%A_WinDir%\system32\notepad.exe
-			Favorite6=URL|QAP's web site|http://www.QuickAccessPopup.com
+			Favorite6=URL|%g_strAppNameText% web site|http://www.QuickAccessPopup.com
 			Favorite7=Z
 
 
@@ -6160,10 +6158,15 @@ OpenClipboard:
 ;------------------------------------------------------------
 
 ; ####
+if (g_blnDisplayMenuShortcuts)
+	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
+else
+	strThisMenuItem :=  A_ThisMenuItem
+
 if (A_ThisLabel = "OpenFavorite")
 {
 	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
-			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItem)
+			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], strThisMenuItem)
 	objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
 }
 else if (A_ThisLabel = "OpenFavoriteFromHotkey")
@@ -6200,21 +6203,21 @@ else
 	else
 		strLocation :=  A_ThisMenuItem
 
-	if InStr(strLocation, "http://") = 1 or InStr(strLocation, "https://") = 1 or InStr(strLocation, "www.") = 1
+	if InStr(strThisMenuItem, "http://") = 1 or InStr(strThisMenuItem, "https://") = 1 or InStr(strThisMenuItem, "www.") = 1
 		strFavoriteType := "URL"
 	else
 	{
-		strLocation :=  EnvVars(strLocation)
-		SplitPath, strLocation, , , strExtension
+		strThisMenuItem :=  EnvVars(strThisMenuItem)
+		SplitPath, strThisMenuItem, , , strExtension
 		if StrLen(strExtension) and InStr("exe.com.bat", strExtension)
 			strFavoriteType := "Application" ; application
 		else
-			strFavoriteType := (LocationIsDocument(strLocation) ? "Document" : "Folder")
+			strFavoriteType := (LocationIsDocument(strThisMenuItem) ? "Document" : "Folder")
 	}
 	
 	objThisFavorite := Object()
-	objThisFavorite.FavoriteName := strLocation
-	objThisFavorite.FavoriteLocation := strLocation
+	objThisFavorite.FavoriteName := strThisMenuItem
+	objThisFavorite.FavoriteLocation := strThisMenuItem
 	objThisFavorite.FavoriteType := strFavoriteType
 }
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
@@ -6231,7 +6234,7 @@ intMenuItemPos := ""
 strMenuPath := ""
 objMenu := ""
 blnHotkeyFound := ""
-strLocation := ""
+strThisMenuItem := ""
 strFavoriteType := ""
 
 return
