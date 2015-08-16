@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- from hotkeys list, when saving hotkey on itself, do not refuse same hotkey
 
 TO-DO
 - compose hotkey list intro
@@ -3278,7 +3277,7 @@ Gui, 1:ListView, f_lvFavoritesList
 if (A_GuiEvent = "DoubleClick")
 {
 	g_intOriginalMenuPosition := LV_GetNext()
-	if InStr("Menu|Group", g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType)
+	if StrLen(g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType) and InStr("Menu|Group", g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType)
 		Gosub, OpenMenuFromGuiHotkey
 	else if (g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType = "B")
 		Gosub, GuiGotoUpMenu
@@ -3526,8 +3525,11 @@ GuiEditFavorite:
 ;------------------------------------------------------------
 
 strGuiFavoriteLabel := A_ThisLabel
+g_blnAbordEdit := false
 
 Gosub, GuiFavoriteInit
+if (g_blnAbordEdit)
+	return
 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
@@ -3593,8 +3595,9 @@ Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
 strGuiFavoriteLabel := ""
-g_strNewLocation := ""
 arrTop := ""
+g_strNewLocation := ""
+g_blnAbordEdit := ""
 
 return
 ;------------------------------------------------------------
@@ -3641,19 +3644,22 @@ if (strGuiFavoriteLabel = "GuiEditFavorite")
 {
 	Gui, 1:ListView, f_lvFavoritesList
 	g_intOriginalMenuPosition := LV_GetNext()
-	
-	if (g_intOriginalMenuPosition = "")
+
+	if !(g_intOriginalMenuPosition)
 	{
 		Oops(lDialogSelectItemToEdit)
+		g_blnAbordEdit := true
 		return
 	}
 	
 	g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
 	
 	if (g_objEditedFavorite.FavoriteType = "B")
-		return
+		g_blnAbordEdit := true
+	else if InStr("XK", g_objEditedFavorite.FavoriteType) ; favorite is menu separator or column break
+		g_blnAbordEdit := true
 	
-	if InStr("XK", g_objEditedFavorite.FavoriteType) ; favorite is menu separator or column break
+	if (g_blnAbordEdit = true)
 		return
 
 	g_strNewFavoriteIconResource := g_objEditedFavorite.FavoriteIconResource
@@ -5347,10 +5353,11 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	Gui, 2:+Disabled
 	WinWaitClose,  % L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion) ; waiting for Gui to close
 
-	; second parameter of HotkeyIfAvailable contains the popup menu trigger's name or the favorites's location
-	; last parameter indicate if the hotkey is for a favorite; if yes, hotkey will be assigned immediately
-	; if not, it is for a popup menu trigger and hotkey will be assigned after Options save
-	strNewHotkey := HotkeyIfAvailable(strNewHotkey, StrLen(strFavoriteLocation) ? strFavoriteLocation : strFavoriteName)
+	if (strNewHotkey <> strActualHotkey)
+		; second parameter of HotkeyIfAvailable contains the popup menu trigger's name or the favorites's location
+		; last parameter indicate if the hotkey is for a favorite; if yes, hotkey will be assigned immediately
+		; if not, it is for a popup menu trigger and hotkey will be assigned after Options save
+		strNewHotkey := HotkeyIfAvailable(strNewHotkey, StrLen(strFavoriteLocation) ? strFavoriteLocation : strFavoriteName)
 	
 	return strNewHotkey ; returning value
 	
