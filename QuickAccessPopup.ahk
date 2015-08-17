@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- debug menu with numeric shortcuts
 
 TO-DO
 - add hotkeys shortcuts in menus
@@ -161,7 +162,8 @@ g_objIconsIndex := Object()
 g_strMenuPathSeparator := ">" ; spaces before/after are added only when submenus are added
 g_strGuiMenuSeparator := "----------------"
 g_strGuiMenuColumnBreak := "==="
-g_strGroupItemSuffix := "[]"
+g_strGroupIndicatorPrefix := "[["
+g_strGroupIndicatorSuffix := "]]"
 
 g_intListW := "" ; Gui width captured by GuiSize and used to adjust columns in fav list
 g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file
@@ -1343,7 +1345,8 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	global g_strIniFile
 	global g_intIniLine
 	global g_strMenuPathSeparator
-	global g_strGroupItemSuffix
+	global g_strGroupIndicatorPrefix
+	global g_strGroupIndicatorSuffix
 	global g_strEscapePipe
 	global g_objQAPfeaturesInMenus
 	global g_objQAPFeaturesDefaultNameByCode
@@ -1371,7 +1374,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		if InStr("Menu|Group", arrThisFavorite1) ; begin a submenu
 		{
 			objNewMenu := Object() ; create the submenu object
-			objNewMenu.MenuPath := objCurrentMenu.MenuPath . " " . g_strMenuPathSeparator . " " . arrThisFavorite2 . (arrThisFavorite1 = "Group" ? " " . g_strGroupItemSuffix : "")
+			objNewMenu.MenuPath := objCurrentMenu.MenuPath . " " . g_strMenuPathSeparator . " " . arrThisFavorite2 . (arrThisFavorite1 = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
 			objNewMenu.MenuType := arrThisFavorite1
 			
 			; create a navigation entry to navigate to the parent menu
@@ -2337,9 +2340,12 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	global g_objIconsFile
 	global g_objIconsIndex
 	global g_blnUseColors
-	global g_strGroupItemSuffix
+	global g_strGroupIndicatorPrefix
+	global g_strGroupIndicatorSuffix
 	global g_objQAPFeatures
 	global g_objMenuColumnBreaks
+	global g_intHotkeyReminders
+
 	
 	intShortcut := 0
 	
@@ -2403,10 +2409,12 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "")
 				. strSubMenuDisplayName
 			if (objCurrentMenu[A_Index].FavoriteType = "Group")
-				strMenuName .= " " . SubStr(g_strGroupItemSuffix, 1, 1) . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . SubStr(g_strGroupItemSuffix, 0, 1)
+				strMenuName .= " " . g_strGroupIndicatorPrefix . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . g_strGroupIndicatorSuffix
 			
 			if (objCurrentMenu[A_Index].FavoriteType = "QAP") and Strlen(g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName)
 				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, % ":" . g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName
+			else if (objCurrentMenu[A_Index].FavoriteType = "Group")
+				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavoriteGroup
 			else
 				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavorite
 
@@ -3173,7 +3181,7 @@ Loop, % g_objMenuInGui.MaxIndex()
 	
 	if InStr("Menu|Group", g_objMenuInGui[A_Index].FavoriteType) ; this is a menu or a group
 		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objFavoriteTypesShortNames[g_objMenuInGui[A_Index].FavoriteType]
-			, (g_objMenuInGui[A_Index].FavoriteType = "Menu" ? g_strMenuPathSeparator : " " . g_strGroupItemSuffix))
+			, (g_objMenuInGui[A_Index].FavoriteType = "Menu" ? g_strMenuPathSeparator : " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix))
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "X") ; this is a separator
 		LV_Add(, g_strGuiMenuSeparator, "---", g_strGuiMenuSeparator . g_strGuiMenuSeparator)
@@ -3720,6 +3728,8 @@ else
 	}
 }
 g_strNewFavoriteWindowPosition .= ",,,,,,," ; extra coma to avoid having phantom values if in case string is empty
+
+Gosub, GuiFavoriteIconDefault
 
 return
 ;------------------------------------------------------------
@@ -4532,9 +4542,9 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	}
 
 	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
-		and InStr(f_strFavoriteShortName, g_strMenuPathSeparator) or InStr(f_strFavoriteShortName, g_strGroupItemSuffix)
+		and InStr(f_strFavoriteShortName, g_strMenuPathSeparator) or InStr(f_strFavoriteShortName, g_strGroupIndicatorPrefix)
 	{
-		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator, g_strGroupItemSuffix))
+		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator, g_strGroupIndicatorPrefix))
 		return
 	}
 
@@ -4577,7 +4587,8 @@ if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " "
 if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (A_ThisLabel = "GuiAddFavoriteSave"))
 {
 	objNewMenu := Object() ; object for the new menu or group
-	objNewMenu.MenuPath := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName . (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupItemSuffix : "")
+	objNewMenu.MenuPath := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
+		. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
 	objNewMenu.MenuType := g_objEditedFavorite.FavoriteType
 
 	; create a navigation entry to navigate to the parent menu
@@ -4598,7 +4609,8 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteName := f_strFavoriteShortName
 	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
 	{
-		strMenuLocation := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName . (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupItemSuffix : "")
+		strMenuLocation := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
+			. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
 		RecursiveUpdateMenuPath(g_objEditedFavorite.Submenu, strMenuLocation)
 		
 		StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
@@ -4678,7 +4690,7 @@ if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if 
 	if (g_objEditedFavorite.FavoriteType = "Menu")
 		strThisLocation := g_strMenuPathSeparator
 	else if (g_objEditedFavorite.FavoriteType = "Group")
-		strThisLocation := g_strGroupItemSuffix
+		strThisLocation := g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix
 
 	else
 		strThisLocation := g_objEditedFavorite.FavoriteLocation
@@ -4722,7 +4734,8 @@ RecursiveUpdateMenuPath(objEditedMenu, strMenuPath)
 ;------------------------------------------------------------
 {
 	global g_strMenuPathSeparator
-	global g_strGroupItemSuffix
+	global g_strGroupIndicatorPrefix
+	global g_strGroupIndicatorSuffix
 	
 	Loop, % objEditedMenu.MaxIndex()
 	{
@@ -4734,7 +4747,8 @@ RecursiveUpdateMenuPath(objEditedMenu, strMenuPath)
 		
 		if InStr("Menu|Group", objEditedMenu[A_Index].FavoriteType)
 			RecursiveUpdateMenuPath(objEditedMenu[A_Index].SubMenu
-				, objEditedMenu.MenuPath . " " . g_strMenuPathSeparator . " " . objEditedMenu[A_Index].FavoriteName . (objEditedMenu[A_Index].FavoriteType = "Group" ? " " . g_strGroupItemSuffix : "") ) ; RECURSIVE
+				, objEditedMenu.MenuPath . " " . g_strMenuPathSeparator . " " . objEditedMenu[A_Index].FavoriteName
+				. (objEditedMenu[A_Index].FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "") ) ; RECURSIVE
 	}
 }
 ;------------------------------------------------------------
@@ -6118,6 +6132,7 @@ WindowIsQuickAccessPopup(strClass)
 
 ;------------------------------------------------------------
 OpenFavorite:
+OpenFavoriteGroup:
 OpenFavoriteFromHotkey:
 OpenRecentFolder:
 OpenCurrentFolder:
@@ -6127,10 +6142,15 @@ OpenClipboard:
 ; ####
 if (g_blnDisplayMenuShortcuts)
 	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
+else if (A_ThisLabel = "OpenFavoriteGroup")
+	strThisMenuItem :=  SubStr(A_ThisMenuItem, 1, InStr(A_ThisMenuItem, g_strGroupIndicatorPrefix) - 2)
 else
 	strThisMenuItem :=  A_ThisMenuItem
 
-if (A_ThisLabel = "OpenFavorite")
+if (g_intHotkeyReminders > 1) ; remove reminder between parenthesis from menu item name
+	strThisMenuItem := SubStr(strThisMenuItem, 1, InStr(strThisMenuItem, "(", , 0) - 2)
+
+if InStr("OpenFavorite|OpenFavoriteGroup", A_ThisLabel)
 {
 	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
 			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], strThisMenuItem)
@@ -6218,6 +6238,12 @@ NumberOfColumnBreaksBeforeThisItem(objMenu, strThisMenuItem)
 			break
 		else if (objMenu[A_Index].FavoriteType = "K")
 			intNumberOfColumnBreaks++
+		else if (A_Index > 1000)
+		{
+			Oops("Error opening menu item ""~1~"" in menu ""~2~"".", strThisMenuItem, objMenu.MenuPath)
+			###_O(A_Thislabel, objMenu, "FavoriteName")
+			break
+		}
 
 	return intNumberOfColumnBreaks
 }
