@@ -18,15 +18,11 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- compose hotkey list intro
-- add message when double-click on popup hotkeys in hotkeys list (change in options)
-- remove Options from QAP features
-- edit shortcuts from Options - debug
-- prevent 2 favorites to use the same .FavoriteHotkey - debug
+- add hotkeys shortcuts in menus
 
 - check exclusion as "class contain the exclusion string"
-- exclusion list in options, save to ini
-- load exclusion list from ini
+- exclusion lists (mouse and keyboard) in options, save to ini
+- load exclusion lists from ini
 
 - add QAP features default menu (AddToIniMyQAPFeaturesMenu)
 
@@ -175,8 +171,6 @@ g_objGuiControls := Object() ; to build Settings gui
 g_strMouseButtons := ""
 g_arrMouseButtons := ""
 g_arrMouseButtonsText := ""
-
-g_strExclusionClassList := "|" ; must end with |
 
 g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and CollectExplorers
 g_objSpecialFolders := Object()
@@ -390,7 +384,7 @@ FileInstall, FileInstall\default_browser_icon.html, %g_strTempDir%\default_brows
 FileInstall, FileInstall\about-32.png, %g_strTempDir%\about-32.png
 FileInstall, FileInstall\add_property-48.png, %g_strTempDir%\add_property-48.png
 FileInstall, FileInstall\delete_property-48.png, %g_strTempDir%\delete_property-48.png
-FileInstall, FileInstall\channel_mosaic-48.png, %g_strTempDir%\channel_mosaic-48.png
+FileInstall, FileInstall\keyboard-48.png, %g_strTempDir%\keyboard-48.png
 FileInstall, FileInstall\separator-26.png, %g_strTempDir%\separator-26.png
 FileInstall, FileInstall\column-26.png, %g_strTempDir%\column-26.png
 FileInstall, FileInstall\down_circular-26.png, %g_strTempDir%\down_circular-26.png
@@ -429,7 +423,7 @@ InitSystemArrays:
 ; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
 strPopupHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard"
 StringSplit, g_arrPopupHotkeyNames, strPopupHotkeyNames, |
-strPopupHotkeyDefaults := "MButton|#a|+MButton|+#a"
+strPopupHotkeyDefaults := "MButton|#A|+MButton|+#A"
 StringSplit, g_arrPopupHotkeyDefaults, strPopupHotkeyDefaults, |
 g_arrPopupHotkeys := Array ; initialized by LoadIniPopupHotkeys
 g_arrPopupHotkeysPrevious := Array ; initialized by GuiOptions and checked in LoadIniPopupHotkeys
@@ -443,17 +437,17 @@ strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetw
 	. "|iconRecentFolders|iconSpecialFolders|iconGroup|iconCurrentFolders"
 	. "|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu|iconNetwork|iconUnknown|iconFolder"
 	. "|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic|iconMyVideo|iconHistory|iconFavorites|iconTemporary|iconWinver"
-	. "|iconFonts|iconApplication|iconClipboard|iconAbout|iconHelp|iconFTP|iconExit"
+    . "|iconFonts|iconApplication|iconClipboard|iconAbout|iconHelp|iconOptions|iconFTP|iconExit|iconHotkeys"
 strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
 			. "|imageres|imageres|shell32|imageres"
 			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
 			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
-			. "|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
+            . "|shell32|shell32|shell32|shell32|shell32|imageres|shell32|shell32|shell32"
 strIconsIndex := "106|189|68|105|115|23|50"
 			. "|113|203|99|96"
 			. "|113|110|217|208|298|29|176|4"
 			. "|297|46|176|55|104|179|240|87|153|1"
-			. "|39|304|261|222|24|104|216"
+            . "|39|304|261|222|24|166|104|216|174"
 
 StringSplit, arrIconsFile, strIconsFile, |
 StringSplit, arrIconsIndex, strIconsIndex, |
@@ -985,7 +979,7 @@ TranslateMUI(resDll, resID)
 InitQAPFeatures:
 ;------------------------------------------------------------
 
-; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey)
+; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey)
 
 InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", "iconCurrentFolders", "+^F")
 InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", "iconRecentFolders", "+^R")
@@ -994,11 +988,12 @@ InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "Cl
 InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout", "iconAbout")
 InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", "iconDonate")
 InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp", "iconHelp")
-; OUT cannot be safely invokes without the Settings window - InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptions", "iconOptions")
+InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptionsFromQAPFeature", "iconOptions")
 InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", "iconAddThisFolder")
 InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "", "PopupMenuCopyLocation", "iconClipboard", "+^V")
 InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", "iconSettings", "+^S")
 InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "", "ExitApp", "iconExit")
+InitQAPFeatureObject("Hotkeys", lDialogHotkeys . "...", "", "GuiHotkeysManageFromQAPFeature", "iconHotkeys")
 
 ;--------------------------------
 ; Build folders list for dropdown
@@ -1092,7 +1087,7 @@ InsertGuiControlPos("f_lblGuiEditFavorite",			 -44,  249, true)
 InsertGuiControlPos("f_lblGuiOptions",				 -44,   45, true)
 InsertGuiControlPos("f_lblGuiRemoveFavorite",		 -44,  324, true)
 InsertGuiControlPos("f_lblSubmenuDropdownLabel",	  40,   66)
-InsertGuiControlPos("f_lblGuiHotkeysManage",		 -44,  -95, true)
+InsertGuiControlPos("f_lblGuiHotkeysManage",		 -44, -100, true)
 
 InsertGuiControlPos("f_lvFavoritesList",			  40,  115)
 
@@ -1158,6 +1153,7 @@ IfNotExist, %g_strIniFile%
 			DisplayMenuShortcuts=0
 			PopupMenuPosition=1
 			PopupFixPosition=20,20
+			HotkeyReminders=1
 			DiagMode=0
 			Startups=1
 			LanguageCode=%g_strLanguageCode%
@@ -1185,6 +1181,7 @@ IniRead, g_blnDisplayIcons, %g_strIniFile%, Global, DisplayIcons, 1
 g_blnDisplayIcons := (g_blnDisplayIcons and OSVersionIsWorkstation())
 IniRead, g_intPopupMenuPosition, %g_strIniFile%, Global, PopupMenuPosition, 1
 IniRead, strPopupFixPosition, %g_strIniFile%, Global, PopupFixPosition, 20,20
+IniRead, g_intHotkeyReminders, %g_strIniFile%, Global, HotkeyReminders, 1
 StringSplit, g_arrPopupFixPosition, strPopupFixPosition, `,
 IniRead, g_blnDisplayMenuShortcuts, %g_strIniFile%, Global, DisplayMenuShortcuts, 0
 IniRead, g_blnDisplayFavoritesHotkeysInMenus, %g_strIniFile%, Global, blnDisplayFavoritesHotkeysInMenus, 0
@@ -1303,7 +1300,8 @@ if !(blnMyQAPFeaturesBuilt)
  	Gosub, AddToIniMyQAPFeaturesMenu ; modify the ini file Folders section before reading it
 
 ; ### load exclusion list todo
-g_strExclusionClassList := "SciTEWindow|Chrome_WidgetWin_1|" ; must end with |
+g_strExclusionMouseClassList := "SciTEWindow|Chrome_WidgetWin_1|" ; must end with |
+g_strExclusionKeyboardClassList := "|" ; must end with |
 
 IfNotExist, %g_strIniFile%
 {
@@ -2358,7 +2356,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
 			continue
 		
-		if InStr("Menu|Group", objCurrentMenu[A_Index].FavoriteType)
+		if (objCurrentMenu[A_Index].FavoriteType = "Menu")
 		{
 			RecursiveBuildOneMenu(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
 			
@@ -2582,7 +2580,11 @@ GetMenuHandle(strMenuName)
 
 ;------------------------------------------------------------
 GuiOptions:
+GuiOptionsFromQAPFeature:
 ;------------------------------------------------------------
+
+if (A_ThisLabel = "GuiOptionsFromQAPFeature")
+	Gosub, GuiShow
 
 g_intGui1WinID := WinExist("A")
 loop, 4
@@ -2613,14 +2615,15 @@ Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabOtherOptionsIntro, g_strA
 
 ; column 1
 Gui, 2:Add, Text, y+10 x15 Section, %lOptionsLanguage%
-Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpLanguage Sort, %lOptionsLanguageLabels%
+Gui, 2:Add, DropDownList, y+5 xs w120 vf_drpLanguage Sort, %lOptionsLanguageLabels%
 GuiControl, ChooseString, f_drpLanguage, %g_strLanguageLabel%
 
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOptionsRunAtStartup, %lOptionsRunAtStartup%
-GuiControl, , f_blnOptionsRunAtStartup, % FileExist(A_Startup . "\" . g_strAppNameFile . ".lnk") ? 1 : 0
+Gui, 2:Add, Text, y+10 xs, %lOptionsTheme%
+Gui, 2:Add, DropDownList, y+5 xs w120 vf_drpTheme, %g_strAvailableThemes%
+GuiControl, ChooseString, f_drpTheme, %g_strTheme%
 
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayMenuShortcuts, %lOptionsDisplayMenuShortcuts%
-GuiControl, , f_blnDisplayMenuShortcuts, %g_blnDisplayMenuShortcuts%
+Gui, 2:Add, CheckBox, y+15 xs w220 vf_blnOptionsRunAtStartup, %lOptionsRunAtStartup%
+GuiControl, , f_blnOptionsRunAtStartup, % FileExist(A_Startup . "\" . g_strAppNameFile . ".lnk") ? 1 : 0
 
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayTrayTip, %lOptionsTrayTip%
 GuiControl, , f_blnDisplayTrayTip, %g_blnDisplayTrayTip%
@@ -2628,43 +2631,49 @@ GuiControl, , f_blnDisplayTrayTip, %g_blnDisplayTrayTip%
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnCheck4Update, %lOptionsCheck4Update%
 GuiControl, , f_blnCheck4Update, %g_blnCheck4Update%
 
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnRememberSettingsPosition, %lOptionsRememberSettingsPosition%
+GuiControl, , f_blnRememberSettingsPosition, %g_blnRememberSettingsPosition%
+
+Gui, 2:Add, Text, y+15 xs, %lOptionsRecentFoldersPrompt%
+Gui, 2:Add, Edit, y+5 xs w36 h17 vf_intRecentFoldersMax center, %g_intRecentFoldersMax%
+Gui, 2:Add, Text, yp x+10 w180, %lOptionsRecentFolders%
+
+; column 2
+
+Gui, 2:Add, Text, ys x300 w190 Section, %lOptionsMenuPositionPrompt%
+
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition1 gPopupMenuPositionClicked Group " . (g_intPopupMenuPosition = 1 ? "Checked" : ""), %lOptionsMenuNearMouse%
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition2 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 2 ? "Checked" : ""), %lOptionsMenuActiveWindow%
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition3 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 3 ? "Checked" : ""), %lOptionsMenuFixPosition%
+
+Gui, 2:Add, Text, % "y+5 xs+18 vf_lblPopupFixPositionX " . (g_intPopupMenuPosition = 3 ? "" : "Disabled"), %lOptionsPopupFixPositionX%
+Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionX center " . (g_intPopupMenuPosition = 3 ? "" : "Disabled"), %g_arrPopupFixPosition1%
+Gui, 2:Add, Text, % "yp x+5 vf_lblPopupFixPositionY " . (g_intPopupMenuPosition = 3 ? "" : "Disabled"), %lOptionsPopupFixPositionY%
+Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionY center " . (g_intPopupMenuPosition = 3 ? "" : "Disabled"), %g_arrPopupFixPosition2%
+
+Gui, 2:Add, Text, y+10 x300 w190 Section, %lOptionsHotkeyRemindersPrompt%
+
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders1 Group " . (g_intHotkeyReminders = 1 ? "Checked" : ""), %lOptionsHotkeyRemindersNo%
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders2 " . (g_intHotkeyReminders = 2 ? "Checked" : ""), %lOptionsHotkeyRemindersShort%
+Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders3 " . (g_intHotkeyReminders = 3 ? "Checked" : ""), %lOptionsHotkeyRemindersFull%
+
+Gui, 2:Add, CheckBox, y+15 xs w220 vf_blnDisplayMenuShortcuts, %lOptionsDisplayMenuShortcuts%
+GuiControl, , f_blnDisplayMenuShortcuts, %g_blnDisplayMenuShortcuts%
+
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
 GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
-
-Gui, 2:Add, Edit, y+20 xs w36 h17 vf_intRecentFoldersMax center, %g_intRecentFoldersMax%
-Gui, 2:Add, Text, yp x+10 w180, %lOptionsRecentFolders%
 
 if !OSVersionIsWorkstation()
 {
 	g_blnDisplayIcons := 0
 	GuiControl, Disable, f_blnDisplayIcons
 }
-Gui, 2:Add, CheckBox, y+20 xs w220 vf_blnDisplayIcons gDisplayIconsClicked, %lOptionsDisplayIcons%
+Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayIcons gDisplayIconsClicked, %lOptionsDisplayIcons%
 GuiControl, , f_blnDisplayIcons, %g_blnDisplayIcons%
 
-Gui, 2:Add, Text, % "y+10 xs vf_drpIconSizeLabel " . (g_blnDisplayIcons ? "" : "hidden"), %lOptionsIconSize%
-Gui, 2:Add, DropDownList, % "yp x+10 w40 vf_drpIconSize Sort " . (g_blnDisplayIcons ? "" : "hidden"), 16|24|32|48|64
+Gui, 2:Add, Text, % "y+10 xs vf_drpIconSizeLabel " . (g_blnDisplayIcons ? "" : "Disabled"), %lOptionsIconSize%
+Gui, 2:Add, DropDownList, % "yp x+10 w40 vf_drpIconSize Sort " . (g_blnDisplayIcons ? "" : "Disabled"), 16|24|32|48|64
 GuiControl, ChooseString, f_drpIconSize, %g_intIconSize%
-
-; column 2
-
-Gui, 2:Add, Text, ys x300 Section, %lOptionsTheme%
-Gui, 2:Add, DropDownList, ys x+10 w120 vf_drpTheme, %g_strAvailableThemes%
-GuiControl, ChooseString, f_drpTheme, %g_strTheme%
-
-Gui, 2:Add, CheckBox, y+10 xs w190 vf_blnRememberSettingsPosition, %lOptionsRememberSettingsPosition%
-GuiControl, , f_blnRememberSettingsPosition, %g_blnRememberSettingsPosition%
-
-Gui, 2:Add, Text, y+12 xs w190 Section, %lOptionsMenuPositionPrompt%
-
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition1 gPopupMenuPositionClicked Group " . (g_intPopupMenuPosition = 1 ? "Checked" : ""), %lOptionsMenuNearMouse%
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition2 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 2 ? "Checked" : ""), %lOptionsMenuActiveWindow%
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition3 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 3 ? "Checked" : ""), %lOptionsMenuFixPosition%
-
-Gui, 2:Add, Text, % "y+5 xs+18 vf_lblPopupFixPositionX " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %lOptionsPopupFixPositionX%
-Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionX center " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %g_arrPopupFixPosition1%
-Gui, 2:Add, Text, % "yp x+5 vf_lblPopupFixPositionY " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %lOptionsPopupFixPositionY%
-Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionY center " . (g_intPopupMenuPosition = 3 ? "" : "hidden"), %g_arrPopupFixPosition2%
 
 ;---------------------------------------
 ; Tab 2: Popup menu hotkeys
@@ -2754,8 +2763,8 @@ DisplayIconsClicked:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-GuiControl, % (f_blnDisplayIcons ? "Show" : "Hide"), f_drpIconSizeLabel
-GuiControl, % (f_blnDisplayIcons ? "Show" : "Hide"), f_drpIconSize
+GuiControl, % (f_blnDisplayIcons ? "Enable" : "Disable"), f_drpIconSizeLabel
+GuiControl, % (f_blnDisplayIcons ? "Enable" : "Disable"), f_drpIconSize
 
 return
 ;------------------------------------------------------------
@@ -2766,10 +2775,10 @@ PopupMenuPositionClicked:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_lblPopupFixPositionX
-GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_strPopupFixPositionX
-GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_lblPopupFixPositionY
-GuiControl, % (f_radPopupMenuPosition3 ? "Show" : "Hide"), f_strPopupFixPositionY
+GuiControl, % (f_radPopupMenuPosition3 ? "Enable" : "Disable"), f_lblPopupFixPositionX
+GuiControl, % (f_radPopupMenuPosition3 ? "Enable" : "Disable"), f_strPopupFixPositionX
+GuiControl, % (f_radPopupMenuPosition3 ? "Enable" : "Disable"), f_lblPopupFixPositionY
+GuiControl, % (f_radPopupMenuPosition3 ? "Enable" : "Disable"), f_strPopupFixPositionY
 
 return
 ;------------------------------------------------------------
@@ -2923,6 +2932,14 @@ g_arrPopupFixPosition1 := f_strPopupFixPositionX
 g_arrPopupFixPosition2 := f_strPopupFixPositionY
 IniWrite, %g_arrPopupFixPosition1%`,%g_arrPopupFixPosition2%, %g_strIniFile%, Global, PopupFixPosition
 
+if (f_radHotkeyReminders1)
+	g_intHotkeyReminders := 1
+else if (f_radHotkeyReminders2)
+	g_intHotkeyReminders := 2
+else
+	g_intHotkeyReminders := 3
+IniWrite, %g_intHotkeyReminders%, %g_strIniFile%, Global, HotkeyReminders
+
 strLanguageCodePrev := g_strLanguageCode
 g_strLanguageLabel := f_drpLanguage
 loop, %g_arrOptionsLanguageLabels0%
@@ -2955,8 +2972,6 @@ Gosub, LoadIniPopupHotkeys ; reload ini variables and reset hotkeys
 ; Tab 3: Exclusion list
 
 ; ### to-do
-
-g_strExclusionClassList := "SciTEWindow|Chrome_WidgetWin_1|" ; must end with |
 
 ;---------------------------------------
 ; Tab 4: File Managers
@@ -3080,7 +3095,7 @@ Gui, 1:Add, Text, vf_lblAppTagLine, %lAppTagline%
 Gui, 1:Add, Picture, vf_picGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static3
 Gui, 1:Add, Picture, vf_picGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
 Gui, 1:Add, Picture, vf_picGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static5
-Gui, 1:Add, Picture, vf_picGuiHotkeysManage gGuiHotkeysManage x+1 yp, %g_strTempDir%\channel_mosaic-48.png ; Static6 #### change button image
+Gui, 1:Add, Picture, vf_picGuiHotkeysManage gGuiHotkeysManage x+1 yp, %g_strTempDir%\keyboard-48.png ; Static6
 Gui, 1:Add, Picture, vf_picGuiOptions gGuiOptions x+1 yp, %g_strTempDir%\settings-32.png ; Static7
 Gui, 1:Add, Picture, vf_picPreviousMenu gGuiGotoPreviousMenu hidden x+1 yp, %g_strTempDir%\left-12.png ; Static8
 Gui, 1:Add, Picture, vf_picUpMenu gGuiGotoUpMenu hidden x+1 yp, %g_strTempDir%\up-12.png ; Static9
@@ -4998,8 +5013,12 @@ MoveFavoriteInMenuObject(objMenu, intItem, intDirection)
 
 ;------------------------------------------------------------
 GuiHotkeysManage:
+GuiHotkeysManageFromQAPFeature:
 ;------------------------------------------------------------
 
+if (A_ThisLabel = "GuiHotkeysManageFromQAPFeature")
+	Gosub, GuiShow
+	
 intWidth := 640
 
 g_intGui1WinID := WinExist("A")
@@ -5012,10 +5031,10 @@ if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
 Gui, 2:Font, w600 
-Gui, 2:Add, Text, x10 y10, %lDialogHotkeysManageAbout%
+Gui, 2:Add, Text, x10 y10, % L(lDialogHotkeysManageAbout, g_strAppNameText)
 Gui, 2:Font
 
-Gui, 2:Add, Text, x10 y+10 w%intWidth%, %lDialogHotkeysManageIntro%
+Gui, 2:Add, Text, x10 y+10 w%intWidth%, % L(lDialogHotkeysManageIntro, lDialogHotkeysManageListSeeAllFavorites, lDialogHotkeysManageListSeeFullHotkeyNames)
 
 Gui, 2:Add, Listview
 	, % "vf_lvHotkeysManageList Count32 " . (g_blnUseColors ? "c" . g_strGuiListviewTextColor . " Background" . g_strGuiListviewBackgroundColor : "") 
@@ -5051,11 +5070,17 @@ if (A_GuiEvent = "DoubleClick")
 	LV_GetText(strMenuPath, intItemPosition, 5)
 	LV_GetText(strFavoritePosition, intItemPosition, 6)
 	
-	if !StrLen(strMenuPath)
-		GuiControl, Choose, f_intOptionsTab, 2
+	if !StrLen(strMenuPath) ; this is a popup menu hotkey, go to Options, Menu hotkeys
+	{
+		MsgBox, 35, %g_strAppNameText%!, % L("This is a popup menu hotkey.`n`nDo you want to manage ""~1~"" in ""~2~""?", lOptionsMouseAndKeyboard, lGuiOptions)
+		IfMsgBox, Yes
+		{
+			Gosub, GuiOptions
+			GuiControl, Choose, f_intOptionsTab, 2
+		}
+	}
 	else
 	{
-		; prepare variables for GuiEditFavorite
 		strNewHotkey := SelectHotkey(g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
@@ -5063,7 +5088,7 @@ if (A_GuiEvent = "DoubleClick")
 			, g_objQAPFeatures[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation].DefaultHotkey)
 		; SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
 		; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
-		; returns the new hotkey or empty string if cancel
+		; returns the new hotkey, "None" if no hotkey or empty string if cancel
 		if StrLen(strNewHotkey)
 		{
 			g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey := strNewHotkey
@@ -5097,7 +5122,7 @@ loop, 4
 
 for strMenuPath, objMenu in g_objMenusIndex
 	loop, % objMenu.MaxIndex()
-		if StrLen(objMenu[A_Index].FavoriteLocation) and (objMenu[A_Index].FavoriteLocation <> lDialogMouseNone)
+		if StrLen(objMenu[A_Index].FavoriteLocation) and (objMenu[A_Index].FavoriteHotkey <> lDialogNone)
 			and (StrLen(objMenu[A_Index].FavoriteHotkey) or f_blnSeeAllFavorites)
 			LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(objMenu[A_Index].FavoriteHotkey) : objMenu[A_Index].FavoriteHotkey)
 				, objMenu[A_Index].FavoriteName, objMenu[A_Index].FavoriteType, objMenu[A_Index].FavoriteLocation, strMenuPath, A_Index)
@@ -5276,7 +5301,7 @@ return
 ;------------------------------------------------------------
 SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
 ; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
-; returns the new hotkey or empty string if cancel
+; returns the new hotkey, "None" if no hotkey or empty string if cancel
 ;------------------------------------------------------------
 {
 	; safer than declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
@@ -5911,21 +5936,23 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 
 	if (strMouseOrKeyboard = g_arrPopupHotkeys1) ; Mouse hotkey
 	{
+		strExclusionClassList := g_strExclusionMouseClassList
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, CanLaunch Mouse, %strMouseOrKeyboard% = %g_strMouseHotkey%`n%g_strTargetControl%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
+		TrayTip, CanLaunch Mouse, %strMouseOrKeyboard% = %g_strMouseHotkey%`n%g_strTargetControl%`nList: %g_strExclusionMouseClassList%`nClass: %g_strTargetClass%
 	}
 	else ; Keyboard
 	{
+		strExclusionClassList := g_strExclusionKeyboardClassList
 		g_strTargetWinId := WinExist("A")
 		g_strTargetControl := ""
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, CanLaunch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardHotkey%`nList: %g_strExclusionClassList%`nClass: %g_strTargetClass%
+		TrayTip, CanLaunch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardHotkey%`nList: %g_strExclusionKeyboardClassList%`nClass: %g_strTargetClass%
 	}
 	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
 
 	; ### to-do exclusion as "class contain the exclusion string" (looping in exclusion strings)
-	return !InStr(g_strExclusionClassList, g_strTargetClass . "|")
+	return !InStr(strExclusionClassList, g_strTargetClass . "|")
 }
 ;------------------------------------------------------------
 
