@@ -159,14 +159,15 @@ g_arrSubmenuStackPosition := Object()
 g_objIconsFile := Object()
 g_objIconsIndex := Object()
 
-g_strMenuPathSeparator := ">" ; spaces before/after are added only when submenus are added
-g_strGuiMenuSeparator := "----------------"
-g_strGuiMenuColumnBreak := "==="
-g_strGroupIndicatorPrefix := "[["
-g_strGroupIndicatorSuffix := "]]"
-
+g_strMenuPathSeparator := ">" ; spaces before/after are added only when submenus are added, separate submenu levels, not allowed in menu and group names
+g_strGuiMenuSeparator := "----------------" ;  single-line displayed as line separators, allowed in item names
+g_strGuiMenuSeparatorShort := "---" ;  short single-line displayed as line separators, allowed in item names
+g_strGuiDoubleLine := "===" ;  double-line displayed in column break and end of menu indicators, allowed in item names
+g_strGroupIndicatorPrefix := "[[" ; group item indicator, not allolowed in any item name
+g_strGroupIndicatorSuffix := "]]" ; displayed in Settings with g_strGroupIndicatorPrefix, and with number of items in menus, allowed in item names
+g_strSeparatorQAPMenuPath := "¦" ; separate menu path and item position in g_objQAPfeaturesInMenus, not allowed in menu names
 g_intListW := "" ; Gui width captured by GuiSize and used to adjust columns in fav list
-g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file
+g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file, should not be in item names or location but not checked
 
 g_objGuiControls := Object() ; to build Settings gui
 
@@ -444,12 +445,12 @@ strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
 			. "|imageres|imageres|shell32|imageres"
 			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
 			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
-            . "|shell32|shell32|shell32|shell32|shell32|imageres|shell32|shell32|shell32"
+            . "|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
 strIconsIndex := "106|189|68|105|115|23|50"
 			. "|113|203|99|96"
 			. "|113|110|217|208|298|29|176|4"
 			. "|297|46|176|55|104|179|240|87|153|1"
-            . "|39|304|261|222|24|166|104|216|174"
+            . "|39|304|261|222|24|301|104|216|174"
 
 StringSplit, arrIconsFile, strIconsFile, |
 StringSplit, arrIconsIndex, strIconsIndex, |
@@ -1012,14 +1013,14 @@ return
 
 
 ;------------------------------------------------------------
-InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey := "")
+InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey := "")
 
 ; QAP Feature Objects (g_objQAPFeatures) definition:
 ;		Key: strQAPFeatureInternalName
 ;		Value: objOneQAPFeature
 
 ; QAP Features Object (objOneQAPFeature) definition:
-;		objOneQAPFeature.DefaultName: QAP Feature localized label, key to access one QAP Feature object (example: g_objQAPFeatures[strThisDefaultName]
+;		objOneQAPFeature.LocalizedName: QAP Feature localized label
 ;		strQAPFeatureMenuName: menu to be added to the menu (excluding the starting ":"), empty if no submenu associated to this QAP feature
 ;		strQAPFeatureCommand: command to be executed when this favorite is selected (excluding the ending ":")
 ;		objOneQAPFeature.DefaultIcon: default icon (in the "file,index" format)
@@ -1035,15 +1036,15 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuNam
 	
 	objOneQAPFeature := Object()
 	
-	objOneQAPFeature.DefaultName := strThisDefaultName
+	objOneQAPFeature.LocalizedName := strThisLocalizedName
 	objOneQAPFeature.DefaultIcon := g_objIconsFile[strThisDefaultIcon] . "," . g_objIconsIndex[strThisDefaultIcon]
 	objOneQAPFeature.QAPFeatureMenuName := strQAPFeatureMenuName
 	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
 	objOneQAPFeature.DefaultHotkey := strDefaultHotkey
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
-	g_objQAPFeaturesCodeByDefaultName.Insert(strThisDefaultName, "{" . strQAPFeatureCode . "}")
-	g_objQAPFeaturesDefaultNameByCode.Insert("{" . strQAPFeatureCode . "}", strThisDefaultName)
+	g_objQAPFeaturesCodeByDefaultName.Insert(strThisLocalizedName, "{" . strQAPFeatureCode . "}")
+	g_objQAPFeaturesDefaultNameByCode.Insert("{" . strQAPFeatureCode . "}", strThisLocalizedName)
 }
 ;------------------------------------------------------------
 
@@ -1119,6 +1120,7 @@ InsertGuiControlPos(strControlName, intX, intY, blnCenter := false, blnDraw := f
 
 ;-----------------------------------------------------------
 LoadIniFile:
+ReloadIniFile:
 ;-----------------------------------------------------------
 
 ; create a backup of the ini file before loading
@@ -1350,13 +1352,15 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	global g_strEscapePipe
 	global g_objQAPfeaturesInMenus
 	global g_objQAPFeaturesDefaultNameByCode
+	global g_strSeparatorQAPMenuPath
 	
 	g_objMenusIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
+	intMenuItemPos := 0
 
 	Loop
 	{
 		IniRead, strLoadIniLine, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
-		g_intIniLine++
+        g_intIniLine++
 
 		if (strLoadIniLine = "ERROR")
 			Return, "EOF" ; end of file - should not happen if main menu ends with a "Z" type favorite as expected
@@ -1398,9 +1402,9 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			
 			; to keep track of QAP features in menus to allow enable/disable menu items
 			if g_objQAPfeaturesInMenus.HasKey(arrThisFavorite3) ; QAP feature already in object
-				g_objQAPfeaturesInMenus[arrThisFavorite3] .= objCurrentMenu.MenuPath . "|"
+				g_objQAPfeaturesInMenus[arrThisFavorite3] .= objCurrentMenu.MenuPath . g_strSeparatorQAPMenuPath . intMenuItemPos . "|"
 			else
-				g_objQAPfeaturesInMenus.Insert(arrThisFavorite3, objCurrentMenu.MenuPath . "|") ; add it with menu path
+				g_objQAPfeaturesInMenus.Insert(arrThisFavorite3, objCurrentMenu.MenuPath . g_strSeparatorQAPMenuPath . intMenuItemPos . "|") ; add it with menu path
 		}
 
 		; this is a regular favorite, add it to the current menu
@@ -1423,6 +1427,10 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		
 		; update the current menu object
 		objCurrentMenu.Insert(objLoadIniFavorite)
+		
+		; ###_V(A_ThisLabel, intMenuItemPos, objLoadIniFavorite.FavoriteName)
+		if !InStr("XK", objLoadIniFavorite.FavoriteType) ; menu separators and column breaks do not use a item position numeric shortcut number
+			intMenuItemPos++
 	}
 }
 ;-----------------------------------------------------------
@@ -2461,21 +2469,6 @@ RecursiveBuildOneMenu(objCurrentMenu)
 
 
 ;------------------------------------------------------------
-NextMenuShortcut(ByRef intShortcut)
-;------------------------------------------------------------
-{
-	if (intShortcut < 10)
-		strShortcut := intShortcut ; 0 .. 9
-	else
-		strShortcut := Chr(intShortcut + 55) ; Chr(10 + 55) = "A" .. Chr(35 + 55) = "Z"
-	
-	intShortcut := intShortcut + 1
-	return strShortcut
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue)
 ; strIconValue can be an item from strIconsMenus (eg: "iconFolder") or a "file,index" combo (eg: "imageres.dll,33")
 ;------------------------------------------------------------
@@ -3184,11 +3177,11 @@ Loop, % g_objMenuInGui.MaxIndex()
 			, (g_objMenuInGui[A_Index].FavoriteType = "Menu" ? g_strMenuPathSeparator : " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix))
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "X") ; this is a separator
-		LV_Add(, g_strGuiMenuSeparator, "---", g_strGuiMenuSeparator . g_strGuiMenuSeparator)
+		LV_Add(, g_strGuiMenuSeparator, g_strGuiMenuSeparatorShort, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
 	
 	else if (g_objMenuInGui[A_Index].FavoriteType = "K") ; this is a column break
-		LV_Add(, g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
-		, "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
+		LV_Add(, g_strGuiDoubleLine . " " . lMenuColumnBreak . " " . g_strGuiDoubleLine
+		, g_strGuiDoubleLine, g_strGuiDoubleLine . " " . lMenuColumnBreak . " " . g_strGuiDoubleLine)
 		
 	else if (g_objMenuInGui[A_Index].FavoriteType = "B") ; this is a back link
 		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, "   ..   " , "")
@@ -3793,7 +3786,7 @@ else ; "Special" or "QAP"
 		if (g_objEditedFavorite.FavoriteType = "Special")
 			GuiControl, ChooseString, f_drpSpecial, % g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultName
 		else ; QAP
-			GuiControl, ChooseString, f_drpQAP, % g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultName
+			GuiControl, ChooseString, f_drpQAP, % g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].LocalizedName
 }
 
 if (g_objEditedFavorite.FavoriteType = "FTP")
@@ -4029,16 +4022,16 @@ Loop, % g_objMenusIndex[f_drpParentMenu].MaxIndex()
 	else if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "X")
 		strDropdownParentMenuItems .= g_strGuiMenuSeparator . g_strGuiMenuSeparator . "|"
 	else if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "K")
-		strDropdownParentMenuItems .= g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak . "|"
+		strDropdownParentMenuItems .= g_strGuiDoubleLine . " " . lMenuColumnBreak . " " . g_strGuiDoubleLine . "|"
 	else
 		strDropdownParentMenuItems .= g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteName . "|"
 }
 
-GuiControl, , f_drpParentMenuItems, % "|" . strDropdownParentMenuItems . g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
+GuiControl, , f_drpParentMenuItems, % "|" . strDropdownParentMenuItems . g_strGuiDoubleLine . " " . lDialogEndOfMenu . " " . g_strGuiDoubleLine
 if (f_drpParentMenu = g_objMenuInGui.MenuPath) and (g_intOriginalMenuPosition <> 0xFFFF)
 	GuiControl, Choose, f_drpParentMenuItems, % g_intOriginalMenuPosition - (g_objMenusIndex[f_drpParentMenu][1].FavoriteType = "B" ? 1 : 0)
 else
-	GuiControl, ChooseString, f_drpParentMenuItems, % g_strGuiMenuColumnBreak . " " . lDialogEndOfMenu . " " . g_strGuiMenuColumnBreak
+	GuiControl, ChooseString, f_drpParentMenuItems, % g_strGuiDoubleLine . " " . lDialogEndOfMenu . " " . g_strGuiDoubleLine
 
 strDropdownParentMenuItems := ""
 
@@ -4523,12 +4516,6 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 		return
 	}
 
-	if IsColumnBreak(f_strFavoriteShortName)
-	{
-		Oops(L(lDialogFavoriteNameNoColumnBreak, g_strGuiMenuColumnBreak))
-		return
-	}
-
 	if  InStr("Folder|Document|Application|URL|FTP", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
 	{
 		Oops(lDialogFavoriteLocationEmpty)
@@ -4541,10 +4528,21 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 		return
 	}
 
-	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
-		and InStr(f_strFavoriteShortName, g_strMenuPathSeparator) or InStr(f_strFavoriteShortName, g_strGroupIndicatorPrefix)
+	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and InStr(f_strFavoriteShortName, g_strMenuPathSeparator)
 	{
-		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator, g_strGroupIndicatorPrefix))
+		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator))
+		return
+	}
+
+	if (g_objEditedFavorite.FavoriteType = "Menu" and InStr(f_strFavoriteShortName, g_strSeparatorQAPMenuPath))
+	{
+		Oops(L(lDialogFavoriteNameNoSeparator, g_strSeparatorQAPMenuPath))
+		return
+	}
+
+	if InStr(f_strFavoriteShortName, g_strGroupIndicatorPrefix)
+	{
+		Oops(L(lDialogFavoriteNameNoSeparator, g_strGroupIndicatorPrefix))
 		return
 	}
 
@@ -5198,10 +5196,10 @@ g_objMenuInGui.Insert(intInsertPosition, objNewFavorite)
 LV_Modify(0, "-Select")
 
 if (A_ThisLabel = "GuiAddSeparator")
-	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuSeparator, "---", g_strGuiMenuSeparator . g_strGuiMenuSeparator)
+	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuSeparator, g_strGuiMenuSeparatorShort, g_strGuiMenuSeparator . g_strGuiMenuSeparator)
 else ; GuiAddColumnBreak
-	LV_Insert(intInsertPosition, "Select Focus", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak
-		, "===", g_strGuiMenuColumnBreak . " " . lMenuColumnBreak . " " . g_strGuiMenuColumnBreak)
+	LV_Insert(intInsertPosition, "Select Focus", g_strGuiDoubleLine . " " . lMenuColumnBreak . " " . g_strGuiDoubleLine
+		, g_strGuiDoubleLine, g_strGuiDoubleLine . " " . lMenuColumnBreak . " " . g_strGuiDoubleLine)
 
 LV_Modify(LV_GetNext(), "Vis")
 Gosub, Adjust3ColumnsWidth
@@ -5236,7 +5234,7 @@ IniDelete, %g_strIniFile%, Favorites
 g_intIniLine := 1 ; reset counter before saving to another ini file
 RecursiveSaveFavoritesToIniFile(g_objMainMenu)
 
-Gosub, LoadIniFile
+Gosub, ReloadIniFile
 Gosub, BuildMainMenuWithStatus
 GuiControl, Disable, %lGuiSave%
 GuiControl, , %lGuiCancel%, %lGuiClose%
@@ -5807,9 +5805,15 @@ if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; we have this QAP featur
 
 	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Current Folders}"]
 	Loop, Parse, strQAPfeatureMenusPaths, |
+	{
 		if StrLen(A_LoopField)
+		{
 			; disable Folders in Explorer menu if no Explorer
-			Menu, %A_LoopField%, % (g_intExplorersIndex ? "Enable" : "Disable"), % g_objQAPFeatures["{Current Folders}"].DefaultName
+			StringSplit, arrPathAndPosition, A_LoopField, %g_strSeparatorQAPMenuPath%
+			Menu, %arrPathAndPosition1%, % (g_intExplorersIndex ? "Enable" : "Disable")
+				, % GetQAPFeatureMenuName(arrPathAndPosition2, g_objQAPFeatures["{Current Folders}"].LocalizedName)
+		}
+	}
 }
 
 if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
@@ -5818,8 +5822,10 @@ if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in a
 	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Clipboard}"]
 	Loop, Parse, strQAPfeatureMenusPaths, |
 		if StrLen(A_LoopField)
-			; disable Clipboard menu if no Explorer
-			Menu, %A_LoopField%, % (g_blnClipboardMenuEnable ? "Enable" : "Disable"), % g_objQAPFeatures["{Clipboard}"].DefaultName ; disable Clipboard menu if no Explorer
+			; disable Clipboard menu if no path or URL in Clipboard
+			StringSplit, arrPathAndPosition, A_LoopField, %g_strSeparatorQAPMenuPath%
+			Menu, %arrPathAndPosition1%, % (g_blnClipboardMenuEnable ? "Enable" : "Disable")
+				, % GetQAPFeatureMenuName(arrPathAndPosition2, g_objQAPFeatures["{Clipboard}"].LocalizedName)
 }
 
 if g_objQAPfeaturesInMenus.HasKey("{Add This Folder}") ; we have this QAP feature in at least one menu
@@ -5827,11 +5833,12 @@ if g_objQAPfeaturesInMenus.HasKey("{Add This Folder}") ; we have this QAP featur
 	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Add This Folder}"]
 	Loop, Parse, strQAPfeatureMenusPaths, |
 		if StrLen(A_LoopField)
-			; Enable "Add This Folder" only if the target window is an Explorer, TotalCommander*, Directory Opus* or a dialog box (*: even if not enabled in options)
-			Menu, %A_LoopField%
-				, % WindowIsAnExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
-				or (WindowIsDialog(g_strTargetClass, g_strTargetWinId)) ? "Enable" : "Disable"
-				, % g_objQAPFeatures["{Add This Folder}"].DefaultName
+			; enable "Add This Folder" only if the target window is an Explorer, TotalCommander*, Directory Opus* or a dialog box (*: even if not enabled in options)
+			StringSplit, arrPathAndPosition, A_LoopField, %g_strSeparatorQAPMenuPath%
+			Menu, %arrPathAndPosition1%
+			, % WindowIsAnExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
+			or (WindowIsDialog(g_strTargetClass, g_strTargetWinId)) ? "Enable" : "Disable"
+			, % GetQAPFeatureMenuName(arrPathAndPosition2, g_objQAPFeatures["{Add This Folder}"].LocalizedName)
 }
 
 Gosub, InsertColumnBreaks
@@ -7345,17 +7352,6 @@ CollectRunningApplications(strDefaultPath)
 
 
 ;------------------------------------------------------------
-IsColumnBreak(strMenuName)
-;------------------------------------------------------------
-{
-	global g_strGuiMenuColumnBreak
-
-	return (SubStr(Trim(strMenuName), 1, StrLen(g_strGuiMenuColumnBreak)) = g_strGuiMenuColumnBreak)
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 ReplaceAllInString(strThis, strFrom, strTo)
 ;------------------------------------------------------------
 {
@@ -7519,3 +7515,29 @@ return
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+NextMenuShortcut(ByRef intShortcut)
+;------------------------------------------------------------
+{
+	if (intShortcut < 10)
+		strShortcut := intShortcut ; 0 .. 9
+	else
+		strShortcut := Chr(intShortcut + 55) ; Chr(10 + 55) = "A" .. Chr(35 + 55) = "Z"
+	
+	intShortcut := intShortcut + 1
+	return strShortcut
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetQAPFeatureMenuName(intMenuPosition, strFeatureMenuName)
+; returns the QAP feature menu name with or without the numeric shortcut
+;------------------------------------------------------------
+{
+	global g_blnDisplayMenuShortcuts
+	
+	; intMenuPosition is incremented by NextMenuShortcut but we don't care iin this function
+	return  (g_blnDisplayMenuShortcuts ? "&" . NextMenuShortcut(intMenuPosition) . " " : "") . strFeatureMenuName
+}
+;------------------------------------------------------------
