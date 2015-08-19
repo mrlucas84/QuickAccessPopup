@@ -16,10 +16,11 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- debug menu with numeric shortcuts
+- menu items lost in sub menu during work 2015-08-18
 
 TO-DO
 - add hotkeys shortcuts in menus
+- Add This Folder starts by checking classes to see if we can
 
 - check exclusion as "class contain the exclusion string"
 - exclusion lists (mouse and keyboard) in options, save to ini
@@ -165,7 +166,6 @@ g_strGuiMenuSeparatorShort := "---" ;  short single-line displayed as line separ
 g_strGuiDoubleLine := "===" ;  double-line displayed in column break and end of menu indicators, allowed in item names
 g_strGroupIndicatorPrefix := "[[" ; group item indicator, not allolowed in any item name
 g_strGroupIndicatorSuffix := "]]" ; displayed in Settings with g_strGroupIndicatorPrefix, and with number of items in menus, allowed in item names
-g_strSeparatorQAPMenuPath := "¦" ; separate menu path and item position in g_objQAPfeaturesInMenus, not allowed in menu names
 g_intListW := "" ; Gui width captured by GuiSize and used to adjust columns in fav list
 g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file, should not be in item names or location but not checked
 
@@ -440,17 +440,17 @@ strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetw
 	. "|iconRecentFolders|iconSpecialFolders|iconGroup|iconCurrentFolders"
 	. "|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu|iconNetwork|iconUnknown|iconFolder"
 	. "|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic|iconMyVideo|iconHistory|iconFavorites|iconTemporary|iconWinver"
-    . "|iconFonts|iconApplication|iconClipboard|iconAbout|iconHelp|iconOptions|iconFTP|iconExit|iconHotkeys"
+    . "|iconFonts|iconApplication|iconClipboard|iconAbout|iconHelp|iconOptions|iconFTP|iconExit|iconHotkeys|iconNoContent"
 strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
 			. "|imageres|imageres|shell32|imageres"
 			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
 			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
-            . "|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
+            . "|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
 strIconsIndex := "106|189|68|105|115|23|50"
 			. "|113|203|99|96"
 			. "|113|110|217|208|298|29|176|4"
 			. "|297|46|176|55|104|179|240|87|153|1"
-            . "|39|304|261|222|24|301|104|216|174"
+            . "|39|304|261|222|24|301|104|216|174|110"
 
 StringSplit, arrIconsFile, strIconsFile, |
 StringSplit, arrIconsIndex, strIconsIndex, |
@@ -1352,7 +1352,6 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	global g_strEscapePipe
 	global g_objQAPfeaturesInMenus
 	global g_objQAPFeaturesDefaultNameByCode
-	global g_strSeparatorQAPMenuPath
 	
 	g_objMenusIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
 	intMenuItemPos := 0
@@ -1401,10 +1400,13 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 			arrThisFavorite2 := g_objQAPFeaturesDefaultNameByCode[arrThisFavorite3]
 			
 			; to keep track of QAP features in menus to allow enable/disable menu items
+			g_objQAPfeaturesInMenus.Insert(arrThisFavorite3, 1) ; boolean just to flag that we have this QAP feature in menus
+			/*
 			if g_objQAPfeaturesInMenus.HasKey(arrThisFavorite3) ; QAP feature already in object
 				g_objQAPfeaturesInMenus[arrThisFavorite3] .= objCurrentMenu.MenuPath . g_strSeparatorQAPMenuPath . intMenuItemPos . "|"
 			else
 				g_objQAPfeaturesInMenus.Insert(arrThisFavorite3, objCurrentMenu.MenuPath . g_strSeparatorQAPMenuPath . intMenuItemPos . "|") ; add it with menu path
+			*/
 		}
 
 		; this is a regular favorite, add it to the current menu
@@ -1777,13 +1779,8 @@ Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activ
 
 Gosub, BuildCurrentFoldersMenu
 
-if (g_intExplorersIndex) ; there are Folders in Explorer menu
-{
-	CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-	Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
-}
-else
-	TrayTip, % L(lTrayTipNoCurrentFoldersMenuTitle, g_strAppNameText), %lTrayTipNoCurrentFoldersMenuDetail%, , 2
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -1820,7 +1817,7 @@ CollectExplorers(objExplorersWindows, ComObjCreate("Shell.Application").Windows)
 
 objCurrentFoldersList := Object()
 
-g_intExplorersIndex := 0 ; used in PopupMenu and SaveGroup to check if we disable menu or button when empty
+intExplorersIndex := 0 ; used in PopupMenu and SaveGroup to check if we disable menu or button when empty
 
 if (g_blnUseDirectoryOpus)
 	for intIndex, objLister in objDOpusListers
@@ -1832,7 +1829,7 @@ if (g_blnUseDirectoryOpus)
 		if NameIsInObject(objLister.LocationURL, objCurrentFoldersList)
 			continue
 		
-		g_intExplorersIndex++
+		intExplorersIndex++
 			
 		objCurrentFolder := Object()
 		objCurrentFolder.LocationURL := objLister.LocationURL
@@ -1848,7 +1845,7 @@ if (g_blnUseDirectoryOpus)
 		objCurrentFolder.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
 		objCurrentFolder.WindowType := "DO"
 		
-		objCurrentFoldersList.Insert(g_intExplorersIndex, objCurrentFolder)
+		objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 	}
 
 for intIndex, objFolder in objExplorersWindows
@@ -1860,7 +1857,7 @@ for intIndex, objFolder in objExplorersWindows
 	if NameIsInObject(objFolder.LocationName, objCurrentFoldersList)
 		continue
 	
-	g_intExplorersIndex++
+	intExplorersIndex++
 	
 	objCurrentFolder := Object()
 	objCurrentFolder.LocationURL := objFolder.LocationURL
@@ -1875,7 +1872,7 @@ for intIndex, objFolder in objExplorersWindows
 	objCurrentFolder.MinMax := objFolder.MinMax
 	objCurrentFolder.WindowType := "EX"
 
-	objCurrentFoldersList.Insert(g_intExplorersIndex, objCurrentFolder)
+	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 }
 
 Menu, g_menuCurrentFolders, DeleteAll
@@ -1885,12 +1882,15 @@ if (g_blnUseColors)
 intShortcutCurrentFolders := 0
 g_objCurrentFoldersLocationUrlByName := Object()
 
-for intIndex, objCurrentFolder in objCurrentFoldersList
-{
-	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
-	g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
-	AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
-}
+if (intExplorersIndex)
+	for intIndex, objCurrentFolder in objCurrentFoldersList
+	{
+		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
+		g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
+		AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
+	}
+else
+	AddMenuIcon("g_menuCurrentFolders", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
 objDOpusListers := ""
 objExplorersWindows := ""
@@ -1902,6 +1902,7 @@ objLister := ""
 objFolder := ""
 intShortcutCurrentFolders := ""
 strMenuName := ""
+intExplorersIndex := ""
 
 return
 ;------------------------------------------------------------
@@ -2120,13 +2121,9 @@ ClipboardMenuShortcut:
 Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
 
 Gosub, RefreshClipboardMenu
-if (g_blnClipboardMenuEnable)
-{
-    CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-    Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
-}
-else
-    TrayTip, % L(lTrayTipNoClipboardMenuTitle, g_strAppNameText), %lTrayTipNoClipboardMenuDetail%, , 2
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2146,9 +2143,11 @@ Menu, g_menuClipboard, DeleteAll
 if (g_blnUseColors)
 	Menu, g_menuClipboard, Color, %g_strMenuBackgroundColor%
 
-g_blnClipboardMenuEnable := 0
+blnClipboardMenuHasContent := 0
 
 Gosub, RefreshClipboardMenu
+
+blnClipboardMenuHasContent := ""
 
 return
 ;------------------------------------------------------------
@@ -2176,7 +2175,7 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 			Menu, g_menuClipboard, DeleteAll
 			blnPreviousClipboardMenuDeleted := 1
 		}
-		g_blnClipboardMenuEnable := 1
+		blnClipboardMenuHasContent := 1
 
 		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . strClipboardLine
 		if (g_blnDisplayIcons)
@@ -2209,7 +2208,7 @@ Loop, parse, strURLsInClipboard, `n
 		Menu, g_menuClipboard, DeleteAll
 		blnPreviousClipboardMenuDeleted := 1
 	}
-	g_blnClipboardMenuEnable := 1
+	blnClipboardMenuHasContent := 1
 
 	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . A_LoopField
 	if StrLen(strMenuName) < 260 ; skip too long URLs
@@ -2218,6 +2217,13 @@ Loop, parse, strURLsInClipboard, `n
 		if (blnDisplayIcon)
 			Menu, g_menuClipboard, Icon, %strMenuName%, %strThisIconFile%, %intThisIconIndex%, %g_intIconSize%
 	}
+}
+
+if !(blnClipboardMenuHasContent)
+{
+	Menu, g_menuClipboard, Add
+	Menu, g_menuClipboard, DeleteAll
+	AddMenuIcon("g_menuClipboard", lMenuNoClipboard, "GuiShow", "iconNoContent", false)	; will never be called because disabled
 }
 
 blnPreviousClipboardMenuDeleted := ""
@@ -2367,30 +2373,33 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	{	
 		intMenuItemsCount++ ; for objMenuColumnBreak
 		
+		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
+		if (g_intHotkeyReminders > 1 and StrLen(objCurrentMenu[A_Index].FavoriteHotkey) and objCurrentMenu[A_Index].FavoriteHotkey <> "None")
+			strMenuName .= " (" . objCurrentMenu[A_Index].FavoriteHotkey . ")"
+		
 		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
 			continue
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "Menu")
 		{
-			RecursiveBuildOneMenu(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
+			RecursiveBuildOneMenu(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE - build the submenu first
 			
 			if (g_blnUseColors)
 				Try Menu, % objCurrentMenu[A_Index].SubMenu.MenuPath, Color, %g_strMenuBackgroundColor% ; Try because this can fail if submenu is empty
 			
-			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
-			Try Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, % ":" . objCurrentMenu[A_Index].SubMenu.MenuPath
+			Try Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, % ":" . objCurrentMenu[A_Index].SubMenu.MenuPath
 			catch e ; when menu objCurrentMenu[A_Index].SubMenu.MenuPath is empty
-				Menu, % objCurrentMenu.MenuPath, Add, % objCurrentMenu[A_Index].FavoriteName, OpenFavorite ; will never be called because disabled
-			Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() > 1 ? "Enable" : "Disable"), % objCurrentMenu[A_Index].FavoriteName ; disable menu if contains only the back .. item
+				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavorite ; will never be called because disabled
+			Menu, % objCurrentMenu.MenuPath, % (objCurrentMenu[A_Index].SubMenu.MaxIndex() > 1 ? "Enable" : "Disable"), %strMenuName% ; disable menu if contains only the back .. item
 			if (g_blnDisplayIcons)
 			{
 				ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "iconSubmenu")
 				
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, on
-				Menu, % objCurrentMenu.MenuPath, Icon, % objCurrentMenu[A_Index].FavoriteName
+				Menu, % objCurrentMenu.MenuPath, Icon, %strMenuName%
 					, %strThisIconFile%, %intThisIconIndex% , %g_intIconSize%
 				if (ErrorLevel)
-					Menu, % objCurrentMenu.MenuPath, Icon, % objCurrentMenu[A_Index].FavoriteName
+					Menu, % objCurrentMenu.MenuPath, Icon, %strMenuName%
 						, % g_objIconsFile["iconUnknown"], % g_objIconsIndex["iconUnknown"], %g_intIconSize%
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, off
 			}
@@ -2403,9 +2412,9 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			else
 				Menu, % objCurrentMenu.MenuPath, Add
 			
-		else if (objCurrentMenu[A_Index].FavoriteType = "K")
+		else if (objCurrentMenu[A_Index].FavoriteType = "K") ; this is a column break
 		{
-			intMenuItemsCount -= 1
+			intMenuItemsCount -= 1 ; column breaks do not take a slot in menus
 			objMenuColumnBreak := Object()
 			objMenuColumnBreak.MenuPath := objCurrentMenu.MenuPath
 			objMenuColumnBreak.MenuPosition := intMenuItemsCount - (objCurrentMenu.MenuPath <> lMainMenuName ? 1 : 0)
@@ -2413,9 +2422,6 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		}
 		else ; this is a favorite (Folder, Document, Application, Special, URL, FTP, QAP or Group)
 		{
-			strSubMenuDisplayName := objCurrentMenu[A_Index].FavoriteName
-			strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "")
-				. strSubMenuDisplayName
 			if (objCurrentMenu[A_Index].FavoriteType = "Group")
 				strMenuName .= " " . g_strGroupIndicatorPrefix . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . g_strGroupIndicatorSuffix
 			
@@ -2452,7 +2458,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 						
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, off
 			}
-			if (objCurrentMenu[A_Index].FavoriteName = lMenuSettings . "...")
+			if (objCurrentMenu[A_Index].FavoriteName = lMenuSettings . "...") ; make Settings... menu bold in any menu
 				Menu, % objCurrentMenu.MenuPath, Default, %strMenuName%
 		}
 		
@@ -2469,7 +2475,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 
 
 ;------------------------------------------------------------
-AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue)
+AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue, blnEnabled := true)
 ; strIconValue can be an item from strIconsMenus (eg: "iconFolder") or a "file,index" combo (eg: "imageres.dll,33")
 ;------------------------------------------------------------
 {
@@ -2505,6 +2511,9 @@ AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue)
 				, % g_objIconsFile["iconUnknown"], % g_objIconsIndex["iconUnknown"], %g_intIconSize%
 		Menu, %strMenuName%, UseErrorLevel, off
 	}
+	
+	if !(blnEnabled)
+		Menu, %strMenuName%, Disable, %strMenuItemName%
 }
 ;------------------------------------------------------------
 
@@ -4534,12 +4543,6 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 		return
 	}
 
-	if (g_objEditedFavorite.FavoriteType = "Menu" and InStr(f_strFavoriteShortName, g_strSeparatorQAPMenuPath))
-	{
-		Oops(L(lDialogFavoriteNameNoSeparator, g_strSeparatorQAPMenuPath))
-		return
-	}
-
 	if InStr(f_strFavoriteShortName, g_strGroupIndicatorPrefix)
 	{
 		Oops(L(lDialogFavoriteNameNoSeparator, g_strGroupIndicatorPrefix))
@@ -5800,34 +5803,12 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 }
 
 if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; we have this QAP feature in at least one menu
-{
 	Gosub, BuildCurrentFoldersMenu
 
-	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Current Folders}"]
-	Loop, Parse, strQAPfeatureMenusPaths, |
-	{
-		if StrLen(A_LoopField)
-		{
-			; disable Folders in Explorer menu if no Explorer
-			StringSplit, arrPathAndPosition, A_LoopField, %g_strSeparatorQAPMenuPath%
-			Menu, %arrPathAndPosition1%, % (g_intExplorersIndex ? "Enable" : "Disable")
-				, % GetQAPFeatureMenuName(arrPathAndPosition2, g_objQAPFeatures["{Current Folders}"].LocalizedName)
-		}
-	}
-}
-
 if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
-{
 	Gosub, RefreshClipboardMenu
-	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Clipboard}"]
-	Loop, Parse, strQAPfeatureMenusPaths, |
-		if StrLen(A_LoopField)
-			; disable Clipboard menu if no path or URL in Clipboard
-			StringSplit, arrPathAndPosition, A_LoopField, %g_strSeparatorQAPMenuPath%
-			Menu, %arrPathAndPosition1%, % (g_blnClipboardMenuEnable ? "Enable" : "Disable")
-				, % GetQAPFeatureMenuName(arrPathAndPosition2, g_objQAPFeatures["{Clipboard}"].LocalizedName)
-}
 
+/*
 if g_objQAPfeaturesInMenus.HasKey("{Add This Folder}") ; we have this QAP feature in at least one menu
 {
 	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Add This Folder}"]
@@ -5840,13 +5821,13 @@ if g_objQAPfeaturesInMenus.HasKey("{Add This Folder}") ; we have this QAP featur
 			or (WindowIsDialog(g_strTargetClass, g_strTargetWinId)) ? "Enable" : "Disable"
 			, % GetQAPFeatureMenuName(arrPathAndPosition2, g_objQAPFeatures["{Add This Folder}"].LocalizedName)
 }
+*/
 
 Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
 ; g_blnMouse not used. OK? g_blnMouse := ""
-strQAPfeatureMenusPaths := ""
 
 return
 ;------------------------------------------------------------
@@ -6154,13 +6135,16 @@ else if (A_ThisLabel = "OpenFavoriteGroup")
 else
 	strThisMenuItem :=  A_ThisMenuItem
 
+/* LATER IF REQUIRED?
 if (g_intHotkeyReminders > 1) ; remove reminder between parenthesis from menu item name
 	strThisMenuItem := SubStr(strThisMenuItem, 1, InStr(strThisMenuItem, "(", , 0) - 2)
+###_V(A_ThisLabel, A_ThisMenuItem, strThisMenuItem, g_strGroupIndicatorPrefix)
+*/
 
 if InStr("OpenFavorite|OpenFavoriteGroup", A_ThisLabel)
 {
 	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
-			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], strThisMenuItem)
+			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
 	objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
 }
 else if (A_ThisLabel = "OpenFavoriteFromHotkey")
@@ -6236,22 +6220,18 @@ return
 
 
 ;------------------------------------------------------------
-NumberOfColumnBreaksBeforeThisItem(objMenu, strThisMenuItem)
+NumberOfColumnBreaksBeforeThisItem(objMenu, strThisMenuItemPos)
 ;------------------------------------------------------------
 {
 	intNumberOfColumnBreaks := 0
 	Loop
-		if (objMenu[A_Index].FavoriteName = strThisMenuItem)
+	{
+		if (A_Index - intNumberOfColumnBreaks > strThisMenuItemPos)
 			break
 		else if (objMenu[A_Index].FavoriteType = "K")
 			intNumberOfColumnBreaks++
-		else if (A_Index > 1000)
-		{
-			Oops("Error opening menu item ""~1~"" in menu ""~2~"".", strThisMenuItem, objMenu.MenuPath)
-			###_O(A_Thislabel, objMenu, "FavoriteName")
-			break
-		}
-
+	}
+	
 	return intNumberOfColumnBreaks
 }
 ;------------------------------------------------------------
@@ -7530,14 +7510,3 @@ NextMenuShortcut(ByRef intShortcut)
 ;------------------------------------------------------------
 
 
-;------------------------------------------------------------
-GetQAPFeatureMenuName(intMenuPosition, strFeatureMenuName)
-; returns the QAP feature menu name with or without the numeric shortcut
-;------------------------------------------------------------
-{
-	global g_blnDisplayMenuShortcuts
-	
-	; intMenuPosition is incremented by NextMenuShortcut but we don't care iin this function
-	return  (g_blnDisplayMenuShortcuts ? "&" . NextMenuShortcut(intMenuPosition) . " " : "") . strFeatureMenuName
-}
-;------------------------------------------------------------
