@@ -17,10 +17,11 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 BUGS
 - menu items lost in sub menu during work 2015-08-18
+- validate when saving settings no spearator immediately after a column break
 
 TO-DO
-- add hotkeys shortcuts in menus
 - Add This Folder starts by checking classes to see if we can
+- About Gui larger
 
 - check exclusion as "class contain the exclusion string"
 - exclusion lists (mouse and keyboard) in options, save to ini
@@ -1787,6 +1788,24 @@ return
 
 
 ;------------------------------------------------------------
+InitDOpusListText:
+;------------------------------------------------------------
+
+FileDelete, %g_strDOpusTempFilePath%
+RunDOpusRt("/info", g_strDOpusTempFilePath, ",paths") ; list opened listers in a text file
+; Run, "%strDirectoryOpusRtPath%" /info "%g_strDOpusTempFilePath%"`,paths
+loop, 10
+	if FileExist(g_strDOpusTempFilePath)
+		Break
+	else
+		Sleep, 50 ; was 10 and had some gliches with FP - is 50 enough?
+FileRead, g_strDOpusListText, %g_strDOpusTempFilePath%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 BuildCurrentFoldersMenuInit:
 BuildCurrentFoldersMenu:
 ;------------------------------------------------------------
@@ -1798,22 +1817,11 @@ if (A_ThisLabel = "BuildCurrentFoldersMenuInit")
 
 if (g_blnUseDirectoryOpus)
 {
-	FileDelete, %g_strDOpusTempFilePath%
-	RunDOpusRt("/info", g_strDOpusTempFilePath, ",paths") ; list opened listers in a text file
-	; Run, "%strDirectoryOpusRtPath%" /info "%g_strDOpusTempFilePath%"`,paths
-	loop, 10
-		if FileExist(g_strDOpusTempFilePath)
-			Break
-		else
-			Sleep, 50 ; was 10 and had some gliches with FP - is 50 enough?
-	FileRead, strDOpusListText, %g_strDOpusTempFilePath%
-
-	objDOpusListers := Object()
-	CollectDOpusListersList(objDOpusListers, strDOpusListText) ; list all listers, excluding special folders like Recycle Bin
+	Gosub, InitDOpusListText
+	objDOpusListers := CollectDOpusListersList(g_strDOpusListText) ; list all listers, excluding special folders like Recycle Bin
 }
 
-objExplorersWindows := Object()
-CollectExplorers(objExplorersWindows, ComObjCreate("Shell.Application").Windows)
+objExplorersWindows := CollectExplorers(ComObjCreate("Shell.Application").Windows)
 
 objCurrentFoldersList := Object()
 
@@ -1896,7 +1904,6 @@ objDOpusListers := ""
 objExplorersWindows := ""
 objCurrentFolder := ""
 objCurrentFoldersList := ""
-strDOpusListText := ""
 intIndex := ""
 objLister := ""
 objFolder := ""
@@ -1909,10 +1916,12 @@ return
 
 
 ;------------------------------------------------------------
-CollectDOpusListersList(objListers, strList)
+CollectDOpusListersList(strList)
 ; list all DirectoryOpus listers, excluding special folders like Recycle Bin, Network because they are not included in dopus-list.txt
 ;------------------------------------------------------------
 {
+	objListers := Object()
+	
 	strList := SubStr(strList, InStr(strList, "<path"))
 	Loop
 	{
@@ -1945,6 +1954,8 @@ CollectDOpusListersList(objListers, strList)
 			strList := SubStr(strList, StrLen(strSubStr))
 		}
 	} until	(!StrLen(strSubStr))
+
+	return objListers
 }
 ;------------------------------------------------------------
 
@@ -1964,9 +1975,10 @@ ParseDOpusListerProperty(strSource, strProperty)
 
 
 ;------------------------------------------------------------
-CollectExplorers(objExplorers, pExplorers)
+CollectExplorers(pExplorers)
 ;------------------------------------------------------------
 {
+	objExplorers := Object()
 	intExplorers := 0
 	
 	For pExplorer in pExplorers
@@ -2013,6 +2025,8 @@ CollectExplorers(objExplorers, pExplorers)
 			objExplorers.Insert(intExplorers, objExplorer) ; I was checking if StrLen(pExplorer.HWND) - any reason?
 		}
 	}
+	
+	return objExplorers
 }
 ;------------------------------------------------------------
 
@@ -2020,8 +2034,6 @@ CollectExplorers(objExplorers, pExplorers)
 ;------------------------------------------------------------
 RecentFoldersMenuShortcut:
 ;------------------------------------------------------------
-
-blnCopyLocation := false ; ### used? should be named as global?
 
 ; g_blnMouse not used. OK? g_blnMouse := false
 ; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
@@ -2374,8 +2386,8 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		intMenuItemsCount++ ; for objMenuColumnBreak
 		
 		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
-		if (g_intHotkeyReminders > 1 and StrLen(objCurrentMenu[A_Index].FavoriteHotkey) and objCurrentMenu[A_Index].FavoriteHotkey <> "None")
-			strMenuName .= " (" . objCurrentMenu[A_Index].FavoriteHotkey . ")"
+		if StrLen(objCurrentMenu[A_Index].FavoriteHotkey) and (objCurrentMenu[A_Index].FavoriteHotkey <> "None") and (g_intHotkeyReminders > 1)
+			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? objCurrentMenu[A_Index].FavoriteHotkey : Hotkey2Text(objCurrentMenu[A_Index].FavoriteHotkey)) . ")"
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
 			continue
@@ -3426,88 +3438,92 @@ return
 AddThisFolder:
 ;------------------------------------------------------------
 
-; ### TO BE TESTED WHEN MENU IS DEVELOPED
+g_strNewLocation := ""
 
-/*
-if WindowIsDirectoryOpus(strTargetClass)
+if WindowIsAnExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
+	or WindowIsDialog(g_strTargetClass, g_strTargetWinId)
 {
-	objDOpusListers := Object()
-	CollectDOpusListersList(objDOpusListers, strListText) ; list all listers, excluding special folders like Recycle Bin
-	; ### QAP NOTE: NOT SURE strListText IS CORRECTLY INITAILIZED IN FP? BUT IT WORKS...
-	
-	; From leo @ GPSoftware (http://resource.dopus.com/viewtopic.php?f=3&t=23013):
-	; Lines will have active_lister="1" if they represent tabs from the active lister.
-	; To get the active tab you want the line with active_lister="1" and tab_state="1".
-	; tab_state="1" means it's the selected tab, on the active side of the lister.
-	; tab_state="2" means it's the selected tab, on the inactive side of a dual-display lister.
-	; Tabs which are not visible (because another tab is selected on top of them) don't get a tab_state attribute at all.
-
-	for intIndex, objLister in objDOpusListers
-		if (objLister.active_lister = "1" and objLister.tab_state = "1") ; this is the active tab
-		{
-			g_strNewLocation := objLister.LocationURL
-			break
-		}
-}
-else
-{
-	objPrevClipboard := ClipboardAll ; Save the entire clipboard
-	ClipBoard := ""
-
-	; Add This folder menu is active only if we are in Explorer or in a Dialog box.
-	; In all these OS, with Explorer, the key sequence {F4}{Esc} selects the current location of the window.
-	; With dialog boxes, the key sequence {F4}{Esc} generally selects the current location of the window. But, in some
-	; dialog boxes, the {Esc} key closes the dialog box. We will check window title to detect this behavior.
-
-	if (strTargetClass = "#32770")
-		intWaitTimeIncrement := 300 ; time allowed for dialog boxes
-	else
-		intWaitTimeIncrement := 150 ; time allowed for Explorer
-
-	if (g_blnDiagMode)
-		intTries := 8
-	else
-		intTries := 3
-
-	strWindowTitle := ""
-	Loop, %intTries%
+	if WindowIsDirectoryOpus(g_strTargetClass)
 	{
-		Sleep, intWaitTimeIncrement * A_Index
-		WinGetTitle, strWindowTitle, A ; to check later if this window is closed unexpectedly
-	} Until (StrLen(strWindowTitle))
+		Gosub, InitDOpusListText
+		objDOpusListers := CollectDOpusListersList(g_strDOpusListText) ; list all listers, excluding special folders like Recycle Bin
+		
+		; From leo @ GPSoftware (http://resource.dopus.com/viewtopic.php?f=3&t=23013):
+		; Lines will have active_lister="1" if they represent tabs from the active lister.
+		; To get the active tab you want the line with active_lister="1" and tab_state="1".
+		; tab_state="1" means it's the selected tab, on the active side of the lister.
+		; tab_state="2" means it's the selected tab, on the inactive side of a dual-display lister.
+		; Tabs which are not visible (because another tab is selected on top of them) don't get a tab_state attribute at all.
 
-	if WindowIsTotalCommander(strTargetClass)
-	{
-		cm_CopySrcPathToClip := 2029
-		SendMessage, 0x433, %cm_CopySrcPathToClip%, , , ahk_class TTOTAL_CMD ; 
-		WinGetTitle, strWindowThisTitle, A ; to check if the window was closed unexpectedly
+		for intIndex, objLister in objDOpusListers
+			if (objLister.active_lister = "1" and objLister.tab_state = "1") ; this is the active tab
+			{
+				g_strNewLocation := objLister.LocationURL
+				break
+			}
 	}
-	else ; Explorer
+	else ; Explorer, TotalCommander or dialog boxes
+	{
+		objPrevClipboard := ClipboardAll ; Save the entire clipboard
+		ClipBoard := ""
+
+		; Under Windows 7 and 8.1 (not tested with Windows 10)...
+		; With Explorer, the key sequence {F4}{Esc} selects the current location of the window.
+		; With dialog boxes, the key sequence {F4}{Esc} generally selects the current location of the window. But, in some
+		; dialog boxes, the {Esc} key closes the dialog box. We will check window title to detect this behavior.
+
+		if (g_strTargetClass = "#32770")
+			intWaitTimeIncrement := 300 ; time allowed for dialog boxes
+		else
+			intWaitTimeIncrement := 150 ; time allowed for Explorer
+
+		if (g_blnDiagMode)
+			intTries := 8
+		else
+			intTries := 3
+
+		strAddThisFolderWindowTitle := ""
 		Loop, %intTries%
 		{
 			Sleep, intWaitTimeIncrement * A_Index
-			SendInput, {F4}{Esc} ; F4 move the caret the "Go To A Different Folder box" and {Esc} select it content ({Esc} could be replaced by ^a to Select All)
-			Sleep, intWaitTimeIncrement * A_Index
-			SendInput, ^c ; Copy
-			Sleep, intWaitTimeIncrement * A_Index
-			intTries := A_Index
-			WinGetTitle, strWindowThisTitle, A ; to check if the window was closed unexpectedly
-		} Until (StrLen(ClipBoard) or (strWindowTitle <> strWindowThisTitle))
+			WinGetTitle, strAddThisFolderWindowTitle, A ; to check later if this window is closed unexpectedly
+		} Until (StrLen(strAddThisFolderWindowTitle))
 
-	g_strNewLocation := ClipBoard
-	Clipboard := objPrevClipboard ; Restore the original clipboard
-	objPrevClipboard := "" ; Free the memory in case the clipboard was very large
+		if WindowIsTotalCommander(g_strTargetClass)
+		{
+			cm_CopySrcPathToClip := 2029
+			SendMessage, 0x433, %cm_CopySrcPathToClip%, , , ahk_class TTOTAL_CMD ; 
+			WinGetTitle, strWindowActiveTitle, A ; to check if the window was closed unexpectedly
+		}
+		else ; Explorer or dialog boxes
+			Loop, %intTries%
+			{
+				Sleep, intWaitTimeIncrement * A_Index
+				SendInput, {F4}{Esc} ; F4 move the caret the "Go To A Different Folder box" and {Esc} select it content ({Esc} could be replaced by ^a to Select All)
+				Sleep, intWaitTimeIncrement * A_Index
+				SendInput, ^c ; Copy
+				Sleep, intWaitTimeIncrement * A_Index
+				intTries := A_Index ; for debug only
+				WinGetTitle, strWindowActiveTitle, A ; to check if the window was closed unexpectedly
+			} Until (StrLen(ClipBoard) or (strAddThisFolderWindowTitle <> strWindowActiveTitle))
 
-	if (g_blnDiagMode)
-	{
-		Diag("Menu", A_ThisLabel)
-		Diag("Class", strTargetClass)
-		Diag("Tries", intTries)
-		Diag("AddedFolder", g_strNewLocation)
+		g_strNewLocation := ClipBoard
+		Clipboard := objPrevClipboard ; Restore the original clipboard
+
+		if (g_blnDiagMode)
+		{
+			Diag("Menu", A_ThisLabel)
+			Diag("Class", g_strTargetClass)
+			Diag("Tries", intTries)
+			Diag("AddedFolder", g_strNewLocation)
+		}
 	}
+		
 }
 
-If !StrLen(g_strNewLocation) or !(InStr(g_strNewLocation, ":") or InStr(g_strNewLocation, "\\")) or (strWindowTitle <> strWindowThisTitle)
+###_V("g_strNewLocation", g_strNewLocation)
+
+If !StrLen(g_strNewLocation) or !(InStr(g_strNewLocation, ":") or InStr(g_strNewLocation, "\\")) or (strAddThisFolderWindowTitle <> strWindowActiveTitle)
 {
 	Gui, 1:+OwnDialogs 
 	MsgBox, 52, % L(lDialogAddFolderManuallyTitle, g_strAppNameText, g_strAppVersion), %lDialogAddFolderManuallyPrompt%
@@ -3520,14 +3536,15 @@ If !StrLen(g_strNewLocation) or !(InStr(g_strNewLocation, ":") or InStr(g_strNew
 else
 {
 	Gosub, GuiShow
+	g_intOriginalMenuPosition := 0xFFFF
 	Gosub, GuiAddThisFolder
 }
 
-objDOpusListers :=
-
-RELEASE ALL LOCAL VARIABLES
-
-*/
+objDOpusListers := ""
+objPrevClipboard := ""
+strAddThisFolderWindowTitle := ""
+intWaitTimeIncrement := ""
+intTries := ""
 
 return
 ;------------------------------------------------------------
@@ -5045,7 +5062,7 @@ Gui, 2:+OwnDialogs
 if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
-Gui, 2:Font, w600 
+Gui, 2:Font, w600
 Gui, 2:Add, Text, x10 y10, % L(lDialogHotkeysManageAbout, g_strAppNameText)
 Gui, 2:Font
 
@@ -5057,7 +5074,8 @@ Gui, 2:Add, Listview
 	, %lDialogHotkeysManageListHeader%|Menu path (hidden)|Position (hidden)
 
 Gui, 2:Add, Checkbox, vf_blnSeeAllFavorites gCheckboxSeeAllFavoritesClicked, %lDialogHotkeysManageListSeeAllFavorites%
-Gui, 2:Add, Checkbox, x+50 yp vf_blnSeeFullHotkeyNames gCheckboxSeeFullHotkeyNames, %lDialogHotkeysManageListSeeFullHotkeyNames%
+Gui, 2:Add, Checkbox, x+50 yp vf_blnSeeShortHotkeyNames gCheckboxSeeShortHotkeyNames, %lDialogHotkeysManageListSeeShortHotkeyNames%
+GuiControl, , f_blnSeeShortHotkeyNames, % (g_intHotkeyReminders = 2) ; 1 = no name, 2 = short names, 3 = full name
 Gosub, LoadHotkeysManageList
 
 Gui, 2:Add, Button, x+10 y+30 vf_btnHotkeysManageClose g2GuiClose h33, %lGui2Close%
@@ -5132,14 +5150,14 @@ Gui, 2:ListView, f_lvHotkeysManageList
 LV_Delete()
 
 loop, 4
-	LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(g_arrPopupHotkeys%A_Index%) : g_arrPopupHotkeys%A_Index%)
+	LV_Add(, (f_blnSeeShortHotkeyNames ? g_arrPopupHotkeys%A_Index% : Hotkey2Text(g_arrPopupHotkeys%A_Index%))
 		, g_arrOptionsPopupHotkeyTitles%A_Index%, lDialogHotkeysManagePopup)
 
 for strMenuPath, objMenu in g_objMenusIndex
 	loop, % objMenu.MaxIndex()
 		if StrLen(objMenu[A_Index].FavoriteLocation) and (objMenu[A_Index].FavoriteHotkey <> lDialogNone)
 			and (StrLen(objMenu[A_Index].FavoriteHotkey) or f_blnSeeAllFavorites)
-			LV_Add(, (f_blnSeeFullHotkeyNames ? Hotkey2Text(objMenu[A_Index].FavoriteHotkey) : objMenu[A_Index].FavoriteHotkey)
+			LV_Add(, (f_blnSeeShortHotkeyNames ? objMenu[A_Index].FavoriteHotkey : Hotkey2Text(objMenu[A_Index].FavoriteHotkey))
 				, objMenu[A_Index].FavoriteName, objMenu[A_Index].FavoriteType, objMenu[A_Index].FavoriteLocation, strMenuPath, A_Index)
 
 LV_ModifyCol(2, "Sort")
@@ -5154,7 +5172,7 @@ return
 
 ;------------------------------------------------------------
 CheckboxSeeAllFavoritesClicked:
-CheckboxSeeFullHotkeyNames:
+CheckboxSeeShortHotkeyNames:
 ;------------------------------------------------------------
 
 Gosub, LoadHotkeysManageList
@@ -5265,6 +5283,11 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 		blnIsBackMenu := (objCurrentMenu[A_Index].FavoriteType = "B")
 		if !(blnIsBackMenu)
 		{
+			; make sure we do not save a menu separator after a column break - this would confuse the references to menu object index
+			if (A_Index > 1)
+				if (objCurrentMenu[A_Index].FavoriteType = "X") and (objCurrentMenu[A_Index - 1].FavoriteType = "K")
+					continue
+
 			strIniLine := objCurrentMenu[A_Index].FavoriteType . "|" ; 1
 			if (objCurrentMenu[A_Index].FavoriteType = "QAP")
 				strIniLine .= "|" ; do not save name to ini file, use current language feature name when loading ini file
@@ -5782,6 +5805,7 @@ NavigateHotkeyMouse:
 NavigateHotkeyKeyboard:
 LaunchHotkeyMouse:
 LaunchHotkeyKeyboard:
+PopupMenuCopyLocation:
 ;------------------------------------------------------------
 
 ; ###_D(A_ThisLabel)
@@ -5789,11 +5813,14 @@ LaunchHotkeyKeyboard:
 if !(g_blnMenuReady)
 	return
 
-g_strHokeyTypeDetected := SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1) ; "Navigate" or "Launch"
-; g_blnMouse not used. OK? g_blnMouse := InStr(A_ThisLabel, "Mouse")
-
 Gosub, SetMenuPosition ; sets menu position (was seting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
 ; WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; already set by CanNavigate. OK?
+
+g_strHokeyTypeDetected := (A_ThisLabel = "PopupMenuCopyLocation" ? "CopyLocation" : SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1)) ; "Navigate" or "Launch"
+; g_blnMouse not used. OK? g_blnMouse := InStr(A_ThisLabel, "Mouse")
+
+if (g_strHokeyTypeDetected = "CopyLocation")
+	TrayTip, %g_strAppNameText%, %lPopupMenuCopyLocationTrayTip%
 
 if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass)
 	and InStr(A_ThisLabel, "Mouse") and (g_strHokeyTypeDetected = "Navigate"))
@@ -5807,21 +5834,6 @@ if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; we have this QAP featur
 
 if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
 	Gosub, RefreshClipboardMenu
-
-/*
-if g_objQAPfeaturesInMenus.HasKey("{Add This Folder}") ; we have this QAP feature in at least one menu
-{
-	strQAPfeatureMenusPaths := g_objQAPfeaturesInMenus["{Add This Folder}"]
-	Loop, Parse, strQAPfeatureMenusPaths, |
-		if StrLen(A_LoopField)
-			; enable "Add This Folder" only if the target window is an Explorer, TotalCommander*, Directory Opus* or a dialog box (*: even if not enabled in options)
-			StringSplit, arrPathAndPosition, A_LoopField, %g_strSeparatorQAPMenuPath%
-			Menu, %arrPathAndPosition1%
-			, % WindowIsAnExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
-			or (WindowIsDialog(g_strTargetClass, g_strTargetWinId)) ? "Enable" : "Disable"
-			, % GetQAPFeatureMenuName(arrPathAndPosition2, g_objQAPFeatures["{Add This Folder}"].LocalizedName)
-}
-*/
 
 Gosub, InsertColumnBreaks
 
@@ -6128,18 +6140,13 @@ OpenClipboard:
 ;------------------------------------------------------------
 
 ; ####
+
 if (g_blnDisplayMenuShortcuts)
 	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
 else if (A_ThisLabel = "OpenFavoriteGroup")
 	strThisMenuItem :=  SubStr(A_ThisMenuItem, 1, InStr(A_ThisMenuItem, g_strGroupIndicatorPrefix) - 2)
 else
 	strThisMenuItem :=  A_ThisMenuItem
-
-/* LATER IF REQUIRED?
-if (g_intHotkeyReminders > 1) ; remove reminder between parenthesis from menu item name
-	strThisMenuItem := SubStr(strThisMenuItem, 1, InStr(strThisMenuItem, "(", , 0) - 2)
-###_V(A_ThisLabel, A_ThisMenuItem, strThisMenuItem, g_strGroupIndicatorPrefix)
-*/
 
 if InStr("OpenFavorite|OpenFavoriteGroup", A_ThisLabel)
 {
@@ -6203,9 +6210,17 @@ else
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
 ###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
 
+if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars?
+{
+	Clipboard := objThisFavorite.FavoriteLocation
+	TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
+	
+	return
+}
+
 if InStr(A_ThisLabel, "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
-		; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
-		Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
+	; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+	Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
 
 objThisFavorite := ""
 intMenuItemPos := ""
