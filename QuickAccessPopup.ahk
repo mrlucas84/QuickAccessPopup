@@ -16,23 +16,23 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- debug update all fav with same loc when hotkey update (in Save Fav gui and do in Hotkey list)
+- debug allow same hotkey for same location
+
 - menu items lost in sub menu during work 2015-08-18
-- validate when saving settings no spearator immediately after a column break
+- in list hotkeys with all fav, include in all empty hotkey and None hotkey
 
 TO-DO
-- Add This Folder starts by checking classes to see if we can
-- About Gui larger
 
 - check exclusion as "class contain the exclusion string"
-- exclusion lists (mouse and keyboard) in options, save to ini
 - load exclusion lists from ini
 
-- add QAP features default menu (AddToIniMyQAPFeaturesMenu)
+- build menu "QAP Essentials" like My Special Folders (AddToIniMyQAPFeaturesMenu)
 
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
-- build menu "QAP Essentials" like My Special Folders
 - add Support freeware to main menu if user did not donate
+- improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
 
 LATER
 -----
@@ -1304,9 +1304,8 @@ IniRead, blnMyQAPFeaturesBuilt, %g_strIniFile%, Global, MyQAPFeaturesBuilt, 0 ; 
 if !(blnMyQAPFeaturesBuilt)
  	Gosub, AddToIniMyQAPFeaturesMenu ; modify the ini file Folders section before reading it
 
-; ### load exclusion list todo
-g_strExclusionMouseClassList := "SciTEWindow|Chrome_WidgetWin_1|" ; must end with |
-g_strExclusionKeyboardClassList := "|" ; must end with |
+IniRead, g_strExclusionMouseClassList, %g_strIniFile%, Global, ExclusionMouseClassList, %A_Space% ; empty string if not found
+IniRead, g_strExclusionKeyboardClassList, %g_strIniFile%, Global, ExclusionKeyboardClassList, %A_Space% ; empty string if not found
 
 IfNotExist, %g_strIniFile%
 {
@@ -2721,7 +2720,13 @@ loop, % g_arrPopupHotkeyNames%0%
 ; Tab 3: Exclusion list
 
 Gui, 2:Tab, 3
-; ### to-do
+Gui, 2:Font
+
+Gui, 2:Add, Text, x10 y+10 w595, Exclusions list for Mouse hotkeys
+Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionMouseClassList, % ReplaceAllInString(Trim(g_strExclusionMouseClassList), "|", "`n")
+
+Gui, 2:Add, Text, x10 y+20 w595, Exclusions list for Keyboard hotkey
+Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionKeyboardClassList, % ReplaceAllInString(Trim(g_strExclusionKeyboardClassList), "|", "`n")
 
 ;---------------------------------------
 ; Tab 4: File Managers
@@ -2993,7 +2998,13 @@ Gosub, LoadIniPopupHotkeys ; reload ini variables and reset hotkeys
 ;---------------------------------------
 ; Tab 3: Exclusion list
 
-; ### to-do
+g_strExclusionMouseClassList := ReplaceAllInString(Trim(f_strExclusionMouseClassList, " `t`n"), "`n", "|")
+IniWrite, %g_strExclusionMouseClassList%, %g_strIniFile%, Global, ExclusionMouseClassList
+
+g_strExclusionKeyboardClassList := ReplaceAllInString(Trim(f_strExclusionKeyboardClassList, " `t`n"), "`n", "|")
+IniWrite, %g_strExclusionKeyboardClassList%, %g_strIniFile%, Global, ExclusionKeyboardClassList
+
+###_V("", g_strExclusionMouseClassList, g_strExclusionKeyboardClassList)
 
 ;---------------------------------------
 ; Tab 4: File Managers
@@ -4637,9 +4648,9 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	else
 		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
 	
-	; if hotkey is changed, disable previous hotkey and set new hotkey
 	if (g_objEditedFavorite.FavoriteHotkey <> g_strNewFavoriteHotkey)
 	{
+		; if hotkey is changed, disable previous hotkey and set new hotkey
 		if StrLen(g_objEditedFavorite.FavoriteHotkey) and (g_objEditedFavorite.FavoriteHotkey <> "None")
 			Hotkey, % g_objEditedFavorite.FavoriteHotkey, , Off
 		if StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
@@ -4651,6 +4662,12 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 			Oops(lDialogInvalidHotkeyFavorite, g_strNewFavoriteHotkey, g_objEditedFavorite.FavoriteName)
 		else
 			g_objEditedFavorite.FavoriteHotkey := g_strNewFavoriteHotkey
+		
+		; if hotkey is changed, also update hotkey for all fav with this location
+		for strMenuPath, objMenu in g_objMenusIndex
+			loop, % objMenu.MaxIndex()
+				if (objMenu[A_Index].FavoriteLocation = g_objEditedFavorite.FavoriteLocation)
+					objMenu[A_Index].FavoriteHotkey = g_objEditedFavorite.FavoriteHotkey
 	}
 
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
@@ -4742,6 +4759,8 @@ strDestinationMenu := ""
 strMenuLocation := ""
 strThisLocation := ""
 strNewFavoriteWindowPosition := ""
+strMenuPath := ""
+objMenu := ""
 
 return
 ;------------------------------------------------------------
@@ -5357,7 +5376,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	if (g_blnUseColors)
 		Gui, Color, %g_strGuiWindowColor%
 	Gui, Font, s10 w700, Verdana
-	Gui, Add, Text, x10 y10 w300 center, % L(lDialogChangeHotkeyTitle, g_strAppNameText)
+	Gui, Add, Text, x10 y10 w400 center, % L(lDialogChangeHotkeyTitle, g_strAppNameText)
 	Gui, Font
 
 	Gui, Add, Text, y+15 x10, %lDialogTriggerFor%
@@ -5404,7 +5423,9 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 		Gui, Add, Text, % "x10 y" . arrTopY + 100
 		GuiCenterButtons(L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNoneHotkey")
 	}
-	Gui, Add, Button, y+30 x10 vf_btnChangeHotkeyOK gButtonChangeHotkeyOK, %lDialogOK%
+	Gui, Add, Text, x50 y+25 w300 center, % L(lDialogChangeHotkeyNote, strFavoriteLocation)
+		
+	Gui, Add, Button, y+25 x10 vf_btnChangeHotkeyOK gButtonChangeHotkeyOK, %lDialogOK%
 	Gui, Add, Button, yp x+20 vf_btnChangeHotkeyCancel gButtonChangeHotkeyCancel, %lGuiCancel%
 	
 	GuiCenterButtons(L(lDialogChangeHotkeyTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnChangeHotkeyOK", "f_btnChangeHotkeyCancel")
@@ -5442,14 +5463,8 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	}
 
 	if (intHotkeyType = 3) ; both keyboard and mouse options are available
-	{
-		; get the hotkey var
-		StringReplace, strHotkeyControl, strMouseControl, Mouse, Key
-		StringReplace, strHotkeyControl, strHotkeyControl, drp, str
-
 		; we have a mouse button, empty the hotkey control
-		GuiControl, , %strHotkeyControl%, None
-	}
+		GuiControl, , f_strHotkeyKey, None
 
 	return
 	;------------------------------------------------------------
@@ -5468,10 +5483,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	if StrLen(strHotkeyChangedModifiers) ; we have a modifier and we don't want it, reset keyboard to none and return
 		GuiControl, , %A_GuiControl%, None
 	else ; we have a valid key, empty the mouse dropdown and return
-	{
-		StringReplace, strMouseControl, strHotkeyControl, Key, Mouse ; get the matching mouse dropdown var
-		GuiControl, Choose, %f_strHotkeyMouse%, 0
-	}
+		GuiControl, Choose, f_drpHotkeyMouse, 0
 
 	return
 	;------------------------------------------------------------
@@ -5610,7 +5622,7 @@ HotkeyIfAvailable(strHotkey, strLocation)
 		for strMenuPath, objMenu in g_objMenusIndex
 		{
 			loop, % objMenu.MaxIndex()
-				if (objMenu[A_Index].FavoriteHotkey = strHotkey)
+				if (objMenu[A_Index].FavoriteHotkey = strHotkey) and (objMenu[A_Index].FavoriteLocation <> strLocation)
 				{
 					strActualAssignment := L(lOopsHotkeyFavorite, objMenu[A_Index].FavoriteLocation)
 					break
@@ -5965,8 +5977,11 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 	}
 	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
 
-	; ### to-do exclusion as "class contain the exclusion string" (looping in exclusion strings)
-	return !InStr(strExclusionClassList, g_strTargetClass . "|")
+	Loop, Parse, strExclusionClassList, |
+		if StrLen(A_Loopfield) and InStr(g_strTargetClass, A_Loopfield)
+			return false
+	; if not excluded
+	return true
 }
 ;------------------------------------------------------------
 
@@ -6530,12 +6545,12 @@ if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 Gui, 2:+Owner1
 Gui, 2:Font, s12 w700, Verdana
-Gui, 2:Add, Link, y10 w350, % L(lAboutText1, g_strAppNameText, g_strAppVersion, A_PtrSize * 8) ;  ; A_PtrSize * 8 = 32 or 64
+Gui, 2:Add, Link, y10 w380, % L(lAboutText1, g_strAppNameText, g_strAppVersion, A_PtrSize * 8) ;  ; A_PtrSize * 8 = 32 or 64
 Gui, 2:Font, s8 w400, Verdana
-Gui, 2:Add, Link, , % L(lAboutText2, g_strAppNameText)
-Gui, 2:Add, Link, , % L(lAboutText3, chr(169))
+Gui, 2:Add, Link, w380, % L(lAboutText2, g_strAppNameText)
+Gui, 2:Add, Link, w380, % L(lAboutText3, chr(169))
 Gui, 2:Font, s10 w400, Verdana
-Gui, 2:Add, Link, , % L(lAboutText4)
+Gui, 2:Add, Link, w380, % L(lAboutText4)
 Gui, 2:Font, s8 w400, Verdana
 
 Gui, 2:Add, Button, y+20 vf_btnAboutDonate gGuiDonate, %lDonateButton%

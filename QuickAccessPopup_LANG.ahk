@@ -26,6 +26,7 @@ global lDialogBrowseOrSelectApplication := "Browse for an executable file or`nse
 global lDialogCancelButton := "Cancel"
 global lDialogCancelPrompt := "Discard changes?"
 global lDialogCancelTitle := "Cancel - ~1~ ~2~"
+global lDialogChangeHotkeyNote := "Note: All entries for ""~1~"" in all menus will be updated with the new hotkey."
 global lDialogChangeHotkeyTitle := "Change hotkey - ~1~ ~2~" ; lOptionsChangeHotkeyTitle renamed
 global lDialogContinue := "Continue" ; added
 global lDialogCtrl := "Control" ; renamed
