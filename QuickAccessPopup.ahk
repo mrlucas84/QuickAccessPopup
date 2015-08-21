@@ -1366,7 +1366,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		
 		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
 		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteArguments, 6 FavoriteAppWorkingDir,
-		; 7 FavoriteWindowPosition, 8 FavoriteHotkey, 9 FavoriteLaunchWith, 10 FavoriteFTPLoginName, 11 FavoriteFTPPassword, 12 FavoriteGroupSettings
+		; 7 FavoriteWindowPosition, (X FavoriteHotkey), 8 FavoriteLaunchWith, 9 FavoriteFTPLoginName, 10 FavoriteFTPPassword, 11 FavoriteGroupSettings
 		StringSplit, arrThisFavorite, strLoadIniLine, |
 
 		if (arrThisFavorite1 = "Z")
@@ -1417,11 +1417,11 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteArguments := ReplaceAllInString(arrThisFavorite5, g_strEscapePipe, "|") ; application arguments
 		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
 		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height (comma delimited)
-		objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
-		objLoadIniFavorite.FavoriteLaunchWith := arrThisFavorite9 ; launch favorite with this executable
-		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; login name for FTP favorite
-		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite11, g_strEscapePipe, "|") ; password for FTP favorite
-		objLoadIniFavorite.FavoriteGroupSettings := arrThisFavorite12 ; coma separated values for group restore settings
+		; objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
+		objLoadIniFavorite.FavoriteLaunchWith := arrThisFavorite8 ; launch favorite with this executable
+		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite9, g_strEscapePipe, "|") ; login name for FTP favorite
+		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; password for FTP favorite
+		objLoadIniFavorite.FavoriteGroupSettings := arrThisFavorite11 ; coma separated values for group restore settings
 		
 		; this is a submenu favorite, link to the submenu object
 		if InStr("Menu|Group", arrThisFavorite1)
@@ -2385,6 +2385,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		intMenuItemsCount++ ; for objMenuColumnBreak
 		
 		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
+		; ### hotkys
 		if StrLen(objCurrentMenu[A_Index].FavoriteHotkey) and (objCurrentMenu[A_Index].FavoriteHotkey <> "None") and (g_intHotkeyReminders > 1)
 			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? objCurrentMenu[A_Index].FavoriteHotkey : Hotkey2Text(objCurrentMenu[A_Index].FavoriteHotkey)) . ")"
 		
@@ -2474,6 +2475,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		}
 		
 		; for any type of favorite, if we have a hotkey, set it
+		; ### hotkys
 		if StrLen(objCurrentMenu[A_Index].FavoriteHotkey) and (objCurrentMenu[A_Index].FavoriteHotkey <> "None")
 		{
 			Hotkey, % objCurrentMenu[A_Index].FavoriteHotkey, OpenFavoriteFromHotkey, On UseErrorLevel
@@ -3717,6 +3719,7 @@ if (strGuiFavoriteLabel = "GuiEditFavorite")
 
 	g_strNewFavoriteIconResource := g_objEditedFavorite.FavoriteIconResource
 	g_strNewFavoriteWindowPosition := g_objEditedFavorite.FavoriteWindowPosition
+	; ### hotkys
 	g_strNewFavoriteHotkey := g_objEditedFavorite.FavoriteHotkey
 
 	if (g_objEditedFavorite.FavoriteType = "Group")
@@ -3739,6 +3742,7 @@ else
 		g_objEditedFavorite.FavoriteLocation := g_strNewLocation
 		g_objEditedFavorite.FavoriteName := GetDeepestFolderName(g_strNewLocation)
 	}
+	; ### hotkys
 	g_objEditedFavorite.FavoriteHotkey := "None" ; internal name
 	g_strNewFavoriteHotkey := g_objEditedFavorite.FavoriteHotkey
 
@@ -4128,6 +4132,7 @@ GuiControl, , f_strFavoriteLocation, % g_objQAPFeaturesCodeByDefaultName[f_drpQA
 g_strNewFavoriteIconResource := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultName[f_drpQAP]].DefaultIcon
 g_strDefaultIconResource := g_strNewFavoriteIconResource 
 
+; ### hotkys
 g_strNewFavoriteHotkey := g_objQAPFeatures[g_objQAPFeaturesCodeByDefaultName[f_drpQAP]].DefaultHotkey
 GuiControl, , f_strHotkeyText, % Hotkey2Text(g_strNewFavoriteHotkey)
 
@@ -4648,6 +4653,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	else
 		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
 	
+	; ### hotkys
 	if (g_objEditedFavorite.FavoriteHotkey <> g_strNewFavoriteHotkey)
 	{
 		; if hotkey is changed, disable previous hotkey and set new hotkey
@@ -5124,7 +5130,7 @@ if (A_GuiEvent = "DoubleClick")
 	
 	if !StrLen(strMenuPath) ; this is a popup menu hotkey, go to Options, Menu hotkeys
 	{
-		MsgBox, 35, %g_strAppNameText%!, % L("This is a popup menu hotkey.`n`nDo you want to manage ""~1~"" in ""~2~""?", lOptionsMouseAndKeyboard, lGuiOptions)
+		MsgBox, 35, %g_strAppNameText%!, % L("This is a popup menu hotkey.`n`nDo you want to manage ""~1~"" in ""~2~""?", lOptionsMouseAndKeyboard, lGuiOptions) ; ### language
 		IfMsgBox, Yes
 		{
 			Gosub, GuiOptions
@@ -5133,6 +5139,7 @@ if (A_GuiEvent = "DoubleClick")
 	}
 	else
 	{
+		; ### hotkys
 		strNewHotkey := SelectHotkey(g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteHotkey
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
@@ -5172,6 +5179,7 @@ loop, 4
 	LV_Add(, (f_blnSeeShortHotkeyNames ? g_arrPopupHotkeys%A_Index% : Hotkey2Text(g_arrPopupHotkeys%A_Index%))
 		, g_arrOptionsPopupHotkeyTitles%A_Index%, lDialogHotkeysManagePopup)
 
+; ### hotkys
 for strMenuPath, objMenu in g_objMenusIndex
 	loop, % objMenu.MaxIndex()
 		if StrLen(objMenu[A_Index].FavoriteLocation) and (objMenu[A_Index].FavoriteHotkey <> lDialogNone)
@@ -5317,11 +5325,11 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteArguments, "|", g_strEscapePipe) . "|" ; 5
 			strIniLine .= objCurrentMenu[A_Index].FavoriteAppWorkingDir . "|" ; 6
 			strIniLine .= objCurrentMenu[A_Index].FavoriteWindowPosition . "|" ; 7
-			strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|" ; 8
-			strIniLine .= objCurrentMenu[A_Index].FavoriteLaunchWith . "|" ; 9
-			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLoginName, "|", g_strEscapePipe) . "|" ; 10
-			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoritePassword, "|", g_strEscapePipe) . "|" ; 11
-			strIniLine .= objCurrentMenu[A_Index].FavoriteGroupSettings . "|" ; 12
+			; REMOVED strIniLine .= objCurrentMenu[A_Index].FavoriteHotkey . "|" ; 8
+			strIniLine .= objCurrentMenu[A_Index].FavoriteLaunchWith . "|" ; 8
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLoginName, "|", g_strEscapePipe) . "|" ; 9
+			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoritePassword, "|", g_strEscapePipe) . "|" ; 10
+			strIniLine .= objCurrentMenu[A_Index].FavoriteGroupSettings . "|" ; 11
 
 			IniWrite, %strIniLine%, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
 			g_intIniLine++
@@ -5599,6 +5607,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 ;------------------------------------------------------------
 
 
+; ### hotkys
 ;-----------------------------------------------------------
 HotkeyIfAvailable(strHotkey, strLocation)
 ;-----------------------------------------------------------
@@ -5762,7 +5771,7 @@ for strMenuPath, objMenuSource in objMenusSource
 		objFavorite.FavoriteArguments := objMenuSource[A_Index].FavoriteArguments
 		objFavorite.FavoriteAppWorkingDir := objMenuSource[A_Index].FavoriteAppWorkingDir
 		objFavorite.FavoriteWindowPosition := objMenuSource[A_Index].FavoriteWindowPosition
-		objFavorite.FavoriteHotkey := objMenuSource[A_Index].FavoriteHotkey
+		; REMOVED objFavorite.FavoriteHotkey := objMenuSource[A_Index].FavoriteHotkey
 		objFavorite.FavoriteLaunchWith := objMenuSource[A_Index].FavoriteLaunchWith
 		; do not backup objMenuSource[A_Index].SubMenu because we have to recreate them
 		; after menu/groups objects are recreated during restore
@@ -6171,6 +6180,7 @@ if InStr("OpenFavorite|OpenFavoriteGroup", A_ThisLabel)
 }
 else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 {
+	; ### hotkys
 	blnHotkeyFound := false
 	for strMenuPath, objMenu in g_objMenusIndex
 	{
