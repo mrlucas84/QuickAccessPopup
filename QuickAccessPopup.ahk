@@ -16,19 +16,16 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- debut hotkeys list events
+- save popup menu hotkys only when saving options, rename Save -> OK
+- save hotkys list only when saving favorites
+
+- debug hotkeys list events
 - in list hotkeys with all fav, include in all empty hotkey and None hotkey
-
-- debug update all fav with same loc when hotkey update (in Save Fav gui and do in Hotkey list)
-- debug allow same hotkey for same location
-
 - menu items lost in sub menu during work 2015-08-18
 
 TO-DO
 
-- Edit Fav menu options when item is in a group, could edit icon and hotkey
-- check exclusion as "class contain the exclusion string"
-- load exclusion lists from ini
+- Edit Fav menu options when item is in a group, could not edit icon and hotkey
 
 - build menu "QAP Essentials" like My Special Folders (AddToIniMyQAPFeaturesMenu)
 
@@ -189,7 +186,6 @@ g_objQAPFeatures := Object()
 g_strQAPFeaturesList := ""
 
 g_objHotkysByLocation := Object() ; Hotkeys by Location
-g_objLocationByHotkys := Object() ; Location by Hotkeys
 
 g_blnUseDirectoryOpus := ""
 g_blnUseTotalCommander := ""
@@ -238,6 +234,7 @@ Gosub, BuildClipboardMenuInit
 ; no need to build Recent folders menu at startup because this menu is refreshed/recreated on demand
 
 Gosub, BuildMainMenu
+Gosub, LoadFavoriteHotkeys
 Gosub, BuildGui
 Gosub, BuildTrayMenu
 
@@ -1627,8 +1624,7 @@ Loop
 	if (strLocationHotky = "ERROR")
 		break
 	StringSplit, arrLocationHotky, strLocationHotky, |
-	g_objLocationByHotkys.Insert(arrLocationHotky1, arrLocationHotky2)
-	g_objHotkysByLocation.Insert(arrLocationHotky2, arrLocationHotky1)
+	g_objHotkysByLocation.Insert(arrLocationHotky1, arrLocationHotky2)
 }
 
 return
@@ -2408,8 +2404,10 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		
 		; ### hotkys
 		if g_objHotkysByLocation.HasKey(objCurrentMenu[A_Index].FavoriteLocation)
-			; ###_V("", objCurrentMenu[A_Index].FavoriteName, g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation])
+		{
+			###_V("RecursiveBuildOneMenu", objCurrentMenu[A_Index].FavoriteName, g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation])
 			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation] : Hotkey2Text(g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation])) . ")"
+		}
 		; if StrLen(objCurrentMenu[A_Index].FavoriteHotkey) and (objCurrentMenu[A_Index].FavoriteHotkey <> "None") and (g_intHotkeyReminders > 1)
 		;	strMenuName .= " (" . (g_intHotkeyReminders = 2 ? objCurrentMenu[A_Index].FavoriteHotkey : Hotkey2Text(objCurrentMenu[A_Index].FavoriteHotkey)) . ")"
 		
@@ -2493,15 +2491,6 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			}
 			if (objCurrentMenu[A_Index].FavoriteName = lMenuSettings . "...") ; make Settings... menu bold in any menu
 				Menu, % objCurrentMenu.MenuPath, Default, %strMenuName%
-		}
-		
-		; for any type of favorite, if we have a hotkey, set it
-		; ### hotkys
-		if g_objHotkysByLocation.HasKey(objCurrentMenu[A_Index].FavoriteLocation)
-		{
-			Hotkey, % g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation], OpenFavoriteFromHotkey, On UseErrorLevel
-			if (ErrorLevel)
-				Oops(lDialogInvalidHotkeyFavorite, g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation], objCurrentMenu[A_Index].FavoriteName, objCurrentMenu[A_Index].FavoriteLocation)
 		}
 	}
 }
@@ -3028,7 +3017,7 @@ IniWrite, %g_strExclusionMouseClassList%, %g_strIniFile%, Global, ExclusionMouse
 g_strExclusionKeyboardClassList := ReplaceAllInString(Trim(f_strExclusionKeyboardClassList, " `t`n"), "`n", "|")
 IniWrite, %g_strExclusionKeyboardClassList%, %g_strIniFile%, Global, ExclusionKeyboardClassList
 
-###_V("", g_strExclusionMouseClassList, g_strExclusionKeyboardClassList)
+; ###_V("", g_strExclusionMouseClassList, g_strExclusionKeyboardClassList)
 
 ;---------------------------------------
 ; Tab 4: File Managers
@@ -4479,7 +4468,7 @@ g_objMenuInGui := g_objMainMenu
 
 Gosub, BackupMenusObjects
 
-g_objHotkeysToDisableIfCancel := Object() ; to track hotkeys chanded in fav before saving
+g_objHotkeysToDisableWhenSave := Object() ; to track hotkeys to turn off when saving favorites with hotkey changed
 
 Gosub, LoadMenuInGui
 Gui, 1:Show
@@ -4659,7 +4648,7 @@ if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (A_ThisLabel = "Gu
 	g_objEditedFavorite.Submenu := objNewMenu
 }
 
-; update menu object except if we move favorites
+; update menu object and hotkeys object except if we move favorites
 
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 {
@@ -4669,12 +4658,13 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	; before updating g_objEditedFavorite.FavoriteLocation, check if location was changed and update hotkys objects
 	if StrLen(g_objEditedFavorite.FavoriteLocation) and (g_objEditedFavorite.FavoriteLocation <> f_strFavoriteLocation)
 	{
-		###_V("Location changed, change objects", g_objEditedFavorite.FavoriteLocation, f_strFavoriteLocation)
+		###_V(A_ThisLabel . " Remove g_objHotkysByLocation", g_objEditedFavorite.FavoriteLocation)
 		g_objHotkysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
 		if StrLen(f_strFavoriteLocation)
 		{
-			g_objHotkysByLocation.Insert(f_strFavoriteLocation, g_strNewFavoriteHotkey)
-			g_objLocationByHotkys.Insert(g_strNewFavoriteHotkey, f_strFavoriteLocation)
+			###_V(A_ThisLabel . " Insert g_objHotkysByLocation", f_strFavoriteLocation, g_strNewFavoriteHotkey)
+			g_objHotkysByLocation.Insert(f_strFavoriteLocation, g_strNewFavoriteHotkey) ; if the key already exists, its value is overwritten
+			; not usedg_objLocationByHotkys.Insert(g_strNewFavoriteHotkey, f_strFavoriteLocation)
 		}
 	}
 	
@@ -4691,28 +4681,24 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
 	
 	; ### hotkys
-	; if the hotky changed, update the hotky object for this location
+	; if the hotky changed, add new hotkey and remember the hotkey to turn off
+	###_V(A_ThisLabel, g_objEditedFavorite.FavoriteLocation, g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation], g_strNewFavoriteHotkey)
 	if (g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation] <> g_strNewFavoriteHotkey)
+		and StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
 	{
-		; if hotkey is changed, disable previous hotkey and set new hotkey
 		if g_objHotkysByLocation.HasKey(g_objEditedFavorite.FavoriteLocation)
-			Hotkey, % g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation], , Off
-		if StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
 		{
-			Hotkey, %g_strNewFavoriteHotkey%, OpenFavoriteFromHotkey, On UseErrorLevel
-			if (ErrorLevel)
-				Oops(lDialogInvalidHotkeyFavorite, g_strNewFavoriteHotkey, g_objEditedFavorite.FavoriteName, g_objEditedFavorite.FavoriteLocation)
-			else
-			{
-				g_objLocationByHotkys.Remove(g_objHotkysByLocation.HasKey(g_objEditedFavorite.FavoriteLocation)) ; must be first
-				g_objHotkysByLocation.Remove(g_objEditedFavorite.FavoriteLocation) ; must be second
-				g_objLocationByHotkys.Insert(g_strNewFavoriteHotkey, g_objEditedFavorite.FavoriteLocation)
-				g_objHotkysByLocation.Insert(g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
-				g_objHotkeysToDisableIfCancel.Insert(g_strNewFavoriteHotkey) ; used if Settings gui is cancelled
-			}
+			g_objHotkeysToDisableWhenSave.Insert(g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation]) ; used when favorites are saved, must be before g_objHotkysByLocation.Insert
+			###_O(A_ThisLabel . " Inserted g_objHotkeysToDisableWhenSave", g_objHotkeysToDisableWhenSave)
 		}
+		###_V("Add ", g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
+		g_objHotkysByLocation.Insert(g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey) ; must be after g_objHotkeysToDisableWhenSave.Insert
 	}
 
+	###_O("Save Favorite: g_objHotkysByLocation", g_objHotkysByLocation)
+	for strXXHotkey, strXXLocation in g_objHotkysByLocation
+		###_V("Save Favorite", strXXHotkey, strXXLocation)
+	
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
 	
@@ -4785,7 +4771,7 @@ GuiControl, 1:, f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMain
 Gosub, Adjust3ColumnsWidth
 
 if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
-	Gosub, BuildMainMenuWithStatus ; update menus
+	Gosub, BuildMainMenuWithStatus ; update menus but not hotkeys
 
 GuiControl, Enable, f_btnGuiSaveFavorites
 GuiControl, , f_btnGuiCancel, %lDialogCancelButton%
@@ -5177,15 +5163,16 @@ if (A_GuiEvent = "DoubleClick")
 	else
 	{
 		; ### hotkys ####
-		###_V(A_ThisHotkey
-			, g_objHotkysByLocation[g_objMenusIndex[strMenuPath][strFavoritePosition]]
+		###_V(A_ThisLabel
+			, strMenuPath . " / " . strFavoritePosition
+			, g_objHotkysByLocation[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation]
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, 3
+			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation
 			, g_objQAPFeatures[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation].DefaultHotkey
 			, g_objMenusIndex[strMenuPath][strFavoritePosition])
 			
-		strNewHotkey := SelectHotkey(g_objHotkysByLocation[g_objMenusIndex[strMenuPath][strFavoritePosition]]
+		strNewHotkey := SelectHotkey(g_objHotkysByLocation[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation]
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
 			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, 3
@@ -5196,8 +5183,7 @@ if (A_GuiEvent = "DoubleClick")
 		; #####
 		if StrLen(strNewHotkey)
 		{
-			g_objHotkysByLocation.Insert(g_objMenusIndex[strMenuPath][strFavoritePosition], strNewHotkey)
-			g_objLocationByHotkys.Insert(strNewHotkey, g_objMenusIndex[strMenuPath][strFavoritePosition])
+			g_objHotkysByLocation.Insert(g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, strNewHotkey)
 			GuiControl, 1:Enable, f_btnGuiSaveFavorites
 			Gosub, LoadHotkeysManageList
 		}
@@ -5332,10 +5318,33 @@ IniDelete, %g_strIniFile%, Favorites
 g_intIniLine := 1 ; reset counter before saving to another ini file
 RecursiveSaveFavoritesToIniFile(g_objMainMenu)
 
-Gosub, SaveHotkysToIni
+Loop, % g_objHotkeysToDisableWhenSave.MaxIndex()
+{
+	###_V("GuiSaveFavorites g_objHotkeysToDisableWhenSave Turn OFF Hotkey:", g_objHotkeysToDisableWhenSave[A_Index])
+	Hotkey, % g_objHotkeysToDisableWhenSave[A_Index], , Off ; if used elsewhere, will be reloaded by LoadFavoriteHotkeys
+}
+g_objHotkeysToDisableWhenSave := ""
 
+###_D("Clean-up start", 1)
+; clean-up unused hotkeys if favorites were deleted
+for strThisLocation, strThisHotkey in g_objHotkysByLocation
+{
+	###_V("Clean-up for location", strThisLocation, strThisHotkey)
+	if RecursiveHotkyNotNeeded(strThisLocation, g_objMainMenu)
+	{
+		###_V("Clean-up unused hotkeys: Remove and Hotkey Off", strThisLocation, strThisHotkey)
+		g_objHotkysByLocation.Remove(strThisLocation)
+		Hotkey, %strThisHotkey%, , Off
+	}
+}
+###_D("Clean-up ended", 1)
+
+Gosub, SaveHotkysToIni
+	
+Gosub, LoadFavoriteHotkeys
 Gosub, ReloadIniFile
-Gosub, BuildMainMenuWithStatus
+Gosub, BuildMainMenuWithStatus ; only here we load hotkeys, when user save favorites
+
 GuiControl, Disable, %lGuiSave%
 GuiControl, , %lGuiCancel%, %lGuiClose%
 
@@ -5400,26 +5409,6 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 	
 	return
 }
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-SaveHotkysToIni:
-;------------------------------------------------------------
-
-IniDelete, %g_strIniFile%, LocationHotkeys
-
-g_intIniLine := 1
-for strHotkey, strLocation in g_objHotkysByLocation
-{
-	IniWrite, %strLocation%|%strHotkey%, %g_strIniFile%, LocationHotkeys, Hotkey%g_intIniLine%
-	g_intIniLine++
-}
-
-strHotkey := ""
-strLocation := ""
-
-return
 ;------------------------------------------------------------
 
 
@@ -5697,31 +5686,7 @@ HotkeyIfAvailable(strHotkey, strLocation)
 		}
 	
 	if !StrLen(strExistingLocation)
-		if g_objLocationByHotkys.HasKey(strHotkey)
-			strExistingLocation := g_objLocationByHotkys[strHotkey]
-	/*
-	loop, 4
-		if (g_arrPopupHotkeys%A_Index% = strHotkey)
-		{
-			strActualAssignment := L(lOopsHotkeyPopupMenu, g_arrOptionsPopupHotkeyTitles%A_Index%)
-			break
-		}
-	
-	if !StrLen(strActualAssignment)
-		for strMenuPath, objMenu in g_objMenusIndex
-		{
-			loop, % objMenu.MaxIndex()
-				if (objMenu[A_Index].FavoriteHotkey = strHotkey) and (objMenu[A_Index].FavoriteLocation <> strLocation)
-				{
-					strActualAssignment := L(lOopsHotkeyFavorite, objMenu[A_Index].FavoriteLocation)
-					break
-				}
-			if StrLen(strActualAssignment)
-				break
-			; ###_O(strMenuPath . " (" . objMenu.MaxIndex() . ")", objMenu, "FavoriteHotkey")
-			; for i, v in g_objMenusIndex[A_Index]
-		}
-	*/
+		strExistingLocation := GetHotkyLocation(strHotkey)
 	
 	if StrLen(strExistingLocation)
 	{
@@ -5729,9 +5694,129 @@ HotkeyIfAvailable(strHotkey, strLocation)
 		return ""
 	}
 	else
+	{
+		###_V("HotkeyIfAvailable YES", strHotkey)
 		return strHotkey
+	}
 }
 ;-----------------------------------------------------------
+
+
+;------------------------------------------------------------
+LoadFavoriteHotkeys:
+;------------------------------------------------------------
+
+; RecursiveLoadFavoriteHotkeys(g_objMainMenu) ; recurse for submenus
+
+for strLocation, strHotkey in g_objHotkysByLocation
+{
+	###_V("LoadFavoriteHotkeys Create Hotkey:", strLocation, strHotkey)
+	Hotkey, %strHotkey%, OpenFavoriteFromHotkey, On UseErrorLevel
+	if (ErrorLevel)
+		Oops(lDialogInvalidHotkeyFavorite, strHotkey, strLocation)
+}
+
+return
+
+;------------------------------------------------------------
+
+
+/*
+;------------------------------------------------------------
+RecursiveLoadFavoriteHotkeys(objCurrentMenu)
+;------------------------------------------------------------
+{
+	global g_objHotkysByLocation
+
+	Loop, % objCurrentMenu.MaxIndex()
+	{
+		if InStr("B|X|K", objCurrentMenu[A_Index].FavoriteType) ; skip back link and separators
+			continue
+		
+		if (objCurrentMenu[A_Index].FavoriteType = "Menu")
+			RecursiveLoadFavoriteHotkeys(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
+			
+		; for any type of favorite, if we have a hotkey, set it
+		; ### hotkys
+		if g_objHotkysByLocation.HasKey(objCurrentMenu[A_Index].FavoriteLocation)
+		{
+			###_V("RecursiveLoadFavoriteHotkeys Loading:", objCurrentMenu[A_Index].FavoriteLocation, g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation])
+			Hotkey, % g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation], OpenFavoriteFromHotkey, On UseErrorLevel
+			if (ErrorLevel)
+				Oops(lDialogInvalidHotkeyFavorite, g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation], objCurrentMenu[A_Index].FavoriteName, objCurrentMenu[A_Index].FavoriteLocation)
+		}
+	}
+}
+;------------------------------------------------------------
+*/
+
+
+;------------------------------------------------------------
+SaveHotkysToIni:
+;------------------------------------------------------------
+
+IniDelete, %g_strIniFile%, LocationHotkeys
+
+g_intIniLine := 1
+for strLocation, strHotkey in g_objHotkysByLocation
+{
+	###_V("SaveHotkysToIni", g_intIniLine, strLocation, strHotkey)
+	IniWrite, %strLocation%|%strHotkey%, %g_strIniFile%, LocationHotkeys, Hotkey%g_intIniLine%
+	g_intIniLine++
+}
+
+strHotkey := ""
+strLocation := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RecursiveHotkyNotNeeded(strHotkeyLocation, objCurrentMenu)
+;------------------------------------------------------------
+{
+	Loop, % objCurrentMenu.MaxIndex()
+	{
+		if InStr("B|X|K", objCurrentMenu[A_Index].FavoriteType) ; skip back link and separators
+			continue
+		
+		if (objCurrentMenu[A_Index].FavoriteType = "Menu")
+		{
+			blnHotkyNotNeeded := RecursiveHotkyNotNeeded(strHotkeyLocation, objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
+			if !(blnHotkyNotNeeded)
+				return false ; we need this hotkey, stop recursion
+		}
+			
+		if (objCurrentMenu[A_Index].FavoriteLocation = strHotkeyLocation)
+		{
+			###_V("Hotkey NEEDED", objCurrentMenu[A_Index].FavoriteName, strHotkeyLocation, objCurrentMenu[A_Index].FavoriteLocation)
+			return false
+		}
+	}
+	
+	###_V("Hotkey NOT NEEDED in menu", objCurrentMenu.MenuPath)
+	return true
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetHotkyLocation(strHotkey)
+;------------------------------------------------------------
+{
+	global g_objHotkysByLocation
+	
+	for strLocation, strThisHotkey in g_objHotkysByLocation
+		if (strHotkey = strThisHotkey)
+		{
+			###_V("GetHotkyLocation FOUND", strHotkey, strLocation)
+			return strLocation
+		}
+	
+	###_V("GetHotkyLocation NOT FOUND", strHotkey)
+	return ""
+}
 
 
 ;========================================================================================================================
@@ -5768,15 +5853,11 @@ if (blnSaveEnabled)
 	{
 		g_blnMenuReady := false
 		
-		; disable hotkeys changed before cancel
-		loop, % g_objHotkeysToDisableIfCancel.MaxIndex()
-			Hotkey, % g_objHotkeysToDisableIfCancel[A_Index], , Off
-		
 		Gosub, RestoreBackupMenusObjects
 
 		; restore popup menu
 		Gosub, BuildCurrentFoldersMenu
-		Gosub, BuildMainMenu ; need to be initialized here - will be updated at each call to popup menu
+		Gosub, BuildMainMenu ; rebuild menus but not hotkeys
 		
 		GuiControl, Disable, f_btnGuiSaveFavorites
 		GuiControl, , f_btnGuiCancel, %lGuiClose%
@@ -5884,16 +5965,14 @@ if (A_ThisLabel = "RestoreBackupMenusObjects")
 ; hotky also back hotkey objects
 
 if (A_ThisLabel = "BackupMenusObjects")
-{
 	g_objHotkysByLocationBK := g_objHotkysByLocation
-	g_objLocationByHotkysBK := g_objLocationByHotkys
-}
+	; not used g_objLocationByHotkysBK := g_objLocationByHotkys
 else
 {
 	g_objHotkysByLocation := g_objHotkysByLocationBK
-	g_objLocationByHotkys := g_objLocationByHotkysBK
+	; not used g_objLocationByHotkys := g_objLocationByHotkysBK
 	g_objHotkysByLocationBK := ""
-	g_objLocationByHotkysBK := ""
+	; not used g_objLocationByHotkysBK := ""
 }
 
 objMenusSource := ""
@@ -6278,10 +6357,12 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 {
 	; ### hotkys
 	blnLocationFound := false
+	strThisHotkeyLocation := GetHotkyLocation(A_ThisHotkey)
+	
 	for strMenuPath, objMenu in g_objMenusIndex
 	{
 		loop, % objMenu.MaxIndex()
-			if (objMenu[A_Index].FavoriteLocation = g_objLocationByHotkys[A_ThisHotkey])
+			if (objMenu[A_Index].FavoriteLocation = strThisHotkeyLocation)
 			{
 				objThisFavorite := objMenu[A_Index]
 				blnLocationFound := true
@@ -6292,7 +6373,7 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 	}
 	if !(blnLocationFound) ; should not happen
 	{
-		Oops(lOopsHotkeyNotInMenus, g_objLocationByHotkys[A_ThisHotkey], A_ThisHotkey)
+		Oops(lOopsHotkeyNotInMenus, strThisHotkeyLocation, A_ThisHotkey)
 		return
 	}
 	if CanNavigate(A_ThisHotkey)
