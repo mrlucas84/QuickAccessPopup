@@ -2404,10 +2404,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		
 		; ### hotkys
 		if g_objHotkysByLocation.HasKey(objCurrentMenu[A_Index].FavoriteLocation)
-		{
-			###_V("RecursiveBuildOneMenu", objCurrentMenu[A_Index].FavoriteName, g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation])
 			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation] : Hotkey2Text(g_objHotkysByLocation[objCurrentMenu[A_Index].FavoriteLocation])) . ")"
-		}
 		; if StrLen(objCurrentMenu[A_Index].FavoriteHotkey) and (objCurrentMenu[A_Index].FavoriteHotkey <> "None") and (g_intHotkeyReminders > 1)
 		;	strMenuName .= " (" . (g_intHotkeyReminders = 2 ? objCurrentMenu[A_Index].FavoriteHotkey : Hotkey2Text(objCurrentMenu[A_Index].FavoriteHotkey)) . ")"
 		
@@ -4681,19 +4678,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
 	
 	; ### hotkys
-	; if the hotky changed, add new hotkey and remember the hotkey to turn off
-	###_V(A_ThisLabel, g_objEditedFavorite.FavoriteLocation, g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation], g_strNewFavoriteHotkey)
-	if (g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation] <> g_strNewFavoriteHotkey)
-		and StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
-	{
-		if g_objHotkysByLocation.HasKey(g_objEditedFavorite.FavoriteLocation)
-		{
-			g_objHotkeysToDisableWhenSave.Insert(g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation]) ; used when favorites are saved, must be before g_objHotkysByLocation.Insert
-			###_O(A_ThisLabel . " Inserted g_objHotkeysToDisableWhenSave", g_objHotkeysToDisableWhenSave)
-		}
-		###_V("Add ", g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
-		g_objHotkysByLocation.Insert(g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey) ; must be after g_objHotkeysToDisableWhenSave.Insert
-	}
+	Gosub, UpdateHotkeyObjectsFavoriteSave
 
 	###_O("Save Favorite: g_objHotkysByLocation", g_objHotkysByLocation)
 	for strXXHotkey, strXXLocation in g_objHotkysByLocation
@@ -5163,30 +5148,27 @@ if (A_GuiEvent = "DoubleClick")
 	else
 	{
 		; ### hotkys ####
+		g_objEditedFavorite := g_objMenusIndex[strMenuPath][strFavoritePosition]
 		###_V(A_ThisLabel
 			, strMenuPath . " / " . strFavoritePosition
-			, g_objHotkysByLocation[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation]
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation
-			, g_objQAPFeatures[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation].DefaultHotkey
-			, g_objMenusIndex[strMenuPath][strFavoritePosition])
+			, g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation]
+			, g_objEditedFavorite.FavoriteName
+			, g_objEditedFavorite.FavoriteType
+			, g_objEditedFavorite.FavoriteLocation
+			, g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultHotkey
+			, g_objEditedFavorite)
 			
-		strNewHotkey := SelectHotkey(g_objHotkysByLocation[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation]
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteName
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteType
-			, g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, 3
-			, g_objQAPFeatures[g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation].DefaultHotkey)
+		g_strNewFavoriteHotkey := SelectHotkey(g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation]
+			, g_objEditedFavorite.FavoriteName
+			, g_objEditedFavorite.FavoriteType
+			, g_objEditedFavorite.FavoriteLocation, 3
+			, g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultHotkey)
 		; SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey := "", strDescription := "")
 		; intHotkeyType: 1 Mouse, 2 Keyboard, 3 Mouse or Keyboard
 		; returns the new hotkey, "None" if no hotkey or empty string if cancel
 		; #####
-		if StrLen(strNewHotkey)
-		{
-			g_objHotkysByLocation.Insert(g_objMenusIndex[strMenuPath][strFavoritePosition].FavoriteLocation, strNewHotkey)
-			GuiControl, 1:Enable, f_btnGuiSaveFavorites
-			Gosub, LoadHotkeysManageList
-		}
+		
+		Gosub, UpdateHotkeyObjectsHotkeysListSave
 	}
 }
 
@@ -5668,6 +5650,43 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 ; ####
 ; ### hotkys
 ;-----------------------------------------------------------
+UpdateHotkeyObjectsFavoriteSave:
+UpdateHotkeyObjectsHotkeysListSave:
+;-----------------------------------------------------------
+
+; if the hotky changed, add new hotkey and remember the hotkey to turn off
+###_V(A_ThisLabel, g_objEditedFavorite.FavoriteLocation, g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation], g_strNewFavoriteHotkey)
+if (g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation] <> g_strNewFavoriteHotkey)
+{
+	if g_objHotkysByLocation.HasKey(g_objEditedFavorite.FavoriteLocation)
+	{
+		g_objHotkeysToDisableWhenSave.Insert(g_objHotkysByLocation[g_objEditedFavorite.FavoriteLocation]) ; used when favorites are saved, must be before g_objHotkysByLocation.Insert
+		###_O(A_ThisLabel . " Inserted g_objHotkeysToDisableWhenSave", g_objHotkeysToDisableWhenSave)
+	}
+	
+	if StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
+	{
+		###_V("Add ", g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
+		g_objHotkysByLocation.Insert(g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey) ; must be after g_objHotkeysToDisableWhenSave.Insert
+	}
+	else
+	{
+		###_V("REMOVE ", g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
+		g_objHotkysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
+	}
+}
+
+if (A_ThisLabel = "UpdateHotkeyObjectsHotkeysListSave")
+{
+	GuiControl, 1:Enable, f_btnGuiSaveFavorites
+	Gosub, LoadHotkeysManageList
+}
+
+return
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
 HotkeyIfAvailable(strHotkey, strLocation)
 ;-----------------------------------------------------------
 {
@@ -5690,7 +5709,8 @@ HotkeyIfAvailable(strHotkey, strLocation)
 	
 	if StrLen(strExistingLocation)
 	{
-		Oops(lOopsHotkeyAlreadyUsed, Hotkey2Text(strHotkey), strExistingLocation, strLocation)
+		###_V(A_ThisLabel, strExistingLocation, strLocation)
+		Oops(lOopsHotkeyAlreadyUsed, Hotkey2Text(strHotkey), FormatExistingLocation(strExistingLocation), FormatExistingLocation(strLocation))
 		return ""
 	}
 	else
@@ -5698,6 +5718,28 @@ HotkeyIfAvailable(strHotkey, strLocation)
 		###_V("HotkeyIfAvailable YES", strHotkey)
 		return strHotkey
 	}
+}
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
+FormatExistingLocation(strExistingLocation)
+;-----------------------------------------------------------
+{
+	global g_strGroupIndicatorPrefix
+	global g_strGroupIndicatorSuffix
+	global g_strMenuPathSeparator
+	
+	if InStr(strExistingLocation, g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix)
+		strExisting := lOopsGroup
+	else if SubStr(strExistingLocation, 1, 1) = g_strMenuPathSeparator
+		strExisting := lMenuMenu
+	else if SubStr(strExistingLocation, 1, 1) = "{"
+		strExisting := lOopsQAPfeature
+	else
+		strExisting := lOopsLocation
+	
+	return strExisting . " """ . strExistingLocation . """"
 }
 ;-----------------------------------------------------------
 
@@ -5710,7 +5752,7 @@ LoadFavoriteHotkeys:
 
 for strLocation, strHotkey in g_objHotkysByLocation
 {
-	###_V("LoadFavoriteHotkeys Create Hotkey:", strLocation, strHotkey)
+	; ###_V("LoadFavoriteHotkeys Create Hotkey:", strLocation, strHotkey)
 	Hotkey, %strHotkey%, OpenFavoriteFromHotkey, On UseErrorLevel
 	if (ErrorLevel)
 		Oops(lDialogInvalidHotkeyFavorite, strHotkey, strLocation)
@@ -6410,7 +6452,7 @@ else
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
+; ###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
 
 if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars?
 {
