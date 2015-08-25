@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- menu items lost in sub menu during work 2015-08-18
 
 TO-DO
 
@@ -983,19 +982,20 @@ InitQAPFeatures:
 
 ; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey)
 
+InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", "iconSettings", "+^S")
 InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", "iconCurrentFolders", "+^F")
 InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", "iconRecentFolders", "+^R")
 InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", "iconClipboard", "+^C")
 
+InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", "iconAddThisFolder", "+^A")
+InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation . "...", "", "PopupMenuCopyLocation", "iconClipboard", "+^V")
+
+InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptionsFromQAPFeature", "iconOptions")
+InitQAPFeatureObject("Hotkeys", lDialogHotkeys . "...", "", "GuiHotkeysManageFromQAPFeature", "iconHotkeys")
 InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout", "iconAbout")
 InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", "iconDonate")
 InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp", "iconHelp")
-InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptionsFromQAPFeature", "iconOptions")
-InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", "iconAddThisFolder")
-InitQAPFeatureObject("Copy Favorite Location" . "...", lMenuCopyLocation, "", "PopupMenuCopyLocation", "iconClipboard", "+^V")
-InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", "iconSettings", "+^S")
 InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "", "ExitApp", "iconExit")
-InitQAPFeatureObject("Hotkeys", lDialogHotkeys . "...", "", "GuiHotkeysManageFromQAPFeature", "iconHotkeys")
 
 ;--------------------------------
 ; Build folders list for dropdown
@@ -1134,14 +1134,14 @@ g_objMainMenu := Object() ; object of menu structure entry point
 g_objMainMenu.MenuPath := lMainMenuName ; localized name of the main menu
 g_objMainMenu.MenuType := "Menu" ; main menu is not a group
 
-IfNotExist, %g_strIniFile%
+IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2QAP.ahk during install
 {
 	strNavigateOrLaunchHotkeyMouseDefault := g_arrPopupHotkeyDefaults1 ; "MButton"
 	strNavigateOrLaunchHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults2 ; "#a"
 	strPowerHotkeyMouseDefault := g_arrPopupHotkeyDefaults3 ; "+MButton"
 	strPowerHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults4 ; "+#a"
 	
-	g_intIconSize := 24
+	g_intIconSize := 32
 
 	FileAppend,
 		(LTrim Join`r`n
@@ -1156,13 +1156,15 @@ IfNotExist, %g_strIniFile%
 			DisplayMenuShortcuts=0
 			PopupMenuPosition=1
 			PopupFixPosition=20,20
-			HotkeyReminders=1
+			HotkeyReminders=3
 			DiagMode=0
 			Startups=1
 			LanguageCode=%g_strLanguageCode%
 			DirectoryOpusPath=
 			IconSize=%g_intIconSize%
 			OpenMenuOnTaskbar=1
+			AvailableThemes=Windows|Grey|Light Blue|Light Green|Light Red|Yellow
+			Theme=Windows
 			[Favorites]
 			Favorite1=Folder|C:\|C:\
 			Favorite2=Folder|Windows|%A_WinDir%
@@ -1171,7 +1173,41 @@ IfNotExist, %g_strIniFile%
 			Favorite5=Application|Notepad|%A_WinDir%\system32\notepad.exe
 			Favorite6=URL|%g_strAppNameText% web site|http://www.QuickAccessPopup.com
 			Favorite7=Z
-
+			[LocationHotkeys]
+			Hotkey1={Settings}|+^S
+			Hotkey2={Current Folders}|+^F
+			Hotkey3={Recent Folders}|+^R
+			Hotkey4={Clipboard}|+^C
+			[Gui-Grey]
+			WindowColor=E0E0E0
+			TextColor=000000
+			ListviewBackground=FFFFFF
+			ListviewText=000000
+			MenuBackgroundColor=FFFFFF
+			[Gui-Yellow]
+			WindowColor=f9ffc6
+			TextColor=000000
+			ListviewBackground=fcffe0
+			ListviewText=000000
+			MenuBackgroundColor=fcffe0
+			[Gui-Light Blue]
+			WindowColor=e8e7fa
+			TextColor=000000
+			ListviewBackground=e7f0fa
+			ListviewText=000000
+			MenuBackgroundColor=e7f0fa
+			[Gui-Light Red]
+			WindowColor=fddcd7
+			TextColor=000000
+			ListviewBackground=fef1ef
+			ListviewText=000000
+			MenuBackgroundColor=fef1ef
+			[Gui-Light Green]
+			WindowColor=d6fbde
+			TextColor=000000
+			ListviewBackground=edfdf1
+			ListviewText=000000
+			MenuBackgroundColor=edfdf1
 
 )
 		, %g_strIniFile%
@@ -1184,13 +1220,12 @@ IniRead, g_blnDisplayIcons, %g_strIniFile%, Global, DisplayIcons, 1
 g_blnDisplayIcons := (g_blnDisplayIcons and OSVersionIsWorkstation())
 IniRead, g_intPopupMenuPosition, %g_strIniFile%, Global, PopupMenuPosition, 1
 IniRead, strPopupFixPosition, %g_strIniFile%, Global, PopupFixPosition, 20,20
-IniRead, g_intHotkeyReminders, %g_strIniFile%, Global, HotkeyReminders, 1
+IniRead, g_intHotkeyReminders, %g_strIniFile%, Global, HotkeyReminders, 3
 StringSplit, g_arrPopupFixPosition, strPopupFixPosition, `,
 IniRead, g_blnDisplayMenuShortcuts, %g_strIniFile%, Global, DisplayMenuShortcuts, 0
-IniRead, g_blnDisplayFavoritesHotkeysInMenus, %g_strIniFile%, Global, blnDisplayFavoritesHotkeysInMenus, 0
 IniRead, g_blnDiagMode, %g_strIniFile%, Global, DiagMode, 0
 IniRead, g_intRecentFoldersMax, %g_strIniFile%, Global, RecentFoldersMax, 10
-IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 24
+IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 32
 IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, 1
 IniRead, g_blnOpenMenuOnTaskbar, %g_strIniFile%, Global, OpenMenuOnTaskbar, 1
 IniRead, g_blnRememberSettingsPosition, %g_strIniFile%, Global, RememberSettingsPosition, 1
@@ -1240,67 +1275,13 @@ else
 	if (g_strFPconnectPath <> "NO")
 		Gosub, CheckFPconnect
 
-IniRead, g_strTheme, %g_strIniFile%, Global, Theme
-if (g_strTheme = "ERROR") ; if Theme not found, we have a new ini file - add the themes to the ini file
-{
-	g_strTheme := "Windows"
-	g_strAvailableThemes := "Windows|Grey|Light Blue|Light Green|Light Red|Yellow"
-	IniWrite, %g_strTheme%, %g_strIniFile%, Global, Theme
-	IniWrite, %g_strAvailableThemes%, %g_strIniFile%, Global, AvailableThemes
-	FileAppend,
-		(LTrim Join`r`n
-			[Gui-Grey]
-			WindowColor=E0E0E0
-			TextColor=000000
-			ListviewBackground=FFFFFF
-			ListviewText=000000
-			MenuBackgroundColor=FFFFFF
-			[Gui-Yellow]
-			WindowColor=f9ffc6
-			TextColor=000000
-			ListviewBackground=fcffe0
-			ListviewText=000000
-			MenuBackgroundColor=fcffe0
-			[Gui-Light Blue]
-			WindowColor=e8e7fa
-			TextColor=000000
-			ListviewBackground=e7f0fa
-			ListviewText=000000
-			MenuBackgroundColor=e7f0fa
-			[Gui-Light Red]
-			WindowColor=fddcd7
-			TextColor=000000
-			ListviewBackground=fef1ef
-			ListviewText=000000
-			MenuBackgroundColor=fef1ef
-			[Gui-Light Green]
-			WindowColor=d6fbde
-			TextColor=000000
-			ListviewBackground=edfdf1
-			ListviewText=000000
-			MenuBackgroundColor=edfdf1
-
-)
-		, %g_strIniFile%
-}
-else
-{
-	IniRead, g_strAvailableThemes, %g_strIniFile%, Global, AvailableThemes
-	if !InStr(g_strAvailableThemes, "Windows|")
-	{
-		g_strAvailableThemes := "Windows|" . g_strAvailableThemes
-		IniWrite, %g_strAvailableThemes%, %g_strIniFile%, Global, AvailableThemes
-	}
-}
+IniRead, g_strTheme, %g_strIniFile%, Global, Theme, Windows
+IniRead, g_strAvailableThemes, %g_strIniFile%, Global, AvailableThemes
 g_blnUseColors := (g_strTheme <> "Windows")
 	
-IniRead, blnMySystemFoldersBuilt, %g_strIniFile%, Global, MySystemFoldersBuilt, 0 ; default false
-if !(blnMySystemFoldersBuilt)
- 	Gosub, AddToIniMySystemFoldersMenu ; modify the ini file Folders section before reading it
-
-IniRead, blnMyQAPFeaturesBuilt, %g_strIniFile%, Global, MyQAPFeaturesBuilt, 0 ; default false
-if !(blnMyQAPFeaturesBuilt)
- 	Gosub, AddToIniMyQAPFeaturesMenu ; modify the ini file Folders section before reading it
+IniRead, blnDefaultMenuBuilt, %g_strIniFile%, Global, DefaultMenuBuilt, 0 ; default false
+if !(blnDefaultMenuBuilt)
+ 	Gosub, AddToIniDefaultMenu ; modify the ini file Folders section before reading it
 
 IniRead, g_strExclusionMouseClassList, %g_strIniFile%, Global, ExclusionMouseClassList, %A_Space% ; empty string if not found
 IniRead, g_strExclusionKeyboardClassList, %g_strIniFile%, Global, ExclusionKeyboardClassList, %A_Space% ; empty string if not found
@@ -1325,7 +1306,7 @@ strNavigateOrLaunchHotkeyKeyboard := ""
 strPowerHotkeyMouseDefault := ""
 strPowerHotkeyKeyboardDefault := ""
 strPopupFixPosition := ""
-blnMySystemFoldersBuilt := ""
+blnDefaultMenuBuilt := ""
 blnMyQAPFeaturesBuilt := ""
 strLoadIniLine := ""
 arrThisFavorite := ""
@@ -1437,101 +1418,90 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 
 
 ;------------------------------------------------------------
-AddToIniMySystemFoldersMenu:
+AddToIniDefaultMenu:
 ;------------------------------------------------------------
 
-; find next favorite number in ini file and check if menu name exists
-strInstance := ""
-Loop
-{
-	IniRead, strIniLine, %g_strIniFile%, Favorites, Favorite%A_Index%
-	if InStr(strIniLine, lMenuMySystemMenu . strInstance)
-		strInstance .= "+"
-	if (strIniLine = "ERROR")
-	{
-		g_intNextFavoriteNumber := A_Index - 1 ; overwrite end of main menu marker
-		Break
-	}
-}
-strMySystemMenu := lMenuMySystemMenu . strInstance
+strThisMenuName := lMenuMySpecialMenu
+Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if Special menu name exists
+g_intNextFavoriteNumber -= 1 ; minus one to overwrite the existing end of main menu marker
 
-AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . " " . strMySystemMenu, strMySystemMenu, "Menu")
-AddToIniOneSystemFolderMenu(A_Desktop, lMenuDesktop) ; Desktop
-AddToIniOneSystemFolderMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}") ; Documents
-AddToIniOneSystemFolderMenu(g_strMyPicturesPath) ; Pictures
-AddToIniOneSystemFolderMenu(g_strDownloadPath) ; Downloads
-AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu("{20D04FE0-3AEA-1069-A2D8-08002B30309D}") ; Computer
-AddToIniOneSystemFolderMenu("{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}") ; Network
-AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu("{21EC2020-3AEA-1069-A2DD-08002B30309D}") ; Control Panel
-AddToIniOneSystemFolderMenu("{645FF040-5081-101B-9F08-00AA002F954E}") ; Recycle Bin
-AddToIniOneSystemFolderMenu("", "", "Z") ; close special menu
-AddToIniOneSystemFolderMenu("", "", "Z") ; restore end of main menu marker
+AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
+AddToIniOneDefaultMenu(A_Desktop, lMenuDesktop, "Special") ; Desktop
+AddToIniOneDefaultMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}", "", "Special") ; Documents
+AddToIniOneDefaultMenu(g_strMyPicturesPath, "", "Special") ; Pictures
+AddToIniOneDefaultMenu(g_strDownloadPath, "", "Special") ; Downloads
+AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu("{20D04FE0-3AEA-1069-A2D8-08002B30309D}", "", "Special") ; Computer
+AddToIniOneDefaultMenu("{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", "", "Special") ; Network
+AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu("{21EC2020-3AEA-1069-A2DD-08002B30309D}", "", "Special") ; Control Panel
+AddToIniOneDefaultMenu("{645FF040-5081-101B-9F08-00AA002F954E}", "", "Special") ; Recycle Bin
+AddToIniOneDefaultMenu("", "", "Z") ; close special menu
 
-IniWrite, 1, %g_strIniFile%, Global, MySystemFoldersBuilt
+strThisMenuName := lMenuMyQAPMenu
+Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
+
+AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
+AddToIniOneDefaultMenu("{Current Folders}", lMenuCurrentFolders . "...", "QAP")
+AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu("{Recent Folders}", lMenuRecentFolders . "...", "QAP")
+AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu("{Clipboard}", lMenuClipboard . "...", "QAP")
+AddToIniOneDefaultMenu("", "", "Z") ; close QAP menu
+
+strThisMenuName := lMenuSettings . "..."
+Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
+if (strThisMenuName = lMenuSettings . "...") ; if equal, it means that this menu is not already there
+	; (we cannot have this menu twice with "+" because QAP features always have the same menu name)
+	AddToIniOneDefaultMenu("{Settings}", lMenuSettings . "...", "QAP") ; back in main menu
+
+AddToIniOneDefaultMenu("", "", "Z") ; restore end of main menu marker
+
+IniWrite, 1, %g_strIniFile%, Global, DefaultMenuBuilt
 
 g_intNextFavoriteNumber := ""
-strMySystemMenu := ""
+strThisMenuName := ""
+strDefaultMenu := ""
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-AddToIniMyQAPFeaturesMenu:
+AddToIniGetMenuName:
 ;------------------------------------------------------------
 
-; base on AddToIniMySystemFoldersMenu: and re-use AddToIniOneSystemFolderMenu
-/*
 strInstance := ""
+
 Loop
 {
 	IniRead, strIniLine, %g_strIniFile%, Favorites, Favorite%A_Index%
-	if InStr(strIniLine, lMenuMySystemMenu . strInstance)
+	if InStr(strIniLine, strThisMenuName . strInstance)
 		strInstance .= "+"
 	if (strIniLine = "ERROR")
 	{
-		g_intNextFavoriteNumber := A_Index - 1 ; overwrite end of main menu marker
+		g_intNextFavoriteNumber := A_Index
 		Break
 	}
 }
-strMySystemMenu := lMenuMySystemMenu . strInstance
+strDefaultMenu := strThisMenuName . strInstance
 
-AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu(g_strMenuPathSeparator . " " . strMySystemMenu, strMySystemMenu, "Menu")
-AddToIniOneSystemFolderMenu(A_Desktop, lMenuDesktop) ; Desktop
-AddToIniOneSystemFolderMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}") ; Documents
-AddToIniOneSystemFolderMenu(g_strMyPicturesPath) ; Pictures
-AddToIniOneSystemFolderMenu(g_strDownloadPath) ; Downloads
-AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu("{20D04FE0-3AEA-1069-A2D8-08002B30309D}") ; Computer
-AddToIniOneSystemFolderMenu("{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}") ; Network
-AddToIniOneSystemFolderMenu("", "", "X")
-AddToIniOneSystemFolderMenu("{21EC2020-3AEA-1069-A2DD-08002B30309D}") ; Control Panel
-AddToIniOneSystemFolderMenu("{645FF040-5081-101B-9F08-00AA002F954E}") ; Recycle Bin
-AddToIniOneSystemFolderMenu("", "", "Z") ; close special menu
-AddToIniOneSystemFolderMenu("", "", "Z") ; restore end of main menu marker
-
-IniWrite, 1, %g_strIniFile%, Global, MySystemFoldersBuilt
-
-g_intNextFavoriteNumber := ""
-strMySystemMenu := ""
-*/
+strInstance := ""
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := "", strFavoriteType := "Special")
+AddToIniOneDefaultMenu(strLocation, strName, strFavoriteType)
 ;------------------------------------------------------------
 {
 	global g_strIniFile
 	global g_objIconsFile
 	global g_objIconsIndex
 	global g_objSpecialFolders
+	global g_objQAPFeatures
 	global g_intNextFavoriteNumber
 	
 	if (strFavoriteType = "Z")
@@ -1540,12 +1510,18 @@ AddToIniOneSystemFolderMenu(strSpecialFolderLocation, strSpecialFolderName := ""
 	{
 		if (strFavoriteType = "Menu")
 			strIconResource := g_objIconsFile["iconSpecialFolders"] . "," . g_objIconsIndex["iconSpecialFolders"]
+		else if (strFavoriteType = "Special")
+			strIconResource := g_objSpecialFolders[strLocation].DefaultIcon
 		else
-			strIconResource := g_objSpecialFolders[strSpecialFolderLocation].DefaultIcon
-		if !StrLen(strSpecialFolderName)
-			strSpecialFolderName := g_objSpecialFolders[strSpecialFolderLocation].DefaultName
+			strIconResource := g_objQAPFeatures[strLocation].DefaultIcon
+
+		if !StrLen(strName)
+			if (strFavoriteType = "Special")
+				strName := g_objSpecialFolders[strLocation].DefaultName
+			else
+				strName := g_objQAPFeatures[strLocation].DefaultName
 		
-		strNewIniLine := strFavoriteType . "|" . strSpecialFolderName . "|" . strSpecialFolderLocation . "|" . strIconResource . "|||"
+		strNewIniLine := strFavoriteType . "|" . strName . "|" . strLocation . "|" . strIconResource . "||||||||"
 	}
 	
 	IniWrite, %strNewIniLine%, %g_strIniFile%, Favorites, Favorite%g_intNextFavoriteNumber%
@@ -2365,7 +2341,6 @@ RecursiveBuildOneMenu(objCurrentMenu)
 ;------------------------------------------------------------
 {
 	global g_blnDisplayMenuShortcuts
-	global g_blnDisplayFavoritesHotkeysInMenus ; ### todo
 	global g_blnDisplayIcons
 	global g_intIconSize
 	global g_strMenuBackgroundColor
@@ -2397,7 +2372,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		if (objCurrentMenu[A_Index].FavoriteType = "Group")
 			strMenuName .= " " . g_strGroupIndicatorPrefix . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . g_strGroupIndicatorSuffix
 		
-		if g_objHotkeysByLocation.HasKey(objCurrentMenu[A_Index].FavoriteLocation)
+		if (g_intHotkeyReminders > 1) and g_objHotkeysByLocation.HasKey(objCurrentMenu[A_Index].FavoriteLocation)
 			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? g_objHotkeysByLocation[objCurrentMenu[A_Index].FavoriteLocation] : Hotkey2Text(g_objHotkeysByLocation[objCurrentMenu[A_Index].FavoriteLocation])) . ")"
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
@@ -2940,8 +2915,6 @@ g_intRecentFoldersMax := f_intRecentFoldersMax
 IniWrite, %g_intRecentFoldersMax%, %g_strIniFile%, Global, RecentFoldersMax
 g_blnDisplayMenuShortcuts := f_blnDisplayMenuShortcuts
 IniWrite, %g_blnDisplayMenuShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
-g_blnDisplayFavoritesHotkeysInMenus := f_blnDisplayFavoritesHotkeysInMenus
-IniWrite, %g_blnDisplayFavoritesHotkeysInMenus%, %g_strIniFile%, Global, DisplayFavoritesHotkeysInMenus
 g_blnCheck4Update := f_blnCheck4Update
 IniWrite, %g_blnCheck4Update%, %g_strIniFile%, Global, Check4Update
 g_blnOpenMenuOnTaskbar := f_blnOpenMenuOnTaskbar
@@ -3543,6 +3516,7 @@ If !StrLen(g_strNewLocation) or !(InStr(g_strNewLocation, ":") or InStr(g_strNew
 	IfMsgBox, Yes
 	{
 		Gosub, GuiShow
+		g_strAddFavoriteType := "Folder"
 		Gosub, GuiAddFavorite
 	}
 }
@@ -3859,17 +3833,24 @@ Gui, 2:Add, Text, x20 y40 vf_lblFavoriteParentMenu
 Gui, 2:Add, DropDownList, x20 y+5 w300 vf_drpParentMenu gDropdownParentMenuChanged
 	, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath, (g_objEditedFavorite.FavoriteType = "Menu" ? lMainMenuName . " " . g_objEditedFavorite.FavoriteLocation : "")) . "|"
 
+blnIsGroupMember := InStr(g_objMenuInGui.MenuPath, g_strGroupIndicatorPrefix)
+
 Gui, 2:Add, Text, x20 y+10 vf_lblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
 Gui, 2:Add, DropDownList, x20 y+5 w290 vf_drpParentMenuItems AltSubmit
 
-Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog section, %lDialogIcon%
-Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
-Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
-Gui, 2:Add, Link, x20 ys+57 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
+if !(blnIsGroupMember)
+{
+	Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog section, %lDialogIcon%
+	Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
+	Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
+	Gui, 2:Add, Link, x20 ys+57 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
 
-Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
-Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
-Gui, 2:Add, Button, yp x+10 gButtonChangeFavoriteHotkey, %lOptionsChangeHotkey%
+	Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
+	Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
+	Gui, 2:Add, Button, yp x+10 gButtonChangeFavoriteHotkey, %lOptionsChangeHotkey%
+}
+
+blnIsGroupMember := ""
 
 return
 ;------------------------------------------------------------
@@ -5192,11 +5173,12 @@ for strMenuPath, objMenu in g_objMenusIndex
 				, strMenuPath, objMenu[A_Index].FavoriteName, objMenu[A_Index].FavoriteType
 				, (f_blnSeeShortHotkeyNames ? strThisHotkey : Hotkey2Text(strThisHotkey))
 				, objMenu[A_Index].FavoriteLocation)
-			LV_ModifyCol(A_Index, "AutoHdr")
 		}
 
 LV_ModifyCol(2, "Sort")
 LV_ModifyCol(1, 0)
+Loop, % LV_GetCount("Column") - 1
+	LV_ModifyCol(A_Index + 1, "AutoHdr")
 
 DllCall("LockWindowUpdate", Uint, 0)  ; Pass 0 to unlock the currently locked window.
 
@@ -5300,15 +5282,13 @@ g_objHotkeysToDisableWhenSave := ""
 ; ###_D("Clean-up start", 1)
 ; clean-up unused hotkeys if favorites were deleted
 for strThisLocation, strThisHotkey in g_objHotkeysByLocation
-{
-	###_V("Clean-up for location", strThisLocation, strThisHotkey)
+	; ###_V("Clean-up for location", strThisLocation, strThisHotkey)
 	if RecursiveHotkeyNotNeeded(strThisLocation, g_objMainMenu)
 	{
 		; ###_V("Clean-up unused hotkeys: Remove and Hotkey Off", strThisLocation, strThisHotkey)
 		g_objHotkeysByLocation.Remove(strThisLocation)
 		Hotkey, %strThisHotkey%, , Off
 	}
-}
 ; ###_D("Clean-up ended", 1)
 
 Gosub, SaveHotkeysToIni
