@@ -18,7 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-
+- Add this folder: record window size and position
 - Edit Fav menu options when item is in a group, could not edit icon and hotkey
 
 - build menu "QAP Essentials" like My Special Folders (AddToIniMyQAPFeaturesMenu)
@@ -2262,7 +2262,10 @@ Loop
 }
 
 if (intURLStart = -1) ; No URLs exist in strURLSearchString.
+{
+	gosub, GetURLsInClipboardLineCleanup
 	return ; (exit loop)
+}
 
 ; Otherwise, extract this strURL:
 StringTrimLeft, strURL, strURLSearchString, %intURLStart% ; Omit the beginning/irrelevant part.
@@ -2287,6 +2290,7 @@ StringTrimLeft, strURLSearchString, strURLSearchString, %intCharactersToOmit%
 
 Gosub, GetURLsInClipboardLine ; Recursive call to self (end of loop)
 
+GetURLsInClipboardLineCleanup:
 strURLsInClipboard .= strURLCleansed . "`n"
 
 intURLStart1 := ""
@@ -2866,6 +2870,8 @@ if !(StrLen(strNewTCLocation))
 
 GuiControl, 2:, f_strTotalCommanderPath, %strNewTCLocation%
 
+strNewTCLocation := ""
+
 return
 ;------------------------------------------------------------
 
@@ -2886,6 +2892,8 @@ if !(StrLen(strNewFPcLocation))
 	return
 
 GuiControl, 2:, f_strFPconnectPath, %strNewFPcLocation%
+
+strNewFPcLocation := ""
 
 return
 ;------------------------------------------------------------
@@ -3558,7 +3566,10 @@ g_blnAbordEdit := false
 
 Gosub, GuiFavoriteInit
 if (g_blnAbordEdit)
+{
+	gosub, GuiAddFavoriteCleanup
 	return
+}
 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
@@ -3623,6 +3634,7 @@ Gui, 2:Add, Text
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
+GuiAddFavoriteCleanup:
 strGuiFavoriteLabel := ""
 arrTop := ""
 g_strNewLocation := ""
@@ -4163,7 +4175,10 @@ else ; File
 	FileSelectFile, strNewLocation, S3, %strDefault%, %lDialogAddFileSelect%
 
 if !(StrLen(strNewLocation))
+{
+	gosub, ButtonSelectFavoriteLocationCleanup
 	return
+}
 
 if (A_ThisLabel = "ButtonSelectWorkingDir")
 	GuiControl, 2:, f_strFavoriteAppWorkingDir, %strNewLocation%
@@ -4176,6 +4191,7 @@ else
 		GuiControl, 2:, f_strFavoriteShortName, % GetDeepestFolderName(strNewLocation)
 }
 
+ButtonSelectFavoriteLocationCleanup:
 strNewLocation := ""
 strDefault := ""
 strType := ""
@@ -4350,7 +4366,10 @@ if (A_ThisLabel = "GuiMenusListChanged")
 	; ###_D("GuiMenusListChanged: " . strNewDropdownMenu . "`ng_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath) 
 
 	if (strNewDropdownMenu = g_objMenuInGui.MenuPath) ; user selected the current menu in the dropdown
+	{
+		gosub, GuiMenusListChangedCleanup
 		return
+	}
 }
 
 ; ### not required if object updated Gosub, SaveCurrentListviewToMenuObject ; save current LV
@@ -4405,6 +4424,10 @@ if (intCurrentLastPosition) ; we went to a previous menu
 if (A_ThisLabel = "GuiMenusListChanged") ; keep focus on dropdown list
 	GuiControl, Focus, f_drpMenusList
 
+GuiMenusListChangedCleanup:
+intCurrentLastPosition := ""
+strNewDropdownMenu := ""
+
 return
 ;------------------------------------------------------------
 
@@ -4428,7 +4451,10 @@ SettingsHotkey:
 ; should not be required but safer
 GuiControlGet, blnSaveEnabled, Enabled, %lGuiSave%
 if (blnSaveEnabled)
+{
+	gosub, GuiShowCleanup
 	return
+}
 
 g_objMenuInGui := g_objMainMenu
 
@@ -4438,6 +4464,9 @@ g_objHotkeysToDisableWhenSave := Object() ; to track hotkeys to turn off when sa
 
 Gosub, LoadMenuInGui
 Gui, 1:Show
+
+GuiShowCleanup:
+blnSaveEnabled := ""
 
 return
 ;------------------------------------------------------------
@@ -4518,6 +4547,7 @@ if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|G
 	Oops(lDialogFavoriteNameNotAllowed, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""), lDialogFavoriteParentMenu)
 	if (A_ThisLabel = "GuiMoveOneFavoriteSave")
 		g_intOriginalMenuPosition++
+	gosub, GuiAddFavoriteSaveCleanup
 	return
 }
 /*
@@ -4533,30 +4563,35 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	if !StrLen(f_strFavoriteShortName)
 	{
 		Oops(g_objEditedFavorite.FavoriteType = "Menu" ? lDialogSubmenuNameEmpty : lDialogFavoriteNameEmpty)
+		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
 	if  InStr("Folder|Document|Application|URL|FTP", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
 	{
 		Oops(lDialogFavoriteLocationEmpty)
+		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
 	if  InStr("Special|QAP", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
 	{
 		Oops(lDialogFavoriteDropdownEmpty, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""))
+		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
 	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and InStr(f_strFavoriteShortName, g_strMenuPathSeparator)
 	{
 		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator))
+		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
 	if InStr(f_strFavoriteShortName, g_strGroupIndicatorPrefix)
 	{
 		Oops(L(lDialogFavoriteNameNoSeparator, g_strGroupIndicatorPrefix))
+		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
@@ -4567,6 +4602,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	if !ValidateWindowPosition(strNewFavoriteWindowPosition)
 	{
 		Oops(lOopsInvalidWindowPosition)
+		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 }
@@ -4583,6 +4619,7 @@ if !FolderNameIsNew((A_ThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorit
 			Oops(lDialogFavoriteNameNotNew, f_strFavoriteShortName)
 		if (A_ThisLabel = "GuiMoveOneFavoriteSave")
 			g_intOriginalMenuPosition++
+		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
@@ -4591,6 +4628,7 @@ if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " "
 {
 	Oops(lDialogMenuNotMoveUnderItself, g_objEditedFavorite.FavoriteName)
 	g_intOriginalMenuPosition++ ; will be reduced by GuiMoveMultipleFavoritesSave
+	gosub, GuiAddFavoriteSaveCleanup
 	return
 }
 
@@ -4730,6 +4768,7 @@ if (A_ThisLabel = "GuiMoveOneFavoriteSave")
 else
 	g_intNewItemPos := "" ; delete it for next use
 
+GuiAddFavoriteSaveCleanup:
 strOriginalMenu := ""
 strDestinationMenu := ""
 strMenuLocation := ""
@@ -4852,11 +4891,14 @@ intItemToRemove := LV_GetNext()
 if !(intItemToRemove)
 {
 	Oops(lDialogSelectItemToRemove)
+	gosub, GuiRemoveFavoriteCleanup
 	return
 }
 if (g_objMenuInGui[intItemToRemove].FavoriteType = "B")
+{
+	gosub, GuiRemoveFavoriteCleanup
 	return
-
+}
 ; remove favorite in object model (if menu, leaving submenu objects unlinked without releasing them)
 
 blnItemIsMenu := (g_objMenuInGui[intItemToRemove].FavoriteType = "Menu")
@@ -4865,7 +4907,10 @@ if (blnItemIsMenu)
 {
 	MsgBox, 52, % L(lDialogFavoriteRemoveTitle, g_strAppNameText), % L(lDialogFavoriteRemovePrompt, g_objMenuInGui[intItemToRemove].Submenu.MenuPath)
 	IfMsgBox, No
+	{
+		gosub, GuiRemoveFavoriteCleanup
 		return
+	}
 	g_objMenusIndex.Remove(g_objMenuInGui[intItemToRemove].Submenu.MenuPath)
 }
 g_objMenuInGui.Remove(intItemToRemove)
@@ -4889,6 +4934,7 @@ Gosub, AdjustColumnsWidth
 GuiControl, Enable, f_btnGuiSaveFavorites
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
+GuiRemoveFavoriteCleanup:
 intItemToRemove := ""
 blnItemIsMenu := ""
 
@@ -5721,7 +5767,6 @@ for strLocation, strHotkey in g_objHotkeysByLocation
 }
 
 return
-
 ;------------------------------------------------------------
 
 
@@ -5834,10 +5879,14 @@ if (blnSaveEnabled)
 		g_blnMenuReady := true
 	}
 	IfMsgBox, No
+	{
+		gosub, GuiCancelCleanup
 		return
+	}
 }
 Gui, 1:Cancel
 
+GuiCancelCleanup:
 blnSaveEnabled := ""
 
 return
@@ -6314,6 +6363,8 @@ OpenClipboard:
 
 ; ####
 
+blnShiftPressed := GetKeyState("Shift") ; ### use thid approach?
+
 if (g_blnDisplayMenuShortcuts)
 	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
 else if (A_ThisLabel = "OpenFavoriteGroup")
@@ -6347,6 +6398,7 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 	if !(blnLocationFound) ; should not happen
 	{
 		Oops(lOopsHotkeyNotInMenus, strThisHotkeyLocation, A_ThisHotkey)
+		gosub, OpenFavoriteCleanup
 		return
 	}
 	if CanNavigate(A_ThisHotkey)
@@ -6354,7 +6406,10 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 	else if CanLaunch(A_ThisHotkey)
 		g_strHokeyTypeDetected := "Launch"
 	else
+	{
+		gosub, OpenFavoriteCleanup
 		return ; active window is on exclusion list
+	}
 }
 else
 {
@@ -6383,13 +6438,14 @@ else
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-; ###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected, objThisFavorite)
+###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected . " / " . (blnShiftPressed ? "Shift UP" : "Shift down"), objThisFavorite)
 
 if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars?
 {
 	Clipboard := objThisFavorite.FavoriteLocation
 	TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
 	
+	gosub, OpenFavoriteCleanup
 	return
 }
 
@@ -6397,6 +6453,7 @@ if InStr(A_ThisLabel, "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP")
 	; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 	Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
 
+OpenFavoriteCleanup:
 objThisFavorite := ""
 intMenuItemPos := ""
 strMenuPath := ""
@@ -6529,6 +6586,7 @@ if !StrLen(strLatestVersions)
 	if (A_ThisMenuItem = lMenuUpdate)
 	{
 		Oops(lUpdateError)
+		gosub, Check4UpdateCleanup
 		return ; an error occured during ComObjCreate
 	}
 
@@ -6538,10 +6596,14 @@ strLatestVersions := Trim(strLatestVersions, "`n`l") ; remove en-of-line if pres
 Loop, Parse, strLatestVersions, , 0123456789.| ; strLatestVersions should only contain digits, dots and one pipe (|) between prod and beta versions
 	; if we get here, the content returned by the URL above is wrong
 	if (A_ThisMenuItem <> lMenuUpdate)
+	{
+		gosub, Check4UpdateCleanup
 		return ; return silently
+	}
 	else
 	{
 		Oops(lUpdateError) ; return with an error message
+		gosub, Check4UpdateCleanup
 		return
 	}
 
@@ -6585,7 +6647,10 @@ if (strLatestUsedBeta <> "0.0")
 }
 
 if (FirstVsSecondIs(strLatestSkippedProd, strLatestVersionProd) >= 0 and (A_ThisMenuItem <> lMenuUpdate))
+{
+	gosub, Check4UpdateCleanup
 	return
+}
 
 if FirstVsSecondIs(strLatestVersionProd, g_strCurrentVersion) = 1
 {
@@ -6615,6 +6680,7 @@ else if (A_ThisMenuItem = lMenuUpdate)
 	}
 }
 
+Check4UpdateCleanup:
 strLatestSkippedProd := ""
 strLatestSkippedBeta := ""
 strLatestUsedProd := ""
@@ -7544,7 +7610,7 @@ Url2Var(strUrl)
 	objWebRequest.Open("GET", strUrl)
 	objWebRequest.Send()
 
-	Return objWebRequest.ResponseText()
+	return objWebRequest.ResponseText()
 }
 ;------------------------------------------------------------
 
