@@ -18,6 +18,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- debug GetSpecialFolderLocation
+- see OpenFolder.ahk
+- add this folder for Bibliothèque: détecter le location par le nom?
+
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
@@ -1752,7 +1756,7 @@ CurrentFoldersMenuShortcut:
 ; g_blnMouse not used. OK? g_blnMouse := false
 ; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
 
-Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
+Gosub, SetMenuPosition ; sets menu position (was setting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed - OK? ###)
 
 Gosub, BuildCurrentFoldersMenu
 
@@ -2014,7 +2018,7 @@ RecentFoldersMenuShortcut:
 ; g_blnMouse not used. OK? g_blnMouse := false
 ; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
 
-Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed ### OK?)
+Gosub, SetMenuPosition ; sets menu position (was setting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed ### OK?)
 
 ToolTip, %lMenuRefreshRecent%...
 Gosub, BuildRecentFoldersMenu
@@ -2106,7 +2110,7 @@ ClipboardMenuShortcut:
 ; g_blnMouse not used. OK? g_blnMouse := false
 ; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
 
-Gosub, SetMenuPosition ; sets menu position (was setting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
+Gosub, SetMenuPosition ; sets menu position (was setting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed - OK? ###)
 
 Gosub, RefreshClipboardMenu
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
@@ -3428,7 +3432,7 @@ AddThisFolder:
 
 g_strNewLocation := ""
 
-if WindowIsAnExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
+if WindowIsExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass) or WindowIsDirectoryOpus(g_strTargetClass)
 	or WindowIsDialog(g_strTargetClass, g_strTargetWinId)
 {
 	if WindowIsDirectoryOpus(g_strTargetClass)
@@ -6032,6 +6036,7 @@ NavigateHotkeyMouse:
 NavigateHotkeyKeyboard:
 LaunchHotkeyMouse:
 LaunchHotkeyKeyboard:
+LaunchFromTrayIcon:
 PopupMenuCopyLocation:
 ;------------------------------------------------------------
 
@@ -6040,11 +6045,21 @@ PopupMenuCopyLocation:
 if !(g_blnMenuReady)
 	return
 
-Gosub, SetMenuPosition ; sets menu position (was seting strTargetWinId or activate the window strTargetWinId set by CanNavigate - removed - OK? ###)
+Gosub, SetMenuPosition ; sets menu position (was seting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed - OK? ###)
 ; WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; already set by CanNavigate. OK?
 
-g_strHokeyTypeDetected := (A_ThisLabel = "PopupMenuCopyLocation" ? "CopyLocation" : SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1)) ; "Navigate" or "Launch"
-; g_blnMouse not used. OK? g_blnMouse := InStr(A_ThisLabel, "Mouse")
+if (A_ThisLabel = "LaunchFromTrayIcon")
+{
+	g_strTargetWinId := WinExist("A")
+	g_strTargetControl := ""
+	WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+	g_strHokeyTypeDetected := "Launch"
+}
+else
+	g_strHokeyTypeDetected := (A_ThisLabel = "PopupMenuCopyLocation" ? "CopyLocation" : SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1)) ; "Navigate" or "Launch"
+	; g_blnMouse not used. OK? g_blnMouse := InStr(A_ThisLabel, "Mouse")
+
+; ###_V(A_ThisLabel, g_strTargetClass, g_strTargetWinId)
 
 if (g_strHokeyTypeDetected = "CopyLocation")
 	TrayTip, %g_strAppNameText%, %lPopupMenuCopyLocationTrayTip%
@@ -6117,12 +6132,12 @@ else ; (g_intPopupMenuPosition =  3) - fix position - use the g_intMenuPosX and 
 /*
 if (g_blnMouse)
 	if (g_blnNewWindow)
-		MouseGetPos, , , g_strTargetWinId ; sets strTargetWinId for PopupMenuNewWindowMouse
+		MouseGetPos, , , g_strTargetWinId ; sets g_strTargetWinId for PopupMenuNewWindowMouse
 	else
 		WinActivate, % "ahk_id " . g_strTargetWinId ; activate for PopupMenuMouse - ### still required?
 else ; (keyboard)
 	if (g_blnNewWindow)
-		g_strTargetWinId := WinExist("A") ; sets strTargetWinId for PopupMenuNewWindowKeyboard
+		g_strTargetWinId := WinExist("A") ; sets g_strTargetWinId for PopupMenuNewWindowKeyboard
 */
 
 return
@@ -6155,7 +6170,7 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
 	}
 
-	blnCanNavigate := WindowIsAnExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
+	blnCanNavigate := WindowIsExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
 		or WindowIsDialog(g_strTargetClass, g_strTargetWinId)
 		or (g_blnUseDirectoryOpus and WindowIsDirectoryOpus(g_strTargetClass))
 		or (g_blnUseTotalCommander and WindowIsTotalCommander(g_strTargetClass))
@@ -6214,7 +6229,7 @@ return
 ;========================================================================================================================
 
 ;------------------------------------------------------------
-WindowIsAnExplorer(strClass)
+WindowIsExplorer(strClass)
 ;------------------------------------------------------------
 {
 	return (strClass = "CabinetWClass") or (strClass = "ExploreWClass")
@@ -6318,7 +6333,7 @@ WindowIsFPconnect(strWinId)
 	global g_strFPconnectAppFilename
 	global g_strFPconnectTargetFilename
 
-	if (strTargetWinId = 0)
+	if (strWinId = 0)
 		return false
 
 	; get path and filename of the app controling window strWinId
@@ -6348,6 +6363,35 @@ WindowIsQuickAccessPopup(strClass)
 }
 ;------------------------------------------------------------
 
+
+;------------------------------------------------------------
+GetTargetName(strClass, strWinId)
+;------------------------------------------------------------
+{
+	; ###_V("GetTargetName", strClass, strWinId)
+	if WindowIsExplorer(strClass)
+		return "Explorer"
+	if WindowIsDesktop(strClass)
+		return "Desktop"
+	if WindowIsTray(strClass)
+		return "Tray"
+	if WindowIsConsole(strClass)
+		return "Console"
+	if WindowIsDialog(strClass, strWinId)
+		return "Dialog"
+	if WindowIsTreeview(strWinId)
+		return "Treeview"
+	if WindowIsDirectoryOpus(strClass)
+		return "DirectoryOpus"
+	if WindowIsTotalCommander(strClass)
+		return "TotalCommander"
+	if WindowIsFPconnect(strWinId)
+		return "FPconnect"
+	if WindowIsQuickAccessPopup(strClass)
+		return "QuickAccessPopup"
+
+	return "Unknown"
+}
 
 
 ;========================================================================================================================
@@ -6446,10 +6490,15 @@ else
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected . " / " . (blnShiftPressed ? "Shift UP" : "Shift down"), objThisFavorite)
+###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected . " / " . (blnShiftPressed ? "Shift PRESSED" : "Shift not pressed"), objThisFavorite)
+
+; === ACTIONS ===
+
+; --- CopyLocation ---
 
 if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars?
 {
+	###_O(g_strHokeyTypeDetected, objThisFavorite)
 	Clipboard := objThisFavorite.FavoriteLocation
 	TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
 	
@@ -6457,9 +6506,55 @@ if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars
 	return
 }
 
+; --- QAP Command ---
+
 if InStr(A_ThisLabel, "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
-	; ###_D(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+{
+	###_O(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand, objThisFavorite)
 	Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
+	
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+; --- Navigate Folder ---
+
+if (objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
+{
+	###_O("Navigate Folder", objThisFavorite)
+	Run, % objThisFavorite.FavoriteLocation ; ### todo: navigate various target windows, resize, etc.
+	
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+; --- Navigate Folder ---
+
+if (objThisFavorite.FavoriteType = "Special")
+{
+	objThisSpecialFolder := g_objSpecialFolders[objThisFavorite.FavoriteLocation] ; save objThisSpecialFolder before expanding EnvVars
+	strFulllocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, objThisFavorite, GetTargetName(g_strTargetClass, g_strTargetWinId))
+	
+	if (g_strHokeyTypeDetected = "Navigate") ; could have been changed from "navigate" to "Launch" by GetSpecialFolderLocation
+	{
+		###_O("Navigate Special", objThisFavorite)
+		gosub, OpenFavoriteCleanup
+		return
+	}
+}
+; #####
+
+; --- New window ---
+
+if !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
+	or (g_strHokeyTypeDetected = "Launch") or WindowIsDesktop(g_strTargetClass)
+{
+	###_O("OpenFavoriteInNewWindow", objThisFavorite)
+	; gosub, OpenFavoriteInNewWindow
+	gosub, OpenFavoriteCleanup
+	return
+}
+
 
 OpenFavoriteCleanup:
 objThisFavorite := ""
@@ -6469,8 +6564,67 @@ objMenu := ""
 blnLocationFound := ""
 strThisMenuItem := ""
 strFavoriteType := ""
+objThisSpecialFolder := ""
 
 return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetSpecialFolderLocation(ByRef strHokeyTypeDetected, objFavorite, strTargetName)
+{
+	global g_objSpecialFolders
+
+	strLocation := objFavorite.FavoriteLocation
+	objSpecialFolder := g_objSpecialFolders[strLocation]
+	###_O("objSpecialFolder for " . strLocation, objSpecialFolder)
+	
+	if (strTargetName = "Explorer")
+		strUse := objSpecialFolder.Use4NavigateExplorer
+	else if (strTargetname = "Dialog")
+		strUse := objSpecialFolder.Use4Dialog
+	else if (strTargetname = "Console")
+		strUse := objSpecialFolder.Use4Console
+	else if (strTargetname = "DirectoryOpus")
+		strUse := objSpecialFolder.Use4DOpus
+	else if (strTargetname = "TotalCommander")
+		strUse := objSpecialFolder.Use4TC
+	else if (strTargetname = "FPconnect")
+		strUse := objSpecialFolder.Use4FPc
+	else
+		strUse := objSpecialFolder.Use4NewExplorer
+
+	###_O("Location: " . strLocation . "`nTarget: " . strTargetName . "`nUse: " . strUse, objSpecialFolder)
+	if (strUse = "CLS")
+		if (SubStr(strLocation, 1, 1) = "{")
+			if (strTargetName = "Console")
+				strSpecialFolderLocation := strLocation
+			else if (strTargetName = "TotalCommander")
+				strSpecialFolderLocation := "::" . strLocation
+			else
+				strSpecialFolderLocation := "shell:::" . strLocation
+		else
+			strSpecialFolderLocation := strLocation
+	else if (strUse = "AHK")
+	{
+		strAHKConstant := objSpecialFolder.AHKConstant ; for example "A_Desktop"
+		strLocation := %strAHKConstant% ; the contant value, for example "C:\Users\jlalonde\Desktop"
+	}
+	else if (strUse = "DOA")
+		strLocation := "/" . objSpecialFolder.DOpusAlias
+	else if (strUse = "SCT")
+		strLocation := "shell:" . objSpecialFolder.ShellConstantText
+	else if (strUse = "TTC")
+		strLocation := objThisSpecialFolder.TCCommand
+	else
+	{
+		Oops(lOopsCouldNotOpenSpecialFolder, strTargetName, strLocation)
+		strHokeyTypeDetected := "Launch"
+		return strLocation
+	}
+	
+	return strLocation
+}
 ;------------------------------------------------------------
 
 
@@ -7727,7 +7881,8 @@ AHK_NOTIFYICON(wParam, lParam)
 	if (lParam = 0x202) ; WM_LBUTTONUP
 	{
 		blnClickOnTrayIcon := 1
-		SetTimer, LaunchHotkeyMouse, -1
+		; SetTimer, LaunchHotkeyMouse, -1
+		SetTimer, LaunchFromTrayIcon, -1
 		return 0
 	}
 } 
