@@ -18,14 +18,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- Add this folder: record window size and position
-- Edit Fav menu options when item is in a group, could not edit icon and hotkey
-
-- build menu "QAP Essentials" like My Special Folders (AddToIniMyQAPFeaturesMenu)
-
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
-- add Support freeware to main menu if user did not donate
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
 
 LATER
@@ -3503,7 +3497,7 @@ if WindowIsAnExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetCla
 
 		g_strNewLocation := ClipBoard
 		Clipboard := objPrevClipboard ; Restore the original clipboard
-
+		
 		if (g_blnDiagMode)
 		{
 			Diag("Menu", A_ThisLabel)
@@ -3719,8 +3713,17 @@ if (strGuiFavoriteLabel = "GuiEditFavorite")
 }
 else
 {
-	if (strGuiFavoriteLabel <> "GuiAddThisFolder") ; else position is set in AddThisFolder
-		g_strNewFavoriteWindowPosition := ""
+	if (strGuiFavoriteLabel = "GuiAddThisFolder")
+	{
+		WinGetPos, intX, intX, intWidth, intHeight, ahk_id %g_strTargetWinId%
+		WinGet, intMinMax, MinMax, ahk_id %g_strTargetWinId% ; -1: minimized, 1: maximized, 0: neither minimized nor maximized
+		; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
+		; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
+		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intX . "," . intWidth . "," . intHeight
+		; ###_V("WindowPosition", intMinMax, g_strNewFavoriteWindowPosition)
+	}
+	else
+		g_strNewFavoriteWindowPosition := ",,,,," ; to avoid having phantom values
 
 	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", strGuiFavoriteLabel)
 	{
@@ -3745,9 +3748,14 @@ else
 			g_objEditedFavorite.FavoriteType := "Folder"
 	}
 }
-g_strNewFavoriteWindowPosition .= ",,,,,,," ; extra coma to avoid having phantom values if in case string is empty
 
 Gosub, GuiFavoriteIconDefault
+
+intX := ""
+intY := ""
+intWidth := ""
+intHeight := ""
+intMinMax := ""
 
 return
 ;------------------------------------------------------------
