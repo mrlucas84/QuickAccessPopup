@@ -19,8 +19,7 @@ BUGS
 
 TO-DO
 - debug GetSpecialFolderLocation
-- see OpenFolder.ahk
-- add this folder for Bibliothèque: détecter le location par le nom?
+- add this folder detect if we have a special folder
 
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
@@ -3513,9 +3512,14 @@ if WindowIsExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass
 		
 }
 
+if g_objClassIdOrPathByDefaultName.HasKey(g_strNewLocation)
+	g_strNewLocation := g_objClassIdOrPathByDefaultName[g_strNewLocation]
+
 ###_V("g_strNewLocation", g_strNewLocation)
 
-If !StrLen(g_strNewLocation) or !(InStr(g_strNewLocation, ":") or InStr(g_strNewLocation, "\\")) or (strAddThisFolderWindowTitle <> strWindowActiveTitle)
+If !StrLen(g_strNewLocation)
+	or !(InStr(g_strNewLocation, ":") or InStr(g_strNewLocation, "\\") or  InStr(g_strNewLocation, "{"))
+	or (strAddThisFolderWindowTitle <> strWindowActiveTitle)
 {
 	Gui, 1:+OwnDialogs 
 	MsgBox, 52, % L(lDialogAddFolderManuallyTitle, g_strAppNameText, g_strAppVersion), %lDialogAddFolderManuallyPrompt%
@@ -4675,7 +4679,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	{
 		; ###_V(A_ThisLabel . " Remove g_objHotkeysByLocation", g_objEditedFavorite.FavoriteLocation)
 		g_objHotkeysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
-		if StrLen(f_strFavoriteLocation)
+		if StrLen(f_strFavoriteLocation) and StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
 			; ###_V(A_ThisLabel . " Insert g_objHotkeysByLocation", f_strFavoriteLocation, g_strNewFavoriteHotkey)
 			g_objHotkeysByLocation.Insert(f_strFavoriteLocation, g_strNewFavoriteHotkey) ; if the key already exists, its value is overwritten
 	}
@@ -5772,7 +5776,6 @@ LoadFavoriteHotkeys:
 
 for strLocation, strHotkey in g_objHotkeysByLocation
 {
-	; ###_V("LoadFavoriteHotkeys Create Hotkey:", strLocation, strHotkey)
 	Hotkey, %strHotkey%, OpenFavoriteFromHotkey, On UseErrorLevel
 	if (ErrorLevel)
 		Oops(lDialogInvalidHotkeyFavorite, strHotkey, strLocation)
@@ -6413,24 +6416,117 @@ OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
-; ####
+g_strOpenFavoriteLabel := A_ThisLabel
+
+gosub, OpenFavoriteInit ; define g_objThisFavorite
+
+; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
+###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected . " / " . (blnShiftPressed ? "Shift PRESSED" : "Shift not pressed"), g_objThisFavorite)
+
+; === ACTIONS ===
+
+strTargetName := GetTargetName(g_strTargetClass, g_strTargetWinId)
+
+; --- CopyLocation ---
+
+if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars?
+{
+	###_O(g_strHokeyTypeDetected, g_objThisFavorite)
+	Clipboard := g_objThisFavorite.FavoriteLocation
+	TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
+	
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+; --- QAP Command ---
+
+if (g_strOpenFavoriteLabel = "OpenFavorite") and (g_objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+{
+	###_O(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand, g_objThisFavorite)
+	Gosub, % g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand
+	
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+; --- Navigate Folder ---
+
+if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
+{
+	; Run, % g_objThisFavorite.FavoriteLocation ; ### todo: navigate various target windows, resize, etc.
+	strFullLocation := g_objThisFavorite.FavoriteLocation
+	###_O("Navigate Folder: " . strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
+	gosub, OpenFavoriteNavigate%strTargetName%
+	
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+; --- Navigate Special Folder ---
+
+if (g_objThisFavorite.FavoriteType = "Special")
+{
+	objThisSpecialFolder := g_objSpecialFolders[g_objThisFavorite.FavoriteLocation] ; save objThisSpecialFolder before expanding EnvVars
+	strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_objThisFavorite, strTargetName)
+	
+	if (g_strHokeyTypeDetected = "Navigate") ; could have been changed from "navigate" to "Launch" by GetSpecialFolderLocation
+	{
+		###_O("Navigate Special: " . strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
+		gosub, OpenFavoriteNavigate%strTargetName%
+		
+		gosub, OpenFavoriteCleanup
+		return
+	}
+}
+; #####
+
+; --- New window ---
+
+if !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
+	or (g_strHokeyTypeDetected = "Launch") or WindowIsDesktop(g_strTargetClass)
+{
+	###_O("OpenFavorite New Window in: " . strTargetName, g_objThisFavorite)
+	; gosub, OpenFavoriteInNewWindow
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+
+OpenFavoriteCleanup:
+g_objThisFavorite := ""
+intMenuItemPos := ""
+strMenuPath := ""
+objMenu := ""
+blnLocationFound := ""
+strThisMenuItem := ""
+strFavoriteType := ""
+objThisSpecialFolder := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteInit:
+;------------------------------------------------------------
 
 blnShiftPressed := GetKeyState("Shift") ; ### use thid approach?
 
 if (g_blnDisplayMenuShortcuts)
 	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
-else if (A_ThisLabel = "OpenFavoriteGroup")
+else if (g_strOpenFavoriteLabel = "OpenFavoriteGroup")
 	strThisMenuItem :=  SubStr(A_ThisMenuItem, 1, InStr(A_ThisMenuItem, g_strGroupIndicatorPrefix) - 2)
 else
 	strThisMenuItem :=  A_ThisMenuItem
 
-if InStr("OpenFavorite|OpenFavoriteGroup", A_ThisLabel)
+if InStr("OpenFavorite|OpenFavoriteGroup", g_strOpenFavoriteLabel)
 {
 	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
 			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
-	objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
+	g_objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
 }
-else if (A_ThisLabel = "OpenFavoriteFromHotkey")
+else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 {
 	blnLocationFound := false
 	strThisHotkeyLocation := GetHotkeyLocation(A_ThisHotkey)
@@ -6440,7 +6536,7 @@ else if (A_ThisLabel = "OpenFavoriteFromHotkey")
 		loop, % objMenu.MaxIndex()
 			if (objMenu[A_Index].FavoriteLocation = strThisHotkeyLocation)
 			{
-				objThisFavorite := objMenu[A_Index]
+				g_objThisFavorite := objMenu[A_Index]
 				blnLocationFound := true
 				break
 			}
@@ -6482,89 +6578,12 @@ else
 			strFavoriteType := (LocationIsDocument(strThisMenuItem) ? "Document" : "Folder")
 	}
 	
-	objThisFavorite := Object()
-	objThisFavorite.FavoriteName := strThisMenuItem
-	objThisFavorite.FavoriteLocation := strThisMenuItem
-	objThisFavorite.FavoriteType := strFavoriteType
+	g_objThisFavorite := Object()
+	g_objThisFavorite.FavoriteName := strThisMenuItem
+	g_objThisFavorite.FavoriteLocation := strThisMenuItem
+	g_objThisFavorite.FavoriteType := strFavoriteType
 }
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
-
-; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected . " / " . (blnShiftPressed ? "Shift PRESSED" : "Shift not pressed"), objThisFavorite)
-
-; === ACTIONS ===
-
-; --- CopyLocation ---
-
-if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars?
-{
-	###_O(g_strHokeyTypeDetected, objThisFavorite)
-	Clipboard := objThisFavorite.FavoriteLocation
-	TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
-	
-	gosub, OpenFavoriteCleanup
-	return
-}
-
-; --- QAP Command ---
-
-if InStr(A_ThisLabel, "OpenFavorite") and (objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand)
-{
-	###_O(g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand, objThisFavorite)
-	Gosub, % g_objQAPFeatures[objThisFavorite.FavoriteLocation].QAPFeatureCommand
-	
-	gosub, OpenFavoriteCleanup
-	return
-}
-
-; --- Navigate Folder ---
-
-if (objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
-{
-	###_O("Navigate Folder", objThisFavorite)
-	Run, % objThisFavorite.FavoriteLocation ; ### todo: navigate various target windows, resize, etc.
-	
-	gosub, OpenFavoriteCleanup
-	return
-}
-
-; --- Navigate Folder ---
-
-if (objThisFavorite.FavoriteType = "Special")
-{
-	objThisSpecialFolder := g_objSpecialFolders[objThisFavorite.FavoriteLocation] ; save objThisSpecialFolder before expanding EnvVars
-	strFulllocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, objThisFavorite, GetTargetName(g_strTargetClass, g_strTargetWinId))
-	
-	if (g_strHokeyTypeDetected = "Navigate") ; could have been changed from "navigate" to "Launch" by GetSpecialFolderLocation
-	{
-		###_O("Navigate Special", objThisFavorite)
-		gosub, OpenFavoriteCleanup
-		return
-	}
-}
-; #####
-
-; --- New window ---
-
-if !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
-	or (g_strHokeyTypeDetected = "Launch") or WindowIsDesktop(g_strTargetClass)
-{
-	###_O("OpenFavoriteInNewWindow", objThisFavorite)
-	; gosub, OpenFavoriteInNewWindow
-	gosub, OpenFavoriteCleanup
-	return
-}
-
-
-OpenFavoriteCleanup:
-objThisFavorite := ""
-intMenuItemPos := ""
-strMenuPath := ""
-objMenu := ""
-blnLocationFound := ""
-strThisMenuItem := ""
-strFavoriteType := ""
-objThisSpecialFolder := ""
 
 return
 ;------------------------------------------------------------
@@ -6577,7 +6596,6 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, objFavorite, strTargetName)
 
 	strLocation := objFavorite.FavoriteLocation
 	objSpecialFolder := g_objSpecialFolders[strLocation]
-	###_O("objSpecialFolder for " . strLocation, objSpecialFolder)
 	
 	if (strTargetName = "Explorer")
 		strUse := objSpecialFolder.Use4NavigateExplorer
@@ -6654,7 +6672,72 @@ NumberOfColumnBreaksBeforeThisItem(objMenu, strThisMenuItemPos)
 
 
 ;========================================================================================================================
-!_072_TRAY_MENU_ACTIONS:
+!_074_NAVIGATE:
+;========================================================================================================================
+
+;------------------------------------------------------------
+OpenFavoriteNavigateExplorer:
+; Excerpt and adapted from RMApp_Explorer_Navigate(FullPath, hwnd="") by Learning One
+; http://ahkscript.org/boards/viewtopic.php?f=5&t=526&start=20#p4673
+; http://msdn.microsoft.com/en-us/library/windows/desktop/bb774096%28v=vs.85%29.aspx
+; http://msdn.microsoft.com/en-us/library/aa752094
+;------------------------------------------------------------
+
+if !Regexmatch(strFullLocation, "#.*\\") ; prevent the hash bug in Shell.Application - when a hash in path is followed by a backslash like in "c:\abc#xyz\abc")
+{
+	intCountMatch := 0
+	For pExplorer in ComObjCreate("Shell.Application").Windows
+	{
+		if (pExplorer.hwnd = g_strTargetWinId)
+		{
+			intCountMatch++
+			if IsInteger(strFullLocation) ; ShellSpecialFolderConstant
+			{
+				try pExplorer.Navigate2(strFullLocation)
+				catch, objErr
+					Oops(lNavigateSpecialError, strFullLocation)
+			}
+			else
+			{
+				try pExplorer.Navigate(strFullLocation)
+				catch, objErr
+					; Note: If an error occurs in Navigate, the error message is given by Navigate itself and this script does not
+					; receive an error notification. From my experience, the following line would never be executed.
+					Oops(lNavigateFileError, strFullLocation)
+			}
+		}
+	}
+	if !(intCountMatch) ; open a new window
+	; for Explorer add-ons like Clover (verified - it now opens the folder in a new tab), others?
+	; also when g_strTargetWinId is DOpus window and DOpus is not used
+		if IsInteger(strFullLocation) ; ShellSpecialFolderConstant
+			ComObjCreate("Shell.Application").Explore(strFullLocation)
+		else
+			Run, Explorer "%strFullLocation%"
+}
+else
+	; Workaround for the hash (aka Sharp / "#") bug in Shell.Application - occurs only when navigating in the current Explorer window
+	; see http://stackoverflow.com/questions/22868546/navigate-shell-command-not-working-when-the-path-includes-an-hash
+	; and http://ahkscript.org/boards/viewtopic.php?f=5&t=526&p=25287#p25274
+	SendInput, {F4}{Esc}{Raw}%strFullLocation%`n
+
+intCountMatch := ""
+pExplorer := ""
+objErr := ""
+
+return
+;------------------------------------------------------------
+
+
+;========================================================================================================================
+; END OF NAVIGATE
+;========================================================================================================================
+
+
+
+
+;========================================================================================================================
+!_076_TRAY_MENU_ACTIONS:
 ;========================================================================================================================
 
 ;------------------------------------------------------------
@@ -6902,18 +6985,6 @@ Time2Donate(intStartups, g_blnDonor)
 ;========================================================================================================================
 ; END OF TRAY MENU ACTIONS
 ;========================================================================================================================
-
-
-
-;========================================================================================================================
-!_075_NAVIGATE:
-;========================================================================================================================
-
-
-;========================================================================================================================
-; END OF NAVIGATE
-;========================================================================================================================
-
 
 
 
@@ -7928,6 +7999,18 @@ NextMenuShortcut(ByRef intShortcut)
 	
 	intShortcut := intShortcut + 1
 	return strShortcut
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+IsInteger(str)
+;------------------------------------------------------------
+{
+	if str is integer
+		return true
+	else
+		return false
 }
 ;------------------------------------------------------------
 
