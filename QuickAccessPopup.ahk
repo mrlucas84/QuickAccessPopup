@@ -16,9 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- when new fav with existing name, cancel, edit a fav, it is save at toip instead of staying where it was
 
 TO-DO
-- debug GetSpecialFolderLocation
+- validate that ftp fav loc starts with "ftp://"
 - add this folder detect if we have a special folder
 
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -33,6 +34,7 @@ HELP
 * Update links to QAP website in Help
 * Update links to QAP reviews in Donate
 * fix hotkey names in help text
+* replace Win-A with Win-W
 
 LANGUAGE
 
@@ -421,7 +423,7 @@ InitSystemArrays:
 ; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
 strPopupHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard"
 StringSplit, g_arrPopupHotkeyNames, strPopupHotkeyNames, |
-strPopupHotkeyDefaults := "MButton|#A|+MButton|+#A"
+strPopupHotkeyDefaults := "MButton|#W|+MButton|+#W"
 StringSplit, g_arrPopupHotkeyDefaults, strPopupHotkeyDefaults, |
 g_arrPopupHotkeys := Array ; initialized by LoadIniPopupHotkeys
 g_arrPopupHotkeysPrevious := Array ; initialized by GuiOptions and checked in LoadIniPopupHotkeys
@@ -1134,9 +1136,9 @@ g_objMainMenu.MenuType := "Menu" ; main menu is not a group
 IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2QAP.ahk during install
 {
 	strNavigateOrLaunchHotkeyMouseDefault := g_arrPopupHotkeyDefaults1 ; "MButton"
-	strNavigateOrLaunchHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults2 ; "#a"
+	strNavigateOrLaunchHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults2 ; "W"
 	strPowerHotkeyMouseDefault := g_arrPopupHotkeyDefaults3 ; "+MButton"
-	strPowerHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults4 ; "+#a"
+	strPowerHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults4 ; "+#W"
 	
 	g_intIconSize := 32
 
@@ -2001,6 +2003,7 @@ CollectExplorers(pExplorers)
 			WinGet, intMinMax, MinMax, % "ahk_id " . pExplorer.HWND
 			objExplorer.MinMax := intMinMax
 			
+			; ###_O("", objExplorer)
 			objExplorers.Insert(intExplorers, objExplorer) ; I was checking if StrLen(pExplorer.HWND) - any reason?
 		}
 	}
@@ -6418,23 +6421,71 @@ OpenClipboard:
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
-gosub, OpenFavoriteInit ; define g_objThisFavorite
+gosub, OpenFavoriteGetFavorite ; define g_objThisFavorite and g_strFullLocation
 
-; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-###_O(A_ThisLabel . " / " . g_strHokeyTypeDetected . " / " . (blnShiftPressed ? "Shift PRESSED" : "Shift not pressed"), g_objThisFavorite)
+if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavorite was aborted
+{
+	gosub, OpenFavoriteCleanup
+	return
+}
 
-; === ACTIONS ===
+if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for these favorites, file/folder must exist
+	if !FileExist(EnvVars(g_objThisFavorite.FavoriteLocation))
+	{
+		Gui, 1:+OwnDialogs
+		MsgBox, 0, % L(lDialogFavoriteDoesNotExistTitle, g_strAppNameText)
+			, % L(lDialogFavoriteDoesNotExistPrompt, EnvVars(g_objThisFavorite.FavoriteLocation))
+		gosub, OpenFavoriteCleanup
+		return
+	}
 
 strTargetName := GetTargetName(g_strTargetClass, g_strTargetWinId)
+
+gosub, OpenFavoriteGetFullLocation ; define g_objThisFavorite and g_strFullLocation
+
+if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
+{
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+blnShiftPressed := GetKeyState("Shift") ; ### use thid approach?
+
+; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
+###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`nstrTargetName: " . strTargetName, g_objThisFavorite)
+
+; === ACTIONS ===
 
 ; --- CopyLocation ---
 
 if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars?
 {
-	###_O(g_strHokeyTypeDetected, g_objThisFavorite)
-	Clipboard := g_objThisFavorite.FavoriteLocation
+	; ###_O(g_strHokeyTypeDetected, g_objThisFavorite)
+	Clipboard := g_strFullLocation
 	TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
 	
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+; --- Document or Link ---
+
+if InStr("Document|URL", g_objThisFavorite.FavoriteType)
+{
+	; ### add advanced settings WHERE? in Init?
+	Run, %g_strFullLocation%
+
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+; --- Application ---
+
+if (g_objThisFavorite.FavoriteType = "Application")
+{
+	; ### add advanced settings WHERE? in Init?
+	Run, %g_strFullLocation%, % g_objThisFavorite.FavoriteAppWorkingDir
+
 	gosub, OpenFavoriteCleanup
 	return
 }
@@ -6452,12 +6503,14 @@ if (g_strOpenFavoriteLabel = "OpenFavorite") and (g_objThisFavorite.FavoriteType
 
 ; --- Navigate Folder ---
 
-if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
+
+if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate") and (strTargetName <> "Desktop")
 {
-	; Run, % g_objThisFavorite.FavoriteLocation ; ### todo: navigate various target windows, resize, etc.
-	strFullLocation := g_objThisFavorite.FavoriteLocation
-	###_O("Navigate Folder: " . strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
+	; Run, % g_objThisFavorite.FavoriteLocation ; 
+	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
 	gosub, OpenFavoriteNavigate%strTargetName%
+	
+	; ### todo: resize, etc.
 	
 	gosub, OpenFavoriteCleanup
 	return
@@ -6465,21 +6518,17 @@ if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navi
 
 ; --- Navigate Special Folder ---
 
-if (g_objThisFavorite.FavoriteType = "Special")
+if (g_objThisFavorite.FavoriteType = "Special") and (strTargetName <> "Desktop")
+	and (g_strHokeyTypeDetected = "Navigate") ; could have been changed from "navigate" to "Launch" by GetSpecialFolderLocation
 {
-	objThisSpecialFolder := g_objSpecialFolders[g_objThisFavorite.FavoriteLocation] ; save objThisSpecialFolder before expanding EnvVars
-	strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_objThisFavorite, strTargetName)
+	###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
+	gosub, OpenFavoriteNavigate%strTargetName%
 	
-	if (g_strHokeyTypeDetected = "Navigate") ; could have been changed from "navigate" to "Launch" by GetSpecialFolderLocation
-	{
-		###_O("Navigate Special: " . strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
-		gosub, OpenFavoriteNavigate%strTargetName%
-		
-		gosub, OpenFavoriteCleanup
-		return
-	}
+	; ### todo: resize, etc.
+
+	gosub, OpenFavoriteCleanup
+	return
 }
-; #####
 
 ; --- New window ---
 
@@ -6487,31 +6536,21 @@ if !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where th
 	or (g_strHokeyTypeDetected = "Launch") or WindowIsDesktop(g_strTargetClass)
 {
 	###_O("OpenFavorite New Window in: " . strTargetName, g_objThisFavorite)
-	; gosub, OpenFavoriteInNewWindow
-	gosub, OpenFavoriteCleanup
-	return
-}
+	gosub, OpenFavoriteInNewWindow%strTargetName%
 
+	; ### todo: resize, etc.
+}
 
 OpenFavoriteCleanup:
 g_objThisFavorite := ""
-intMenuItemPos := ""
-strMenuPath := ""
-objMenu := ""
-blnLocationFound := ""
-strThisMenuItem := ""
-strFavoriteType := ""
-objThisSpecialFolder := ""
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-OpenFavoriteInit:
+OpenFavoriteGetFavorite:
 ;------------------------------------------------------------
-
-blnShiftPressed := GetKeyState("Shift") ; ### use thid approach?
 
 if (g_blnDisplayMenuShortcuts)
 	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
@@ -6546,7 +6585,8 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 	if !(blnLocationFound) ; should not happen
 	{
 		Oops(lOopsHotkeyNotInMenus, strThisHotkeyLocation, A_ThisHotkey)
-		gosub, OpenFavoriteCleanup
+		
+		gosub, OpenFavoriteGetFavoriteCleanup
 		return
 	}
 	if CanNavigate(A_ThisHotkey)
@@ -6555,35 +6595,112 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 		g_strHokeyTypeDetected := "Launch"
 	else
 	{
-		gosub, OpenFavoriteCleanup
+		gosub, OpenFavoriteGetFavoriteCleanup
 		return ; active window is on exclusion list
 	}
 }
+else if (g_strOpenFavoriteLabel = "OpenCurrentFolder")
+{
+	###_O(strThisMenuItem . " / " . g_objCurrentFoldersLocationUrlByName[strThisMenuItem], g_objCurrentFoldersLocationUrlByName)
+	If (InStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], "::") = 1) ; A_ThisMenuItem can include the numeric shortcut
+	{
+		strThisMenuItem := SubStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], 3) ; remove "::" from beginning
+		strFavoriteType := "Special"
+	}
+	else
+		strFavoriteType := "Folder"
+	
+	g_objThisFavorite := Object() ; temporary favorite object
+	g_objThisFavorite.FavoriteName := strThisMenuItem
+	g_objThisFavorite.FavoriteLocation := strThisMenuItem
+	g_objThisFavorite.FavoriteType := strFavoriteType
+}
 else
 {
-	if (g_blnDisplayMenuShortcuts)
-		StringTrimLeft, strLocation, A_ThisMenuItem, 3 ; remove "&1 " from menu item
-	else
-		strLocation :=  A_ThisMenuItem
-
 	if InStr(strThisMenuItem, "http://") = 1 or InStr(strThisMenuItem, "https://") = 1 or InStr(strThisMenuItem, "www.") = 1
 		strFavoriteType := "URL"
 	else
 	{
-		strThisMenuItem :=  EnvVars(strThisMenuItem)
 		SplitPath, strThisMenuItem, , , strExtension
 		if StrLen(strExtension) and InStr("exe.com.bat", strExtension)
 			strFavoriteType := "Application" ; application
 		else
-			strFavoriteType := (LocationIsDocument(strThisMenuItem) ? "Document" : "Folder")
+			strFavoriteType := (LocationIsDocument(EnvVars(strThisMenuItem)) ? "Document" : "Folder")
 	}
 	
-	g_objThisFavorite := Object()
+	g_objThisFavorite := Object() ; temporary favorite object
 	g_objThisFavorite.FavoriteName := strThisMenuItem
 	g_objThisFavorite.FavoriteLocation := strThisMenuItem
 	g_objThisFavorite.FavoriteType := strFavoriteType
 }
 ; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
+
+OpenFavoriteGetFavoriteCleanup:
+strThisMenuItem := ""
+strFavoriteType := ""
+intMenuItemPos := ""
+blnLocationFound := ""
+strThisHotkeyLocation := ""
+strMenuPath := ""
+objMenu := ""
+
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteGetFullLocation:
+;------------------------------------------------------------
+
+g_strFullLocation := g_objThisFavorite.FavoriteLocation
+
+if (g_objThisFavorite.FavoriteLocation = "FTP")
+{
+	; ftp://username:password@ftp.domain.ext/public_ftp/incoming/
+	StringReplace, g_strFullLocation, g_strFullLocation, ftp://, % "ftp://" . g_objThisFavorite.FavoriteFTPLoginName
+		. (StrLen(g_objThisFavorite.FavoriteFTPPassword) ? . ":" . g_objThisFavorite.FavoriteFTPPassword : "") . "@"
+		
+	gosub, OpenFavoriteGetFullLocationCleanup
+	return
+}
+
+g_strFullLocation := EnvVars(g_strFullLocation)
+
+if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
+	; make the location absolute based on the current working directory
+	g_strFullLocation := PathCombine(A_WorkingDir, g_strFullLocation) ; expand the relative path, based on the current working directory
+
+if (g_objThisFavorite.FavoriteType = "Special")
+	g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_objThisFavorite, strTargetName)
+
+if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; should be empty for Application favorites
+	g_strFullLocation := g_objThisFavorite.FavoriteLaunchWith . " " . g_strFullLocation
+
+if StrLen(g_objThisFavorite.FavoriteArguments)
+{
+	; {LOC} (full location), {NAME} (file name), {DIR} (directory), {EXT} (extension), {NOEXT} (file name without extension) or {DRIVE} (drive)
+	SplitPath, g_strFullLocation, strOutFileName, strOutDir, strOutExtension, strOutNameNoExt, strOutDrive
+	
+	strArguments := g_objThisFavorite.FavoriteArguments
+	StringReplace, strArguments, strArguments, {LOC}, %g_strFullLocation%, All
+	StringReplace, strArguments, strArguments, {NAME}, %strOutFileName%, All
+	StringReplace, strArguments, strArguments, {DIR}, %strOutDir%, All
+	StringReplace, strArguments, strArguments, {EXT}, %strOutExtension%, All
+	StringReplace, strArguments, strArguments, {NOEXT}, %strOutNameNoExt%, All
+	StringReplace, strArguments, strArguments, {DRIVE}, %strOutDrive%, All
+	
+	g_strFullLocation .= " """ . strArguments . """" ; double-quotes required around AppArguments
+}
+
+OpenFavoriteGetFullLocationCleanup:
+objThisSpecialFolder := ""
+strArguments := ""
+strOutFileName := ""
+strOutDir := ""
+strOutExtension := ""
+strOutNameNoExt := ""
+strOutDrive := ""
 
 return
 ;------------------------------------------------------------
@@ -6594,7 +6711,7 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, objFavorite, strTargetName)
 {
 	global g_objSpecialFolders
 
-	strLocation := objFavorite.FavoriteLocation
+	strLocation := objFavorite.FavoriteLocation ; make sure FavoriteLocation was not expanded by EnvVars
 	objSpecialFolder := g_objSpecialFolders[strLocation]
 	
 	if (strTargetName = "Explorer")
@@ -6612,7 +6729,7 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, objFavorite, strTargetName)
 	else
 		strUse := objSpecialFolder.Use4NewExplorer
 
-	###_O("Location: " . strLocation . "`nTarget: " . strTargetName . "`nUse: " . strUse, objSpecialFolder)
+	; ###_O("Location: " . strLocation . "`nTarget: " . strTargetName . "`nUse: " . strUse, objSpecialFolder)
 	if (strUse = "CLS")
 		if (SubStr(strLocation, 1, 1) = "{")
 			if (strTargetName = "Console")
@@ -6683,7 +6800,7 @@ OpenFavoriteNavigateExplorer:
 ; http://msdn.microsoft.com/en-us/library/aa752094
 ;------------------------------------------------------------
 
-if !Regexmatch(strFullLocation, "#.*\\") ; prevent the hash bug in Shell.Application - when a hash in path is followed by a backslash like in "c:\abc#xyz\abc")
+if !Regexmatch(g_strFullLocation, "#.*\\") ; prevent the hash bug in Shell.Application - when a hash in path is followed by a backslash like in "c:\abc#xyz\abc")
 {
 	intCountMatch := 0
 	For pExplorer in ComObjCreate("Shell.Application").Windows
@@ -6691,35 +6808,36 @@ if !Regexmatch(strFullLocation, "#.*\\") ; prevent the hash bug in Shell.Applica
 		if (pExplorer.hwnd = g_strTargetWinId)
 		{
 			intCountMatch++
-			if IsInteger(strFullLocation) ; ShellSpecialFolderConstant
+			if IsInteger(g_strFullLocation) ; ShellSpecialFolderConstant
 			{
-				try pExplorer.Navigate2(strFullLocation)
+				try pExplorer.Navigate2(g_strFullLocation)
 				catch, objErr
-					Oops(lNavigateSpecialError, strFullLocation)
+					Oops(lNavigateSpecialError, g_strFullLocation)
 			}
 			else
 			{
-				try pExplorer.Navigate(strFullLocation)
+				try pExplorer.Navigate(g_strFullLocation)
 				catch, objErr
 					; Note: If an error occurs in Navigate, the error message is given by Navigate itself and this script does not
 					; receive an error notification. From my experience, the following line would never be executed.
-					Oops(lNavigateFileError, strFullLocation)
+					Oops(lNavigateFileError, g_strFullLocation)
 			}
 		}
 	}
 	if !(intCountMatch) ; open a new window
 	; for Explorer add-ons like Clover (verified - it now opens the folder in a new tab), others?
 	; also when g_strTargetWinId is DOpus window and DOpus is not used
-		if IsInteger(strFullLocation) ; ShellSpecialFolderConstant
-			ComObjCreate("Shell.Application").Explore(strFullLocation)
+		if IsInteger(g_strFullLocation) ; ShellSpecialFolderConstant
+			ComObjCreate("Shell.Application").Explore(g_strFullLocation)
 		else
-			Run, Explorer "%strFullLocation%"
+			SendInput, {F4}{Esc}{Raw}%g_strFullLocation%`n
+			; if I receive bug reports from Clover users, insert delays or fall back to; Run, Explorer "%g_strFullLocation%"
 }
 else
 	; Workaround for the hash (aka Sharp / "#") bug in Shell.Application - occurs only when navigating in the current Explorer window
 	; see http://stackoverflow.com/questions/22868546/navigate-shell-command-not-working-when-the-path-includes-an-hash
 	; and http://ahkscript.org/boards/viewtopic.php?f=5&t=526&p=25287#p25274
-	SendInput, {F4}{Esc}{Raw}%strFullLocation%`n
+	SendInput, {F4}{Esc}{Raw}%g_strFullLocation%`n
 
 intCountMatch := ""
 pExplorer := ""
@@ -6734,6 +6852,25 @@ return
 ;========================================================================================================================
 
 
+
+;========================================================================================================================
+!_075_NEW_WINDOW:
+;========================================================================================================================
+
+;------------------------------------------------------------
+OpenFavoriteInNewWindowDesktop:
+OpenFavoriteInNewWindowExplorer:
+;------------------------------------------------------------
+
+Run, % "Explorer """ . g_objThisFavorite . """" ; there was a bug prior to v3.3.1 because the lack of double-quotes
+
+return
+;------------------------------------------------------------
+
+
+;========================================================================================================================
+; END OF NEW WINDOW
+;========================================================================================================================
 
 
 ;========================================================================================================================
@@ -8011,6 +8148,19 @@ IsInteger(str)
 		return true
 	else
 		return false
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+PathCombine(strAbsolutePath, strRelativePath)
+; see http://www.autohotkey.com/board/topic/17922-func-relativepath-absolutepath/page-3#entry117355
+; and http://stackoverflow.com/questions/29783202/combine-absolute-path-with-a-relative-path-with-ahk/
+;------------------------------------------------------------
+{
+    VarSetCapacity(strCombined, (A_IsUnicode ? 2 : 1) * 260, 1) ; MAX_PATH
+    DllCall("Shlwapi.dll\PathCombine", "UInt", &strCombined, "UInt", &strAbsolutePath, "UInt", &strRelativePath)
+    Return, strCombined
 }
 ;------------------------------------------------------------
 
