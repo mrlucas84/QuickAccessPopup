@@ -16,7 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- when new fav with existing name, cancel, edit a fav, it is save at toip instead of staying where it was
+- when changing the numeric shortcut option, rebuild clipboard menu
 
 TO-DO
 - validate that ftp fav loc starts with "ftp://"
@@ -2060,7 +2060,7 @@ for ObjItem in ComObjGet("winmgmts:")
 */
 
 Loop, %strRecentsFolder%\*.* ; tried to limit to number of recent but they are not sorted chronologically
-	strDirList .= A_LoopFileTimeModified . "`t`" . A_LoopFileFullPath . "`n"
+	strDirList .= A_LoopFileTimeModified . "`t" . A_LoopFileFullPath . "`n"
 
 Sort, strDirList, R
 
@@ -4795,6 +4795,7 @@ strThisLocation := ""
 strNewFavoriteWindowPosition := ""
 strMenuPath := ""
 objMenu := ""
+g_intNewItemPos := "" ; in case we abort save and retry
 
 return
 ;------------------------------------------------------------
@@ -6214,7 +6215,7 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
 
 	Loop, Parse, strExclusionClassList, |
-		if StrLen(A_Loopfield) and InStr(g_strTargetClass, A_Loopfield)
+		if StrLen(A_Loopfield) and InStr(g_strTargetClass, A_LoopField)
 			return false
 	; if not excluded
 	return true
@@ -6370,36 +6371,6 @@ WindowIsQuickAccessPopup(strClass)
 ;------------------------------------------------------------
 
 
-;------------------------------------------------------------
-GetTargetName(strClass, strWinId)
-;------------------------------------------------------------
-{
-	; ###_V("GetTargetName", strClass, strWinId)
-	if WindowIsExplorer(strClass)
-		return "Explorer"
-	if WindowIsDesktop(strClass)
-		return "Desktop"
-	if WindowIsTray(strClass)
-		return "Tray"
-	if WindowIsConsole(strClass)
-		return "Console"
-	if WindowIsDialog(strClass, strWinId)
-		return "Dialog"
-	if WindowIsTreeview(strWinId)
-		return "Treeview"
-	if WindowIsDirectoryOpus(strClass)
-		return "DirectoryOpus"
-	if WindowIsTotalCommander(strClass)
-		return "TotalCommander"
-	if WindowIsFPconnect(strWinId)
-		return "FPconnect"
-	if WindowIsQuickAccessPopup(strClass)
-		return "QuickAccessPopup"
-
-	return "Unknown"
-}
-
-
 ;========================================================================================================================
 ; END OF CLASS
 ;========================================================================================================================
@@ -6421,9 +6392,9 @@ OpenClipboard:
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
-gosub, OpenFavoriteGetFavorite ; define g_objThisFavorite and g_strFullLocation
+gosub, OpenFavoriteGetFavoriteObject ; define g_objThisFavorite and g_strFullLocation
 
-if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavorite was aborted
+if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
 {
 	gosub, OpenFavoriteCleanup
 	return
@@ -6449,7 +6420,7 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 	return
 }
 
-blnShiftPressed := GetKeyState("Shift") ; ### use thid approach?
+blnShiftPressed := GetKeyState("Shift") ; ### use thid approach? if yes, do not take into account if keyboard shortcut
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
 ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`nstrTargetName: " . strTargetName, g_objThisFavorite)
@@ -6518,7 +6489,7 @@ if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navi
 
 ; --- Navigate Special Folder ---
 
-if (g_objThisFavorite.FavoriteType = "Special") and (strTargetName <> "Desktop")
+if (g_objThisFavorite.FavoriteType = "Special")
 	and (g_strHokeyTypeDetected = "Navigate") ; could have been changed from "navigate" to "Launch" by GetSpecialFolderLocation
 {
 	###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
@@ -6535,7 +6506,17 @@ if (g_objThisFavorite.FavoriteType = "Special") and (strTargetName <> "Desktop")
 if !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
 	or (g_strHokeyTypeDetected = "Launch") or WindowIsDesktop(g_strTargetClass)
 {
-	###_O("OpenFavorite New Window in: " . strTargetName, g_objThisFavorite)
+	if InStr("Dialog|Unknown", strTargetName)
+		if (g_blnUseDirectoryOpus)
+			strTargetName := "DirectoryOpus"
+		else if (g_blnUseTotalCommander)
+			strTargetName := "TotalCommander"
+		else if (g_blnUseFPconnect)
+			strTargetName := "FPconnect"
+		else
+			strTargetName := "Explorer"
+	
+	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . strTargetName, g_objThisFavorite)
 	gosub, OpenFavoriteInNewWindow%strTargetName%
 
 	; ### todo: resize, etc.
@@ -6549,15 +6530,49 @@ return
 
 
 ;------------------------------------------------------------
-OpenFavoriteGetFavorite:
+GetTargetName(strClass, strWinId)
+;------------------------------------------------------------
+{
+	; ###_V("GetTargetName", strClass, strWinId)
+	if WindowIsExplorer(strClass)
+		return "Explorer"
+	if WindowIsDesktop(strClass)
+		return "Desktop"
+	if WindowIsTray(strClass)
+		return "Tray"
+	if WindowIsConsole(strClass)
+		return "Console"
+	if WindowIsDialog(strClass, strWinId)
+		return "Dialog"
+	if WindowIsTreeview(strWinId)
+		return "Treeview"
+	if WindowIsDirectoryOpus(strClass)
+		return "DirectoryOpus"
+	if WindowIsTotalCommander(strClass)
+		return "TotalCommander"
+	if WindowIsFPconnect(strWinId)
+		return "FPconnect"
+	if WindowIsQuickAccessPopup(strClass)
+		return "QuickAccessPopup"
+
+	return "Unknown"
+}
+
+
+;------------------------------------------------------------
+OpenFavoriteGetFavoriteObject:
 ;------------------------------------------------------------
 
 if (g_blnDisplayMenuShortcuts)
 	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
-else if (g_strOpenFavoriteLabel = "OpenFavoriteGroup")
-	strThisMenuItem :=  SubStr(A_ThisMenuItem, 1, InStr(A_ThisMenuItem, g_strGroupIndicatorPrefix) - 2)
 else
 	strThisMenuItem :=  A_ThisMenuItem
+
+if (g_strOpenFavoriteLabel = "OpenFavoriteGroup")
+{
+	strThisMenuItem :=  SubStr(A_ThisMenuItem, 1, InStr(A_ThisMenuItem, g_strGroupIndicatorPrefix) - 2) ; remove indicator with nb of group members
+	strThisMenuItem .=  " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix ; add empty indicators to retrieve fav name in objects
+}
 
 if InStr("OpenFavorite|OpenFavoriteGroup", g_strOpenFavoriteLabel)
 {
@@ -6586,7 +6601,7 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 	{
 		Oops(lOopsHotkeyNotInMenus, strThisHotkeyLocation, A_ThisHotkey)
 		
-		gosub, OpenFavoriteGetFavoriteCleanup
+		gosub, OpenFavoriteGetFavoriteObjectCleanup
 		return
 	}
 	if CanNavigate(A_ThisHotkey)
@@ -6595,7 +6610,7 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 		g_strHokeyTypeDetected := "Launch"
 	else
 	{
-		gosub, OpenFavoriteGetFavoriteCleanup
+		gosub, OpenFavoriteGetFavoriteObjectCleanup
 		return ; active window is on exclusion list
 	}
 }
@@ -6615,7 +6630,7 @@ else if (g_strOpenFavoriteLabel = "OpenCurrentFolder")
 	g_objThisFavorite.FavoriteLocation := strThisMenuItem
 	g_objThisFavorite.FavoriteType := strFavoriteType
 }
-else
+else ; OpenRecentFolder or OpenClipboard
 {
 	if InStr(strThisMenuItem, "http://") = 1 or InStr(strThisMenuItem, "https://") = 1 or InStr(strThisMenuItem, "www.") = 1
 		strFavoriteType := "URL"
@@ -6633,9 +6648,8 @@ else
 	g_objThisFavorite.FavoriteLocation := strThisMenuItem
 	g_objThisFavorite.FavoriteType := strFavoriteType
 }
-; g_blnNewWindow not used. OK? g_blnNewWindow := (g_strHokeyTypeDetected <> "Navigate")
 
-OpenFavoriteGetFavoriteCleanup:
+OpenFavoriteGetFavoriteObjectCleanup:
 strThisMenuItem := ""
 strFavoriteType := ""
 intMenuItemPos := ""
@@ -6672,7 +6686,7 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not fo
 	g_strFullLocation := PathCombine(A_WorkingDir, g_strFullLocation) ; expand the relative path, based on the current working directory
 
 if (g_objThisFavorite.FavoriteType = "Special")
-	g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_objThisFavorite, strTargetName)
+	g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, strTargetName, g_objThisFavorite)
 
 if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; should be empty for Application favorites
 	g_strFullLocation := g_objThisFavorite.FavoriteLaunchWith . " " . g_strFullLocation
@@ -6707,7 +6721,8 @@ return
 
 
 ;------------------------------------------------------------
-GetSpecialFolderLocation(ByRef strHokeyTypeDetected, objFavorite, strTargetName)
+GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFavorite)
+;------------------------------------------------------------
 {
 	global g_objSpecialFolders
 
@@ -6716,20 +6731,34 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, objFavorite, strTargetName)
 	
 	if (strTargetName = "Explorer")
 		strUse := objSpecialFolder.Use4NavigateExplorer
-	else if (strTargetname = "Dialog")
+	else if (strTargetName = "Dialog")
 		strUse := objSpecialFolder.Use4Dialog
-	else if (strTargetname = "Console")
+	else if (strTargetName = "Console")
 		strUse := objSpecialFolder.Use4Console
-	else if (strTargetname = "DirectoryOpus")
+	else if (strTargetName = "DirectoryOpus")
 		strUse := objSpecialFolder.Use4DOpus
-	else if (strTargetname = "TotalCommander")
+	else if (strTargetName = "TotalCommander")
 		strUse := objSpecialFolder.Use4TC
-	else if (strTargetname = "FPconnect")
+	else if (strTargetName = "FPconnect")
 		strUse := objSpecialFolder.Use4FPc
 	else
 		strUse := objSpecialFolder.Use4NewExplorer
 
-	; ###_O("Location: " . strLocation . "`nTarget: " . strTargetName . "`nUse: " . strUse, objSpecialFolder)
+	if (strUse = "NEW")
+	{
+		strUse := objSpecialFolder.Use4NewExplorer
+		strHokeyTypeDetected := "Launch"
+		if (g_blnUseDirectoryOpus)
+			strTargetName := "DirectoryOpus"
+		else if (g_blnUseTotalCommander)
+			strTargetName := "TotalCommander"
+		else if (g_blnUseFPconnect)
+			strTargetName := "FPconnect"
+		else
+			strTargetName := "Explorer"
+	}
+	
+	###_O("Location: " . strLocation . "`nTarget: " . strTargetName . "`nUse: " . strUse, objSpecialFolder)
 	if (strUse = "CLS")
 		if (SubStr(strLocation, 1, 1) = "{")
 			if (strTargetName = "Console")
@@ -6755,7 +6784,7 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, objFavorite, strTargetName)
 	{
 		Oops(lOopsCouldNotOpenSpecialFolder, strTargetName, strLocation)
 		strHokeyTypeDetected := "Launch"
-		return strLocation
+		strLocation := "shell:" . objSpecialFolder.ShellConstantText
 	}
 	
 	return strLocation
@@ -6847,6 +6876,144 @@ return
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+OpenFavoriteNavigateDirectoryOpus:
+;------------------------------------------------------------
+
+if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
+	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
+
+RunDOpusRt("/aCmd Go", g_strFullLocation) ; navigate the current lister
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteNavigateDialog:
+;------------------------------------------------------------
+
+if ControlIsVisible("ahk_id " . g_strTargetWinId, "Edit1")
+	strEditControl := "Edit1"
+	; in standard dialog windows, "Edit1" control is the right choice
+Else if ControlIsVisible("ahk_id " . g_strTargetWinId, "Edit2")
+	strEditControl := "Edit2"
+	; but sometimes in MS office, if condition above fails, "Edit2" control is the right choice 
+Else ; if above fails - just return and do nothing.
+{
+	gosub, OpenFavoriteNavigateDialogCleanUp
+	return
+}
+
+;===In this part (if we reached it), we'll send strLocation to control and restore control's initial text after navigating to specified folder===
+
+ControlGetText, strPrevControlText, %strEditControl%, ahk_id %g_strTargetWinId% ; we'll get and store control's initial text first
+
+if !ControlSetTextR(strEditControl, g_strFullLocation, "ahk_id " . g_strTargetWinId) ; set control's text to strLocation
+{
+	gosub, OpenFavoriteNavigateDialogCleanUp
+	return ; abort if control is not set
+}
+if !ControlSetFocusR(strEditControl, "ahk_id " . g_strTargetWinId) ; focus control
+{
+	gosub, OpenFavoriteNavigateDialogCleanUp
+	return
+}
+if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
+	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
+
+;=== Avoid accidental hotkey & hotstring triggereing while doing SendInput - can be done simply by #UseHook, but do it if user doesn't have #UseHook in the script ===
+
+If (A_IsSuspended)
+	blnWasSuspended := True
+if (!blnWasSuspended)
+	Suspend, On
+SendInput, {End}{Space}{Backspace}{Enter} ; silly but necessary part - go to end of control, send dummy space, delete it, and then send enter
+if (!blnWasSuspended)
+	Suspend, Off
+
+Sleep, 100 ; give some time to control after sending {Enter} to it
+ControlGetText, strControlTextAfterNavigation, %strEditControl%, ahk_id %g_strTargetWinId% ; sometimes controls automatically restore their initial text
+if (strControlTextAfterNavigation <> strPrevControlText)
+	ControlSetTextR(strEditControl, strPrevControlText, "ahk_id " . g_strTargetWinId) ; we'll set control's text to its initial text
+
+if (WinExist("A") <> g_strTargetWinId) ; sometimes initialy active window loses focus, so we'll activate it again
+	WinActivate, ahk_id %g_strTargetWinId%
+
+OpenFavoriteNavigateDialogCleanUp:
+; ###_V(A_ThisLabel, g_strTargetWinId, strEditControl, strPrevControlText, strControlTextAfterNavigation)
+strEditControl := ""
+strPrevControlText := ""
+blnWasSuspended := ""
+strControlTextAfterNavigation := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ControlIsVisible(strWinTitle, strControlClass)
+/*
+Adapted from ControlIsVisible(WinTitle,ControlClass) by Learning One
+http://ahkscript.org/boards/viewtopic.php?f=5&t=526&start=20#p4673
+*/
+;------------------------------------------------------------
+{
+	; used in Navigator
+	ControlGet, blnIsControlVisible, Visible, , %strControlClass%, %strWinTitle%
+
+	return blnIsControlVisible
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ControlSetTextR(strControl, strNewText := "", strWinTitle := "", intTries := 3)
+/*
+Adapted from from RMApp_ControlSetTextR(Control, NewText="", WinTitle="", Tries=3) by Learning One
+http://ahkscript.org/boards/viewtopic.php?f=5&t=526&start=20#p4673
+*/
+;------------------------------------------------------------
+{
+	; used in Navigator. More reliable ControlSetText
+	Loop, %intTries%
+	{
+		ControlSetText, %strControl%, %strNewText%, %strWinTitle% ; set
+		Sleep, % (100 * A_Index) ; JL added "* A_Index"
+		ControlGetText, strCurControlText, %strControl%, %strWinTitle% ; check
+		if (strCurControlText = strNewText) ; if OK
+			return True
+	}
+
+	return false
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ControlSetFocusR(strControl, strWinTitle := "", intTries := 3)
+/*
+Adapted from RMApp_ControlSetFocusR(Control, WinTitle="", Tries=3) by Learning One
+http://ahkscript.org/boards/viewtopic.php?f=5&t=526&start=20#p4673
+*/
+;------------------------------------------------------------
+{
+	; used in Navigator. More reliable ControlSetFocus
+	Loop, %intTries%
+	{
+		ControlFocus, %strControl%, %strWinTitle% ; focus control
+		Sleep, % (100 * A_Index) ; JL added "* A_Index"
+		ControlGetFocus, strFocusedControl, %strWinTitle% ; check
+		if (strFocusedControl = strControl) ; if OK
+			return True
+	}
+
+	return false
+}
+;------------------------------------------------------------
+
+
+
 ;========================================================================================================================
 ; END OF NAVIGATE
 ;========================================================================================================================
@@ -6862,7 +7029,18 @@ OpenFavoriteInNewWindowDesktop:
 OpenFavoriteInNewWindowExplorer:
 ;------------------------------------------------------------
 
-Run, % "Explorer """ . g_objThisFavorite . """" ; there was a bug prior to v3.3.1 because the lack of double-quotes
+Run, % "Explorer """ . g_strFullLocation . """" ; there was a bug prior to v3.3.1 because the lack of double-quotes
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteInNewWindowDirectoryOpus:
+;------------------------------------------------------------
+
+RunDOpusRt("/acmd Go ", g_strFullLocation, " " . g_strDirectoryOpusNewTabOrWindow) ; open in a new lister or tab
+WinActivate, ahk_class dopus.lister
 
 return
 ;------------------------------------------------------------
