@@ -19,6 +19,7 @@ BUGS
 - when changing the numeric shortcut option, rebuild clipboard menu
 
 TO-DO
+- test launch for all targets
 - validate that ftp fav loc starts with "ftp://"
 - add this folder detect if we have a special folder
 
@@ -40,6 +41,9 @@ LANGUAGE
 
 QAP FEATURES MENUS
 * Does not support Folders in Explorer and Group menus for TC and FPc users
+
+FPCONNECT
+- note that FPconnect should not bi used with DOpus or TC: source of conflicts
 
 
 Version 6.0.2 alpha (2015-05-??)
@@ -598,6 +602,10 @@ InitSpecialFolders:
 ; NOTES
 ; - Total Commander commands: cm_OpenDesktop (2121), cm_OpenDrives (2122), cm_OpenControls (2123), cm_OpenFonts (2124), cm_OpenNetwork (2125), cm_OpenPrinters (2126), cm_OpenRecycled (2127)
 ; - DOpus see http://resource.dopus.com/viewtopic.php?f=3&t=23691
+;
+; InitSpecialFolderObject(strClassIdOrPath, strShellConstantText, intShellConstantNumeric, strAHKConstant, strDOpusAlias, strTCCommand
+;	, strDefaultName, strDefaultIcon
+;	, strUse4NavigateExplorer, strUse4NewExplorer, strUse4Dialog, strUse4Console, strUse4DOpus, strUse4TC, strUse4FPc)
 
 ;---------------------
 ; CLSID giving localized name and icon, with valid Shell Command
@@ -633,7 +641,7 @@ InitSpecialFolderObject("{031E4825-7B94-4dc3-B131-E946B44C8DD5}", "Libraries", -
 InitSpecialFolderObject("{7007ACC7-3202-11D1-AAD2-00805FC1270E}", "ConnectionsFolder", -1, "", "", ""
 	, "Network Connections", "" ; Connexions réseau
 	, "SCT", "SCT", "NEW", "NEW", "NEW", "CLS", "NEW")
-	; OK     OK      OK     OK     OK      OK
+	; OK     OK      OK     OK     OK    No-OK
 InitSpecialFolderObject("{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}", "NetworkPlacesFolder", 18, "", "network", 2125
 	, "Network", "" ; Réseau
 	, "SCT", "SCT", "SCT", "NEW", "DOA", "TCC", "NEW")
@@ -6410,7 +6418,10 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for th
 		return
 	}
 
-strTargetName := GetTargetName(g_strTargetClass, g_strTargetWinId)
+g_strTargetName := GetTargetName(g_strTargetClass, g_strTargetWinId)
+
+if (g_strTargetName = "Desktop")
+	g_strHokeyTypeDetected := "Launch"
 
 gosub, OpenFavoriteGetFullLocation ; define g_objThisFavorite and g_strFullLocation
 
@@ -6423,7 +6434,7 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 blnShiftPressed := GetKeyState("Shift") ; ### use thid approach? if yes, do not take into account if keyboard shortcut
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`nstrTargetName: " . strTargetName, g_objThisFavorite)
+###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetName: " . g_strTargetName, g_objThisFavorite)
 
 ; === ACTIONS ===
 
@@ -6475,11 +6486,11 @@ if (g_strOpenFavoriteLabel = "OpenFavorite") and (g_objThisFavorite.FavoriteType
 ; --- Navigate Folder ---
 
 
-if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate") and (strTargetName <> "Desktop")
+if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
 {
 	; Run, % g_objThisFavorite.FavoriteLocation ; 
-	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
-	gosub, OpenFavoriteNavigate%strTargetName%
+	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . g_strTargetName, g_objThisFavorite)
+	gosub, OpenFavoriteNavigate%g_strTargetName%
 	
 	; ### todo: resize, etc.
 	
@@ -6489,11 +6500,10 @@ if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navi
 
 ; --- Navigate Special Folder ---
 
-if (g_objThisFavorite.FavoriteType = "Special")
-	and (g_strHokeyTypeDetected = "Navigate") ; could have been changed from "navigate" to "Launch" by GetSpecialFolderLocation
+if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "Navigate")
 {
-	###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . strTargetName, g_objThisFavorite)
-	gosub, OpenFavoriteNavigate%strTargetName%
+	###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . g_strTargetName, g_objThisFavorite)
+	gosub, OpenFavoriteNavigate%g_strTargetName%
 	
 	; ### todo: resize, etc.
 
@@ -6504,20 +6514,20 @@ if (g_objThisFavorite.FavoriteType = "Special")
 ; --- New window ---
 
 if !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
-	or (g_strHokeyTypeDetected = "Launch") or WindowIsDesktop(g_strTargetClass)
+	or (g_strHokeyTypeDetected = "Launch")
 {
-	if InStr("Dialog|Unknown", strTargetName)
+	if InStr("Dialog|Unknown", g_strTargetName)
 		if (g_blnUseDirectoryOpus)
-			strTargetName := "DirectoryOpus"
+			g_strTargetName := "DirectoryOpus"
 		else if (g_blnUseTotalCommander)
-			strTargetName := "TotalCommander"
+			g_strTargetName := "TotalCommander"
 		else if (g_blnUseFPconnect)
-			strTargetName := "FPconnect"
+			g_strTargetName := "FPconnect"
 		else
-			strTargetName := "Explorer"
+			g_strTargetName := "Explorer"
 	
-	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . strTargetName, g_objThisFavorite)
-	gosub, OpenFavoriteInNewWindow%strTargetName%
+	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetName, g_objThisFavorite)
+	gosub, OpenFavoriteInNewWindow%g_strTargetName%
 
 	; ### todo: resize, etc.
 }
@@ -6686,7 +6696,7 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not fo
 	g_strFullLocation := PathCombine(A_WorkingDir, g_strFullLocation) ; expand the relative path, based on the current working directory
 
 if (g_objThisFavorite.FavoriteType = "Special")
-	g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, strTargetName, g_objThisFavorite)
+	g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_strTargetName, g_objThisFavorite) ; can change values of g_strHokeyTypeDetected and g_strTargetName
 
 if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; should be empty for Application favorites
 	g_strFullLocation := g_objThisFavorite.FavoriteLaunchWith . " " . g_strFullLocation
@@ -6708,7 +6718,6 @@ if StrLen(g_objThisFavorite.FavoriteArguments)
 }
 
 OpenFavoriteGetFullLocationCleanup:
-objThisSpecialFolder := ""
 strArguments := ""
 strOutFileName := ""
 strOutDir := ""
@@ -6725,6 +6734,9 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 ;------------------------------------------------------------
 {
 	global g_objSpecialFolders
+	global g_blnUseDirectoryOpus
+	global g_blnUseTotalCommander
+	global g_blnUseFPconnect
 
 	strLocation := objFavorite.FavoriteLocation ; make sure FavoriteLocation was not expanded by EnvVars
 	objSpecialFolder := g_objSpecialFolders[strLocation]
@@ -6744,7 +6756,7 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 	else
 		strUse := objSpecialFolder.Use4NewExplorer
 
-	if (strUse = "NEW")
+	if (strUse = "NEW") ; re-assign values as if it was a new window request
 	{
 		strUse := objSpecialFolder.Use4NewExplorer
 		strHokeyTypeDetected := "Launch"
@@ -6758,17 +6770,15 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 			strTargetName := "Explorer"
 	}
 	
-	###_O("Location: " . strLocation . "`nTarget: " . strTargetName . "`nUse: " . strUse, objSpecialFolder)
 	if (strUse = "CLS")
+	{
 		if (SubStr(strLocation, 1, 1) = "{")
-			if (strTargetName = "Console")
-				strSpecialFolderLocation := strLocation
-			else if (strTargetName = "TotalCommander")
+			if (strTargetName = "TotalCommander")
 				strSpecialFolderLocation := "::" . strLocation
 			else
 				strSpecialFolderLocation := "shell:::" . strLocation
-		else
-			strSpecialFolderLocation := strLocation
+		; else keep strLocation as is
+	}
 	else if (strUse = "AHK")
 	{
 		strAHKConstant := objSpecialFolder.AHKConstant ; for example "A_Desktop"
@@ -6778,14 +6788,14 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 		strLocation := "/" . objSpecialFolder.DOpusAlias
 	else if (strUse = "SCT")
 		strLocation := "shell:" . objSpecialFolder.ShellConstantText
-	else if (strUse = "TTC")
-		strLocation := objThisSpecialFolder.TCCommand
+	else if (strUse = "TCC")
+		strLocation := objSpecialFolder.TCCommand
 	else
 	{
 		Oops(lOopsCouldNotOpenSpecialFolder, strTargetName, strLocation)
-		strHokeyTypeDetected := "Launch"
-		strLocation := "shell:" . objSpecialFolder.ShellConstantText
+		strLocation := ""
 	}
+	###_O("GetSpecialFolderLocation`n`nstrLocation: " . strLocation . "`nstrTargetName: " . strTargetName . "`nstrUse: " . strUse, objSpecialFolder)
 	
 	return strLocation
 }
@@ -6884,6 +6894,64 @@ if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped ou
 	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
 
 RunDOpusRt("/aCmd Go", g_strFullLocation) ; navigate the current lister
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteNavigateTotalCommander:
+;------------------------------------------------------------
+
+###_V("OpenFavoriteNavigateTotalCommander", g_strTotalCommanderPath, g_strFullLocation)
+
+if g_strFullLocation is integer
+{
+	SendMessage, 0x433, %g_strFullLocation%, , , ahk_class TTOTAL_CMD
+	Sleep, 100 ; wait to improve SendMessage reliability
+	WinActivate, ahk_class TTOTAL_CMD
+}
+else
+{
+	if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
+	{
+		WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
+		Sleep, 200
+	}
+	Run, %g_strTotalCommanderPath% /O /S "/L=%g_strFullLocation%" ; /O existing file list, /S source-dest /L=source (active pane) - change folder in the active pane/tab
+}
+
+return
+;------------------------------------------------------------
+
+;------------------------------------------------------------
+OpenFavoriteNavigateFPconnect:
+;------------------------------------------------------------
+
+###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
+
+if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
+{
+	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
+	Sleep, 200
+}
+Run, %g_strFPconnectPath% %g_strFullLocation%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteNavigateConsole:
+;------------------------------------------------------------
+
+###_V("OpenFavoriteNavigateConsole", g_strTargetWinId, g_strFullLocation)
+
+if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
+	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
+SendInput, {Raw}CD /D %g_strFullLocation%
+Sleep, 200
+SendInput, {Enter}
 
 return
 ;------------------------------------------------------------
@@ -7041,6 +7109,45 @@ OpenFavoriteInNewWindowDirectoryOpus:
 
 RunDOpusRt("/acmd Go ", g_strFullLocation, " " . g_strDirectoryOpusNewTabOrWindow) ; open in a new lister or tab
 WinActivate, ahk_class dopus.lister
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteInNewWindowTotalCommander:
+;------------------------------------------------------------
+
+###_V("OpenFavoriteInNewWindowTotalCommander", g_strTotalCommanderPath, g_strTotalCommanderNewTabOrWindow)
+
+if !WinExist("ahk_class TTOTAL_CMD") ; open a first instance
+	or InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; open a new instance
+{
+	Run, %g_strTotalCommanderPath%
+	WinWait, A, , 10
+	Sleep, 200 ; wait additional time to improve SendMessage reliability in OpenFavoriteNavigateTotalCommander
+}
+if !InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; open the folder in a new tab
+{
+	intTCCommandOpenNewTab := 3001 ; cm_OpenNewTab
+	Sleep, 100 ; wait to improve SendMessage reliability
+	SendMessage, 0x433, %intTCCommandOpenNewTab%, , , ahk_class TTOTAL_CMD
+}
+Sleep, 100 ; wait to improve SendMessage reliability in OpenFavoriteNavigateTotalCommander
+
+gosub, OpenFavoriteNavigateTotalCommander
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteInNewWindowFPconnect:
+;------------------------------------------------------------
+
+###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
+
+Run, %g_strFPconnectPath% %g_strFullLocation% /new
 
 return
 ;------------------------------------------------------------
