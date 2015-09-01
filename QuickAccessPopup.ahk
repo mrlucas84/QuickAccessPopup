@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- when changing the numeric shortcut option, rebuild clipboard menu
 
 TO-DO
 - test launch for all targets
@@ -1229,7 +1228,7 @@ IniRead, g_intPopupMenuPosition, %g_strIniFile%, Global, PopupMenuPosition, 1
 IniRead, strPopupFixPosition, %g_strIniFile%, Global, PopupFixPosition, 20,20
 IniRead, g_intHotkeyReminders, %g_strIniFile%, Global, HotkeyReminders, 3
 StringSplit, g_arrPopupFixPosition, strPopupFixPosition, `,
-IniRead, g_blnDisplayMenuShortcuts, %g_strIniFile%, Global, DisplayMenuShortcuts, 0
+IniRead, g_blnDisplayNumericShortcuts, %g_strIniFile%, Global, DisplayMenuShortcuts, 0
 IniRead, g_blnDiagMode, %g_strIniFile%, Global, DiagMode, 0
 IniRead, g_intRecentFoldersMax, %g_strIniFile%, Global, RecentFoldersMax, 10
 IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 32
@@ -1882,7 +1881,7 @@ g_objCurrentFoldersLocationUrlByName := Object()
 if (intExplorersIndex)
 	for intIndex, objCurrentFolder in objCurrentFoldersList
 	{
-		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
 		g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
 		AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
 	}
@@ -2094,7 +2093,7 @@ Loop, parse, strDirList, `n
 	g_intRecentFoldersIndex++
 	g_objRecentFolders.Insert(g_intRecentFoldersIndex, strTargetPath)
 	
-	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strTargetPath
+	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strTargetPath
 	AddMenuIcon("g_menuRecentFolders", strMenuName, "OpenRecentFolder", "iconFolder")
 
 	if (g_intRecentFoldersIndex >= g_intRecentFoldersMax)
@@ -2145,11 +2144,7 @@ Menu, g_menuClipboard, DeleteAll
 if (g_blnUseColors)
 	Menu, g_menuClipboard, Color, %g_strMenuBackgroundColor%
 
-blnClipboardMenuHasContent := 0
-
 Gosub, RefreshClipboardMenu
-
-blnClipboardMenuHasContent := ""
 
 return
 ;------------------------------------------------------------
@@ -2159,7 +2154,8 @@ return
 RefreshClipboardMenu:
 ;------------------------------------------------------------
 
-blnPreviousClipboardMenuDeleted := 0
+blnPreviousClipboardMenuDeleted := false
+blnClipboardMenuHasContent := false
 intShortcutClipboardMenu := 0
 strURLsInClipboard := ""
 
@@ -2175,11 +2171,11 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 		{
 			Menu, g_menuClipboard, Add
 			Menu, g_menuClipboard, DeleteAll
-			blnPreviousClipboardMenuDeleted := 1
+			blnPreviousClipboardMenuDeleted := true
 		}
-		blnClipboardMenuHasContent := 1
+		blnClipboardMenuHasContent := true
 
-		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . strClipboardLine
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . strClipboardLine
 		if (g_blnDisplayIcons)
 			if LocationIsDocument(strClipboardLineExpanded)
 			{
@@ -2208,11 +2204,11 @@ Loop, parse, strURLsInClipboard, `n
 	{
 		Menu, g_menuClipboard, Add
 		Menu, g_menuClipboard, DeleteAll
-		blnPreviousClipboardMenuDeleted := 1
+		blnPreviousClipboardMenuDeleted := true
 	}
-	blnClipboardMenuHasContent := 1
+	blnClipboardMenuHasContent := true
 
-	strMenuName := (g_blnDisplayMenuShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . A_LoopField
+	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . A_LoopField
 	if StrLen(strMenuName) < 260 ; skip too long URLs
 	{
 		Menu, g_menuClipboard, Add, %strMenuName%, OpenClipboard
@@ -2352,7 +2348,7 @@ return
 RecursiveBuildOneMenu(objCurrentMenu)
 ;------------------------------------------------------------
 {
-	global g_blnDisplayMenuShortcuts
+	global g_blnDisplayNumericShortcuts
 	global g_blnDisplayIcons
 	global g_intIconSize
 	global g_strMenuBackgroundColor
@@ -2379,7 +2375,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	{	
 		intMenuItemsCount++ ; for objMenuColumnBreak
 		
-		strMenuName := (g_blnDisplayMenuShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "Group")
 			strMenuName .= " " . g_strGroupIndicatorPrefix . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . g_strGroupIndicatorSuffix
@@ -2433,6 +2429,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		else ; this is a favorite (Folder, Document, Application, Special, URL, FTP, QAP or Group)
 		{
 			if (objCurrentMenu[A_Index].FavoriteType = "QAP") and Strlen(g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName)
+				; menu should never be empty (if no item, it contains a "no item" menu)
 				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, % ":" . g_objQAPFeatures[objCurrentMenu[A_Index].FavoriteLocation].QAPFeatureMenuName
 			else if (objCurrentMenu[A_Index].FavoriteType = "Group")
 				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavoriteGroup
@@ -2666,15 +2663,15 @@ Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders1 Group " . (g_intHotkeyR
 Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders2 " . (g_intHotkeyReminders = 2 ? "Checked" : ""), %lOptionsHotkeyRemindersShort%
 Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders3 " . (g_intHotkeyReminders = 3 ? "Checked" : ""), %lOptionsHotkeyRemindersFull%
 
-Gui, 2:Add, CheckBox, y+15 xs w220 vf_blnDisplayMenuShortcuts, %lOptionsDisplayMenuShortcuts%
-GuiControl, , f_blnDisplayMenuShortcuts, %g_blnDisplayMenuShortcuts%
+Gui, 2:Add, CheckBox, y+15 xs w220 vf_blnDisplayNumericShortcuts, %lOptionsDisplayMenuShortcuts%
+GuiControl, , f_blnDisplayNumericShortcuts, %g_blnDisplayNumericShortcuts%
 
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
 GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
 
 if !OSVersionIsWorkstation()
 {
-	g_blnDisplayIcons := 0
+	g_blnDisplayIcons := false
 	GuiControl, Disable, f_blnDisplayIcons
 }
 Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayIcons gDisplayIconsClicked, %lOptionsDisplayIcons%
@@ -2929,8 +2926,10 @@ g_blnDisplayIcons := f_blnDisplayIcons
 IniWrite, %g_blnDisplayIcons%, %g_strIniFile%, Global, DisplayIcons
 g_intRecentFoldersMax := f_intRecentFoldersMax
 IniWrite, %g_intRecentFoldersMax%, %g_strIniFile%, Global, RecentFoldersMax
-g_blnDisplayMenuShortcuts := f_blnDisplayMenuShortcuts
-IniWrite, %g_blnDisplayMenuShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
+if (g_blnDisplayNumericShortcuts <> f_blnDisplayNumericShortcuts)
+	gosub, RefreshClipboardMenu ; previous menu becomes unusable when adding/removing shortcuts
+g_blnDisplayNumericShortcuts := f_blnDisplayNumericShortcuts
+IniWrite, %g_blnDisplayNumericShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
 g_blnCheck4Update := f_blnCheck4Update
 IniWrite, %g_blnCheck4Update%, %g_strIniFile%, Global, Check4Update
 g_blnOpenMenuOnTaskbar := f_blnOpenMenuOnTaskbar
@@ -6264,7 +6263,7 @@ WindowIsDesktop(strClass)
 		or (strClass = "Shell_TrayWnd" and (g_blnOpenMenuOnTaskbar or blnClickOnTrayIcon))
 		or (strClass = "NotifyIconOverflowWindow")
 
-	blnClickOnTrayIcon := 0
+	blnClickOnTrayIcon := false
 	; blnClickOnTrayIcon was turned on by AHK_NOTIFYICON
 	; turn it off to avoid further clicks on taskbar to be accepted if g_blnOpenMenuOnTaskbar is off
 
@@ -6573,7 +6572,7 @@ GetTargetName(strClass, strWinId)
 OpenFavoriteGetFavoriteObject:
 ;------------------------------------------------------------
 
-if (g_blnDisplayMenuShortcuts)
+if (g_blnDisplayNumericShortcuts)
 	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
 else
 	strThisMenuItem :=  A_ThisMenuItem
@@ -7640,7 +7639,7 @@ if FileExist(g_strCheckDirectoryOpusPath)
 	}
 	g_blnUseDirectoryOpus := (g_strDirectoryOpusPath <> "NO")
 	IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
-	g_blnDirectoryOpusUseTabs := 1
+	g_blnDirectoryOpusUseTabs := true
 	IniWrite, %g_blnDirectoryOpusUseTabs%, %g_strIniFile%, Global, DirectoryOpusUseTabs
 	; g_strDirectoryOpusNewTabOrWindow will contain "NEWTAB" to open in a new tab if DirectoryOpusUseTabs is 1 (default) or "NEW" to open in a new lister
 	g_strDirectoryOpusNewTabOrWindow := "NEWTAB"
@@ -7689,7 +7688,7 @@ if FileExist(strCheckTotalCommanderPath)
 	}
 	g_blnUseTotalCommander := (g_strTotalCommanderPath <> "NO")
 	IniWrite, %g_strTotalCommanderPath%, %g_strIniFile%, Global, TotalCommanderPath
-	g_blnTotalCommanderUseTabs := 1
+	g_blnTotalCommanderUseTabs := true
 	IniWrite, %g_blnTotalCommanderUseTabs%, %g_strIniFile%, Global, TotalCommanderUseTabs
 	; g_strTotalCommanderNewTabOrWindow will contain "/O /T" to open in a new tab if TotalCommanderUseTabs is 1 (default) or "/N" to open in a new file list
 	g_strTotalCommanderNewTabOrWindow := "/O /T"
@@ -8373,7 +8372,7 @@ AHK_NOTIFYICON(wParam, lParam)
 	
 	if (lParam = 0x202) ; WM_LBUTTONUP
 	{
-		blnClickOnTrayIcon := 1
+		blnClickOnTrayIcon := true
 		; SetTimer, LaunchHotkeyMouse, -1
 		SetTimer, LaunchFromTrayIcon, -1
 		return 0
