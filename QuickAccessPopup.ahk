@@ -42,7 +42,7 @@ QAP FEATURES MENUS
 * Does not support Folders in Explorer and Group menus for TC and FPc users
 
 FPCONNECT
-- note that FPconnect should not bi used with DOpus or TC: source of conflicts
+- note that FPconnect should not be used with DOpus or TC: source of conflicts
 
 
 Version 6.0.2 alpha (2015-05-??)
@@ -1351,7 +1351,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		
 		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
 		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteArguments, 6 FavoriteAppWorkingDir,
-		; 7 FavoriteWindowPosition, (X FavoriteHotkey), 8 FavoriteLaunchWith, 9 FavoriteFTPLoginName, 10 FavoriteFTPPassword, 11 FavoriteGroupSettings
+		; 7 FavoriteWindowPosition, (X FavoriteHotkey), 8 FavoriteLaunchWith, 9 FavoriteLoginName, 10 FavoritePassword, 11 FavoriteGroupSettings
 		StringSplit, arrThisFavorite, strLoadIniLine, |
 
 		if (arrThisFavorite1 = "Z")
@@ -6678,12 +6678,15 @@ OpenFavoriteGetFullLocation:
 
 g_strFullLocation := g_objThisFavorite.FavoriteLocation
 
-if (g_objThisFavorite.FavoriteLocation = "FTP")
+if (g_objThisFavorite.FavoriteType = "FTP")
 {
 	; ftp://username:password@ftp.domain.ext/public_ftp/incoming/
-	StringReplace, g_strFullLocation, g_strFullLocation, ftp://, % "ftp://" . g_objThisFavorite.FavoriteFTPLoginName
-		. (StrLen(g_objThisFavorite.FavoriteFTPPassword) ? . ":" . g_objThisFavorite.FavoriteFTPPassword : "") . "@"
-		
+	; must encode password with UriENcode, aslo encode username just in case...
+	; this may require more tweaking, read http://blogs.msdn.com/b/ie/archive/2006/12/06/file-uris-in-windows.aspx
+	StringReplace, g_strFullLocation, g_strFullLocation, % "ftp://"
+		, % "ftp://" . UriEncode(g_objThisFavorite.FavoriteLoginName) . (StrLen(g_objThisFavorite.FavoritePassword) ? ":" . UriEncode(g_objThisFavorite.FavoritePassword) : "") . "@"
+	; ###_V("URI", g_strFullLocation, UriEncode(g_strFullLocation))
+	
 	gosub, OpenFavoriteGetFullLocationCleanup
 	return
 }
@@ -8445,6 +8448,47 @@ PathCombine(strAbsolutePath, strRelativePath)
     VarSetCapacity(strCombined, (A_IsUnicode ? 2 : 1) * 260, 1) ; MAX_PATH
     DllCall("Shlwapi.dll\PathCombine", "UInt", &strCombined, "UInt", &strAbsolutePath, "UInt", &strRelativePath)
     Return, strCombined
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+UriEncode(str)
+; from GoogleTranslate by Mikhail Kuropyatnikov
+; http://www.autohotkey.net/~sumon/GoogleTranslate.ahk
+;------------------------------------------------------------
+{ 
+   b_Format := A_FormatInteger 
+   data := "" 
+   SetFormat,Integer,H 
+   SizeInBytes := StrPutVar(str,var,"utf-8")
+   Loop, %SizeInBytes%
+   {
+   ch := NumGet(var,A_Index-1,"UChar")
+   If (ch=0)
+      Break
+   if ((ch>0x7f) || (ch<0x30) || (ch=0x3d))
+      s .= "%" . ((StrLen(c:=SubStr(ch,3))<2) ? "0" . c : c)
+   Else
+      s .= Chr(ch)
+   }   
+   SetFormat,Integer,%b_format% 
+   return s 
+} 
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+StrPutVar(string, ByRef var, encoding)
+;------------------------------------------------------------
+{
+    ; Ensure capacity.
+    SizeInBytes := VarSetCapacity( var, StrPut(string, encoding)
+        ; StrPut returns char count, but VarSetCapacity needs bytes.
+        * ((encoding="utf-16"||encoding="cp1200") ? 2 : 1) )
+    ; Copy or convert the string.
+    StrPut(string, &var, encoding)
+   Return SizeInBytes 
 }
 ;------------------------------------------------------------
 
