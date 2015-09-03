@@ -3972,8 +3972,13 @@ if InStr("Folder|Document|Application|Special|URL|FTP|Group", g_objEditedFavorit
 	if (g_objEditedFavorite.FavoriteType <> "Group")
 	{
 		Gui, 2:Add, Text, y+20 x20 w300 vf_AdvancedSettingsLabel7, %lDialogArgumentsLabel%
-		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments, % g_objEditedFavorite.FavoriteArguments
-		Gui, 2:Add, Text, x20 y+5 w300 vf_AdvancedSettingsLabel8, %lDialogArgumentsPlaceholder%
+		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments gFavoriteArgumentChanged, % g_objEditedFavorite.FavoriteArguments
+		Gui, 2:Add, Text, x20 y+5 w400 vf_AdvancedSettingsLabel8, %lDialogArgumentsPlaceholders%
+		
+		Gui, 2:Add, Text, x20 y+10 w400 vf_PlaceholdersCheckLabel, %lDialogArgumentsPlaceholdersCheckLabel%
+		Gui, 2:Add, Edit, x20 y+5 w400 vf_strPlaceholdersCheck ReadOnly
+		
+		gosub, FavoriteArgumentChanged
 	}
 
 	Gosub, CheckboxUseDefaultSettingsClicked ; init controls hidden
@@ -4166,6 +4171,20 @@ if InStr("Document|Application", g_objEditedFavorite.FavoriteType)
 
 if !StrLen(f_strFavoriteShortName)
 	GuiControl, 2:, f_strFavoriteShortName, % GetDeepestFolderName(f_strFavoriteLocation)
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+FavoriteArgumentChanged:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+GuiControl, % (InStr(f_strFavoriteArguments, "{") ? "Show" : "Hide"), f_PlaceholdersCheckLabel
+GuiControl, % (InStr(f_strFavoriteArguments, "{") ? "Show" : "Hide"), f_strPlaceholdersCheck
+
+GuiControl, 2:, f_strPlaceholdersCheck, % ExpandPlaceholders(f_strFavoriteArguments, f_strFavoriteLocation)
 
 return
 ;------------------------------------------------------------
@@ -4803,6 +4822,32 @@ strNewFavoriteWindowPosition := ""
 strMenuPath := ""
 objMenu := ""
 g_intNewItemPos := "" ; in case we abort save and retry
+
+; make sure all gui variables are flushed before next fav add or edit
+f_blnRadioGroupAdd := ""
+f_blnRadioGroupReplace := ""
+f_blnUseDefaultSettings := ""
+f_chkRememberWindowPosition := ""
+f_drpParentMenu := ""
+f_drpParentMenuItems := ""
+f_drpQAP := ""
+f_drpRunningApplication := ""
+f_drpSpecial := ""
+f_intGroupExplorerDelay := ""
+f_intGroupRestoreDelay := ""
+f_intWindowPositionH := ""
+f_intWindowPositionW := ""
+f_intWindowPositionX := ""
+f_intWindowPositionY := ""
+f_picIcon := ""
+f_strFavoriteAppWorkingDir := ""
+f_strFavoriteArguments := ""
+f_strFavoriteLaunchWith := ""
+f_strFavoriteLocation := ""
+f_strFavoriteLoginName := ""
+f_strFavoritePassword := ""
+f_strFavoriteShortName := ""
+f_strHotkeyText := ""
 
 return
 ;------------------------------------------------------------
@@ -6681,11 +6726,9 @@ g_strFullLocation := g_objThisFavorite.FavoriteLocation
 if (g_objThisFavorite.FavoriteType = "FTP")
 {
 	; ftp://username:password@ftp.domain.ext/public_ftp/incoming/
-	; must encode password with UriENcode, aslo encode username just in case...
-	; this may require more tweaking, read http://blogs.msdn.com/b/ie/archive/2006/12/06/file-uris-in-windows.aspx
+	; must encode username and password with UriEncode
 	StringReplace, g_strFullLocation, g_strFullLocation, % "ftp://"
 		, % "ftp://" . UriEncode(g_objThisFavorite.FavoriteLoginName) . (StrLen(g_objThisFavorite.FavoritePassword) ? ":" . UriEncode(g_objThisFavorite.FavoritePassword) : "") . "@"
-	; ###_V("URI", g_strFullLocation, UriEncode(g_strFullLocation))
 	
 	gosub, OpenFavoriteGetFullLocationCleanup
 	return
@@ -6704,20 +6747,7 @@ if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; should be empty for Applicatio
 	g_strFullLocation := g_objThisFavorite.FavoriteLaunchWith . " " . g_strFullLocation
 
 if StrLen(g_objThisFavorite.FavoriteArguments)
-{
-	; {LOC} (full location), {NAME} (file name), {DIR} (directory), {EXT} (extension), {NOEXT} (file name without extension) or {DRIVE} (drive)
-	SplitPath, g_strFullLocation, strOutFileName, strOutDir, strOutExtension, strOutNameNoExt, strOutDrive
-	
-	strArguments := g_objThisFavorite.FavoriteArguments
-	StringReplace, strArguments, strArguments, {LOC}, %g_strFullLocation%, All
-	StringReplace, strArguments, strArguments, {NAME}, %strOutFileName%, All
-	StringReplace, strArguments, strArguments, {DIR}, %strOutDir%, All
-	StringReplace, strArguments, strArguments, {EXT}, %strOutExtension%, All
-	StringReplace, strArguments, strArguments, {NOEXT}, %strOutNameNoExt%, All
-	StringReplace, strArguments, strArguments, {DRIVE}, %strOutDrive%, All
-	
-	g_strFullLocation .= " """ . strArguments . """" ; double-quotes required around AppArguments
-}
+	g_strFullLocation .= " " . ExpandPlaceholders(g_objThisFavorite.FavoriteArguments, g_strFullLocation) ; let user enter double-quotes as required by his arguments
 
 OpenFavoriteGetFullLocationCleanup:
 strArguments := ""
@@ -8456,6 +8486,7 @@ PathCombine(strAbsolutePath, strRelativePath)
 UriEncode(str)
 ; from GoogleTranslate by Mikhail Kuropyatnikov
 ; http://www.autohotkey.net/~sumon/GoogleTranslate.ahk
+; edited to encode also "@" see http://stackoverflow.com/questions/32341476/valid-url-for-an-ftp-site-with-username-containing/
 ;------------------------------------------------------------
 { 
    b_Format := A_FormatInteger 
@@ -8467,7 +8498,7 @@ UriEncode(str)
    ch := NumGet(var,A_Index-1,"UChar")
    If (ch=0)
       Break
-   if ((ch>0x7f) || (ch<0x30) || (ch=0x3d))
+   if ((ch>0x7f) || (ch<0x30) || (ch=0x3d) || (ch=0x40))
       s .= "%" . ((StrLen(c:=SubStr(ch,3))<2) ? "0" . c : c)
    Else
       s .= Chr(ch)
@@ -8489,6 +8520,26 @@ StrPutVar(string, ByRef var, encoding)
     ; Copy or convert the string.
     StrPut(string, &var, encoding)
    Return SizeInBytes 
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ExpandPlaceholders(strArguments, strLocation)
+; {LOC} (full location), {NAME} (file name), {DIR} (directory), {EXT} (extension), {NOEXT} (file name without extension) or {DRIVE} (drive)
+;------------------------------------------------------------
+{
+	SplitPath, strLocation, strOutFileName, strOutDir, strOutExtension, strOutNameNoExt, strOutDrive
+	
+	strExpanded := strArguments
+	StringReplace, strExpanded, strExpanded, {LOC}, %strLocation%, All
+	StringReplace, strExpanded, strExpanded, {NAME}, %strOutFileName%, All
+	StringReplace, strExpanded, strExpanded, {DIR}, %strOutDir%, All
+	StringReplace, strExpanded, strExpanded, {EXT}, %strOutExtension%, All
+	StringReplace, strExpanded, strExpanded, {NOEXT}, %strOutNameNoExt%, All
+	StringReplace, strExpanded, strExpanded, {DRIVE}, %strOutDrive%, All
+	
+	return strExpanded
 }
 ;------------------------------------------------------------
 
