@@ -2336,6 +2336,10 @@ if !(g_blnDonor)
 	AddMenuIcon(lMainMenuName, lDonateMenu . "...", "GuiDonate", "iconDonate")
 }
 
+Menu, g_menuPower, Add
+Menu, g_menuPower, DeleteAll
+Menu, g_menuPower, Add, %lMenuPowerNewWindow%, OpenPowerMenu
+
 if (A_ThisLabel = "BuildMainMenuWithStatus")
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
 		, %lTrayTipWorkingDetailFinished%, , 1
@@ -6096,6 +6100,7 @@ NavigateHotkeyKeyboard:
 LaunchHotkeyMouse:
 LaunchHotkeyKeyboard:
 LaunchFromTrayIcon:
+LaunchFromPowerMenu:
 PopupMenuCopyLocation:
 ;------------------------------------------------------------
 
@@ -6107,12 +6112,16 @@ if !(g_blnMenuReady)
 Gosub, SetMenuPosition ; sets menu position (was seting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed - OK? ###)
 ; WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; already set by CanNavigate. OK?
 
-if (A_ThisLabel = "LaunchFromTrayIcon")
+g_blnPowerMenu := (A_ThisLabel = "LaunchFromPowerMenu") ; ### validate at the end if this bln is required
+if !(g_blnPowerMenu)
+	g_strPowerMenu := "" ; delete from previous call to Power key, else keep what was set in OpenPowerMenu
+
+if InStr("LaunchFromPowerMenu|LaunchFromTrayIcon", A_ThisLabel)
 {
 	g_strTargetWinId := WinExist("A")
 	g_strTargetControl := ""
 	WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-	g_strHokeyTypeDetected := "Launch"
+	g_strHokeyTypeDetected :=  (A_ThisLabel = "LaunchFromPowerMenu" ? "Power" : "Launch")
 }
 else
 	g_strHokeyTypeDetected := (A_ThisLabel = "PopupMenuCopyLocation" ? "CopyLocation" : SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1)) ; "Navigate" or "Launch"
@@ -6153,13 +6162,9 @@ PowerHotkeyKeyboard:
 
 ; ###_D(A_ThisLabel)
 
+g_blnPowerMenu := true
 g_strHokeyTypeDetected := "Power"
-
-StringReplace, strNewLabel, A_ThisLabel, Power, Launch
-
-Gosub, %strNewLabel%
-
-strNewLabel := ""
+Menu, g_menuPower, Show
 
 return
 ;------------------------------------------------------------
@@ -6434,6 +6439,21 @@ WindowIsQuickAccessPopup(strClass)
 ;========================================================================================================================
 
 ;------------------------------------------------------------
+OpenPowerMenu:
+; remember the power menu item to execute and open the popup menu to choose on what favorite execute this action
+;------------------------------------------------------------
+
+###_V(A_ThisLabel, A_ThisMenuItem)
+
+g_strPowerMenu := A_ThisMenuItem
+; Menu, %lMainMenuName%, Show
+gosub, LaunchFromPowerMenu
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 OpenFavorite:
 OpenFavoriteGroup:
 OpenFavoriteFromHotkey:
@@ -6441,6 +6461,8 @@ OpenRecentFolder:
 OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
+
+###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
@@ -6465,6 +6487,7 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for th
 g_strTargetName := GetTargetName(g_strTargetClass, g_strTargetWinId)
 
 if (g_strTargetName = "Desktop")
+	or (g_strPowerMenu = lMenuPowerNewWindow)
 	g_strHokeyTypeDetected := "Launch"
 
 gosub, OpenFavoriteGetFullLocation ; define g_objThisFavorite and g_strFullLocation
@@ -6560,15 +6583,8 @@ if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "N
 if !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
 	or (g_strHokeyTypeDetected = "Launch")
 {
-	if InStr("Dialog|Unknown", g_strTargetName)
-		if (g_blnUseDirectoryOpus)
-			g_strTargetName := "DirectoryOpus"
-		else if (g_blnUseTotalCommander)
-			g_strTargetName := "TotalCommander"
-		else if (g_blnUseFPconnect)
-			g_strTargetName := "FPconnect"
-		else
-			g_strTargetName := "Explorer"
+	if InStr("Desktop|Dialog|Console|Unknown", g_strTargetName) ; these targets cannot open in a new window
+		g_strTargetName := GetTargetNameForNewWindow()
 	
 	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetName, g_objThisFavorite)
 	gosub, OpenFavoriteInNewWindow%g_strTargetName%
@@ -6773,6 +6789,9 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 	strLocation := objFavorite.FavoriteLocation ; make sure FavoriteLocation was not expanded by EnvVars
 	objSpecialFolder := g_objSpecialFolders[strLocation]
 	
+	if InStr("Desktop|Unknown", strTargetName) ; these targets must use the current file manager
+		strTargetName := GetTargetNameForNewWindow()
+
 	if (strTargetName = "Explorer")
 		strUse := objSpecialFolder.Use4NavigateExplorer
 	else if (strTargetName = "Dialog")
@@ -6830,6 +6849,24 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 	###_O("GetSpecialFolderLocation`n`nstrLocation: " . strLocation . "`nstrTargetName: " . strTargetName . "`nstrUse: " . strUse, objSpecialFolder)
 	
 	return strLocation
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetTargetNameForNewWindow()
+;------------------------------------------------------------
+{
+	global
+	
+	if (g_blnUseDirectoryOpus)
+		return "DirectoryOpus"
+	else if (g_blnUseTotalCommander)
+		return "TotalCommander"
+	else if (g_blnUseFPconnect)
+		return "FPconnect"
+	else
+		return "Explorer"
 }
 ;------------------------------------------------------------
 
@@ -6935,7 +6972,7 @@ return
 OpenFavoriteNavigateTotalCommander:
 ;------------------------------------------------------------
 
-###_V("OpenFavoriteNavigateTotalCommander", g_strTotalCommanderPath, g_strFullLocation)
+###_V(A_ThisLabel, g_strTotalCommanderPath, g_strFullLocation)
 
 if g_strFullLocation is integer
 {
@@ -6955,6 +6992,7 @@ else
 
 return
 ;------------------------------------------------------------
+
 
 ;------------------------------------------------------------
 OpenFavoriteNavigateFPconnect:
@@ -7125,7 +7163,6 @@ http://ahkscript.org/boards/viewtopic.php?f=5&t=526&start=20#p4673
 ;========================================================================================================================
 
 ;------------------------------------------------------------
-OpenFavoriteInNewWindowDesktop:
 OpenFavoriteInNewWindowExplorer:
 ;------------------------------------------------------------
 
@@ -7152,22 +7189,31 @@ OpenFavoriteInNewWindowTotalCommander:
 
 ###_V("OpenFavoriteInNewWindowTotalCommander", g_strTotalCommanderPath, g_strTotalCommanderNewTabOrWindow)
 
-if !WinExist("ahk_class TTOTAL_CMD") ; open a first instance
-	or InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; open a new instance
+if g_strFullLocation is integer
 {
-	Run, %g_strTotalCommanderPath%
-	WinWait, A, , 10
-	Sleep, 200 ; wait additional time to improve SendMessage reliability in OpenFavoriteNavigateTotalCommander
+	if !WinExist("ahk_class TTOTAL_CMD") ; open a first instance
+		or InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; or open a new instance
+	{
+		Run, %g_strTotalCommanderPath%
+		WinWait, A, , 10
+		Sleep, 200 ; wait additional time to improve SendMessage reliability in OpenFavoriteNavigateTotalCommander
+	}
+	if !InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; open the folder in a new tab
+	{
+		intTCCommandOpenNewTab := 3001 ; cm_OpenNewTab
+		Sleep, 100 ; wait to improve SendMessage reliability
+		SendMessage, 0x433, %intTCCommandOpenNewTab%, , , ahk_class TTOTAL_CMD
+	}
+	Sleep, 100 ; wait to improve SendMessage reliability in OpenFavoriteNavigateTotalCommander
+	gosub, OpenFavoriteNavigateTotalCommander
+	; Since g_strFullLocation is integer, OpenFavoriteNavigateTotalCommander is doing:
+	; SendMessage, 0x433, %intTCCommand%, , , ahk_class TTOTAL_CMD
+	; Sleep, 100 ; wait to improve SendMessage reliability
+	; WinActivate, ahk_class TTOTAL_CMD
 }
-if !InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; open the folder in a new tab
-{
-	intTCCommandOpenNewTab := 3001 ; cm_OpenNewTab
-	Sleep, 100 ; wait to improve SendMessage reliability
-	SendMessage, 0x433, %intTCCommandOpenNewTab%, , , ahk_class TTOTAL_CMD
-}
-Sleep, 100 ; wait to improve SendMessage reliability in OpenFavoriteNavigateTotalCommander
-
-gosub, OpenFavoriteNavigateTotalCommander
+else ; normal folder
+	; g_strTotalCommanderNewTabOrWindow in ini file should contain "/O /T" to open in an new tab of the existing file list (default), or "/N" to open in a new file list
+	Run, %g_strTotalCommanderPath% %g_strTotalCommanderNewTabOrWindow% /S "/L=%g_strFullLocation%" ; /L= left pane of the new window
 
 return
 ;------------------------------------------------------------
