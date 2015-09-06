@@ -20,7 +20,9 @@ BUGS
 TO-DO
 - test launch for all targets
 - validate that ftp fav loc starts with "ftp://"
+- in FTP advanced settings, add an option to encode or not URL
 - add this folder detect if we have a special folder
+- resize after launch
 
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
@@ -6484,13 +6486,15 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for th
 		return
 	}
 
-g_strTargetName := GetTargetName(g_strTargetClass, g_strTargetWinId)
+if (g_strPowerMenu = lMenuPowerNewWindow)
+    g_strHokeyTypeDetected := "Launch"
 
-if (g_strTargetName = "Desktop")
-	or (g_strPowerMenu = lMenuPowerNewWindow)
+if (g_objThisFavorite.FavoriteType = "FTP")
 	g_strHokeyTypeDetected := "Launch"
 
-gosub, OpenFavoriteGetFullLocation ; define g_objThisFavorite and g_strFullLocation
+gosub, SetTargetName ; sets g_strTargetAppName, can change g_strHokeyTypeDetected to "Launch"
+
+gosub, OpenFavoriteGetFullLocation ; sets g_objThisFavorite and g_strFullLocation
 
 if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 {
@@ -6501,7 +6505,7 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 blnShiftPressed := GetKeyState("Shift") ; ### use thid approach? if yes, do not take into account if keyboard shortcut
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetName: " . g_strTargetName, g_objThisFavorite)
+###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 
 ; === ACTIONS ===
 
@@ -6518,10 +6522,11 @@ if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars
 }
 
 ; --- Document or Link ---
+; --- Launch with ---
 
 if InStr("Document|URL", g_objThisFavorite.FavoriteType)
+	or StrLen(g_objThisFavorite.FavoriteLaunchWith)
 {
-	; ### add advanced settings WHERE? in Init?
 	Run, %g_strFullLocation%
 
 	gosub, OpenFavoriteCleanup
@@ -6532,7 +6537,7 @@ if InStr("Document|URL", g_objThisFavorite.FavoriteType)
 
 if (g_objThisFavorite.FavoriteType = "Application")
 {
-	; ### add advanced settings WHERE? in Init?
+	###_V("Application", g_strFullLocation, g_objThisFavorite.FavoriteAppWorkingDir)
 	Run, %g_strFullLocation%, % g_objThisFavorite.FavoriteAppWorkingDir
 
 	gosub, OpenFavoriteCleanup
@@ -6556,8 +6561,8 @@ if (g_strOpenFavoriteLabel = "OpenFavorite") and (g_objThisFavorite.FavoriteType
 if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
 {
 	; Run, % g_objThisFavorite.FavoriteLocation ; 
-	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . g_strTargetName, g_objThisFavorite)
-	gosub, OpenFavoriteNavigate%g_strTargetName%
+	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
+	gosub, OpenFavoriteNavigate%g_strTargetAppName%
 	
 	; ### todo: resize, etc.
 	
@@ -6569,8 +6574,8 @@ if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navi
 
 if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "Navigate")
 {
-	###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . g_strTargetName, g_objThisFavorite)
-	gosub, OpenFavoriteNavigate%g_strTargetName%
+	###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
+	gosub, OpenFavoriteNavigate%g_strTargetAppName%
 	
 	; ### todo: resize, etc.
 
@@ -6580,14 +6585,11 @@ if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "N
 
 ; --- New window ---
 
-if !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
-	or (g_strHokeyTypeDetected = "Launch")
+if (g_strHokeyTypeDetected = "Launch")
+	or !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
 {
-	if InStr("Desktop|Dialog|Console|Unknown", g_strTargetName) ; these targets cannot open in a new window
-		g_strTargetName := GetTargetNameForNewWindow()
-	
-	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetName, g_objThisFavorite)
-	gosub, OpenFavoriteInNewWindow%g_strTargetName%
+	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetAppName, g_objThisFavorite)
+	gosub, OpenFavoriteInNewWindow%g_strTargetAppName%
 
 	; ### todo: resize, etc.
 }
@@ -6600,33 +6602,49 @@ return
 
 
 ;------------------------------------------------------------
-GetTargetName(strClass, strWinId)
+SetTargetName:
 ;------------------------------------------------------------
-{
-	; ###_V("GetTargetName", strClass, strWinId)
-	if WindowIsExplorer(strClass)
-		return "Explorer"
-	if WindowIsDesktop(strClass)
-		return "Desktop"
-	if WindowIsTray(strClass)
-		return "Tray"
-	if WindowIsConsole(strClass)
-		return "Console"
-	if WindowIsDialog(strClass, strWinId)
-		return "Dialog"
-	if WindowIsTreeview(strWinId)
-		return "Treeview"
-	if WindowIsDirectoryOpus(strClass)
-		return "DirectoryOpus"
-	if WindowIsTotalCommander(strClass)
-		return "TotalCommander"
-	if WindowIsFPconnect(strWinId)
-		return "FPconnect"
-	if WindowIsQuickAccessPopup(strClass)
-		return "QuickAccessPopup"
 
-	return "Unknown"
-}
+if WindowIsExplorer(g_strTargetClass)
+	g_strTargetAppName := "Explorer"
+else if WindowIsDesktop(g_strTargetClass)
+	g_strTargetAppName := "Desktop"
+else if WindowIsTray(g_strTargetClass)
+	g_strTargetAppName := "Tray"
+else if WindowIsConsole(g_strTargetClass)
+	g_strTargetAppName := "Console"
+else if WindowIsDialog(g_strTargetClass, g_strTargetWinId)
+	g_strTargetAppName := "Dialog"
+else if WindowIsTreeview(g_strTargetWinId)
+	g_strTargetAppName := "Treeview"
+else if WindowIsDirectoryOpus(g_strTargetClass)
+	g_strTargetAppName := "DirectoryOpus"
+else if WindowIsTotalCommander(g_strTargetClass)
+	g_strTargetAppName := "TotalCommander"
+else if WindowIsFPconnect(g_strTargetWinId)
+	g_strTargetAppName := "FPconnect"
+else if WindowIsQuickAccessPopup(g_strTargetClass)
+	g_strTargetAppName := "QuickAccessPopup"
+else
+	g_strTargetAppName := "Unknown"
+
+if (g_strTargetAppName = "Desktop")
+    g_strHokeyTypeDetected := "Launch"
+
+if (g_strHokeyTypeDetected = "Launch")
+	if InStr("Desktop|Dialog|Console|Unknown", g_strTargetAppName) ; these targets cannot launch in a new window
+		or (g_blnUseDirectoryOpus or g_blnUseTotalCommander or g_blnUseFPconnect) ; use these file managers
+		if (g_blnUseDirectoryOpus)
+			g_strTargetAppName := "DirectoryOpus"
+		else if (g_blnUseTotalCommander)
+			g_strTargetAppName := "TotalCommander"
+		else if (g_blnUseFPconnect)
+			g_strTargetAppName := "FPconnect"
+		else
+			g_strTargetAppName := "Explorer"
+
+return
+;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
@@ -6739,28 +6757,40 @@ OpenFavoriteGetFullLocation:
 
 g_strFullLocation := g_objThisFavorite.FavoriteLocation
 
+###_V(A_ThisLabel, g_strTargetAppName, g_strFullLocation)
 if (g_objThisFavorite.FavoriteType = "FTP")
 {
 	; ftp://username:password@ftp.domain.ext/public_ftp/incoming/
 	; must encode username and password with UriEncode
-	StringReplace, g_strFullLocation, g_strFullLocation, % "ftp://"
-		, % "ftp://" . UriEncode(g_objThisFavorite.FavoriteLoginName) . (StrLen(g_objThisFavorite.FavoritePassword) ? ":" . UriEncode(g_objThisFavorite.FavoritePassword) : "") . "@"
+	if (g_strTargetAppName = "TotalCommander") ; todo: or if option encode url = false
+	{
+		strLoginName := g_objThisFavorite.FavoriteLoginName
+		strPassword := g_objThisFavorite.FavoritePassword
+	}
+	else
+	{
+		strLoginName := UriEncode(g_objThisFavorite.FavoriteLoginName)
+		strPassword := UriEncode(g_objThisFavorite.FavoritePassword)
+	}
 	
-	gosub, OpenFavoriteGetFullLocationCleanup
-	return
+	StringReplace, g_strFullLocation, g_strFullLocation, % "ftp://"
+		, % "ftp://" . strLoginName . (StrLen(strPassword) ? ":" . strPassword : "") . (StrLen(strLoginName) ? "@" : "")
+}
+else
+{
+	g_strFullLocation := EnvVars(g_strFullLocation)
+
+	if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
+		; make the location absolute based on the current working directory
+		g_strFullLocation := PathCombine(A_WorkingDir, g_strFullLocation) ; expand the relative path, based on the current working directory
+
+	if (g_objThisFavorite.FavoriteType = "Special")
+		g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_strTargetAppName, g_objThisFavorite) ; can change values of g_strHokeyTypeDetected and g_strTargetAppName
+
 }
 
-g_strFullLocation := EnvVars(g_strFullLocation)
-
-if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
-	; make the location absolute based on the current working directory
-	g_strFullLocation := PathCombine(A_WorkingDir, g_strFullLocation) ; expand the relative path, based on the current working directory
-
-if (g_objThisFavorite.FavoriteType = "Special")
-	g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_strTargetName, g_objThisFavorite) ; can change values of g_strHokeyTypeDetected and g_strTargetName
-
-if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; should be empty for Application favorites
-	g_strFullLocation := g_objThisFavorite.FavoriteLaunchWith . " " . g_strFullLocation
+if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; always empty for Application favorites
+	g_strFullLocation := EnvVars(g_objThisFavorite.FavoriteLaunchWith) . " " . g_strFullLocation
 
 if StrLen(g_objThisFavorite.FavoriteArguments)
 	g_strFullLocation .= " " . ExpandPlaceholders(g_objThisFavorite.FavoriteArguments, g_strFullLocation) ; let user enter double-quotes as required by his arguments
@@ -6772,6 +6802,8 @@ strOutDir := ""
 strOutExtension := ""
 strOutNameNoExt := ""
 strOutDrive := ""
+strLoginName := ""
+strPassword := ""
 
 return
 ;------------------------------------------------------------
@@ -6789,9 +6821,6 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 	strLocation := objFavorite.FavoriteLocation ; make sure FavoriteLocation was not expanded by EnvVars
 	objSpecialFolder := g_objSpecialFolders[strLocation]
 	
-	if InStr("Desktop|Unknown", strTargetName) ; these targets must use the current file manager
-		strTargetName := GetTargetNameForNewWindow()
-
 	if (strTargetName = "Explorer")
 		strUse := objSpecialFolder.Use4NavigateExplorer
 	else if (strTargetName = "Dialog")
@@ -6849,24 +6878,6 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 	###_O("GetSpecialFolderLocation`n`nstrLocation: " . strLocation . "`nstrTargetName: " . strTargetName . "`nstrUse: " . strUse, objSpecialFolder)
 	
 	return strLocation
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GetTargetNameForNewWindow()
-;------------------------------------------------------------
-{
-	global
-	
-	if (g_blnUseDirectoryOpus)
-		return "DirectoryOpus"
-	else if (g_blnUseTotalCommander)
-		return "TotalCommander"
-	else if (g_blnUseFPconnect)
-		return "FPconnect"
-	else
-		return "Explorer"
 }
 ;------------------------------------------------------------
 
