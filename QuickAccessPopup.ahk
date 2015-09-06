@@ -18,9 +18,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- test launch for all targets
-- validate that ftp fav loc starts with "ftp://"
-- in FTP advanced settings, add an option to encode or not URL
 - add this folder detect if we have a special folder
 - resize after launch
 
@@ -1353,7 +1350,8 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		
 		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
 		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteArguments, 6 FavoriteAppWorkingDir,
-		; 7 FavoriteWindowPosition, (X FavoriteHotkey), 8 FavoriteLaunchWith, 9 FavoriteLoginName, 10 FavoritePassword, 11 FavoriteGroupSettings
+		; 7 FavoriteWindowPosition, (X FavoriteHotkey), 8 FavoriteLaunchWith, 9 FavoriteLoginName, 10 FavoritePassword,
+		; 11 FavoriteGroupSettings, 12 FavoriteFtpEncoding
 		StringSplit, arrThisFavorite, strLoadIniLine, |
 
 		if (arrThisFavorite1 = "Z")
@@ -1409,6 +1407,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite9, g_strEscapePipe, "|") ; login name for FTP favorite
 		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; password for FTP favorite
 		objLoadIniFavorite.FavoriteGroupSettings := arrThisFavorite11 ; coma separated values for group restore settings
+		objLoadIniFavorite.FavoriteFtpEncoding := arrThisFavorite12 ; encoding of FTP username and password, 0 do not encode, 1 encode
 		
 		; this is a submenu favorite, link to the submenu object
 		if InStr("Menu|Group", arrThisFavorite1)
@@ -3723,6 +3722,7 @@ if (strGuiFavoriteLabel = "GuiEditFavorite")
 
 	g_strNewFavoriteIconResource := g_objEditedFavorite.FavoriteIconResource
 	g_strNewFavoriteWindowPosition := g_objEditedFavorite.FavoriteWindowPosition
+	g_blnNewFavoriteFtpEncoding := g_objEditedFavorite.FavoriteFtpEncoding
 
 	g_strNewFavoriteHotkey := g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation]
 
@@ -3771,6 +3771,9 @@ else
 		else
 			g_objEditedFavorite.FavoriteType := "Folder"
 	}
+	
+	if (g_strAddFavoriteType = "FTP")
+		g_blnNewFavoriteFtpEncoding := true
 }
 
 Gosub, GuiFavoriteIconDefault
@@ -3987,6 +3990,12 @@ if InStr("Folder|Document|Application|Special|URL|FTP|Group", g_objEditedFavorit
 		gosub, FavoriteArgumentChanged
 	}
 
+	if (g_objEditedFavorite.FavoriteType = "FTP")
+	{
+		Gui, 2:Add, Checkbox, x20 y+5 vf_blnFavoriteFtpEncoding, %lOptionsFtpEncoding%
+		GuiControl, , f_blnFavoriteFtpEncoding, % (g_blnNewFavoriteFtpEncoding ? true : false) ; condition in case empty value would be considered as no label
+	}
+
 	Gosub, CheckboxUseDefaultSettingsClicked ; init controls hidden
 }
 
@@ -4046,12 +4055,12 @@ CheckboxUseDefaultSettingsClicked:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_AdvancedSettingsButton1|f_intGroupRestoreDelay|f_intGroupExplorerDelay|f_strFavoriteLaunchWith|f_AdvancedSettingsButton2|f_strFavoriteArguments"
+strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_AdvancedSettingsButton1|f_intGroupRestoreDelay|f_intGroupExplorerDelay|f_strFavoriteLaunchWith|f_AdvancedSettingsButton2|f_strFavoriteArguments|f_blnFavoriteFtpEncoding"
 
 Loop, Parse, strAdvancedSettingsControls, |
 	GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), %A_LoopField%
 
-Loop, 8
+Loop, 9
 	GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), f_AdvancedSettingsLabel%A_Index%
 
 strAdvancedSettingsControls := ""
@@ -4625,6 +4634,13 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 		return
 	}
 
+	if (g_objEditedFavorite.FavoriteType = "FTP" and SubStr(f_strFavoriteLocation, 1, 6) <> "ftp://")
+	{
+		Oops(lOopsFtpLocationProtocol)
+		gosub, GuiAddFavoriteSaveCleanup
+		return
+	}
+
 	if  InStr("Special|QAP", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
 	{
 		Oops(lDialogFavoriteDropdownEmpty, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""))
@@ -4743,6 +4759,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	
 	g_objEditedFavorite.FavoriteLoginName := f_strFavoriteLoginName
 	g_objEditedFavorite.FavoritePassword := f_strFavoritePassword
+	g_objEditedFavorite.FavoriteFtpEncoding := f_blnFavoriteFtpEncoding
 	
 	g_objEditedFavorite.FavoriteArguments := (f_blnUseDefaultSettings ? "" : f_strFavoriteArguments)
 	g_objEditedFavorite.FavoriteAppWorkingDir := (f_blnUseDefaultSettings ? "" : f_strFavoriteAppWorkingDir)
@@ -5224,7 +5241,7 @@ if (A_GuiEvent = "DoubleClick")
 	
 	if !StrLen(strMenuPath) ; this is a popup menu hotkey, go to Options, Menu hotkeys
 	{
-		MsgBox, 35, %g_strAppNameText%!, % L("This is a popup menu hotkey.`n`nDo you want to manage ""~1~"" in ""~2~""?", lOptionsMouseAndKeyboard, lGuiOptions) ; ### language
+		MsgBox, 35, %g_strAppNameText%!, % L(lDialogChangeHotkeyPopup, lOptionsMouseAndKeyboard, lGuiOptions)
 		IfMsgBox, Yes
 		{
 			Gosub, GuiOptions
@@ -5467,6 +5484,7 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoriteLoginName, "|", g_strEscapePipe) . "|" ; 9
 			strIniLine .= ReplaceAllInString(objCurrentMenu[A_Index].FavoritePassword, "|", g_strEscapePipe) . "|" ; 10
 			strIniLine .= objCurrentMenu[A_Index].FavoriteGroupSettings . "|" ; 11
+			strIniLine .= objCurrentMenu[A_Index].FavoriteFtpEncoding . "|" ; 12
 
 			IniWrite, %strIniLine%, %g_strIniFile%, Favorites, Favorite%g_intIniLine%
 			g_intIniLine++
@@ -6761,14 +6779,16 @@ g_strFullLocation := g_objThisFavorite.FavoriteLocation
 if (g_objThisFavorite.FavoriteType = "FTP")
 {
 	; ftp://username:password@ftp.domain.ext/public_ftp/incoming/
-	; must encode username and password with UriEncode
-	if (g_strTargetAppName = "TotalCommander") ; todo: or if option encode url = false
+	if (g_strTargetAppName = "TotalCommander")
+		or !(g_objThisFavorite.FavoriteFtpEncoding) ; do not encode
 	{
+		; must NOT encode username and password with UriEncode
 		strLoginName := g_objThisFavorite.FavoriteLoginName
 		strPassword := g_objThisFavorite.FavoritePassword
 	}
 	else
 	{
+		; must encode username and password with UriEncode
 		strLoginName := UriEncode(g_objThisFavorite.FavoriteLoginName)
 		strPassword := UriEncode(g_objThisFavorite.FavoritePassword)
 	}
