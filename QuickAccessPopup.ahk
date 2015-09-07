@@ -18,8 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- add this folder detect if we have a special folder
-- resize after launch
+- resize after launch - DOpus, TC, others (apps?)
 
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
@@ -3742,11 +3741,11 @@ else
 {
 	if (strGuiFavoriteLabel = "GuiAddThisFolder")
 	{
-		WinGetPos, intX, intX, intWidth, intHeight, ahk_id %g_strTargetWinId%
+		WinGetPos, intX, intY, intWidth, intHeight, ahk_id %g_strTargetWinId%
 		WinGet, intMinMax, MinMax, ahk_id %g_strTargetWinId% ; -1: minimized, 1: maximized, 0: neither minimized nor maximized
 		; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
 		; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
-		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intX . "," . intWidth . "," . intHeight
+		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intY . "," . intWidth . "," . intHeight
 		; ###_V("WindowPosition", intMinMax, g_strNewFavoriteWindowPosition)
 	}
 	else
@@ -6523,7 +6522,7 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 	return
 }
 
-blnShiftPressed := GetKeyState("Shift") ; ### use thid approach? if yes, do not take into account if keyboard shortcut
+blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not take into account if keyboard shortcut
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
 ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
@@ -6585,8 +6584,6 @@ if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navi
 	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
 	gosub, OpenFavoriteNavigate%g_strTargetAppName%
 	
-	; ### todo: resize, etc.
-	
 	gosub, OpenFavoriteCleanup
 	return
 }
@@ -6598,8 +6595,6 @@ if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "N
 	###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
 	gosub, OpenFavoriteNavigate%g_strTargetAppName%
 	
-	; ### todo: resize, etc.
-
 	gosub, OpenFavoriteCleanup
 	return
 }
@@ -6609,14 +6604,24 @@ if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "N
 if (g_strHokeyTypeDetected = "Launch")
 	or !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
 {
-	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetAppName, g_objThisFavorite)
+	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetAppName, g_objThisFavorite, g_objThisFavorite.FavoriteWindowPosition)
+	
+	; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
+	; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
+	strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
+	StringSplit, g_arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
+	; ###_V(strFavoriteWindowPosition, g_arrFavoriteWindowPosition1, g_arrFavoriteWindowPosition2, g_arrFavoriteWindowPosition3, g_arrFavoriteWindowPosition4, g_arrFavoriteWindowPosition5, g_arrFavoriteWindowPosition6, g_strTargetWinId)
+	
 	gosub, OpenFavoriteInNewWindow%g_strTargetAppName%
 
-	; ### todo: resize, etc.
+	if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
+		gosub, OpenFavoriteInNewWindowResize
 }
 
 OpenFavoriteCleanup:
 g_objThisFavorite := ""
+strFavoriteWindowPosition := ""
+g_arrFavoriteWindowPosition := ""
 
 return
 ;------------------------------------------------------------
@@ -7200,7 +7205,64 @@ http://ahkscript.org/boards/viewtopic.php?f=5&t=526&start=20#p4673
 OpenFavoriteInNewWindowExplorer:
 ;------------------------------------------------------------
 
+if (g_arrFavoriteWindowPosition1)
+{
+	; get new window ID
+	; when run -> pid? if not scan Explorer ids
+	gosub, SetExplorersIDs ;  refresh the list of existing Explorer windows g_strExplorerIDs
+	strExplorerIDsBefore := g_strExplorerIDs ;  save the list before launching this new Explorer
+}
+
 Run, % "Explorer """ . g_strFullLocation . """" ; there was a bug prior to v3.3.1 because the lack of double-quotes
+
+if (g_arrFavoriteWindowPosition1)
+{
+	g_strNewWindowId := ""
+	Loop
+	{
+		if (A_Index > 25)
+		{
+			Oops(lDialogGroupLoadErrorLoading, g_strFullLocation)
+			Break
+		}
+		Sleep, 200
+		gosub, SetExplorersIDs ;  refresh the list of existing Explorer windows g_strExplorerIDs
+		; ###_V("strExplorerIDsBefore", strExplorerIDsBefore, g_strExplorerIDs)
+		Loop, Parse, g_strExplorerIDs, |
+			if !InStr(strExplorerIDsBefore, A_LoopField . "|")
+			{
+				g_strNewWindowId  := "ahk_id " . A_LoopField
+				break
+			}
+		If StrLen(g_strNewWindowId )
+			Break ; we have a new window
+	}
+	; ###_V("g_strNewWindowId ", g_strNewWindowId )
+}
+
+strExplorerIDsBefore := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SetExplorersIDs:
+;------------------------------------------------------------
+g_strExplorerIDs := ""
+for objExplorer in ComObjCreate("Shell.Application").Windows
+{
+	strType := ""
+	try strType := objExplorer.Type ; Gets the type name of the contained document object. "Document HTML" for IE windows. Should be empty for file Explorer windows.
+	strWindowID := ""
+	try strWindowID := objExplorer.HWND ; Try to get the handle of the window. Some ghost Explorer in the ComObjCreate may return an empty handle
+	if !StrLen(strType) and StrLen(strWindowID) ; strType must be empty and strWindowID must not be empty
+		g_strExplorerIDs .= objExplorer.HWND . "|"
+}
+
+objExplorer := ""
+strType := ""
+strWindowID := ""
 
 return
 ;------------------------------------------------------------
@@ -7260,6 +7322,27 @@ OpenFavoriteInNewWindowFPconnect:
 ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
 
 Run, %g_strFPconnectPath% %g_strFullLocation% /new
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenFavoriteInNewWindowResize:
+;------------------------------------------------------------
+
+if (g_arrFavoriteWindowPosition2 = -1) ; Minimized
+	WinMinimize, %g_strNewWindowId%
+else if (g_arrFavoriteWindowPosition2 = 1) ; Maximized
+	WinMaximize, %g_strNewWindowId%
+else ; Normal
+{
+	WinMove, %g_strNewWindowId%,
+		, %g_arrFavoriteWindowPosition3% ; left
+		, %g_arrFavoriteWindowPosition4% ; top
+		, %g_arrFavoriteWindowPosition5% ; width
+		, %g_arrFavoriteWindowPosition6% ; height
+}
 
 return
 ;------------------------------------------------------------
