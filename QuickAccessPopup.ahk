@@ -3527,10 +3527,13 @@ if WindowIsExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass
 		
 }
 
+g_strNewLocationSpecialName := ""
 if g_objClassIdOrPathByDefaultName.HasKey(g_strNewLocation)
+{
+	; we have a known special folder (there are not yet known like "Bibliothèques\Images" or "Libraries\Pictures")
+	g_strNewLocationSpecialName := g_strNewLocation
 	g_strNewLocation := g_objClassIdOrPathByDefaultName[g_strNewLocation]
-
-###_V("g_strNewLocation", g_strNewLocation)
+}
 
 If !StrLen(g_strNewLocation)
 	or !(InStr(g_strNewLocation, ":") or InStr(g_strNewLocation, "\\") or  InStr(g_strNewLocation, "{"))
@@ -3753,14 +3756,14 @@ else
 	{
 		; g_strNewLocation is received from AddThisFolder or GuiDropFiles
 		g_objEditedFavorite.FavoriteLocation := g_strNewLocation
-		g_objEditedFavorite.FavoriteName := GetDeepestFolderName(g_strNewLocation)
+		g_objEditedFavorite.FavoriteName := (StrLen(g_strNewLocationSpecialName) ? g_strNewLocationSpecialName : GetDeepestFolderName(g_strNewLocation))
 	}
 	g_strNewFavoriteHotkey := "None" ; internal name
 
 	if (strGuiFavoriteLabel = "GuiAddFavorite")
 		g_objEditedFavorite.FavoriteType := g_strAddFavoriteType
 	else if (strGuiFavoriteLabel = "GuiAddThisFolder")
-		g_objEditedFavorite.FavoriteType := "Folder"
+		g_objEditedFavorite.FavoriteType := (StrLen(g_strNewLocationSpecialName) ? "Special" : "Folder")
 	else if (strGuiFavoriteLabel = "GuiAddFromDropFiles")
 	{
 		SplitPath, g_strNewLocation, , , strExtension
@@ -3842,7 +3845,7 @@ else ; "Special" or "QAP"
 	Gui, 2:Add, DropDownList
 		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
 		, % lDialogSelectItemToAdd . "...||" . (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : g_strQAPFeaturesList)
-	if (strGuiFavoriteLabel = "GuiEditFavorite")
+	if (strGuiFavoriteLabel = "GuiEditFavorite") or StrLen(g_strNewLocationSpecialName)
 		if (g_objEditedFavorite.FavoriteType = "Special")
 			GuiControl, ChooseString, f_drpSpecial, % g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultName
 		else ; QAP
@@ -6564,7 +6567,7 @@ if (g_objThisFavorite.FavoriteType = "Application")
 
 ; --- QAP Command ---
 
-if (g_strOpenFavoriteLabel = "OpenFavorite") and (g_objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand)
+if InStr("OpenFavorite|OpenFavoriteFromHotkey", g_strOpenFavoriteLabel) and (g_objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 {
 	###_O(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand, g_objThisFavorite)
 	Gosub, % g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand
