@@ -18,8 +18,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- resize after launch - DOpus, TC, others (apps?)
-
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
@@ -1400,8 +1398,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteIconResource := arrThisFavorite4 ; icon resource in format "iconfile,iconindex"
 		objLoadIniFavorite.FavoriteArguments := ReplaceAllInString(arrThisFavorite5, g_strEscapePipe, "|") ; application arguments
 		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
-		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height (comma delimited)
-		; objLoadIniFavorite.FavoriteHotkey := arrThisFavorite8 ; hotkey to launch this favorite
+		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height,Delay (comma delimited)
 		objLoadIniFavorite.FavoriteLaunchWith := arrThisFavorite8 ; launch favorite with this executable
 		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite9, g_strEscapePipe, "|") ; login name for FTP favorite
 		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; password for FTP favorite
@@ -3743,13 +3740,13 @@ else
 	{
 		WinGetPos, intX, intY, intWidth, intHeight, ahk_id %g_strTargetWinId%
 		WinGet, intMinMax, MinMax, ahk_id %g_strTargetWinId% ; -1: minimized, 1: maximized, 0: neither minimized nor maximized
-		; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
-		; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
-		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intY . "," . intWidth . "," . intHeight
+		; Boolean,MinMax,Left,Top,Width,Height,Delay (comma delimited)
+		; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480,200"
+		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intY . "," . intWidth . "," . intHeight . ",200"
 		; ###_V("WindowPosition", intMinMax, g_strNewFavoriteWindowPosition)
 	}
 	else
-		g_strNewFavoriteWindowPosition := ",,,,," ; to avoid having phantom values
+		g_strNewFavoriteWindowPosition := ",,,,,," ; to avoid having phantom values
 
 	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", strGuiFavoriteLabel)
 	{
@@ -3913,7 +3910,7 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
-	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
+	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay; for example: "1,0,100,50,640,480,200"
 	StringSplit, arrNewFavoriteWindowPosition, g_strNewFavoriteWindowPosition, `,
 
 	Gui, 2:Add, Checkbox, % "x20 y40 section vf_chkRememberWindowPosition gCheckboxWindowPositionClicked " . (arrNewFavoriteWindowPosition1 ? "checked" : ""), %lDialogRememberWindowPosition%
@@ -3927,6 +3924,9 @@ if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
 	Gui, 2:Add, Radio, % "y+10 x20 vf_lblWindowPositionMinMax3 gRadioButtonWindowPositionMinMaxClicked"
 		. (arrNewFavoriteWindowPosition1 ? "" : " hidden") . (arrNewFavoriteWindowPosition2 = -1 ? " checked" : ""), %lDialogMinimized%
 
+	Gui, 2:Add, Text, % "y+20 x20 vf_lblWindowPositionDelayLabel " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionDelay%
+	Gui, 2:Add, Edit, % "yp x+20 w36 center vf_lblWindowPositionDelay " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), % (arrNewFavoriteWindowPosition7 = "" ? 200 : arrNewFavoriteWindowPosition7)
+	
 	Gui, 2:Add, Text, % "ys x200 section vf_lblWindowPosition " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPosition%
 
 	Gui, 2:Add, Text, % "ys+20 xs vf_lblWindowPositionX " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionX%
@@ -4384,6 +4384,9 @@ GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositi
 GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax2
 GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax3
 
+GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelayLabel
+GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelay
+
 GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPosition
 GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionX
 GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionX
@@ -4667,7 +4670,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	strNewFavoriteWindowPosition := f_chkRememberWindowPosition
 	if (f_chkRememberWindowPosition)
 		strNewFavoriteWindowPosition .= "," . (f_lblWindowPositionMinMax1 ? 0 : (f_lblWindowPositionMinMax2 ? 1 : -1))
-			. "," . f_intWindowPositionX . "," . f_intWindowPositionY . "," . f_intWindowPositionW . "," . f_intWindowPositionH
+			. "," . f_intWindowPositionX . "," . f_intWindowPositionY . "," . f_intWindowPositionW . "," . f_intWindowPositionH . "," . f_lblWindowPositionDelay
 	if !ValidateWindowPosition(strNewFavoriteWindowPosition)
 	{
 		Oops(lOopsInvalidWindowPosition)
@@ -4919,11 +4922,13 @@ ValidateWindowPosition(strPosition)
 		blnOK := false
 	else if arrPosition6 is not integer
 		blnOK := false
+	else if arrPosition7 is not integer
+		blnOK := false
 	else
 		blnOK := true
 
 	if (blnOK)
-		blnOK := (arrPosition3 > 0) and (arrPosition4 > 0) and (arrPosition5 > 0) and (arrPosition6 > 0)
+		blnOK := (arrPosition3 > 0) and (arrPosition4 > 0) and (arrPosition5 > 0) and (arrPosition6 > 0) and (arrPosition7 >= 0)
 	
 	return blnOK
 }
@@ -6610,10 +6615,10 @@ if (g_strHokeyTypeDetected = "Launch")
 	; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
 	strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
 	StringSplit, g_arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
-	; ###_V(strFavoriteWindowPosition, g_arrFavoriteWindowPosition1, g_arrFavoriteWindowPosition2, g_arrFavoriteWindowPosition3, g_arrFavoriteWindowPosition4, g_arrFavoriteWindowPosition5, g_arrFavoriteWindowPosition6, g_strTargetWinId)
 	
 	gosub, OpenFavoriteInNewWindow%g_strTargetAppName%
 
+	; ###_V(strFavoriteWindowPosition, g_arrFavoriteWindowPosition1, g_arrFavoriteWindowPosition2, g_arrFavoriteWindowPosition3, g_arrFavoriteWindowPosition4, g_arrFavoriteWindowPosition5, g_arrFavoriteWindowPosition6, g_strNewWindowId)
 	if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
 		gosub, OpenFavoriteInNewWindowResize
 }
@@ -7225,7 +7230,7 @@ if (g_arrFavoriteWindowPosition1)
 			Oops(lDialogGroupLoadErrorLoading, g_strFullLocation)
 			Break
 		}
-		Sleep, 200
+		Sleep, %g_arrFavoriteWindowPosition7%
 		gosub, SetExplorersIDs ;  refresh the list of existing Explorer windows g_strExplorerIDs
 		; ###_V("strExplorerIDsBefore", strExplorerIDsBefore, g_strExplorerIDs)
 		Loop, Parse, g_strExplorerIDs, |
@@ -7234,10 +7239,10 @@ if (g_arrFavoriteWindowPosition1)
 				g_strNewWindowId  := "ahk_id " . A_LoopField
 				break
 			}
-		If StrLen(g_strNewWindowId )
+		If StrLen(g_strNewWindowId)
 			Break ; we have a new window
 	}
-	; ###_V("g_strNewWindowId ", g_strNewWindowId )
+	; ###_V("g_strNewWindowId ", g_strNewWindowId)
 }
 
 strExplorerIDsBefore := ""
@@ -7273,7 +7278,9 @@ OpenFavoriteInNewWindowDirectoryOpus:
 ;------------------------------------------------------------
 
 RunDOpusRt("/acmd Go ", g_strFullLocation, " " . g_strDirectoryOpusNewTabOrWindow) ; open in a new lister or tab
+WinWait, ahk_class dopus.lister, , 10
 WinActivate, ahk_class dopus.lister
+g_strNewWindowId := "ahk_class dopus.lister"
 
 return
 ;------------------------------------------------------------
@@ -7283,7 +7290,7 @@ return
 OpenFavoriteInNewWindowTotalCommander:
 ;------------------------------------------------------------
 
-###_V("OpenFavoriteInNewWindowTotalCommander", g_strTotalCommanderPath, g_strTotalCommanderNewTabOrWindow)
+###_V(A_ThisLabel, g_strTotalCommanderPath, g_strTotalCommanderNewTabOrWindow)
 
 if g_strFullLocation is integer
 {
@@ -7291,7 +7298,7 @@ if g_strFullLocation is integer
 		or InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; or open a new instance
 	{
 		Run, %g_strTotalCommanderPath%
-		WinWait, A, , 10
+		WinWaitActive, ahk_class TTOTAL_CMD, , 10
 		Sleep, 200 ; wait additional time to improve SendMessage reliability in OpenFavoriteNavigateTotalCommander
 	}
 	if !InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; open the folder in a new tab
@@ -7308,8 +7315,12 @@ if g_strFullLocation is integer
 	; WinActivate, ahk_class TTOTAL_CMD
 }
 else ; normal folder
+{
 	; g_strTotalCommanderNewTabOrWindow in ini file should contain "/O /T" to open in an new tab of the existing file list (default), or "/N" to open in a new file list
 	Run, %g_strTotalCommanderPath% %g_strTotalCommanderNewTabOrWindow% /S "/L=%g_strFullLocation%" ; /L= left pane of the new window
+	WinWaitActive, ahk_class TTOTAL_CMD, , 10
+}
+g_strNewWindowId := "ahk_class TTOTAL_CMD"
 
 return
 ;------------------------------------------------------------
@@ -7321,7 +7332,14 @@ OpenFavoriteInNewWindowFPconnect:
 
 ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
 
-Run, %g_strFPconnectPath% %g_strFullLocation% /new
+Run, %g_strFPconnectPath% %g_strFullLocation% /new, , , intPid
+WinWaitActive, ahk_pid %intPid%
+
+; ### does not work testing FPconnect with FreeCommanderXE
+; g_strNewWindowId := "ahk_pid " . intPid
+g_strNewWindowId := ""
+
+intPid := ""
 
 return
 ;------------------------------------------------------------
@@ -7331,6 +7349,7 @@ return
 OpenFavoriteInNewWindowResize:
 ;------------------------------------------------------------
 
+Sleep, %g_arrFavoriteWindowPosition7%
 if (g_arrFavoriteWindowPosition2 = -1) ; Minimized
 	WinMinimize, %g_strNewWindowId%
 else if (g_arrFavoriteWindowPosition2 = 1) ; Maximized

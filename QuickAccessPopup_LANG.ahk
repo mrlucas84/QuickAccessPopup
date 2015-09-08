@@ -136,6 +136,7 @@ global lDialogUseDefaultSettings := "Use default advanced settings" ; new
 global lDialogWin := "Windows" ; renamed
 global lDialogWinShort := "Win" ; renamed
 global lDialogWindowPosition := "Window position:" ; new
+global lDialogWindowPositionDelay := "Delay"
 global lDialogWindowPositionH := "Height" ; new
 global lDialogWindowPositionW := "Width" ; new
 global lDialogWindowPositionX := "Left" ; new
