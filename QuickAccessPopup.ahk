@@ -16,15 +16,20 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- change hotkey dialog box text with <A> not processed
 
 TO-DO
+- support window position for documents, applications, links, FTP
+- add note "Take note that the password will NOT be encrypted when sent on Internet" after password prompt
+- implement Power key feature edit favorite
+- implement open group
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
+- make sure relative paths are supported for everything folders, files, applications, custom icons.
 
 LATER
 -----
-* decode arguments placeholders {LOC}, ect.
 
 HELP
 * Update links to QAP website in Help
@@ -35,10 +40,11 @@ HELP
 LANGUAGE
 
 QAP FEATURES MENUS
-* Does not support Folders in Explorer and Group menus for TC and FPc users
+* Does not support Current Folders in Explorer and Group menus for TC and FPc users
 
 FPCONNECT
 - note that FPconnect should not be used with DOpus or TC: source of conflicts
+- FPconnect should provide the ahk_class for the file manager (to be used fo winmove)
 
 
 Version 6.0.2 alpha (2015-05-??)
@@ -1412,7 +1418,6 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		; update the current menu object
 		objCurrentMenu.Insert(objLoadIniFavorite)
 		
-		; ###_V(A_ThisLabel, intMenuItemPos, objLoadIniFavorite.FavoriteName)
 		if !InStr("XK", objLoadIniFavorite.FavoriteType) ; menu separators and column breaks do not use a item position numeric shortcut number
 			intMenuItemPos++
 	}
@@ -1546,7 +1551,7 @@ loop, % g_arrPopupHotkeyNames%0%
 	SplitHotkey(g_arrPopupHotkeys%A_Index%, strModifiers%A_Index%, strOptionsKey%A_Index%, strMouseButton%A_Index%, strMouseButtonsWithDefault%A_Index%)
 }
 
-; First, if we can, navigate with Launch hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
+; First, if we can, navigate with QAP hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
 Hotkey, If, CanNavigate(A_ThisHotkey)
 	if (g_arrPopupHotkeysPrevious1 <> "") and (g_arrPopupHotkeysPrevious1 <> "None")
 		Hotkey, % g_arrPopupHotkeysPrevious1, , Off
@@ -1562,9 +1567,9 @@ Hotkey, If, CanNavigate(A_ThisHotkey)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
-; Second, if we can't navigate but can launch, launch with Launch hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
+; Second, if we can't navigate but can launch, launch with QAP hotkey s(1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
 Hotkey, If, CanLaunch(A_ThisHotkey)
-	if (g_arrPopupHotkeysPrevious1 <> "") and (g_arrPopupHotkeysPrevious1 <> "None") ; ### continuer pour les autres
+	if (g_arrPopupHotkeysPrevious1 <> "") and (g_arrPopupHotkeysPrevious1 <> "None")
 		Hotkey, % g_arrPopupHotkeysPrevious1, , Off
 	if (g_arrPopupHotkeys1 <> "None")
 		Hotkey, % g_arrPopupHotkeys1, LaunchHotkeyMouse, On UseErrorLevel
@@ -1578,16 +1583,16 @@ Hotkey, If, CanLaunch(A_ThisHotkey)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
-; Then, in any case, open the Power menu with the alternate hotkeys (3 PowerHotkeyMouse and 4 PowerHotkeyKeyboard)
+; Then, if QAP hotkey cannot be activated, open the Power menu with the Power hotkeys (3 PowerHotkeyMouse and 4 PowerHotkeyKeyboard)
 if (g_arrPopupHotkeysPrevious3 <> "") and (g_arrPopupHotkeysPrevious3 <> "None")
 	Hotkey, % g_arrPopupHotkeysPrevious3, , Off
-if (g_arrPopupHotkeys3 <> "None") ; do not compare with lOptionsMouseNone because it is translated
+if (g_arrPopupHotkeys3 <> "None")
 	Hotkey, % g_arrPopupHotkeys3, PowerHotkeyMouse, On UseErrorLevel
 if (ErrorLevel)
 	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys3, g_arrOptionsTitles3)
 if (g_arrPopupHotkeysPrevious4 <> "") and (g_arrPopupHotkeysPrevious4 <> "None")
 	Hotkey, % g_arrPopupHotkeysPrevious4, , Off
-if (g_arrPopupHotkeys4 <> "None") ; do not compare with lOptionsMouseNone because it is translated
+if (g_arrPopupHotkeys4 <> "None")
 	Hotkey, % g_arrPopupHotkeys4, PowerHotkeyKeyboard, On UseErrorLevel
 if (ErrorLevel)
 	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys4, g_arrOptionsTitles4)
@@ -1758,10 +1763,7 @@ return
 CurrentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
-; g_blnMouse not used. OK? g_blnMouse := false
-; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
-
-Gosub, SetMenuPosition ; sets menu position (was setting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed - OK? ###)
+Gosub, SetMenuPosition
 
 Gosub, BuildCurrentFoldersMenu
 
@@ -2007,7 +2009,6 @@ CollectExplorers(pExplorers)
 			WinGet, intMinMax, MinMax, % "ahk_id " . pExplorer.HWND
 			objExplorer.MinMax := intMinMax
 			
-			; ###_O("", objExplorer)
 			objExplorers.Insert(intExplorers, objExplorer) ; I was checking if StrLen(pExplorer.HWND) - any reason?
 		}
 	}
@@ -2021,10 +2022,7 @@ CollectExplorers(pExplorers)
 RecentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
-; g_blnMouse not used. OK? g_blnMouse := false
-; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
-
-Gosub, SetMenuPosition ; sets menu position (was setting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed ### OK?)
+Gosub, SetMenuPosition
 
 ToolTip, %lMenuRefreshRecent%...
 Gosub, BuildRecentFoldersMenu
@@ -2113,10 +2111,7 @@ return
 ClipboardMenuShortcut:
 ;------------------------------------------------------------
 
-; g_blnMouse not used. OK? g_blnMouse := false
-; g_blnNewWindow not used. OK? g_blnNewWindow := !CanNavigate("") ; sets g_strTargetWinId, g_strTargetControl and g_strTargetClass as a keyboard trigger
-
-Gosub, SetMenuPosition ; sets menu position (was setting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed - OK? ###)
+Gosub, SetMenuPosition
 
 Gosub, RefreshClipboardMenu
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
@@ -2328,7 +2323,7 @@ RecursiveBuildOneMenu(g_objMainMenu) ; recurse for submenus
 if !(g_blnDonor)
 {
 	if (g_objMenusIndex[lMainMenuName][g_objMenusIndex[lMainMenuName].MaxIndex()].FavoriteType <> "K")
-	; column break not allowed if first item is a separator ### ?
+	; column break not allowed if first item is a separator
 		Menu, %lMainMenuName%, Add
 	AddMenuIcon(lMainMenuName, lDonateMenu . "...", "GuiDonate", "iconDonate")
 }
@@ -2825,7 +2820,6 @@ else
 
 strPopupHotkeysBackup := g_arrPopupHotkeys%intHotkeyIndex%
 g_arrPopupHotkeys%intHotkeyIndex% := SelectHotkey(g_arrPopupHotkeys%intHotkeyIndex%, g_arrOptionsPopupHotkeyTitles%intHotkeyIndex%, "", "", intHotkeyType, g_arrPopupHotkeyDefaults%intHotkeyIndex%, g_arrOptionsTitlesSub%intHotkeyIndex%)
-; ### language "this trigger"
 
 if StrLen(g_arrPopupHotkeys%intHotkeyIndex%)
 	GuiControl, 2:, f_lblHotkeyText%intHotkeyIndex%, % Hotkey2Text(g_arrPopupHotkeys%intHotkeyIndex%)
@@ -2994,8 +2988,6 @@ IniWrite, %g_strExclusionMouseClassList%, %g_strIniFile%, Global, ExclusionMouse
 
 g_strExclusionKeyboardClassList := ReplaceAllInString(Trim(f_strExclusionKeyboardClassList, " `t`n"), "`n", "|")
 IniWrite, %g_strExclusionKeyboardClassList%, %g_strIniFile%, Global, ExclusionKeyboardClassList
-
-; ###_V("", g_strExclusionMouseClassList, g_strExclusionKeyboardClassList)
 
 ;---------------------------------------
 ; Tab 4: File Managers
@@ -3743,7 +3735,6 @@ else
 		; Boolean,MinMax,Left,Top,Width,Height,Delay (comma delimited)
 		; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480,200"
 		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intY . "," . intWidth . "," . intHeight . ",200"
-		; ###_V("WindowPosition", intMinMax, g_strNewFavoriteWindowPosition)
 	}
 	else
 		g_strNewFavoriteWindowPosition := ",,,,,," ; to avoid having phantom values
@@ -3854,7 +3845,7 @@ if (g_objEditedFavorite.FavoriteType = "FTP")
 	Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
 
 	Gui, 2:Add, Text, x20 y+10, %lGuiPassword%
-	Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
+	Gui, 2:Add, Edit, x20 y+10 w300 h20 Password vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
 }
 
 if (g_objEditedFavorite.FavoriteType = "Group")
@@ -4428,7 +4419,6 @@ intCurrentLastPosition := 0
 if (A_ThisLabel = "GuiMenusListChanged")
 {
 	GuiControlGet, strNewDropdownMenu, , f_drpMenusList
-	; ###_D("GuiMenusListChanged: " . strNewDropdownMenu . "`ng_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath) 
 
 	if (strNewDropdownMenu = g_objMenuInGui.MenuPath) ; user selected the current menu in the dropdown
 	{
@@ -4436,8 +4426,6 @@ if (A_ThisLabel = "GuiMenusListChanged")
 		return
 	}
 }
-
-; ### not required if object updated Gosub, SaveCurrentListviewToMenuObject ; save current LV
 
 /*
 ###_D(A_ThisLabel . "`n"
@@ -4471,13 +4459,12 @@ else
 	else if (A_ThisLabel = "OpenMenuFromEditForm") or (A_ThisLabel = "OpenMenuFromGuiHotkey")
 		g_objMenuInGui := g_objMenuInGui[g_intOriginalMenuPosition].SubMenu
 
-	g_arrSubmenuStackPosition.Insert(1, LV_GetNext("Focused")) ; ### ???
+	g_arrSubmenuStackPosition.Insert(1, LV_GetNext("Focused"))
 }
 
 GuiControl, % (g_arrSubmenuStack.MaxIndex() ? "Show" : "Hide"), f_picPreviousMenu
 GuiControl, % (g_objMenuInGui.MenuPath <> lMainMenuName ? "Show" : "Hide"), f_picUpMenu
 
-; ### if blnSaveEnabled load will abort - need to save before (where in FP?)
 Gosub, LoadMenuInGui
 
 if (intCurrentLastPosition) ; we went to a previous menu
@@ -4733,10 +4720,8 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	; before updating g_objEditedFavorite.FavoriteLocation, check if location was changed and update hotkeys objects
 	if StrLen(g_objEditedFavorite.FavoriteLocation) and (g_objEditedFavorite.FavoriteLocation <> f_strFavoriteLocation)
 	{
-		; ###_V(A_ThisLabel . " Remove g_objHotkeysByLocation", g_objEditedFavorite.FavoriteLocation)
 		g_objHotkeysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
 		if StrLen(f_strFavoriteLocation) and StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
-			; ###_V(A_ThisLabel . " Insert g_objHotkeysByLocation", f_strFavoriteLocation, g_strNewFavoriteHotkey)
 			g_objHotkeysByLocation.Insert(f_strFavoriteLocation, g_strNewFavoriteHotkey) ; if the key already exists, its value is overwritten
 	}
 	
@@ -4754,8 +4739,6 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	
 	Gosub, UpdateHotkeyObjectsFavoriteSave
 
-	; ###_O("Save Favorite: g_objHotkeysByLocation", g_objHotkeysByLocation)
-	
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
 	
@@ -5134,9 +5117,7 @@ if (g_intSelectedRow = (InStr(A_ThisLabel, "Up") ? (g_objMenuInGui[1].FavoriteTy
 
 ; --- move in menu object ---
 
-; ###_D(list(g_objMenuInGui, g_intSelectedRow))
 MoveFavoriteInMenuObject(g_objMenuInGui, g_intSelectedRow, (InStr(A_ThisLabel, "Up") ? -1 : 1))
-; ###_D(list(g_objMenuInGui, g_intSelectedRow))
 
 ; --- move in Gui ---
 
@@ -5157,16 +5138,6 @@ GuiControl, Enable, f_btnGuiSaveFavorites
 GuiControl, , f_btnGuiCancel, %lGuiCancel%
 
 return
-
-/*
-list(objMenu, intPos)
-{
-	s := ""
-	for key, val in objMenu
-		s .= key . " " . val.FavoriteName . (key = intPos ? "!" : "") . "`n"
-	return s
-}
-*/
 
 ;------------------------------------------------------------
 
@@ -5361,9 +5332,8 @@ if (LV_GetCount("Selected") > 1)
 
 intInsertPosition := LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : LV_GetCount() + 1) : 1
 
-; --- ### add in menu object ---
+; --- add in menu object ---
 
-; ###_D(list(g_objMenuInGui, g_intSelectedRow))
 objNewFavorite := Object()
 if (A_ThisLabel = "GuiAddSeparator")
 {
@@ -5423,21 +5393,16 @@ g_intIniLine := 1 ; reset counter before saving to another ini file
 RecursiveSaveFavoritesToIniFile(g_objMainMenu)
 
 Loop, % g_objHotkeysToDisableWhenSave.MaxIndex()
-	; ###_V("GuiSaveFavorites g_objHotkeysToDisableWhenSave Turn OFF Hotkey:", g_objHotkeysToDisableWhenSave[A_Index])
 	Hotkey, % g_objHotkeysToDisableWhenSave[A_Index], , Off ; if used elsewhere, will be reloaded by LoadFavoriteHotkeys
 g_objHotkeysToDisableWhenSave := ""
 
-; ###_D("Clean-up start", 1)
 ; clean-up unused hotkeys if favorites were deleted
 for strThisLocation, strThisHotkey in g_objHotkeysByLocation
-	; ###_V("Clean-up for location", strThisLocation, strThisHotkey)
 	if RecursiveHotkeyNotNeeded(strThisLocation, g_objMainMenu)
 	{
-		; ###_V("Clean-up unused hotkeys: Remove and Hotkey Off", strThisLocation, strThisHotkey)
 		g_objHotkeysByLocation.Remove(strThisLocation)
 		Hotkey, %strThisHotkey%, , Off
 	}
-; ###_D("Clean-up ended", 1)
 
 Gosub, SaveHotkeysToIni
 	
@@ -5725,7 +5690,6 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	strNewHotkey := Trim(strKey . (strMouse = "None" ? "" : strMouse))
 	if !StrLen(strNewHotkey)
 		strNewHotkey := "None"
-	; ###_V(0, strMouse, strKey, strNewHotkey)
 	
 	if (strNewHotkey <> "None") ; do not compare with lDialogNone because it is translated
 	{
@@ -5772,20 +5736,17 @@ UpdateHotkeyObjectsFavoriteSave:
 UpdateHotkeyObjectsHotkeysListSave:
 ;-----------------------------------------------------------
 
-; ###_V(A_ThisLabel, g_objEditedFavorite.FavoriteLocation, g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation], g_strNewFavoriteHotkey)
-
 ; if the hotkey changed, add new hotkey and remember the hotkey to turn off
 if (g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation] <> g_strNewFavoriteHotkey)
 {
 	if g_objHotkeysByLocation.HasKey(g_objEditedFavorite.FavoriteLocation)
-		g_objHotkeysToDisableWhenSave.Insert(g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation]) ; used when favorites are saved, must be before g_objHotkeysByLocation.Insert
-		; ###_O(A_ThisLabel . " Inserted g_objHotkeysToDisableWhenSave", g_objHotkeysToDisableWhenSave)
+		; used when favorites are saved, must be before g_objHotkeysByLocation.Insert
+		g_objHotkeysToDisableWhenSave.Insert(g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation])
 	
 	if StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
-		; ###_V("Add ", g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
-		g_objHotkeysByLocation.Insert(g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey) ; must be after g_objHotkeysToDisableWhenSave.Insert
+		; must be after g_objHotkeysToDisableWhenSave.Insert
+		g_objHotkeysByLocation.Insert(g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
 	else
-		; ###_V("REMOVE ", g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
 		g_objHotkeysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
 }
 
@@ -5822,12 +5783,10 @@ HotkeyIfAvailable(strHotkey, strLocation)
 	
 	if StrLen(strExistingLocation)
 	{
-		; ###_V(A_ThisLabel, strExistingLocation, strLocation)
 		Oops(lOopsHotkeyAlreadyUsed, Hotkey2Text(strHotkey), FormatExistingLocation(strExistingLocation), FormatExistingLocation(strLocation))
 		return ""
 	}
 	else
-		; ###_V("HotkeyIfAvailable YES", strHotkey)
 		return strHotkey
 }
 ;-----------------------------------------------------------
@@ -5881,7 +5840,6 @@ IniDelete, %g_strIniFile%, LocationHotkeys
 g_intIniLine := 1
 for strLocation, strHotkey in g_objHotkeysByLocation
 {
-	; ###_V("SaveHotkeysToIni", g_intIniLine, strLocation, strHotkey)
 	IniWrite, %strLocation%|%strHotkey%, %g_strIniFile%, LocationHotkeys, Hotkey%g_intIniLine%
 	g_intIniLine++
 }
@@ -6131,15 +6089,12 @@ LaunchFromPowerMenu:
 PopupMenuCopyLocation:
 ;------------------------------------------------------------
 
-; ###_D(A_ThisLabel)
-
 if !(g_blnMenuReady)
 	return
 
-Gosub, SetMenuPosition ; sets menu position (was seting g_strTargetWinId or activate the window g_strTargetWinId set by CanNavigate - removed - OK? ###)
-; WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId ; already set by CanNavigate. OK?
+Gosub, SetMenuPosition
 
-g_blnPowerMenu := (A_ThisLabel = "LaunchFromPowerMenu") ; ### validate at the end if this bln is required
+g_blnPowerMenu := (A_ThisLabel = "LaunchFromPowerMenu") ; ### validate later if this bln is required
 if !(g_blnPowerMenu)
 	g_strPowerMenu := "" ; delete from previous call to Power key, else keep what was set in OpenPowerMenu
 
@@ -6152,7 +6107,6 @@ if InStr("LaunchFromPowerMenu|LaunchFromTrayIcon", A_ThisLabel)
 }
 else
 	g_strHokeyTypeDetected := (A_ThisLabel = "PopupMenuCopyLocation" ? "CopyLocation" : SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1)) ; "Navigate" or "Launch"
-	; g_blnMouse not used. OK? g_blnMouse := InStr(A_ThisLabel, "Mouse")
 
 ; ###_V(A_ThisLabel, g_strTargetClass, g_strTargetWinId)
 
@@ -6176,8 +6130,6 @@ Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
-; g_blnMouse not used. OK? g_blnMouse := ""
-
 return
 ;------------------------------------------------------------
 
@@ -6186,8 +6138,6 @@ return
 PowerHotkeyMouse:
 PowerHotkeyKeyboard:
 ;------------------------------------------------------------
-
-; ###_D(A_ThisLabel)
 
 g_blnPowerMenu := true
 g_strHokeyTypeDetected := "Power"
@@ -6217,19 +6167,6 @@ else ; (g_intPopupMenuPosition =  3) - fix position - use the g_intMenuPosX and 
 	g_intMenuPosX := g_arrPopupFixPosition1
 	g_intMenuPosY := g_arrPopupFixPosition2
 }
-
-; ### REMOVED should not be required - to be tested
-; not related to set position but this is a good place to execute it ;-)
-/*
-if (g_blnMouse)
-	if (g_blnNewWindow)
-		MouseGetPos, , , g_strTargetWinId ; sets g_strTargetWinId for PopupMenuNewWindowMouse
-	else
-		WinActivate, % "ahk_id " . g_strTargetWinId ; activate for PopupMenuMouse - ### still required?
-else ; (keyboard)
-	if (g_blnNewWindow)
-		g_strTargetWinId := WinExist("A") ; sets g_strTargetWinId for PopupMenuNewWindowKeyboard
-*/
 
 return
 ;------------------------------------------------------------
@@ -6470,7 +6407,7 @@ OpenPowerMenu:
 ; remember the power menu item to execute and open the popup menu to choose on what favorite execute this action
 ;------------------------------------------------------------
 
-###_V(A_ThisLabel, A_ThisMenuItem)
+; ###_V(A_ThisLabel, A_ThisMenuItem)
 
 g_strPowerMenu := A_ThisMenuItem
 ; Menu, %lMainMenuName%, Show
@@ -6489,7 +6426,7 @@ OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
-###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
+; ###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
@@ -6530,7 +6467,7 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not take into account if keyboard shortcut
 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
-###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
+; ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 
 ; === ACTIONS ===
 
@@ -6562,7 +6499,7 @@ if InStr("Document|URL", g_objThisFavorite.FavoriteType)
 
 if (g_objThisFavorite.FavoriteType = "Application")
 {
-	###_V("Application", g_strFullLocation, g_objThisFavorite.FavoriteAppWorkingDir)
+	; ###_V("Application", g_strFullLocation, g_objThisFavorite.FavoriteAppWorkingDir)
 	Run, %g_strFullLocation%, % g_objThisFavorite.FavoriteAppWorkingDir
 
 	gosub, OpenFavoriteCleanup
@@ -6573,7 +6510,7 @@ if (g_objThisFavorite.FavoriteType = "Application")
 
 if InStr("OpenFavorite|OpenFavoriteFromHotkey", g_strOpenFavoriteLabel) and (g_objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 {
-	###_O(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand, g_objThisFavorite)
+	; ###_O(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand, g_objThisFavorite)
 	Gosub, % g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand
 	
 	gosub, OpenFavoriteCleanup
@@ -6585,7 +6522,6 @@ if InStr("OpenFavorite|OpenFavoriteFromHotkey", g_strOpenFavoriteLabel) and (g_o
 
 if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
 {
-	; Run, % g_objThisFavorite.FavoriteLocation ; 
 	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
 	gosub, OpenFavoriteNavigate%g_strTargetAppName%
 	
@@ -6597,7 +6533,7 @@ if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navi
 
 if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "Navigate")
 {
-	###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
+	; ###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
 	gosub, OpenFavoriteNavigate%g_strTargetAppName%
 	
 	gosub, OpenFavoriteCleanup
@@ -6609,7 +6545,7 @@ if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "N
 if (g_strHokeyTypeDetected = "Launch")
 	or !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
 {
-	###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetAppName, g_objThisFavorite, g_objThisFavorite.FavoriteWindowPosition)
+	; ###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetAppName, g_objThisFavorite, g_objThisFavorite.FavoriteWindowPosition)
 	
 	; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
 	; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
@@ -6735,7 +6671,7 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 }
 else if (g_strOpenFavoriteLabel = "OpenCurrentFolder")
 {
-	###_O(strThisMenuItem . " / " . g_objCurrentFoldersLocationUrlByName[strThisMenuItem], g_objCurrentFoldersLocationUrlByName)
+	; ###_O(strThisMenuItem . " / " . g_objCurrentFoldersLocationUrlByName[strThisMenuItem], g_objCurrentFoldersLocationUrlByName)
 	If (InStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], "::") = 1) ; A_ThisMenuItem can include the numeric shortcut
 	{
 		strThisMenuItem := SubStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], 3) ; remove "::" from beginning
@@ -6788,7 +6724,7 @@ OpenFavoriteGetFullLocation:
 
 g_strFullLocation := g_objThisFavorite.FavoriteLocation
 
-###_V(A_ThisLabel, g_strTargetAppName, g_strFullLocation)
+; ###_V(A_ThisLabel, g_strTargetAppName, g_strFullLocation)
 if (g_objThisFavorite.FavoriteType = "FTP")
 {
 	; ftp://username:password@ftp.domain.ext/public_ftp/incoming/
@@ -6908,7 +6844,7 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 		Oops(lOopsCouldNotOpenSpecialFolder, strTargetName, strLocation)
 		strLocation := ""
 	}
-	###_O("GetSpecialFolderLocation`n`nstrLocation: " . strLocation . "`nstrTargetName: " . strTargetName . "`nstrUse: " . strUse, objSpecialFolder)
+	; ###_O("GetSpecialFolderLocation`n`nstrLocation: " . strLocation . "`nstrTargetName: " . strTargetName . "`nstrUse: " . strUse, objSpecialFolder)
 	
 	return strLocation
 }
@@ -7016,7 +6952,7 @@ return
 OpenFavoriteNavigateTotalCommander:
 ;------------------------------------------------------------
 
-###_V(A_ThisLabel, g_strTotalCommanderPath, g_strFullLocation)
+; ###_V(A_ThisLabel, g_strTotalCommanderPath, g_strFullLocation)
 
 if g_strFullLocation is integer
 {
@@ -7042,7 +6978,7 @@ return
 OpenFavoriteNavigateFPconnect:
 ;------------------------------------------------------------
 
-###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
+; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
 
 if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
 {
@@ -7059,7 +6995,7 @@ return
 OpenFavoriteNavigateConsole:
 ;------------------------------------------------------------
 
-###_V("OpenFavoriteNavigateConsole", g_strTargetWinId, g_strFullLocation)
+; ###_V("OpenFavoriteNavigateConsole", g_strTargetWinId, g_strFullLocation)
 
 if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
 	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
@@ -7290,7 +7226,7 @@ return
 OpenFavoriteInNewWindowTotalCommander:
 ;------------------------------------------------------------
 
-###_V(A_ThisLabel, g_strTotalCommanderPath, g_strTotalCommanderNewTabOrWindow)
+; ###_V(A_ThisLabel, g_strTotalCommanderPath, g_strTotalCommanderNewTabOrWindow)
 
 if g_strFullLocation is integer
 {
@@ -7330,7 +7266,7 @@ return
 OpenFavoriteInNewWindowFPconnect:
 ;------------------------------------------------------------
 
-###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
+; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
 
 Run, %g_strFPconnectPath% %g_strFullLocation% /new, , , intPid
 WinWaitActive, ahk_pid %intPid%
@@ -7755,36 +7691,39 @@ Gui, 2:Font, s10 w400, Verdana
 Gui, 2:Add, Link, x10 w%intWidth%, %lHelpTextLead%
 
 Gui, 2:Font, s8 w600, Verdana
-Gui, 2:Add, Tab2, vf_intHelpTab w640 h350 AltSubmit, %A_Space%%lHelpTabGettingStarted% | %lHelpTabAddingFavorite% | %lHelpTabTitlesTipsAndTricks%%A_Space%
+Gui, 2:Add, Tab2, vf_intHelpTab w640 h350 AltSubmit, %A_Space%%lHelpTabGettingStarted% | %lHelpTabAddingFavorite% | %lHelpTabQAPFeatures% | %lHelpTabTipsAndTricks%%A_Space%
 
-; ### REVIEW Hotkeys: 1) PopupHotkeyMouse 2) PopupHotkeyNewMouse 3) PopupHotkeyKeyboard 4) PopupHotkeyNewKeyboard
-; 5) SettingsHotkey 6) CurrentFoldersHotkey 7) GroupsHotkey 8) RecentsHotkey 9) ClipboardHotkey 10) CopyLocationHotkey
 Gui, 2:Font, s8 w400, Verdana
 Gui, 2:Tab, 1
-Gui, 2:Add, Link, w%intWidth%, % L(lHelpText1, HotkeySections2Text(strModifiers1, strMouseButton1, strOptionsKey1), HotkeySections2Text(strModifiers3, strMouseButton3, strOptionsKey3))
-Gui, 2:Add, Link, w%intWidth%, % lHelpText2
-Gui, 2:Add, Button, vf_btnNext1 gNextHelpButtonClicked, %lDialogTabNext%
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText11, Hotkey2Text(g_arrPopupHotkeys1), Hotkey2Text(g_arrPopupHotkeys2))
+Gui, 2:Add, Link, w%intWidth%, % lHelpText12
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText13, Hotkey2Text(g_arrPopupHotkeys3), Hotkey2Text(g_arrPopupHotkeys4))
+Gui, 2:Add, Link, w%intWidth%, % lHelpText14
+Gui, 2:Add, Button, y+25 vf_btnNext1 gNextHelpButtonClicked, %lDialogTabNext%
 GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNext1")
 
 Gui, 2:Tab, 2
-Gui, 2:Add, Link, w%intWidth%, % L(lHelpText3, HotkeySections2Text(strModifiers1, strMouseButton1, strOptionsKey1), HotkeySections2Text(strModifiers3, strMouseButton3, strOptionsKey3))
-Gui, 2:Add, Link, w%intWidth%, % L(lHelpText4, HotkeySections2Text(strModifiers5, strMouseButton5, strOptionsKey5))
-Gui, 2:Add, Button, vf_btnNext2 gNextHelpButtonClicked, %lDialogTabNext%
+Gui, 2:Add, Link, w%intWidth%, % lHelpText21
+Gui, 2:Add, Link, w%intWidth%, % lHelpText22
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText23, Hotkey2Text(g_arrPopupHotkeys1), Hotkey2Text(g_arrPopupHotkeys2))
+Gui, 2:Add, Button, y+25 vf_btnNext2 gNextHelpButtonClicked, %lDialogTabNext%
 GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNext2")
 
 Gui, 2:Tab, 3
-Gui, 2:Add, Link, w%intWidth%, % L(lHelpText5
-	, HotkeySections2Text(strModifiers2, strMouseButton2, strOptionsKey2)
-	, HotkeySections2Text(strModifiers4, strMouseButton4, strOptionsKey4)
-	, HotkeySections2Text(strModifiers8, strMouseButton8, strOptionsKey8)
-	, HotkeySections2Text(strModifiers6, strMouseButton6, strOptionsKey6)
-	, HotkeySections2Text(strModifiers7, strMouseButton7, strOptionsKey7)
-	, HotkeySections2Text(strModifiers9, strMouseButton9, strOptionsKey9)
-	, HotkeySections2Text(strModifiers10, strMouseButton10, strOptionsKey10))
-Gui, 2:Add, Link, w%intWidth%, % lHelpText6
+Gui, 2:Add, Link, w%intWidth%, % lHelpText31
+Gui, 2:Add, Link, w%intWidth%, % lHelpText32
+Gui, 2:Add, Link, w%intWidth%, % L(lHelpText33, Hotkey2Text(g_objHotkeysByLocation["{Settings}"]))
+Gui, 2:Add, Button, y+25 vf_btnNext3 gNextHelpButtonClicked, %lDialogTabNext%
+GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNext3")
+
+Gui, 2:Tab, 4
+Gui, 2:Add, Link, w%intWidth%, % lHelpText41
+Gui, 2:Add, Link, y+5 w%intWidth%, % lHelpText42
+Gui, 2:Add, Link, y+5 w%intWidth%, % lHelpText43
+Gui, 2:Add, Link, y+5 w%intWidth%, % lHelpText44
+Gui, 2:Add, Link, y+5 w%intWidth%, % lHelpText45
 
 Gui, 2:Tab
-
 GuiControlGet, arrTabPos, Pos, f_intHelpTab
 Gui, 2:Add, Button, % "x180 y" . arrTabPosY + arrTabPosH + 10. " vf_btnHelpDonate gGuiDonate", %lDonateButton%
 Gui, 2:Add, Button, x+80 yp g2GuiClose vf_btnHelpClose, %lGui2Close%
