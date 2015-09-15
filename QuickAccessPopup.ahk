@@ -34,8 +34,6 @@ LATER
 HELP
 * Update links to QAP website in Help
 * Update links to QAP reviews in Donate
-* fix hotkey names in help text
-* replace Win-A with Win-W
 
 LANGUAGE
 
@@ -270,6 +268,10 @@ OnMessage(0x203, "WM_LBUTTONDBLCLK")
 
 ; To popup menu when left click on the tray icon - See AHK_NOTIFYICON function below
 OnMessage(0x404, "AHK_NOTIFYICON")
+
+; Respond to SendMessage sent by ImportFPsettings to signal that QAP is running
+; No specific reason for 0x2224, except that is is > 0x1000 (http://ahkscript.org/docs/commands/OnMessage.htm)
+OnMessage(0x2224, "ReplyQAPisRunning")
 
 ; Create a mutex to allow Inno Setup to detect if FP is running before uninstall or update
 DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex")
@@ -6223,7 +6225,7 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 		strExclusionClassList := g_strExclusionMouseClassList
 		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, CanLaunch Mouse, %strMouseOrKeyboard% = %g_strMouseHotkey%`n%g_strTargetControl%`nList: %g_strExclusionMouseClassList%`nClass: %g_strTargetClass%
+		; TrayTip, CanLaunch Mouse, %strMouseOrKeyboard% = %g_strMouseHotkey%`n%g_strTargetControl%`nList: %g_strExclusionMouseClassList%`nClass: %g_strTargetClass%
 	}
 	else ; Keyboard
 	{
@@ -6231,7 +6233,7 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 		g_strTargetWinId := WinExist("A")
 		g_strTargetControl := ""
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		TrayTip, CanLaunch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardHotkey%`nList: %g_strExclusionKeyboardClassList%`nClass: %g_strTargetClass%
+		; TrayTip, CanLaunch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardHotkey%`nList: %g_strExclusionKeyboardClassList%`nClass: %g_strTargetClass%
 	}
 	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
 
@@ -8531,6 +8533,15 @@ AHK_NOTIFYICON(wParam, lParam)
 		SetTimer, LaunchFromTrayIcon, -1
 		return 0
 	}
+} 
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ReplyQAPisRunning(wParam, lParam) 
+;------------------------------------------------------------
+{
+	return true
 } 
 ;------------------------------------------------------------
 
