@@ -16,11 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- change hotkey dialog box text with <A> not processed
 
 TO-DO
-- support window position for documents, applications, links, FTP
-- add note "Take note that the password will NOT be encrypted when sent on Internet" after password prompt
+- add note "Note: some types of window may refuse to be resized or moved" in Edit Fav
+- add note "Note: the password will NOT be encrypted when sent on Internet" after password prompt
 - implement Power key feature edit favorite
 - implement open group
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -2156,7 +2155,7 @@ strURLsInClipboard := ""
 ; Parse Clipboard for folder, document or application filenames (filenames alone on one line)
 Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 {
-    strClipboardLine = %A_LoopField%
+    strClipboardLine := A_LoopField
 	strClipboardLineExpanded := EnvVars(strClipboardLine) ; only to test if file exist - will not be displayed in menu
 
 	if StrLen(FileExist(strClipboardLineExpanded))
@@ -2260,10 +2259,7 @@ Loop
 }
 
 if (intURLStart = -1) ; No URLs exist in strURLSearchString.
-{
-	gosub, GetURLsInClipboardLineCleanup
-	return ; (exit loop)
-}
+	return ; (exit loop without cleaning local variables that could be re-used)
 
 ; Otherwise, extract this strURL:
 StringTrimLeft, strURL, strURLSearchString, %intURLStart% ; Omit the beginning/irrelevant part.
@@ -2280,7 +2276,6 @@ Loop, parse, strURL, %A_Tab%%A_Space%<> ; Find the first space, tab, or angle (i
 ; might damage them:
 StringReplace, strURLCleansed, strURL, ",, All
 
-
 ; See if there are any other URLs in this line:
 StringLen, intCharactersToOmit, strURL
 intCharactersToOmit += intURLStart
@@ -2288,17 +2283,7 @@ StringTrimLeft, strURLSearchString, strURLSearchString, %intCharactersToOmit%
 
 Gosub, GetURLsInClipboardLine ; Recursive call to self (end of loop)
 
-GetURLsInClipboardLineCleanup:
 strURLsInClipboard .= strURLCleansed . "`n"
-
-intURLStart1 := ""
-intURLStart2 := ""
-intURLStart3 := ""
-intURLStart := ""
-intArrayElement := ""
-strURL := ""
-strURLCleansed := ""
-intCharactersToOmit := ""
 
 return
 ;------------------------------------------------------------
@@ -3592,6 +3577,9 @@ Gui, 2:+OwnDialogs
 if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
+g_strTypesForTabWindowOptions := "Folder|Document|Application|Special|Link|FTP"
+g_strTypesForTabAdvancedOptions := "Folder|Document|Application|Special|URL|FTP|Group"
+
 Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h380 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
 intTabNumber := 0
 
@@ -3663,9 +3651,9 @@ BuildTabsList(strFavoriteType)
 	; 1 Basic Settings, 2 Menu Options, 3 Window Options, 4 Advanced Settings
 	strTabsList := g_arrFavoriteGuiTabs1 . " | " . g_arrFavoriteGuiTabs2
 	
-	if InStr("Folder|Special", strFavoriteType)
+	if InStr(g_strTypesForTabWindowOptions, strFavoriteType)
 		strTabsList .= " | " . g_arrFavoriteGuiTabs3
-	if InStr("Folder|Document|Application|Special|URL|FTP|Group", strFavoriteType)
+	if InStr(g_strTypesForTabAdvancedOptions, strFavoriteType)
 		strTabsList .= " | " . g_arrFavoriteGuiTabs4
 	
 	strTabsList .= " "
@@ -3899,7 +3887,8 @@ return
 GuiFavoriteTabWindowOptions:
 ;------------------------------------------------------------
 
-if InStr("Folder|Special", g_objEditedFavorite.FavoriteType)
+; ###_V(A_ThisLabel, g_objEditedFavorite.FavoriteType)
+if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
@@ -3941,7 +3930,7 @@ return
 GuiFavoriteTabAdvancedSettings:
 ;------------------------------------------------------------
 
-if InStr("Folder|Document|Application|Special|URL|FTP|Group", g_objEditedFavorite.FavoriteType)
+if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
@@ -4561,7 +4550,7 @@ Loop
 	g_intOriginalMenuPosition -=  1 ; because GuiMoveOneFavoriteSave deleted the previous item
 }
 
-g_intNewItemPos := "" ; make it fresh for next use (multiple move or not)
+gosub, GuiAddFavoriteSaveCleanup ; clean these variables for next use (multiple move or not)
 
 Gosub, BuildMainMenuWithStatus ; update menus
 Gosub, GuiEditFavoriteCancel
@@ -4590,8 +4579,7 @@ else ; GuiEditFavoriteSave or GuiMoveOneFavoriteSave
 
 ; f_drpParentMenu and f_drpParentMenuItems have same field name in 2 gui: GuiAddFavorite and GuiMoveMultipleFavoritesToMenu
 strDestinationMenu := f_drpParentMenu
-if (!f_drpParentMenuItems) ; ### because once I got a menu item inserted before the back link - unable to reproduce - remove after debugging
-	###_D("f_drpParentMenuItems = 0. Not supposed...")
+
 if (!g_intNewItemPos) ; if in GuiMoveOneFavoriteSave g_intNewItemPos may be already set
 	g_intNewItemPos := f_drpParentMenuItems + (g_objMenusIndex[strDestinationMenu][1].FavoriteType = "B" ? 1 : 0)
 
@@ -4827,40 +4815,43 @@ else
 	g_intNewItemPos := "" ; delete it for next use
 
 GuiAddFavoriteSaveCleanup:
-strOriginalMenu := ""
-strDestinationMenu := ""
-strMenuLocation := ""
-strThisLocation := ""
-strNewFavoriteWindowPosition := ""
-strMenuPath := ""
-objMenu := ""
-g_intNewItemPos := "" ; in case we abort save and retry
+if (A_ThisLabel <> "GuiMoveOneFavoriteSave") ; preserve if moving multiple favorites; will be cleaned after GuiMoveMultipleFavoritesSave
+{
+	strOriginalMenu := ""
+	strDestinationMenu := ""
+	strMenuLocation := ""
+	strThisLocation := ""
+	strNewFavoriteWindowPosition := ""
+	strMenuPath := ""
+	objMenu := ""
+	g_intNewItemPos := "" ; in case we abort save and retry
 
-; make sure all gui variables are flushed before next fav add or edit
-f_blnRadioGroupAdd := ""
-f_blnRadioGroupReplace := ""
-f_blnUseDefaultSettings := ""
-f_chkRememberWindowPosition := ""
-f_drpParentMenu := ""
-f_drpParentMenuItems := ""
-f_drpQAP := ""
-f_drpRunningApplication := ""
-f_drpSpecial := ""
-f_intGroupExplorerDelay := ""
-f_intGroupRestoreDelay := ""
-f_intWindowPositionH := ""
-f_intWindowPositionW := ""
-f_intWindowPositionX := ""
-f_intWindowPositionY := ""
-f_picIcon := ""
-f_strFavoriteAppWorkingDir := ""
-f_strFavoriteArguments := ""
-f_strFavoriteLaunchWith := ""
-f_strFavoriteLocation := ""
-f_strFavoriteLoginName := ""
-f_strFavoritePassword := ""
-f_strFavoriteShortName := ""
-f_strHotkeyText := ""
+	; make sure all gui variables are flushed before next fav add or edit
+	f_blnRadioGroupAdd := ""
+	f_blnRadioGroupReplace := ""
+	f_blnUseDefaultSettings := ""
+	f_chkRememberWindowPosition := ""
+	f_drpParentMenu := ""
+	f_drpParentMenuItems := ""
+	f_drpQAP := ""
+	f_drpRunningApplication := ""
+	f_drpSpecial := ""
+	f_intGroupExplorerDelay := ""
+	f_intGroupRestoreDelay := ""
+	f_intWindowPositionH := ""
+	f_intWindowPositionW := ""
+	f_intWindowPositionX := ""
+	f_intWindowPositionY := ""
+	f_picIcon := ""
+	f_strFavoriteAppWorkingDir := ""
+	f_strFavoriteArguments := ""
+	f_strFavoriteLaunchWith := ""
+	f_strFavoriteLocation := ""
+	f_strFavoriteLoginName := ""
+	f_strFavoritePassword := ""
+	f_strFavoriteShortName := ""
+	f_strHotkeyText := ""
+}
 
 return
 ;------------------------------------------------------------
@@ -5523,7 +5514,11 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	if StrLen(strFavoriteLocation)
 		Gui, Add, Text, xs y+5 w300, %strFavoriteLocation%
 	if StrLen(strDescription)
+	{
+		StringReplace, strDescription, strDescription, <A> ; remove links from description (already displayed in previous dialog box)
+		StringReplace, strDescription, strDescription, </A>
 		Gui, Add, Text, xs y+5 w300, %strDescription%
+	}
 
 	Gui, Add, CheckBox, y+20 x50 vf_blnShift, %lDialogShift%
 	GuiControlGet, arrTop, Pos, f_blnShift
@@ -6471,6 +6466,11 @@ blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not 
 ; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
 ; ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 
+; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
+; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
+strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
+StringSplit, g_arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
+
 ; === ACTIONS ===
 
 ; --- CopyLocation ---
@@ -6491,7 +6491,13 @@ if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars
 if InStr("Document|URL", g_objThisFavorite.FavoriteType)
 	or StrLen(g_objThisFavorite.FavoriteLaunchWith)
 {
-	Run, %g_strFullLocation%
+	Run, %g_strFullLocation%, , , intPid
+	; intPid may not be set for some doc types; could help if document is launch with a FavoriteLaunchWith
+	if (intPid)
+	{
+		g_strNewWindowId := "ahk_pid " . intPid
+		gosub, OpenFavoriteWindowResize
+	}
 
 	gosub, OpenFavoriteCleanup
 	return
@@ -6502,7 +6508,12 @@ if InStr("Document|URL", g_objThisFavorite.FavoriteType)
 if (g_objThisFavorite.FavoriteType = "Application")
 {
 	; ###_V("Application", g_strFullLocation, g_objThisFavorite.FavoriteAppWorkingDir)
-	Run, %g_strFullLocation%, % g_objThisFavorite.FavoriteAppWorkingDir
+	Run, %g_strFullLocation%, % g_objThisFavorite.FavoriteAppWorkingDir, , intPid
+	if (intPid)
+	{
+		g_strNewWindowId := "ahk_pid " . intPid
+		gosub, OpenFavoriteWindowResize
+	}
 
 	gosub, OpenFavoriteCleanup
 	return
@@ -6520,7 +6531,6 @@ if InStr("OpenFavorite|OpenFavoriteFromHotkey", g_strOpenFavoriteLabel) and (g_o
 }
 
 ; --- Navigate Folder ---
-
 
 if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
 {
@@ -6549,16 +6559,8 @@ if (g_strHokeyTypeDetected = "Launch")
 {
 	; ###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetAppName, g_objThisFavorite, g_objThisFavorite.FavoriteWindowPosition)
 	
-	; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
-	; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
-	strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
-	StringSplit, g_arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
-	
 	gosub, OpenFavoriteInNewWindow%g_strTargetAppName%
-
-	; ###_V(strFavoriteWindowPosition, g_arrFavoriteWindowPosition1, g_arrFavoriteWindowPosition2, g_arrFavoriteWindowPosition3, g_arrFavoriteWindowPosition4, g_arrFavoriteWindowPosition5, g_arrFavoriteWindowPosition6, g_strNewWindowId)
-	if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
-		gosub, OpenFavoriteInNewWindowResize
+	gosub, OpenFavoriteWindowResize
 }
 
 OpenFavoriteCleanup:
@@ -6761,7 +6763,7 @@ else
 }
 
 if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; always empty for Application favorites
-	g_strFullLocation := EnvVars(g_objThisFavorite.FavoriteLaunchWith) . " " . g_strFullLocation
+	g_strFullLocation := EnvVars(g_objThisFavorite.FavoriteLaunchWith) . " """ . g_strFullLocation . """" ; enclose document path in double-quotes
 
 if StrLen(g_objThisFavorite.FavoriteArguments)
 	g_strFullLocation .= " " . ExpandPlaceholders(g_objThisFavorite.FavoriteArguments, g_strFullLocation) ; let user enter double-quotes as required by his arguments
@@ -7284,21 +7286,28 @@ return
 
 
 ;------------------------------------------------------------
-OpenFavoriteInNewWindowResize:
+OpenFavoriteWindowResize:
 ;------------------------------------------------------------
 
-Sleep, %g_arrFavoriteWindowPosition7%
-if (g_arrFavoriteWindowPosition2 = -1) ; Minimized
-	WinMinimize, %g_strNewWindowId%
-else if (g_arrFavoriteWindowPosition2 = 1) ; Maximized
-	WinMaximize, %g_strNewWindowId%
-else ; Normal
+if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
 {
-	WinMove, %g_strNewWindowId%,
-		, %g_arrFavoriteWindowPosition3% ; left
-		, %g_arrFavoriteWindowPosition4% ; top
-		, %g_arrFavoriteWindowPosition5% ; width
-		, %g_arrFavoriteWindowPosition6% ; height
+	; ###_V(A_ThisLabel, g_strNewWindowId, g_arrFavoriteWindowPosition1, g_arrFavoriteWindowPosition2, g_arrFavoriteWindowPosition3, g_arrFavoriteWindowPosition7)
+	Sleep, %g_arrFavoriteWindowPosition7%
+	if (g_arrFavoriteWindowPosition2 = -1) ; Minimized
+		WinMinimize, %g_strNewWindowId%
+	else if (g_arrFavoriteWindowPosition2 = 1) ; Maximized
+		WinMaximize, %g_strNewWindowId%
+	else ; Normal
+	{
+		; see WinRestore doc PostMessage, 0x112, 0xF120,,, %g_strNewWindowId% ; 0x112 = WM_SYSCOMMAND, 0xF120 = SC_RESTORE
+		WinRestore, %g_strNewWindowId%
+		Sleep, %g_arrFavoriteWindowPosition7%
+		WinMove, %g_strNewWindowId%,
+			, %g_arrFavoriteWindowPosition3% ; left
+			, %g_arrFavoriteWindowPosition4% ; top
+			, %g_arrFavoriteWindowPosition5% ; width
+			, %g_arrFavoriteWindowPosition6% ; height
+	}
 }
 
 return
