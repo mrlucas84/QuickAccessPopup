@@ -44,7 +44,126 @@ FPCONNECT
 - FPconnect should provide the ahk_class for the file manager (to be used fo winmove)
 
 
-Version 6.0.2 alpha (2015-05-??)
+Version 6.0.2 alpha (2015-09-15)
+- First alpha test release. List of work done since v6.0.1:
+
+Initialisation
+--------------
+System variables
+Special folders
+Popup menu hotkeys
+Themes
+
+Favorite Types
+--------------
+Convert favorite types: Folder, Document, Application, Special, URL, and Menu
+Add favorite types: FTP, QAP and Group
+
+QAP Features
+------------
+Implement QAP features as favorite type with features:
+About: about dialog box
+ - Add This Folder: add the current folder to popup menu
+ - Clipboard: list of file paths or URL in clipboard
+ - Copy Favorite Location: copy location to clipboard
+ - Current Folders: list of folders open in Explorer or supported file managers
+ - Exit: quit QAP
+ - Help: help dialog box
+ - Hotkeys: list of favorite hotkeys and edit dialog box
+ - Options: options dialog box
+ - Recent Folders: list of Windows recent folders
+ - Settings: setting dialog box
+ - Support: support freeware dialog box
+Use default language for QAP features name
+Default hotkey to QAP features
+
+Settings dialog box
+-------------------
+Build Settings dialog box
+Open submenu when double-click in favorite list (use the Edit button to edit the menu item)
+Add "back" navigation with ".." item in favorite list
+Dialog box to manage favorite hotkeys
+Remove one or muptiple favorites, remove submenu and underlying items
+Add/Edit groups and manage them similarely to sub menus
+Save Settings position when exiting
+
+Favorites dialog box
+--------------------
+Add/Edit favorites dialog box with tabs: Basic Settings, Menu Options, Window Options and Advanced Settings
+Add/Edit QAP features
+Favorites hotkeys for all favorite types
+Parameters advanced setting for all favorite types (except QAP features, Menus and Groups): 
+Launch with application advanced setting for all favorite types (except Application, QAP features, Menus and Groups)
+Working directory advanced setting for application favorites
+Add an application favorite by selecting its path form a dropdown list of running apps
+Edit window position for favorite types Folder, Special folders and Application, with a configurable delay when resizing or moving
+Remember current window position when using "Add this folder"
+Implementy FTP favorite type with login name, password and an option to encode login name and password in URL
+Implement Group favorite with configurable delay when opening group (restoring groupe not done yet)
+
+Options
+-------
+Convert all FP options
+Add two exclusion lists to disable hotkeys in the selected type of window (basic user interface to be improved):
+1) One exclusion list for mouse triggers (mouse QAP hotley and mouse Power hotkey)
+2) One exclusion list for keyboard triggers (keyboard QAP hotley and keyboard Power hotkey)
+Option to display or not the favorite shortcuts reminders in popup menu (full name or abbreviated name)
+
+Menus
+-----
+Build main menu
+Build Current Folders menu
+Build Recent Folders menu
+Build Tray menu
+Add default "My Special folders" menu at first QAP use
+Add default "Essential QAP Features" menu at first QAP use
+Convert startup tray tip
+Test if current target window can navigate folder
+Test if current window is on exclusion list before showing popup up
+When Current Folders and Clipboard are empty, attach an "empty" sub menu
+Add group indicator [[]] to popup menu with nb of items in groups
+
+Popup menu Hotkeys
+------------------
+New hotkey approach with two triggers:
+ 1) QAP hotkey (mouse and keyboard), available in all windows, opens the popup menu to choose the favoriteto launch; if the favorite is a folder and the target app supports it (Explorer, dialog box or other file managers), the window is changed (navigate) to this folder
+ 2) Power hotkey available in all windows, showing a menu of special features before showing the favorites menu (see "Power menu features" below)
+Replace default keyboard FP hotkey Windows+A (#A) to Windows+W(#W) because #A is now a reserved shortcut in Windows 10
+
+Actions
+-------
+Open favorite folders and special folders in current window (navigate) or in a new window (launch) if the target window supports navigation (Explorer, Dialog boxes, Directory Opus, TotalCommander, FPconnect and Console)
+Navigate favorite with Clover (using keyboard input)
+Run application wit working directory and parameters
+Launch documents or URL with "launch with" application and parameters
+Support location placeholders in parameters
+Implement QAP features "Add this folder" and "Copy Location"
+Add this folder remembers window position (for use when open the folder in a new window)
+Add this folder supports known special folders (50 known special folders)
+Open FTP favorite with login name and password in Explorer, Directory Opus and Total Commander
+Resize and move window to remembered position when opening folder in a new window (working with Explorer, DOpus, TC, not working with FPconnect yet)
+Resize and move window to remembered position when launching application, document or URL (working with some apps, not all, not fully tested)
+
+Power menu features
+-------------------
+Open folder in a new window (even if the target window could navigate to this folder)
+(more to be implemented)
+
+Third party file managers
+-------------------------
+Support for Directory Opus
+Support for Total Commander
+Support for other file managers via FPconnect
+
+Transition
+----------
+ImportFPsettings.ahk:
+ - import favorites from Folders Popup and convert them to QAP format(replace all favorites)
+ - import options settings from Folders Popup to QAP (overwrite existing options)
+
+InnoSetup installer
+-------------------
+Prepare the QAP setup file, including ImportFPsettings.exe
 
 
 Version: 6.0.1 alpha (2015-05-11)
@@ -87,7 +206,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.0.1 alpha
+;@Ahk2Exe-SetVersion 6.0.2 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -140,7 +259,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.0.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.0.2" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
