@@ -1,17 +1,19 @@
 #define MyAppName "Quick Access Popup"
 #define MyAppNameLower "quickaccesspopup"
 #define MyAppPublisher "Jean Lalonde"
-#define MyAppURL "http://wwww.QuickAccessPopup.com"
+#define MyAppURL "http://www.QuickAccessPopup.com"
 #define MyAppExeName "QuickAccessPopup.exe"
+#define FPImportExeName "ImportFPsettings.exe"
 
-#define MyAppVersion "v6.x.y BETA"
-#define MyVersionFileName "6_x_y-beta"
+#define MyAppVersion "v6.0.2 ALPHA"
+#define MyVersionFileName "6_0_2-alpha"
+#define FPImportVersionFileName "ImportFPsettings-0_1-ALPHA.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={BE9D760B-0D64-40BD-9F24-B5B8AB90131B}
+AppId={{BE9D760B-0D64-40BD-9F24-B5B8AB90131B}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
@@ -22,9 +24,9 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 LicenseFile=C:\Dropbox\AutoHotkey\QuickAccessPopup\Inno Setup files\licence.txt
-OutputDir=C:\Dropbox\AutoHotkey\QuickAccessPopup\Inno Setup files\
+OutputDir=C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\
 OutputBaseFilename={#MyAppNameLower}-setup
-SetupIconFile=C:\Dropbox\AutoHotkey\QuickAccessPopup\qap-white-rounded-512.ico
+SetupIconFile=C:\Dropbox\AutoHotkey\QuickAccessPopup\QuickAccessPopup-ALPHA-red-512.ico
 Compression=lzma
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64
@@ -42,9 +44,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 ; Name: "brazilportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 [Files]
-Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build\QuickAccessPopup-{#MyVersionFileName}-64-bit.exe"; DestDir: "{app}"; DestName: "QuickAccessPopup.exe"; Check: IsWin64; Flags: 64bit ignoreversion
-Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build\QuickAccessPopup-{#MyVersionFileName}-32-bit.exe"; DestDir: "{app}"; DestName: "QuickAccessPopup.exe"; Check: "not IsWin64"; Flags: 32bit ignoreversion
-Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\ImportFPsettings\ImportFPsettings.exe"; DestDir: "{app}"; DestName: "ImportFPsettings.exe"
+Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\QuickAccessPopup-{#MyVersionFileName}-64-bit.exe"; DestDir: "{app}"; DestName: "QuickAccessPopup.exe"; Check: IsWin64; Flags: 64bit ignoreversion
+; Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\QuickAccessPopup-{#MyVersionFileName}-32-bit.exe"; DestDir: "{app}"; DestName: "QuickAccessPopup.exe"; Check: "not IsWin64"; Flags: 32bit ignoreversion
+Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\{#FPImportVersionFileName}"; DestDir: "{app}"; DestName: "ImportFPsettings.exe"
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Dirs]
@@ -73,7 +75,7 @@ Filename: "{app}\ImportFPsettings.exe"; Flags: runhidden waituntilterminated; Wo
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; WorkingDir: "{userappdata}\{#MyAppName}"; Flags: waituntilidle postinstall skipifsilent
 
 [Tasks]
-Name: importfpsetting; Description: "Import &Folders Popup settings and favorites"
+Name: importfpsettings; Description: "Import &Folders Popup settings and favorites (only for Folders Popup users)"
 
 [UninstallDelete]
 Type: files; Name: "{userstartup}\{#MyAppName}.lnk"
