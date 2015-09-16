@@ -16,11 +16,14 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- Power Edit if QAP feature must not execute feature
+- Power Edit wrong if column break befre fav
 
 TO-DO
-- add note "Note: some types of window may refuse to be resized or moved" in Edit Fav
-- add note "Note: the password will NOT be encrypted when sent on Internet" after password prompt
-- implement Power key feature edit favorite
+OK - add note "Note: for various reasons some window may refuse to be resized or moved" in Edit Fav
+OK - add note "Note: the password will NOT be encrypted when sent on Internet" after password prompt
+OK - implement Power key feature edit favorite
+- refactor CopyLocation to Power key
 - implement open group
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
@@ -42,6 +45,10 @@ QAP FEATURES MENUS
 FPCONNECT
 - note that FPconnect should not be used with DOpus or TC: source of conflicts
 - FPconnect should provide the ahk_class for the file manager (to be used fo winmove)
+
+
+Version: 6.0.3 alpha (2015-??-??)
+* 
 
 
 Version 6.0.2 alpha (2015-09-15)
@@ -2437,6 +2444,8 @@ if !(g_blnDonor)
 Menu, g_menuPower, Add
 Menu, g_menuPower, DeleteAll
 Menu, g_menuPower, Add, %lMenuPowerNewWindow%, OpenPowerMenu
+Menu, g_menuPower, Add
+Menu, g_menuPower, Add, %lMenuPowerEditFavorite%, OpenPowerMenu
 
 if (A_ThisLabel = "BuildMainMenuWithStatus")
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
@@ -3286,6 +3295,7 @@ return
 
 ;------------------------------------------------------------
 LoadMenuInGui:
+LoadMenuInGuiFromPower:
 ;------------------------------------------------------------
 
 Gui, 1:ListView, f_lvFavoritesList
@@ -3310,7 +3320,7 @@ Loop, % g_objMenuInGui.MaxIndex()
 	else ; this is a folder, document, URL or application
 		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objFavoriteTypesShortNames[g_objMenuInGui[A_Index].FavoriteType], g_objMenuInGui[A_Index].FavoriteLocation)
 
-LV_Modify(1 + (g_objMenuInGui[1].FavoriteType = "B" ? 1 : 0), "Select Focus") 
+LV_Modify((A_ThisLabel = "LoadMenuInGuiFromPower" ? g_intOriginalMenuPosition : 1 + (g_objMenuInGui[1].FavoriteType = "B" ? 1 : 0)), "Select Focus") 
 
 Gosub, AdjustColumnsWidth
 
@@ -3673,6 +3683,7 @@ GuiAddFavorite:
 GuiAddThisFolder:
 GuiAddFromDropFiles:
 GuiEditFavorite:
+GuiEditFavoriteFromPower:
 ;------------------------------------------------------------
 
 strGuiFavoriteLabel := A_ThisLabel
@@ -3690,7 +3701,7 @@ Gui, 1:Submit, NoHide
 if (strGuiFavoriteLabel = "GuiAddFavorite")
 	Gosub, 2GuiClose ; to avoid flashing Gui 1:
 
-Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (strGuiFavoriteLabel = "GuiEditFavorite" ? lDialogEdit : lDialogAdd), g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType)
+Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (InStr(strGuiFavoriteLabel, "GuiEditFavorite") ? lDialogEdit : lDialogAdd), g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType)
 Gui, 2:+Owner1
 Gui, 2:+OwnDialogs
 if (g_blnUseColors)
@@ -3716,9 +3727,9 @@ Gosub, GuiFavoriteTabAdvancedSettings
 
 Gui, 2:Tab
 
-if (strGuiFavoriteLabel = "GuiEditFavorite")
+if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 {
-	Gui, 2:Add, Button, y420 vf_btnEditFavoriteSave gGuiEditFavoriteSave default, %lDialogSave%
+	Gui, 2:Add, Button, y420 vf_btnEditFavoriteSave gGuiEditFavoriteSave default, %lDialogOK%
 	Gui, 2:Add, Button, yp vf_btnEditFavoriteCancel gGuiEditFavoriteCancel, %lGuiCancel%
 	
 	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnEditFavoriteSave", "f_btnEditFavoriteCancel")
@@ -3741,7 +3752,7 @@ if InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 else
 {
 	GuiControl, 2:Focus, f_strFavoriteShortName
-	if (strGuiFavoriteLabel = "GuiEditFavorite") 
+	if InStr(strGuiFavoriteLabel, "GuiEditFavorite") 
 		SendInput, ^a
 }
 
@@ -3798,7 +3809,7 @@ g_objEditedFavorite := Object()
 g_strDefaultIconResource := ""
 g_strNewFavoriteIconResource := ""
 
-if (strGuiFavoriteLabel = "GuiEditFavorite")
+if InSTr(strGuiFavoriteLabel, "GuiEditFavorite")
 {
 	Gui, 1:ListView, f_lvFavoritesList
 	g_intOriginalMenuPosition := LV_GetNext()
@@ -3913,7 +3924,7 @@ else
 		, % g_objEditedFavorite.FavoriteName
 }
 
-if (g_objEditedFavorite.FavoriteType = "Menu" and strGuiFavoriteLabel = "GuiEditFavorite")
+if (g_objEditedFavorite.FavoriteType = "Menu" and InStr(strGuiFavoriteLabel, "GuiEditFavorite"))
 	Gui, 2:Add, Button, x+10 yp gGuiOpenThisMenu, %lDialogOpenThisMenu%
 
 if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
@@ -3941,7 +3952,7 @@ else ; "Special" or "QAP"
 	Gui, 2:Add, DropDownList
 		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
 		, % lDialogSelectItemToAdd . "...||" . (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : g_strQAPFeaturesList)
-	if (strGuiFavoriteLabel = "GuiEditFavorite") or StrLen(g_strNewLocationSpecialName)
+	if InStr(strGuiFavoriteLabel, "GuiEditFavorite") or StrLen(g_strNewLocationSpecialName)
 		if (g_objEditedFavorite.FavoriteType = "Special")
 			GuiControl, ChooseString, f_drpSpecial, % g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultName
 		else ; QAP
@@ -3950,11 +3961,12 @@ else ; "Special" or "QAP"
 
 if (g_objEditedFavorite.FavoriteType = "FTP")
 {
-	Gui, 2:Add, Text, x20 y+10, %lGuiLoginName%
-	Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
+	Gui, 2:Add, Text, x20 y+5, %lGuiLoginName%
+	Gui, 2:Add, Edit, x20 y+5 w300 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
 
-	Gui, 2:Add, Text, x20 y+10, %lGuiPassword%
-	Gui, 2:Add, Edit, x20 y+10 w300 h20 Password vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
+	Gui, 2:Add, Text, x20 y+5, %lGuiPassword%
+	Gui, 2:Add, Edit, x20 y+5 w300 h20 Password vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
+	Gui, 2:Add, Text, x20 y+5, %lGuiPasswordNotEncripted%
 }
 
 if (g_objEditedFavorite.FavoriteType = "Group")
@@ -4027,6 +4039,7 @@ if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 
 	Gui, 2:Add, Text, % "y+20 x20 vf_lblWindowPositionDelayLabel " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionDelay%
 	Gui, 2:Add, Edit, % "yp x+20 w36 center vf_lblWindowPositionDelay " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), % (arrNewFavoriteWindowPosition7 = "" ? 200 : arrNewFavoriteWindowPosition7)
+	Gui, 2:Add, Text, % "y+20 x20 vf_lblWindowPositionMayFail " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionMayFail%
 	
 	Gui, 2:Add, Text, % "ys x200 section vf_lblWindowPosition " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPosition%
 
@@ -4487,6 +4500,7 @@ GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositi
 
 GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelayLabel
 GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelay
+GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMayFail
 
 GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPosition
 GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionX
@@ -4607,6 +4621,7 @@ return
 
 ;------------------------------------------------------------
 GuiShow:
+GuiShowFromPower:
 SettingsHotkey:
 ;------------------------------------------------------------
 
@@ -4618,13 +4633,17 @@ if (blnSaveEnabled)
 	return
 }
 
-g_objMenuInGui := g_objMainMenu
+if (A_ThisLabel <> "GuiShowFromPower") ; menu object already set if from Power hotey
+	g_objMenuInGui := g_objMainMenu
 
 Gosub, BackupMenusObjects
 
 g_objHotkeysToDisableWhenSave := Object() ; to track hotkeys to turn off when saving favorites with hotkey changed
 
-Gosub, LoadMenuInGui
+if (A_ThisLabel = "GuiShowFromPower")
+	Gosub, LoadMenuInGuiFromPower
+else
+	Gosub, LoadMenuInGui
 Gui, 1:Show
 
 GuiShowCleanup:
@@ -6210,7 +6229,7 @@ if !(g_blnMenuReady)
 
 Gosub, SetMenuPosition
 
-g_blnPowerMenu := (A_ThisLabel = "LaunchFromPowerMenu") ; ### validate later if this bln is required
+g_blnPowerMenu := (A_ThisLabel = "LaunchFromPowerMenu")
 if !(g_blnPowerMenu)
 	g_strPowerMenu := "" ; delete from previous call to Power key, else keep what was set in OpenPowerMenu
 
@@ -6555,6 +6574,7 @@ if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
 }
 
 if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for these favorites, file/folder must exist
+	and (g_strPowerMenu <> lMenuPowerEditFavorite)
 	if !FileExist(EnvVars(g_objThisFavorite.FavoriteLocation))
 	{
 		Gui, 1:+OwnDialogs
@@ -6564,8 +6584,23 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for th
 		return
 	}
 
-if (g_strPowerMenu = lMenuPowerNewWindow)
-    g_strHokeyTypeDetected := "Launch"
+if (g_blnPowerMenu)
+{
+	if (g_strPowerMenu = lMenuPowerNewWindow)
+		g_strHokeyTypeDetected := "Launch"
+
+	if (g_strPowerMenu = lMenuPowerEditFavorite)
+	{
+		g_objMenuInGui := g_objMenusIndex[A_ThisMenu]
+		g_intOriginalMenuPosition := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
+			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
+		g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
+		gosub, GuiShowFromPower
+		gosub, GuiEditFavoriteFromPower
+		gosub, OpenFavoriteCleanup
+		return
+	}
+}
 
 if (g_objThisFavorite.FavoriteType = "FTP")
 	g_strHokeyTypeDetected := "Launch"
@@ -6686,6 +6721,8 @@ OpenFavoriteCleanup:
 g_objThisFavorite := ""
 strFavoriteWindowPosition := ""
 g_arrFavoriteWindowPosition := ""
+g_blnPowerMenu := ""
+g_strPowerMenu := ""
 
 return
 ;------------------------------------------------------------
