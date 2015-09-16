@@ -8,6 +8,7 @@ By JnLlnd on [AHKScript forum](http://ahkscript.org/boards/memberlist.php?mode=v
 ## Links
 
 * [Application home](http://www.quickaccesspopup.com)
+* [Documentation Wiki](https://github.com/JnLlnd/QuickAccessPopup/wiki)
 
 
 ## History
