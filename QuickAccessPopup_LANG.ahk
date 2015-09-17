@@ -352,6 +352,7 @@ global lOptionsOtherOptions := "General"
 global lOptionsPopupFixPositionX := "Position X:"
 global lOptionsPopupFixPositionY := "Y:"
 global lOptionsPowerMenuFeatures := "Power Menu"
+global lOptionsPowerMenuFeaturesIntro := "Manage the shortcuts (mouse buttons or keyboard hotkeys) that will trigger the Power menu features. Power menu features without shortcut can still be launched using the Power menu hotkeys (~1~ or ~2~)." ; new
 global lOptionsRecentFolders := "Number of folders in menu" ; changed
 global lOptionsRecentFoldersPrompt := "Recent Folders:" ; new
 global lOptionsRememberSettingsPosition := "Remember window position"

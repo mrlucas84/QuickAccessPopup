@@ -16,6 +16,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- check power menu hotkeys in Hotkeys list
+- fix options menu hotkey new
+- check if default hotkey for QAP features in menu is OK
 
 TO-DO
 - adapt Change Hotkey to g_objQAPFeatures[strQAPFeatureCode].Hotkey
@@ -304,7 +307,6 @@ g_objQAPFeatures := Object()
 g_objQAPFeaturesCodeByDefaultName := Object()
 g_objQAPFeaturesDefaultNameByCode := Object()
 g_objQAPFeaturesPowerCodeByOrder := Object()
-g_objQAPFeaturesPreviousHotkey := Object()
 g_strQAPFeaturesList := ""
 
 g_objHotkeysByLocation := Object() ; Hotkeys by Location
@@ -1120,7 +1122,7 @@ TranslateMUI(resDll, resID)
 InitQAPFeatures:
 ;------------------------------------------------------------
 
-; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strHotkey)
+; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strDefaultHotkey)
 
 ; Submenus features
 InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", 0, "iconClipboard", "+^C")
@@ -1162,7 +1164,7 @@ return
 
 
 ;------------------------------------------------------------
-InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strHotkey := "")
+InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strDefaultHotkey := "")
 
 ; QAP Feature Objects (g_objQAPFeatures) definition:
 ;		Key: strQAPFeatureInternalName
@@ -1174,7 +1176,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 ;		QAPFeatureCommand: command to be executed when this favorite is selected (excluding the ending ":")
 ;		QAPFeaturePowerOrder: order of feature in the Power Menu displayed before user choose the target favorite (0 if not Power menu feature)
 ;		DefaultIcon: default icon (in the "file,index" format)
-;		Hotkey: current feature hotkey (string like "+^s")
+;		DefaultHotkey: default feature hotkey (string like "+^s")
 
 ;------------------------------------------------------------
 {
@@ -1192,7 +1194,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	objOneQAPFeature.QAPFeatureMenuName := strQAPFeatureMenuName
 	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
 	objOneQAPFeature.QAPFeaturePowerOrder := intQAPFeaturePowerOrder
-	objOneQAPFeature.Hotkey := strHotkey
+	objOneQAPFeature.DefaultHotkey := strHotkey
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisLocalizedName, "{" . strQAPFeatureCode . "}")
@@ -1744,6 +1746,7 @@ if HasHotkey(g_arrPopupHotkeys4)
 if (ErrorLevel)
 	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys4, g_arrOptionsTitles4)
 
+; Load location hotkeys
 Loop
 {
 	IniRead, strLocationHotkey, %g_strIniFile%, LocationHotkeys, Hotkey%A_Index%
@@ -1752,6 +1755,28 @@ Loop
 	StringSplit, arrLocationHotkey, strLocationHotkey, |
 	g_objHotkeysByLocation.Insert(arrLocationHotkey1, arrLocationHotkey2)
 }
+
+; Turn off previous QAP Power Menu features hotkeys
+for strCode, objThisQAPFeature in g_objQAPFeatures
+	if HasHotkey(objThisQAPFeature.CurrentHotkey)
+		Hotkey, % objThisQAPFeature.CurrentHotkey, , Off
+	
+; Load QAP Power Menu hotkeys
+for intOrder, strCode in g_objQAPFeaturesPowerCodeByOrder
+{
+	IniRead, strHotkey,  %g_strIniFile%, PowerMenuHotkeys, %strCode%
+	if (strHotkey <> "ERROR")
+	{
+		Hotkey, %strHotkey%, OpenPowerMenuHotkey, On UseErrorLevel
+		g_objQAPFeatures[strCode].CurrentHotkey := strHotkey
+	}
+	if (ErrorLevel)
+		Oops(lDialogInvalidHotkey, strHotkey, g_objQAPFeatures[strCode].LocalizedName)
+}
+
+strCode := ""
+objThisQAPFeature := ""
+strHotkey := ""
 
 return
 ;------------------------------------------------------------
@@ -2743,11 +2768,12 @@ g_intGui1WinID := WinExist("A")
 loop, 4
 	g_arrPopupHotkeysPrevious%A_Index% := g_arrPopupHotkeys%A_Index% ; allow to turn off changed hotkeys
 
-g_objQAPFeaturesPreviousHotkey := Object() ; re-init
+g_objQAPFeaturesNewHotkeys := Object() ; re-init
 for intOrder, strPowerCode in g_objQAPFeaturesPowerCodeByOrder
-	if HasHotkey(g_objQAPFeatures[strPowerCode].Hotkey)
+	if HasHotkey(g_objQAPFeatures[strPowerCode].CurrentHotkey)
 		; ###_V("strPowerCode", strPowerCode, g_objQAPFeatures[strPowerCode].LocalizedName, g_objQAPFeatures[strPowerCode].Hotkey)
-		g_objQAPFeaturesPreviousHotkey[strPowerCode] := g_objQAPFeatures[strPowerCode].Hotkey ; allow to turn off changed hotkeys
+		; g_objQAPFeaturesNewHotkeys will be saved to ini file and g_objQAPFeatures will be used to turn off previous hotkeys
+		g_objQAPFeaturesNewHotkeys.Insert(strPowerCode, g_objQAPFeatures[strPowerCode].CurrentHotkey)
 
 StringSplit, g_arrOptionsTitlesSub, lOptionsPopupHotkeyTitlesSub, |
 
@@ -2847,6 +2873,7 @@ loop, % g_arrPopupHotkeyNames%0%
 	Gui, 2:Font, s8 w700
 	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsPopupHotkeyTitles%A_Index%
 	Gui, 2:Font, s9 w500, Courier New
+;	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % Hotkey2Text(g_arrPopupHotkeys%A_Index%)
 	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % HotkeySections2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
 	Gui, 2:Font
 	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
@@ -2859,22 +2886,20 @@ loop, % g_arrPopupHotkeyNames%0%
 
 Gui, 2:Tab, 3
 
-/*
 Gui, 2:Font
-Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabMouseAndKeyboardIntro, g_strAppNameText)
+Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsPowerMenuFeaturesIntro, Hotkey2Text(g_arrPopupHotkeys3), Hotkey2Text(g_arrPopupHotkeys4))
 
-loop, % g_arrPopupHotkeyNames%0%
+for intOrder, strPowerCode in g_objQAPFeaturesPowerCodeByOrder
 {
-	Gui, 2:Font, s8 w700
-	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsPopupHotkeyTitles%A_Index%
+	; ###_V("g_objQAPFeaturesPowerCodeByOrder", intOrder, strPowerCode, g_objQAPFeatures[strPowerCode].CurrentHotkey)
+	; ###_V("strPowerCode", strPowerCode, g_objQAPFeatures[strPowerCode].LocalizedName, g_objQAPFeatures[strPowerCode].CurrentHotkey)
+	Gui, 2:Add, Link, x15 y+10 w240, % g_objQAPFeatures[strPowerCode].LocalizedName . " <A id=""" . strPowerCode . """>?</A>" ; ### link to help
 	Gui, 2:Font, s9 w500, Courier New
-	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % HotkeySections2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
+	Gui, 2:Add, Text, Section x260 yp w280 h20 center 0x1000 vf_lblPowerHotkeyText%intOrder% gButtonOptionsChangePowerHotkey
+		, % Hotkey2Text(g_objQAPFeatures[strPowerCode].CurrentHotkey)
 	Gui, 2:Font
-	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
-	Gui, 2:Font, s8 w500
-	Gui, 2:Add, Link, x15 ys w240 gOptionsTitlesSubClicked, % g_arrOptionsTitlesSub%A_Index%
+	Gui, 2:Add, Button, yp x555 vf_btnChangePowerHotkey%intOrder% gButtonOptionsChangePowerHotkey, %lOptionsChangeHotkey%
 }
-*/
 
 ;---------------------------------------
 ; Tab 4: Exclusion list
@@ -3006,6 +3031,33 @@ else
 	g_arrPopupHotkeys%intHotkeyIndex% := strPopupHotkeysBackup
 	
 strPopupHotkeysBackup := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonOptionsChangePowerHotkey:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+intPowerOrder := A_GuiControl
+StringReplace, intPowerOrder, intPowerOrder, f_lblPowerHotkeyText
+StringReplace, intPowerOrder, intPowerOrder, f_btnChangePowerHotkey
+; ###_V(intPowerOrder, g_objQAPFeaturesPowerCodeByOrder[intPowerOrder], g_objQAPFeatures[g_objQAPFeaturesPowerCodeByOrder[intPowerOrder]].Hotkey)
+
+strThisPowerCode := g_objQAPFeaturesPowerCodeByOrder[intPowerOrder]
+objThisPower := g_objQAPFeatures[strThisPowerCode]
+g_objQAPFeaturesNewHotkeys[strThisPowerCode] := SelectHotkey(objThisPower.CurrentHotkey, objThisPower.LocalizedName, lDialogHotkeysManagePower
+	, "", 3, objThisPower.DefaultHotkey)
+; ###_D(Hotkey2Text(g_objQAPFeaturesNewHotkeys[strThisPowerCode]))
+
+if StrLen(g_objQAPFeaturesNewHotkeys[strThisPowerCode])
+	GuiControl, 2:, f_lblPowerHotkeyText%intPowerOrder%, % Hotkey2Text(g_objQAPFeaturesNewHotkeys[strThisPowerCode])
+	
+; strPopupHotkeysBackup := ""
+intPowerOrder := ""
+strThisPowerCode := ""
 
 return
 ;------------------------------------------------------------
@@ -3160,13 +3212,10 @@ loop, % g_arrPopupHotkeyNames%0%
 ;---------------------------------------
 ; Tab 3: Popup menu hotkeys
 
-/*
-loop, % g_arrPopupHotkeyNames%0%
-	if (g_arrPopupHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
-		IniWrite, None, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index% ; do not write lOptionsMouseNone because it is translated
-	else
-		IniWrite, % g_arrPopupHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index%
-*/
+IniDelete, %g_strIniFile%, PowerMenuHotkeys
+for strThisPowerCode, strNewHotkey in g_objQAPFeaturesNewHotkeys
+	if HasHotkey(strNewHotkey)
+		IniWrite, %strNewHotkey%, %g_strIniFile%, PowerMenuHotkeys, %strThisPowerCode%
 
 Gosub, LoadIniPopupHotkeys ; reload ini variables and reset hotkeys
 
@@ -5497,10 +5546,9 @@ loop, 4
 for strQAPFeatureCode in g_objQAPFeaturesDefaultNameByCode
 {
 	if (g_objQAPFeatures[strQAPFeatureCode].QAPFeaturePowerOrder)
-		if (StrLen(g_objQAPFeatures[strQAPFeatureCode].Hotkey) and g_objQAPFeatures[strQAPFeatureCode].Hotkey <> lDialogNone)
-			or f_blnSeeAllFavorites
+		if HasHotkey(g_objQAPFeatures[strQAPFeatureCode].CurrentHotkey) or f_blnSeeAllFavorites
 			LV_Add(, , lDialogHotkeysManagePowerMenu, g_objQAPFeatures[strQAPFeatureCode].LocalizedName, lDialogHotkeysManagePower
-				, Hotkey2Text(g_objQAPFeatures[strQAPFeatureCode].Hotkey), strQAPFeatureCode)
+				, Hotkey2Text(g_objQAPFeatures[strQAPFeatureCode].CurrentHotkey), strQAPFeatureCode)
 }
 
 for strMenuPath, objMenu in g_objMenusIndex
@@ -5718,7 +5766,8 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 {
 	; safer than declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
 	global
-	
+
+	; ###_V("SelectHotkey", strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey, strDescription)
 	SplitHotkey(strActualHotkey, strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
 
 	intGui2WinID := WinExist("A")
@@ -5915,7 +5964,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	if !StrLen(strNewHotkey)
 		strNewHotkey := "None"
 	
-	if HasHotkey(strNewHotkey) ; do not compare with lDialogNone because it is translated
+	if HasHotkey(strNewHotkey)
 	{
 		; Order of modifiers important to keep modifiers labels in correct order
 		if (blnWin)
@@ -6636,6 +6685,17 @@ OpenPowerMenu:
 g_strPowerMenu := A_ThisMenuItem
 ; Menu, %lMainMenuName%, Show
 gosub, LaunchFromPowerMenu
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenPowerMenuHotkey:
+;------------------------------------------------------------
+
+###_V(A_ThisLabel, A_ThisHotkey)
+; search power menu code in g_objQAPFeatures to set g_strPowerMenu (name or code??) and gosub LaunchFromPowerMenu
 
 return
 ;------------------------------------------------------------
