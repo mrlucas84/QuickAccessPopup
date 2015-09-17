@@ -16,19 +16,17 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- Power Edit if QAP feature must not execute feature
-- Power Edit wrong if column break befre fav
 
 TO-DO
-OK - add note "Note: for various reasons some window may refuse to be resized or moved" in Edit Fav
-OK - add note "Note: the password will NOT be encrypted when sent on Internet" after password prompt
-OK - implement Power key feature edit favorite
+- adapt Change Hotkey to g_objQAPFeatures[strQAPFeatureCode].Hotkey
+- disable previous if exist and load/reload powermenu hotkeys in load ini hotkeys
 - refactor CopyLocation to Power key
+- test shortcut on a menu
 - implement open group
+- make sure relative paths are supported for everything folders, files, applications, custom icons.
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
-- make sure relative paths are supported for everything folders, files, applications, custom icons.
 
 LATER
 -----
@@ -48,6 +46,7 @@ FPCONNECT
 
 
 Version: 6.0.3 alpha (2015-??-??)
+* Implement Power key feature Edit favorite
 * 
 
 
@@ -301,9 +300,11 @@ g_objClassIdOrPathByDefaultName := Object() ; used by InitSpecialFolders and Col
 g_objSpecialFolders := Object()
 g_strSpecialFoldersList := ""
 
+g_objQAPFeatures := Object()
 g_objQAPFeaturesCodeByDefaultName := Object()
 g_objQAPFeaturesDefaultNameByCode := Object()
-g_objQAPFeatures := Object()
+g_objQAPFeaturesPowerCodeByOrder := Object()
+g_objQAPFeaturesPreviousHotkey := Object()
 g_strQAPFeaturesList := ""
 
 g_objHotkeysByLocation := Object() ; Hotkeys by Location
@@ -355,6 +356,7 @@ Gosub, BuildClipboardMenuInit
 ; no need to build Recent folders menu at startup because this menu is refreshed/recreated on demand
 
 Gosub, BuildMainMenu
+Gosub, BuildPowerMenu
 Gosub, LoadFavoriteHotkeys
 Gosub, BuildGui
 Gosub, BuildTrayMenu
@@ -565,21 +567,24 @@ g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|Whe
 StringSplit, g_arrMouseButtons, g_strMouseButtons, |
 
 ; Icon files and index tested on Win 7 and Win 8.1. Not tested on Win 10.
-strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetworkNeighborhood|iconControlPanel|iconRecycleBin"
-	. "|iconRecentFolders|iconSpecialFolders|iconGroup|iconCurrentFolders"
-	. "|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu|iconNetwork|iconUnknown|iconFolder"
-	. "|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic|iconMyVideo|iconHistory|iconFavorites|iconTemporary|iconWinver"
-    . "|iconFonts|iconApplication|iconClipboard|iconAbout|iconHelp|iconOptions|iconFTP|iconExit|iconHotkeys|iconNoContent"
-strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres"
-			. "|imageres|imageres|shell32|imageres"
-			. "|imageres|imageres|imageres|imageres|shell32|imageres|shell32|shell32"
-			. "|shell32|shell32|imageres|shell32|imageres|imageres|shell32|shell32|shell32|winver"
-            . "|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
-strIconsIndex := "106|189|68|105|115|23|50"
-			. "|113|203|99|96"
-			. "|113|110|217|208|298|29|176|4"
-			. "|297|46|176|55|104|179|240|87|153|1"
-            . "|39|304|261|222|24|301|104|216|174|110"
+strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetworkNeighborhood|iconControlPanel|iconRecycleBin|iconRecentFolders"
+	. "|iconSpecialFolders|iconGroup|iconCurrentFolders|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu"
+	. "|iconNetwork|iconUnknown|iconFolder|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic"
+	. "|iconMyVideo|iconHistory|iconFavorites|iconTemporary|iconWinver|iconFonts|iconApplication|iconClipboard"
+    . "|iconAbout|iconHelp|iconOptions|iconFTP|iconExit|iconHotkeys|iconNoContent|iconLaunch"
+	. ""
+strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres|imageres"
+			. "|imageres|shell32|imageres|imageres|imageres|imageres|imageres|shell32"
+			. "|imageres|shell32|shell32|shell32|shell32|imageres|shell32|imageres"
+			. "|imageres|shell32|shell32|shell32|winver|shell32|shell32|shell32"
+			. "|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
+			. ""
+strIconsIndex := "106|189|68|105|115|23|50|113"
+			. "|203|99|96|113|110|217|208|298"
+			. "|29|176|4|297|46|176|55|104"
+			. "|179|240|87|153|1|39|304|261"
+			. "|222|24|301|104|216|174|110|215"
+			. ""
 
 StringSplit, arrIconsFile, strIconsFile, |
 StringSplit, arrIconsIndex, strIconsIndex, |
@@ -1115,50 +1120,61 @@ TranslateMUI(resDll, resID)
 InitQAPFeatures:
 ;------------------------------------------------------------
 
-; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey)
+; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strHotkey)
 
-InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", "iconSettings", "+^S")
-InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", "iconCurrentFolders", "+^F")
-InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", "iconRecentFolders", "+^R")
-InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", "iconClipboard", "+^C")
+; Submenus features
+InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", 0, "iconClipboard", "+^C")
+InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", 0, "iconCurrentFolders", "+^F")
 
-InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", "iconAddThisFolder", "+^A")
-InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation . "...", "", "PopupMenuCopyLocation", "iconClipboard", "+^V")
+; Command features
+InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout", 0, "iconAbout")
+InitQAPFeatureObject("Add Favorite", lMenuAddFavorite . "...", "", "AddThisFolder", 0, "iconLaunch")
+InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", 0, "iconAddThisFolder", "+^A")
+InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "", "ExitApp", 0, "iconExit")
+InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp", 0, "iconHelp")
+InitQAPFeatureObject("Hotkeys", lDialogHotkeys . "...", "", "GuiHotkeysManageFromQAPFeature", 0, "iconHotkeys")
+InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptionsFromQAPFeature", 0, "iconOptions")
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", 0, "iconRecentFolders", "+^R")
+InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", 0, "iconSettings", "+^S")
+InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", 0, "iconDonate")
 
-InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptionsFromQAPFeature", "iconOptions")
-InitQAPFeatureObject("Hotkeys", lDialogHotkeys . "...", "", "GuiHotkeysManageFromQAPFeature", "iconHotkeys")
-InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout", "iconAbout")
-InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", "iconDonate")
-InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp", "iconHelp")
-InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "", "ExitApp", "iconExit")
+; Power Menu features
+InitQAPFeatureObject("Open in New Window", lMenuPowerNewWindow, "", "", 1, "iconFolder")
+InitQAPFeatureObject("Edit Favorite", lMenuPowerEditFavorite, "", "", 2, "iconLaunch")
+InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "", 4, "iconClipboard", "+^V")
 
 ;--------------------------------
 ; Build folders list for dropdown
 
 g_strQAPFeaturesList := ""
-for strQAPFeatureName in g_objQAPFeaturesCodeByDefaultName
-	g_strQAPFeaturesList .= strQAPFeatureName . "|"
+for strQAPFeatureName, objThisQAPFeature in g_objQAPFeaturesCodeByDefaultName
+	if !(objThisQAPFeature.QAPFeaturePowerOrder) ; exclude Power menu features
+		g_strQAPFeaturesList .= strQAPFeatureName . "|"
 StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1
 
 strQAPFeatureName := ""
+objThisQAPFeature := ""
+strQAPFeaturePowerOrder := ""
+strQAPFeaturePowerCode := ""
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, strThisDefaultIcon, strDefaultHotkey := "")
+InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strHotkey := "")
 
 ; QAP Feature Objects (g_objQAPFeatures) definition:
 ;		Key: strQAPFeatureInternalName
 ;		Value: objOneQAPFeature
 
 ; QAP Features Object (objOneQAPFeature) definition:
-;		objOneQAPFeature.LocalizedName: QAP Feature localized label
-;		strQAPFeatureMenuName: menu to be added to the menu (excluding the starting ":"), empty if no submenu associated to this QAP feature
-;		strQAPFeatureCommand: command to be executed when this favorite is selected (excluding the ending ":")
-;		objOneQAPFeature.DefaultIcon: default icon (in the "file,index" format)
-;		objOneQAPFeature.DefaultHotkey: default hotkey (string like "+^s")
+;		LocalizedName: QAP Feature localized label
+;		QAPFeatureMenuName: menu to be added to the menu (excluding the starting ":"), empty if no submenu associated to this QAP feature
+;		QAPFeatureCommand: command to be executed when this favorite is selected (excluding the ending ":")
+;		QAPFeaturePowerOrder: order of feature in the Power Menu displayed before user choose the target favorite (0 if not Power menu feature)
+;		DefaultIcon: default icon (in the "file,index" format)
+;		Hotkey: current feature hotkey (string like "+^s")
 
 ;------------------------------------------------------------
 {
@@ -1167,6 +1183,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	global g_objQAPFeatures
 	global g_objQAPFeaturesCodeByDefaultName
 	global g_objQAPFeaturesDefaultNameByCode
+	global g_objQAPFeaturesPowerCodeByOrder
 	
 	objOneQAPFeature := Object()
 	
@@ -1174,11 +1191,14 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	objOneQAPFeature.DefaultIcon := g_objIconsFile[strThisDefaultIcon] . "," . g_objIconsIndex[strThisDefaultIcon]
 	objOneQAPFeature.QAPFeatureMenuName := strQAPFeatureMenuName
 	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
-	objOneQAPFeature.DefaultHotkey := strDefaultHotkey
+	objOneQAPFeature.QAPFeaturePowerOrder := intQAPFeaturePowerOrder
+	objOneQAPFeature.Hotkey := strHotkey
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisLocalizedName, "{" . strQAPFeatureCode . "}")
 	g_objQAPFeaturesDefaultNameByCode.Insert("{" . strQAPFeatureCode . "}", strThisLocalizedName)
+	if (intQAPFeaturePowerOrder)
+		g_objQAPFeaturesPowerCodeByOrder.Insert(intQAPFeaturePowerOrder, "{" . strQAPFeatureCode . "}")
 }
 ;------------------------------------------------------------
 
@@ -1264,7 +1284,7 @@ FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
 ; reinit after Settings save if already exist
 g_objMenuInGui := Object() ; object of menu currently in Gui
 g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
-g_objQAPfeaturesInMenus := Object() ; index of QAP features in menu
+g_objQAPfeaturesInMenus := Object() ; index of QAP features actualy present in menu
 g_objMainMenu := Object() ; object of menu structure entry point
 g_objMainMenu.MenuPath := lMainMenuName ; localized name of the main menu
 g_objMainMenu.MenuType := "Menu" ; main menu is not a group
@@ -1680,15 +1700,15 @@ loop, % g_arrPopupHotkeyNames%0%
 
 ; First, if we can, navigate with QAP hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
 Hotkey, If, CanNavigate(A_ThisHotkey)
-	if (g_arrPopupHotkeysPrevious1 <> "") and (g_arrPopupHotkeysPrevious1 <> "None")
+	if HasHotkey(g_arrPopupHotkeysPrevious1)
 		Hotkey, % g_arrPopupHotkeysPrevious1, , Off
-	if (g_arrPopupHotkeys1 <> "None")
+	if HasHotkey(g_arrPopupHotkeys1)
 		Hotkey, % g_arrPopupHotkeys1, NavigateHotkeyMouse, On UseErrorLevel
 	if (ErrorLevel)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys1, g_arrOptionsTitles1)
-	if (g_arrPopupHotkeysPrevious2 <> "") and (g_arrPopupHotkeysPrevious2 <> "None")
+	if HasHotkey(g_arrPopupHotkeysPrevious2)
 		Hotkey, % g_arrPopupHotkeysPrevious2, , Off
-	if (g_arrPopupHotkeys2 <> "None")
+	if HasHotkey(g_arrPopupHotkeys2)
 		Hotkey, % g_arrPopupHotkeys2, NavigateHotkeyKeyboard, On UseErrorLevel
 	if (ErrorLevel)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
@@ -1696,30 +1716,30 @@ Hotkey, If
 
 ; Second, if we can't navigate but can launch, launch with QAP hotkey s(1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
 Hotkey, If, CanLaunch(A_ThisHotkey)
-	if (g_arrPopupHotkeysPrevious1 <> "") and (g_arrPopupHotkeysPrevious1 <> "None")
+	if HasHotkey(g_arrPopupHotkeysPrevious1)
 		Hotkey, % g_arrPopupHotkeysPrevious1, , Off
-	if (g_arrPopupHotkeys1 <> "None")
+	if HasHotkey(g_arrPopupHotkeys1)
 		Hotkey, % g_arrPopupHotkeys1, LaunchHotkeyMouse, On UseErrorLevel
 	if (ErrorLevel)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys1, g_arrOptionsTitles1)
-	if (g_arrPopupHotkeysPrevious2 <> "") and (g_arrPopupHotkeysPrevious2 <> "None")
+	if HasHotkey(g_arrPopupHotkeysPrevious2)
 		Hotkey, % g_arrPopupHotkeysPrevious2, , Off
-	if (g_arrPopupHotkeys2 <> "None")
+	if HasHotkey(g_arrPopupHotkeys2)
 		Hotkey, % g_arrPopupHotkeys2, LaunchHotkeyKeyboard, On UseErrorLevel
 	if (ErrorLevel)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
 ; Then, if QAP hotkey cannot be activated, open the Power menu with the Power hotkeys (3 PowerHotkeyMouse and 4 PowerHotkeyKeyboard)
-if (g_arrPopupHotkeysPrevious3 <> "") and (g_arrPopupHotkeysPrevious3 <> "None")
+if HasHotkey(g_arrPopupHotkeysPrevious3)
 	Hotkey, % g_arrPopupHotkeysPrevious3, , Off
-if (g_arrPopupHotkeys3 <> "None")
+if HasHotkey(g_arrPopupHotkeys3)
 	Hotkey, % g_arrPopupHotkeys3, PowerHotkeyMouse, On UseErrorLevel
 if (ErrorLevel)
 	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys3, g_arrOptionsTitles3)
-if (g_arrPopupHotkeysPrevious4 <> "") and (g_arrPopupHotkeysPrevious4 <> "None")
+if HasHotkey(g_arrPopupHotkeysPrevious4)
 	Hotkey, % g_arrPopupHotkeysPrevious4, , Off
-if (g_arrPopupHotkeys4 <> "None")
+if HasHotkey(g_arrPopupHotkeys4)
 	Hotkey, % g_arrPopupHotkeys4, PowerHotkeyKeyboard, On UseErrorLevel
 if (ErrorLevel)
 	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys4, g_arrOptionsTitles4)
@@ -2416,6 +2436,27 @@ return
 
 
 ;------------------------------------------------------------
+BuildPowerMenu:
+;------------------------------------------------------------
+
+Menu, g_menuPower, Add
+Menu, g_menuPower, DeleteAll
+
+Loop
+	if g_objQAPFeaturesPowerCodeByOrder.Haskey(A_Index)
+		AddMenuIcon("g_menuPower", g_objQAPFeatures[g_objQAPFeaturesPowerCodeByOrder[A_Index]].LocalizedName
+			, "OpenPowerMenu", g_objQAPFeatures[g_objQAPFeaturesPowerCodeByOrder[A_Index]].DefaultIcon)
+	else
+		if g_objQAPFeaturesPowerCodeByOrder.Haskey(A_Index + 1) ; there is another menu item, add a menu separator
+			Menu, g_menuPower, Add
+		else
+			break ; menu finished
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 BuildMainMenu:
 BuildMainMenuWithStatus:
 ;------------------------------------------------------------
@@ -2440,12 +2481,6 @@ if !(g_blnDonor)
 		Menu, %lMainMenuName%, Add
 	AddMenuIcon(lMainMenuName, lDonateMenu . "...", "GuiDonate", "iconDonate")
 }
-
-Menu, g_menuPower, Add
-Menu, g_menuPower, DeleteAll
-Menu, g_menuPower, Add, %lMenuPowerNewWindow%, OpenPowerMenu
-Menu, g_menuPower, Add
-Menu, g_menuPower, Add, %lMenuPowerEditFavorite%, OpenPowerMenu
 
 if (A_ThisLabel = "BuildMainMenuWithStatus")
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
@@ -2584,6 +2619,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 ;------------------------------------------------------------
 AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue, blnEnabled := true)
 ; strIconValue can be an item from strIconsMenus (eg: "iconFolder") or a "file,index" combo (eg: "imageres.dll,33")
+; strThisDefaultIcon is returned truncated if longer than 260 chars
 ;------------------------------------------------------------
 {
 	global g_intIconSize
@@ -2705,7 +2741,13 @@ if (A_ThisLabel = "GuiOptionsFromQAPFeature")
 
 g_intGui1WinID := WinExist("A")
 loop, 4
-	g_arrPopupHotkeysPrevious%A_Index% := g_arrPopupHotkeys%A_Index% ; allow to turn off replaced hotkeys
+	g_arrPopupHotkeysPrevious%A_Index% := g_arrPopupHotkeys%A_Index% ; allow to turn off changed hotkeys
+
+g_objQAPFeaturesPreviousHotkey := Object() ; re-init
+for intOrder, strPowerCode in g_objQAPFeaturesPowerCodeByOrder
+	if HasHotkey(g_objQAPFeatures[strPowerCode].Hotkey)
+		; ###_V("strPowerCode", strPowerCode, g_objQAPFeatures[strPowerCode].LocalizedName, g_objQAPFeatures[strPowerCode].Hotkey)
+		g_objQAPFeaturesPreviousHotkey[strPowerCode] := g_objQAPFeatures[strPowerCode].Hotkey ; allow to turn off changed hotkeys
 
 StringSplit, g_arrOptionsTitlesSub, lOptionsPopupHotkeyTitlesSub, |
 
@@ -2720,7 +2762,7 @@ Gui, 2:Font, s10 w700, Verdana
 Gui, 2:Add, Text, x10 y10 w595 center, % L(lOptionsGuiTitle, g_strAppNameText)
 
 Gui, 2:Font, s8 w600, Verdana
-Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsExclusionList% | %lOptionsThirdParty%%A_Space%
+Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsPowerMenuFeatures% | %lOptionsExclusionList% | %lOptionsThirdParty%%A_Space%
 
 ;---------------------------------------
 ; Tab 1: General options
@@ -2813,9 +2855,31 @@ loop, % g_arrPopupHotkeyNames%0%
 }
 
 ;---------------------------------------
-; Tab 3: Exclusion list
+; Tab 3: Power Menu Features
 
 Gui, 2:Tab, 3
+
+/*
+Gui, 2:Font
+Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabMouseAndKeyboardIntro, g_strAppNameText)
+
+loop, % g_arrPopupHotkeyNames%0%
+{
+	Gui, 2:Font, s8 w700
+	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsPopupHotkeyTitles%A_Index%
+	Gui, 2:Font, s9 w500, Courier New
+	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % HotkeySections2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
+	Gui, 2:Font
+	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
+	Gui, 2:Font, s8 w500
+	Gui, 2:Add, Link, x15 ys w240 gOptionsTitlesSubClicked, % g_arrOptionsTitlesSub%A_Index%
+}
+*/
+
+;---------------------------------------
+; Tab 4: Exclusion list
+
+Gui, 2:Tab, 4
 Gui, 2:Font
 
 Gui, 2:Add, Text, x10 y+10 w595, Exclusions list for Mouse hotkeys
@@ -2825,9 +2889,9 @@ Gui, 2:Add, Text, x10 y+20 w595, Exclusions list for Keyboard hotkey
 Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionKeyboardClassList, % ReplaceAllInString(Trim(g_strExclusionKeyboardClassList), "|", "`n")
 
 ;---------------------------------------
-; Tab 4: File Managers
+; Tab 5: File Managers
 
-Gui, 2:Tab, 4
+Gui, 2:Tab, 5
 
 Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabFileManagersIntro%
 
@@ -3093,10 +3157,21 @@ loop, % g_arrPopupHotkeyNames%0%
 	else
 		IniWrite, % g_arrPopupHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index%
 
+;---------------------------------------
+; Tab 3: Popup menu hotkeys
+
+/*
+loop, % g_arrPopupHotkeyNames%0%
+	if (g_arrPopupHotkeys%A_Index% = "None") ; do not compare with lOptionsMouseNone because it is translated
+		IniWrite, None, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index% ; do not write lOptionsMouseNone because it is translated
+	else
+		IniWrite, % g_arrPopupHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index%
+*/
+
 Gosub, LoadIniPopupHotkeys ; reload ini variables and reset hotkeys
 
 ;---------------------------------------
-; Tab 3: Exclusion list
+; Tab 4: Exclusion list
 
 g_strExclusionMouseClassList := ReplaceAllInString(Trim(f_strExclusionMouseClassList, " `t`n"), "`n", "|")
 IniWrite, %g_strExclusionMouseClassList%, %g_strIniFile%, Global, ExclusionMouseClassList
@@ -3105,7 +3180,7 @@ g_strExclusionKeyboardClassList := ReplaceAllInString(Trim(f_strExclusionKeyboar
 IniWrite, %g_strExclusionKeyboardClassList%, %g_strIniFile%, Global, ExclusionKeyboardClassList
 
 ;---------------------------------------
-; Tab 4: File Managers
+; Tab 5: File Managers
 
 g_strDirectoryOpusPath := f_strDirectoryOpusPath
 IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
@@ -4849,7 +4924,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	if StrLen(g_objEditedFavorite.FavoriteLocation) and (g_objEditedFavorite.FavoriteLocation <> f_strFavoriteLocation)
 	{
 		g_objHotkeysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
-		if StrLen(f_strFavoriteLocation) and StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
+		if StrLen(f_strFavoriteLocation) and HasHotkey(g_strNewFavoriteHotkey)
 			g_objHotkeysByLocation.Insert(f_strFavoriteLocation, g_strNewFavoriteHotkey) ; if the key already exists, its value is overwritten
 	}
 	
@@ -5321,6 +5396,7 @@ Gui, 2:Add, Listview
 Gui, 2:Add, Checkbox, vf_blnSeeAllFavorites gCheckboxSeeAllFavoritesClicked, %lDialogHotkeysManageListSeeAllFavorites%
 Gui, 2:Add, Checkbox, x+50 yp vf_blnSeeShortHotkeyNames gCheckboxSeeShortHotkeyNames, %lDialogHotkeysManageListSeeShortHotkeyNames%
 GuiControl, , f_blnSeeShortHotkeyNames, % (g_intHotkeyReminders = 2) ; 1 = no name, 2 = short names, 3 = full name
+
 Gosub, LoadHotkeysManageList
 
 Gui, 2:Add, Button, x+10 y+30 vf_btnHotkeysManageClose g2GuiClose h33, %lGui2Close%
@@ -5345,10 +5421,11 @@ Gui, 2:ListView, f_lvHotkeysList
 if (A_GuiEvent = "DoubleClick")
 {
 	intItemPosition := LV_GetNext()
-	LV_GetText(strMenuPath, intItemPosition, 2)
 	LV_GetText(strFavoritePosition, intItemPosition, 1)
+	LV_GetText(strMenuPath, intItemPosition, 2)
+	LV_GetText(strHotkeyType, intItemPosition, 4)
 	
-	if !StrLen(strMenuPath) ; this is a popup menu hotkey, go to Options, Menu hotkeys
+	if (strHotkeyType = lDialogHotkeysManagePopup) ; this is a popup menu hotkey, go to Options, Menu hotkeys
 	{
 		MsgBox, 35, %g_strAppNameText%!, % L(lDialogChangeHotkeyPopup, lOptionsMouseAndKeyboard, lGuiOptions)
 		IfMsgBox, Yes
@@ -5357,6 +5434,8 @@ if (A_GuiEvent = "DoubleClick")
 			GuiControl, Choose, f_intOptionsTab, 2
 		}
 	}
+	else if (strHotkeyType = lDialogHotkeysManagePower) ; this is Power menu feature, ### go to Options, Menu hotkeys
+		x := x ; ###
 	else
 	{
 		g_objEditedFavorite := g_objMenusIndex[strMenuPath][strFavoritePosition]
@@ -5409,10 +5488,20 @@ LV_Delete()
 intHotkeysManageListWinID := WinExist("A")
 if not DllCall("LockWindowUpdate", Uint, intHotkeysManageListWinID)
 	Oops("An error occured while locking window display in`n" . L(lDialogHotkeysManageTitle, strAppName, strAppVersion))
-	
+
+; Position (hidden)|Menu|Favorite Name|Type|Hotkey|Favorite Location
 loop, 4
 	LV_Add(, , , g_arrOptionsPopupHotkeyTitles%A_Index%, lDialogHotkeysManagePopup
 		, (f_blnSeeShortHotkeyNames ? g_arrPopupHotkeys%A_Index% : Hotkey2Text(g_arrPopupHotkeys%A_Index%)))
+
+for strQAPFeatureCode in g_objQAPFeaturesDefaultNameByCode
+{
+	if (g_objQAPFeatures[strQAPFeatureCode].QAPFeaturePowerOrder)
+		if (StrLen(g_objQAPFeatures[strQAPFeatureCode].Hotkey) and g_objQAPFeatures[strQAPFeatureCode].Hotkey <> lDialogNone)
+			or f_blnSeeAllFavorites
+			LV_Add(, , lDialogHotkeysManagePowerMenu, g_objQAPFeatures[strQAPFeatureCode].LocalizedName, lDialogHotkeysManagePower
+				, Hotkey2Text(g_objQAPFeatures[strQAPFeatureCode].Hotkey), strQAPFeatureCode)
+}
 
 for strMenuPath, objMenu in g_objMenusIndex
 	loop, % objMenu.MaxIndex()
@@ -5826,7 +5915,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	if !StrLen(strNewHotkey)
 		strNewHotkey := "None"
 	
-	if (strNewHotkey <> "None") ; do not compare with lDialogNone because it is translated
+	if HasHotkey(strNewHotkey) ; do not compare with lDialogNone because it is translated
 	{
 		; Order of modifiers important to keep modifiers labels in correct order
 		if (blnWin)
@@ -5878,7 +5967,7 @@ if (g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation] <> g_strNewFavo
 		; used when favorites are saved, must be before g_objHotkeysByLocation.Insert
 		g_objHotkeysToDisableWhenSave.Insert(g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation])
 	
-	if StrLen(g_strNewFavoriteHotkey) and (g_strNewFavoriteHotkey <> "None")
+	if HasHotkey(g_strNewFavoriteHotkey)
 		; must be after g_objHotkeysToDisableWhenSave.Insert
 		g_objHotkeysByLocation.Insert(g_objEditedFavorite.FavoriteLocation, g_strNewFavoriteHotkey)
 	else
@@ -6221,7 +6310,7 @@ LaunchHotkeyMouse:
 LaunchHotkeyKeyboard:
 LaunchFromTrayIcon:
 LaunchFromPowerMenu:
-PopupMenuCopyLocation:
+; PopupMenuCopyLocation: remove ref to this label
 ;------------------------------------------------------------
 
 if !(g_blnMenuReady)
@@ -8837,6 +8926,15 @@ ExpandPlaceholders(strArguments, strLocation)
 	StringReplace, strExpanded, strExpanded, {DRIVE}, %strOutDrive%, All
 	
 	return strExpanded
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+HasHotkey(strCandidateHotkey)
+;------------------------------------------------------------
+{
+	return StrLen(strCandidateHotkey) and (strCandidateHotkey <> "None")
 }
 ;------------------------------------------------------------
 
