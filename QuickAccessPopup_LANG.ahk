@@ -29,6 +29,7 @@ global lDialogCancelPrompt := "Discard changes?"
 global lDialogCancelTitle := "Cancel - ~1~ ~2~"
 global lDialogChangeHotkeyNote := "Note: The location ""~1~"" will be linked to the new hotkey in all menus."
 global lDialogChangeHotkeyPopup := "This is a popup menu hotkey.`n`nDo you want to manage ""~1~"" in ""~2~""?" ; new
+global lDialogChangeHotkeyPower := "This is a Power menu hotkey.`n`nDo you want to manage ""~1~"" in ""~2~""?" ; new
 global lDialogChangeHotkeyTitle := "Change hotkey - ~1~ ~2~" ; lOptionsChangeHotkeyTitle renamed
 global lDialogContinue := "Continue" ; added
 global lDialogCtrl := "Control" ; renamed

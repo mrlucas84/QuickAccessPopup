@@ -5482,7 +5482,14 @@ if (A_GuiEvent = "DoubleClick")
 		}
 	}
 	else if (strHotkeyType = lDialogHotkeysManagePower) ; this is Power menu feature, ### go to Options, Menu hotkeys
-		x := x ; ###
+	{
+		MsgBox, 35, %g_strAppNameText%!, % L(lDialogChangeHotkeyPopup, lOptionsPowerMenuFeatures, lGuiOptions)
+		IfMsgBox, Yes
+		{
+			Gosub, GuiOptions
+			GuiControl, Choose, f_intOptionsTab, 3
+		}
+	}
 	else
 	{
 		g_objEditedFavorite := g_objMenusIndex[strMenuPath][strFavoritePosition]
