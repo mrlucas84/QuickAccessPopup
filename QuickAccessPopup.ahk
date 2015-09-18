@@ -16,13 +16,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- check power menu hotkeys in Hotkeys list
-- fix options menu hotkey new
-- check if default hotkey for QAP features in menu is OK
 
 TO-DO
-- adapt Change Hotkey to g_objQAPFeatures[strQAPFeatureCode].Hotkey
-- disable previous if exist and load/reload powermenu hotkeys in load ini hotkeys
 - refactor CopyLocation to Power key
 - test shortcut on a menu
 - implement open group
@@ -1194,7 +1189,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	objOneQAPFeature.QAPFeatureMenuName := strQAPFeatureMenuName
 	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
 	objOneQAPFeature.QAPFeaturePowerOrder := intQAPFeaturePowerOrder
-	objOneQAPFeature.DefaultHotkey := strHotkey
+	objOneQAPFeature.DefaultHotkey := strDefaultHotkey
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisLocalizedName, "{" . strQAPFeatureCode . "}")
@@ -2766,7 +2761,7 @@ if (A_ThisLabel = "GuiOptionsFromQAPFeature")
 
 g_intGui1WinID := WinExist("A")
 loop, 4
-	g_arrPopupHotkeysPrevious%A_Index% := g_arrPopupHotkeys%A_Index% ; allow to turn off changed hotkeys
+	g_arrPopupHotkeysPrevious%A_Index% := g_arrPopupHotkeys%A_Index% ; allow to turn off changed hotkeys and to revert g_arrPopupHotkeys if cancel
 
 g_objQAPFeaturesNewHotkeys := Object() ; re-init
 for intOrder, strPowerCode in g_objQAPFeaturesPowerCodeByOrder
@@ -2873,7 +2868,6 @@ loop, % g_arrPopupHotkeyNames%0%
 	Gui, 2:Font, s8 w700
 	Gui, 2:Add, Text, x15 y+20 w610, % g_arrOptionsPopupHotkeyTitles%A_Index%
 	Gui, 2:Font, s9 w500, Courier New
-;	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % Hotkey2Text(g_arrPopupHotkeys%A_Index%)
 	Gui, 2:Add, Text, Section x260 y+5 w280 h23 center 0x1000 vf_lblHotkeyText%A_Index% gButtonOptionsChangeHotkey%A_Index%, % HotkeySections2Text(strModifiers%A_Index%, strMouseButton%A_Index%, strOptionsKey%A_Index%)
 	Gui, 2:Font
 	Gui, 2:Add, Button, yp x555 vf_btnChangeHotkey%A_Index% gButtonOptionsChangeHotkey%A_Index%, %lOptionsChangeHotkey%
@@ -3307,6 +3301,10 @@ return
 ;------------------------------------------------------------
 ButtonOptionsCancel:
 ;------------------------------------------------------------
+
+loop, 4
+	g_arrPopupHotkeys%A_Index% := g_arrPopupHotkeysPrevious%A_Index% ; revert to previous content of g_arrPopupHotkeys
+
 Gosub, 2GuiClose
 
 return
@@ -6038,12 +6036,13 @@ HotkeyIfAvailable(strHotkey, strLocation)
 ;-----------------------------------------------------------
 {
 	global g_arrPopupHotkeys
-	global g_objMenusIndex
+	global g_objQAPFeatures
 	global g_arrOptionsPopupHotkeyTitles
 	
 	if !StrLen(strHotkey) or (strHotkey = "None")
 		return strHotkey
-
+	
+	; check popup menu hotkeys
 	loop, 4
 		if (g_arrPopupHotkeys%A_Index% = strHotkey)
 		{
@@ -6051,6 +6050,15 @@ HotkeyIfAvailable(strHotkey, strLocation)
 			break
 		}
 	
+	; check QAP Features Power menu hotkeys
+	for strCode, objThisQAPFeature in g_objQAPFeatures
+		if (objThisQAPFeature.CurrentHotkey = strHotkey)
+		{
+			strExistingLocation := strCode
+			break
+		}
+	
+	; check favorites hotkeys
 	if !StrLen(strExistingLocation)
 		strExistingLocation := GetHotkeyLocation(strHotkey)
 	
