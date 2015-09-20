@@ -36,6 +36,7 @@ global lDialogCtrl := "Control" ; renamed
 global lDialogCtrlShort := "Ctrl" ; renamed
 global lDialogEdit := "Edit"
 global lDialogEndOfMenu := "end of menu"
+global lDialogErrorMoving := "Unable to move or resize the window for favorite:`n""~1~"""
 global lDialogFavoriteDoesNotExistPrompt := "The favorite ""~1~"" does not exist or is not available.`n`nIf this favorite is on a network drive, please try again after network authentification.`n`nIf a favorite is a link to a web page, select the ""Link"" option when you add the favorite." ; changed
 global lDialogFavoriteDoesNotExistTitle := "Favorite does not exist - ~1~"
 global lDialogFavoriteDropdownEmpty := "Please choose an item in the ~1~ drop-down list." ; new

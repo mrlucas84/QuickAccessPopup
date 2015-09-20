@@ -16,11 +16,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- error in OpenFavoriteInNewWindowExplorer
-- review lDialogGroupLoadErrorLoading error message
 
 TO-DO
-- test shortcut on a menu
 - implement open group
 - make sure relative paths are supported for everything folders, files, applications, custom icons.
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -44,10 +41,15 @@ FPCONNECT
 - FPconnect should provide the ahk_class for the file manager (to be used fo winmove)
 
 
-Version: 6.0.3 alpha (2015-??-??)
-* Implement Power key feature Edit favorite
-* 
-
+Version: 6.0.3 alpha (2015-09-20)
+* New tab in Option to set power menu hotkeys
+* Show Power menu hotkeys in Manage hotkeys dialog box
+* Implement Power key feature "Edit favorite"
+* Add Power menu feature "Copy location"
+* Add power menu feature "Change folder in dialog box"
+* Disable "Change folder in dialog box" in Power menu if target is not dialog box
+* Stop changing folder in dialog with regular popup hotkeys (prevent changing values in a non-file dialog box)
+* Enable favorite hotkey for sub-menus
 
 Version 6.0.2 alpha (2015-09-15)
 - First alpha test release. List of work done since v6.0.1:
@@ -211,7 +213,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.0.2 alpha
+;@Ahk2Exe-SetVersion 6.0.3 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -264,7 +266,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.0.2" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.0.3" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -6429,7 +6431,7 @@ g_blnPowerMenu := true
 g_strHokeyTypeDetected := "Power"
 
 SetTargetClassWinIdAndControl(A_ThisLabel = "PowerHotkeyMouse")
-###_V(A_ThisLabel, g_strPowerMenu, g_strTargetClass, g_strTargetWinId, !WindowIsDialog(g_strTargetClass, g_strTargetWinId))
+; ###_V(A_ThisLabel, g_strPowerMenu, g_strTargetClass, g_strTargetWinId, !WindowIsDialog(g_strTargetClass, g_strTargetWinId))
 Menu, g_menuPower, % (WindowIsDialog(g_strTargetClass, g_strTargetWinId) ? "Enable" : "Disable"), %lMenuPowerNavigateDialog%
 
 Menu, g_menuPower, Show
@@ -6755,7 +6757,7 @@ OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
+; ###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
@@ -6850,6 +6852,16 @@ if InStr("Document|URL", g_objThisFavorite.FavoriteType)
 		g_strNewWindowId := "ahk_pid " . intPid
 		gosub, OpenFavoriteWindowResize
 	}
+
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+; --- Menu type ---
+
+if (g_objThisFavorite.FavoriteType = "Menu")
+{
+	Menu, %lMainMenuName% %g_strFullLocation%, Show
 
 	gosub, OpenFavoriteCleanup
 	return
@@ -7521,7 +7533,7 @@ if (g_arrFavoriteWindowPosition1)
 	{
 		if (A_Index > 25)
 		{
-			Oops(lDialogGroupLoadErrorLoading, g_strFullLocation)
+			TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion), % L(lDialogErrorMoving, g_strFullLocation)
 			Break
 		}
 		Sleep, %g_arrFavoriteWindowPosition7%
