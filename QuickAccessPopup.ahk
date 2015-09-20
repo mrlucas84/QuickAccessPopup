@@ -16,9 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- error in OpenFavoriteInNewWindowExplorer
+- review lDialogGroupLoadErrorLoading error message
 
 TO-DO
-- refactor CopyLocation to Power key
 - test shortcut on a menu
 - implement open group
 - make sure relative paths are supported for everything folders, files, applications, custom icons.
@@ -569,19 +570,19 @@ strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetw
 	. "|iconNetwork|iconUnknown|iconFolder|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic"
 	. "|iconMyVideo|iconHistory|iconFavorites|iconTemporary|iconWinver|iconFonts|iconApplication|iconClipboard"
     . "|iconAbout|iconHelp|iconOptions|iconFTP|iconExit|iconHotkeys|iconNoContent|iconLaunch"
-	. ""
+	. "|iconChangeFolder|iconEditFavorite"
 strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres|imageres"
 			. "|imageres|shell32|imageres|imageres|imageres|imageres|imageres|shell32"
 			. "|imageres|shell32|shell32|shell32|shell32|imageres|shell32|imageres"
 			. "|imageres|shell32|shell32|shell32|winver|shell32|shell32|shell32"
 			. "|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
-			. ""
+			. "|imageres|shell32"
 strIconsIndex := "106|189|68|105|115|23|50|113"
 			. "|203|99|96|113|110|217|208|298"
 			. "|29|176|4|297|46|176|55|104"
 			. "|179|240|87|153|1|39|304|261"
 			. "|222|24|301|104|216|174|110|215"
-			. ""
+			. "|177|68"
 
 StringSplit, arrIconsFile, strIconsFile, |
 StringSplit, arrIconsIndex, strIconsIndex, |
@@ -1137,8 +1138,9 @@ InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", 0, "iconDon
 
 ; Power Menu features
 InitQAPFeatureObject("Open in New Window", lMenuPowerNewWindow, "", "", 1, "iconFolder")
-InitQAPFeatureObject("Edit Favorite", lMenuPowerEditFavorite, "", "", 2, "iconLaunch")
-InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "", 4, "iconClipboard", "+^V")
+InitQAPFeatureObject("Navigate Dialog", lMenuPowerNavigateDialog, "", "", 2, "iconChangeFolder", "+^D")
+InitQAPFeatureObject("Edit Favorite", lMenuPowerEditFavorite, "", "", 4, "iconEditFavorite")
+InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "", 6, "iconClipboard", "+^V")
 
 ;--------------------------------
 ; Build folders list for dropdown
@@ -6374,7 +6376,6 @@ LaunchHotkeyMouse:
 LaunchHotkeyKeyboard:
 LaunchFromTrayIcon:
 LaunchFromPowerMenu:
-; PopupMenuCopyLocation: remove ref to this label
 ;------------------------------------------------------------
 
 if !(g_blnMenuReady)
@@ -6386,20 +6387,17 @@ g_blnPowerMenu := (A_ThisLabel = "LaunchFromPowerMenu")
 if !(g_blnPowerMenu)
 	g_strPowerMenu := "" ; delete from previous call to Power key, else keep what was set in OpenPowerMenu
 
-if InStr("LaunchFromPowerMenu|LaunchFromTrayIcon", A_ThisLabel)
+if (A_ThisLabel = "LaunchFromTrayIcon")
 {
-	g_strTargetWinId := WinExist("A")
-	g_strTargetControl := ""
-	WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-	g_strHokeyTypeDetected :=  (A_ThisLabel = "LaunchFromPowerMenu" ? "Power" : "Launch")
+	SetTargetClassWinIdAndControl(false)
+	g_strHokeyTypeDetected := "Launch"
 }
+else if (A_ThisLabel = "LaunchFromPowerMenu")
+	g_strHokeyTypeDetected := "Power"
 else
-	g_strHokeyTypeDetected := (A_ThisLabel = "PopupMenuCopyLocation" ? "CopyLocation" : SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1)) ; "Navigate" or "Launch"
+	g_strHokeyTypeDetected := SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1) ; "Navigate" or "Launch"
 
 ; ###_V(A_ThisLabel, g_strTargetClass, g_strTargetWinId)
-
-if (g_strHokeyTypeDetected = "CopyLocation")
-	TrayTip, %g_strAppNameText%, %lPopupMenuCopyLocationTrayTip%
 
 if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass)
 	and InStr(A_ThisLabel, "Mouse") and (g_strHokeyTypeDetected = "Navigate"))
@@ -6429,6 +6427,11 @@ PowerHotkeyKeyboard:
 
 g_blnPowerMenu := true
 g_strHokeyTypeDetected := "Power"
+
+SetTargetClassWinIdAndControl(A_ThisLabel = "PowerHotkeyMouse")
+###_V(A_ThisLabel, g_strPowerMenu, g_strTargetClass, g_strTargetWinId, !WindowIsDialog(g_strTargetClass, g_strTargetWinId))
+Menu, g_menuPower, % (WindowIsDialog(g_strTargetClass, g_strTargetWinId) ? "Enable" : "Disable"), %lMenuPowerNavigateDialog%
+
 Menu, g_menuPower, Show
 
 return
@@ -6471,23 +6474,12 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 ;------------------------------------------------------------
 {
 	global ; sets g_strTargetWinId, g_strTargetControl, g_strTargetClass
-	
-	if (strMouseOrKeyboard = g_arrPopupHotkeys1) ; Mouse hotkey (g_arrPopupHotkeys1 is NavigateOrLaunchHotkeyMouse value in ini file)
-	{
-		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
-		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		; TrayTip, Navigate Mouse, %strMouseOrKeyboard% = %g_strMouseNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%`n%g_strTargetControl%
-	}
-	else ; Keyboard
-	{
-		g_strTargetWinId := WinExist("A")
-		g_strTargetControl := ""
-		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
-	}
+
+	; Mouse hotkey (g_arrPopupHotkeys1 is NavigateOrLaunchHotkeyMouse value in ini file)
+	SetTargetClassWinIdAndControl(strMouseOrKeyboard = g_arrPopupHotkeys1)
 
 	blnCanNavigate := WindowIsExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
-		or WindowIsDialog(g_strTargetClass, g_strTargetWinId)
+		; ### removed to move to Power Menu: or WindowIsDialog(g_strTargetClass, g_strTargetWinId)
 		or (g_blnUseDirectoryOpus and WindowIsDirectoryOpus(g_strTargetClass))
 		or (g_blnUseTotalCommander and WindowIsTotalCommander(g_strTargetClass))
 		or (g_blnUseFPconnect and WindowIsFPconnect(g_strTargetWinId))
@@ -6506,21 +6498,9 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 
 	g_intCounterLaunch++
 
-	if (strMouseOrKeyboard = g_arrPopupHotkeys1) ; Mouse hotkey
-	{
-		strExclusionClassList := g_strExclusionMouseClassList
-		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
-		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		; TrayTip, CanLaunch Mouse, %strMouseOrKeyboard% = %g_strMouseHotkey%`n%g_strTargetControl%`nList: %g_strExclusionMouseClassList%`nClass: %g_strTargetClass%
-	}
-	else ; Keyboard
-	{
-		strExclusionClassList := g_strExclusionKeyboardClassList
-		g_strTargetWinId := WinExist("A")
-		g_strTargetControl := ""
-		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		; TrayTip, CanLaunch Keyboard, %strMouseOrKeyboard% = %g_strKeyboardHotkey%`nList: %g_strExclusionKeyboardClassList%`nClass: %g_strTargetClass%
-	}
+	; g_arrPopupHotkeys1 is mouse hotkey
+	SetTargetClassWinIdAndControl(strMouseOrKeyboard = g_arrPopupHotkeys1)
+	strExclusionClassList := (strMouseOrKeyboard = g_arrPopupHotkeys1 ? g_strExclusionMouseClassList : g_strExclusionKeyboardClassList)
 	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
 
 	Loop, Parse, strExclusionClassList, |
@@ -6695,10 +6675,9 @@ OpenPowerMenu:
 ; remember the power menu item to execute and open the popup menu to choose on what favorite execute this action
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, A_ThisMenuItem)
-
 g_strPowerMenu := A_ThisMenuItem
-; Menu, %lMainMenuName%, Show
+
+gosub, OpenPowerMenuTrayTip
 gosub, LaunchFromPowerMenu
 
 return
@@ -6709,8 +6688,59 @@ return
 OpenPowerMenuHotkey:
 ;------------------------------------------------------------
 
-###_V(A_ThisLabel, A_ThisHotkey)
-; search power menu code in g_objQAPFeatures to set g_strPowerMenu (name or code??) and gosub LaunchFromPowerMenu
+; search power menu code in g_objQAPFeatures to set g_strPowerMenu with localized name and gosub LaunchFromPowerMenu
+g_strPowerMenu := ""
+for intOrder, strCode in g_objQAPFeaturesPowerCodeByOrder
+	if (g_objQAPFeatures[strCode].CurrentHotkey = A_ThisHotkey)
+	{
+		g_strPowerMenu := g_objQAPFeatures[strCode].LocalizedName
+		break
+	}
+
+if (g_strPowerMenu = lMenuPowerNavigateDialog)
+{
+	SetTargetClassWinIdAndControl(false)
+	; ###_V(A_ThisLabel, g_strPowerMenu, lMenuPowerNavigateDialog)
+	if !WindowIsDialog(g_strTargetClass, g_strTargetWinId)
+	{
+		Oops(lMenuPowerNavigateDialogOops)
+		gosub, OpenPowerMenuHotkeyCleanup
+		return
+	}
+}
+	
+if StrLen(g_strPowerMenu)
+{
+	gosub, OpenPowerMenuTrayTip
+	gosub, LaunchFromPowerMenu
+}
+else
+	Oops("QAP feature could not be found...")
+
+OpenPowerMenuHotkeyCleanup:
+intOrder := ""
+strCode := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenPowerMenuTrayTip:
+;------------------------------------------------------------
+
+if (g_strPowerMenu = lMenuCopyLocation)
+	strMessage := lPowerMenuTrayTipCopyLocation
+else if (g_strPowerMenu = lMenuPowerNewWindow)
+	strMessage := lPowerMenuTrayTipNewWindow
+else if (g_strPowerMenu = lMenuPowerEditFavorite)
+	strMessage := lPowerMenuTrayTipEditFavorite
+else if (g_strPowerMenu = lMenuPowerNavigateDialog)
+	strMessage := lPowerMenuTrayTipNavigateDialog
+
+TrayTip, %g_strAppNameText%, %strMessage%
+
+strMessage := ""
 
 return
 ;------------------------------------------------------------
@@ -6748,23 +6778,12 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for th
 		return
 	}
 
+; preparation for power menu features before setting the full location
 if (g_blnPowerMenu)
-{
 	if (g_strPowerMenu = lMenuPowerNewWindow)
 		g_strHokeyTypeDetected := "Launch"
-
-	if (g_strPowerMenu = lMenuPowerEditFavorite)
-	{
-		g_objMenuInGui := g_objMenusIndex[A_ThisMenu]
-		g_intOriginalMenuPosition := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
-			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
-		g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
-		gosub, GuiShowFromPower
-		gosub, GuiEditFavoriteFromPower
-		gosub, OpenFavoriteCleanup
-		return
-	}
-}
+	else if (g_strPowerMenu = lMenuPowerNavigateDialog)
+		g_strHokeyTypeDetected := "Navigate" ;  if we get here, we know it is a dialog box
 
 if (g_objThisFavorite.FavoriteType = "FTP")
 	g_strHokeyTypeDetected := "Launch"
@@ -6791,16 +6810,31 @@ StringSplit, g_arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
 
 ; === ACTIONS ===
 
-; --- CopyLocation ---
+; --- Power Menu actions ---
 
-if (g_strHokeyTypeDetected = "CopyLocation") ; before or after expanding EnvVars?
+if (g_blnPowerMenu)
 {
-	; ###_O(g_strHokeyTypeDetected, g_objThisFavorite)
-	Clipboard := g_strFullLocation
-	TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
+	if (g_strPowerMenu = lMenuPowerEditFavorite)
+	{
+		g_objMenuInGui := g_objMenusIndex[A_ThisMenu]
+		g_intOriginalMenuPosition := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
+			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
+		g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
+		gosub, GuiShowFromPower
+		gosub, GuiEditFavoriteFromPower
+		gosub, OpenFavoriteCleanup
+		return
+	}
 	
-	gosub, OpenFavoriteCleanup
-	return
+	if (g_strPowerMenu = lMenuCopyLocation) ; EnvVars expanded
+	{
+		; ###_O(g_strHokeyTypeDetected, g_objThisFavorite)
+		Clipboard := g_strFullLocation
+		TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
+		
+		gosub, OpenFavoriteCleanup
+		return
+	}
 }
 
 ; --- Document or Link ---
@@ -9014,3 +9048,25 @@ HasHotkey(strCandidateHotkey)
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+SetTargetClassWinIdAndControl(blnMouseElseKeyboard)
+; set g_strTargetClass, g_strTargetWinId and g_strTargetControl
+;------------------------------------------------------------
+{
+	global
+	
+	if (blnMouseElseKeyboard)
+	{
+		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		; TrayTip, Navigate Mouse, %strMouseOrKeyboard% = %g_strMouseNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%`n%g_strTargetControl%
+	}
+	else ; Keyboard
+	{
+		g_strTargetWinId := WinExist("A")
+		g_strTargetControl := ""
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
+	}
+}
+;------------------------------------------------------------
