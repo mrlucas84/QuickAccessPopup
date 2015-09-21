@@ -50,6 +50,7 @@ Version: 6.0.3 alpha (2015-09-20)
 * Disable "Change folder in dialog box" in Power menu if target is not dialog box
 * Stop changing folder in dialog with regular popup hotkeys (prevent changing values in a non-file dialog box)
 * Enable favorite hotkey for sub-menus
+* Implement check for update for alpha versions
 
 Version 6.0.2 alpha (2015-09-15)
 - First alpha test release. List of work done since v6.0.1:
@@ -7733,9 +7734,10 @@ return
 Check4Update:
 ;------------------------------------------------------------
 
-strUrlCheck4Update := "http://quickaccesspopup.com/latest/version.php"
+strUrlCheck4Update := "http://quickaccesspopup.com/latest/latest-version-4.php"
 strAppLandingPage := "http://quickaccesspopup.com"
 strBetaLandingPage := "http://quickaccesspopup.com/latest/check4update-beta-redirect.html"
+strAlphaLandingPage := "http://quickaccesspopup.com/latest/check4update-alpha-redirect.html"
 
 IniRead, strLatestSkippedProd, %g_strIniFile%, Global, LatestVersionSkippedProd, 0.0
 IniRead, strLatestSkippedBeta, %g_strIniFile%, Global, LatestVersionSkippedBeta, 0.0
@@ -7804,19 +7806,31 @@ Loop, Parse, strLatestVersions, , 0123456789.| ; strLatestVersions should only c
 StringSplit, arrLatestVersions, strLatestVersions, |
 strLatestVersionProd := arrLatestVersions1
 strLatestVersionBeta := arrLatestVersions2
-
-if (g_blnDiagMode)
-{
-	Diag("Check4Update g_strCurrentVersion", g_strCurrentVersion)
-	Diag("Check4Update strLatestVersionProd", strLatestVersionProd)
-	Diag("Check4Update strLatestVersionBeta", strLatestVersionBeta)
-	Diag("Check4Update strLatestSkippedProd", strLatestSkippedProd)
-	Diag("Check4Update strLatestSkippedBeta", strLatestSkippedBeta)
-	Diag("Check4Update strLatestUsedProd", strLatestUsedProd)
-	Diag("Check4Update strLatestUsedBeta", strLatestUsedBeta)
-}
+strLatestVersionAlpha := arrLatestVersions3
 
 Gui, 1:+OwnDialogs
+
+if (strLatestUsedAlpha <> "0.0")
+{
+	if FirstVsSecondIs(strLatestVersionAlpha, g_strCurrentVersion) = 1
+	{
+		SetTimer, Check4UpdateChangeButtonNames, 50
+
+		MsgBox, 3, % l(lUpdateTitle, g_strAppNameText) ; do not add Alpha to keep buttons rename working
+			, % l(lUpdatePromptAlpha, g_strAppNameText, g_strCurrentVersion, strLatestVersionAlpha)
+		IfMsgBox, Yes
+			Run, %strAlphaLandingPage%
+		IfMsgBox, Cancel ; Remind me
+			IniWrite, 0.0, %g_strIniFile%, Global, LatestVersionSkippedAlpha
+		IfMsgBox, No
+		{
+			IniWrite, %strLatestVersionAlpha%, %g_strIniFile%, Global, LatestVersionSkippedAlpha
+			MsgBox, 4, % l(lUpdateTitle, g_strAppNameText . " Alpha"), %lUpdatePromptAlphaContinue%
+			IfMsgBox, No
+				IniWrite, 0.0, %g_strIniFile%, Global, LastVersionUsedAlpha
+		}
+	}
+}
 
 if (strLatestUsedBeta <> "0.0")
 {
