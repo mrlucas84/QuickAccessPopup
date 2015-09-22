@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- when DOPus is not supported and we open menu in DOpus, the favorite is not open in Explorer but the current DOpus window is resized
 
 TO-DO
 - implement open group
@@ -40,6 +41,10 @@ FPCONNECT
 - note that FPconnect should not be used with DOpus or TC: source of conflicts
 - FPconnect should provide the ahk_class for the file manager (to be used fo winmove)
 
+
+Version: 6.0.4 alpha (2015-09-??)
+- disable non folder menu items (except QAP features) when power menu features "Change folder in dialog" and "Open in new window" are selected
+- re-enable non folder menu items after power menu features is executed
 
 Version: 6.0.3 alpha (2015-09-20)
 * New tab in Option to set power menu hotkeys
@@ -2546,7 +2551,8 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	{	
 		intMenuItemsCount++ ; for objMenuColumnBreak
 		
-		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
+		if StrLen(objCurrentMenu[A_Index].FavoriteName)
+			strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentMenu[A_Index].FavoriteName
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "Group")
 			strMenuName .= " " . g_strGroupIndicatorPrefix . objCurrentMenu[A_Index].Submenu.MaxIndex() - 1 . g_strGroupIndicatorSuffix
@@ -6417,6 +6423,13 @@ if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in a
 
 Gosub, InsertColumnBreaks
 
+; ###_V(g_strPowerMenu, lMenuPowerNavigateDialog, lMenuPowerNewWindow)
+if StrLen(g_strPowerMenu) and InStr(lMenuPowerNavigateDialog . "|" . lMenuPowerNewWindow, g_strPowerMenu)
+{
+	Gosub, DisableNonFolder
+	g_blnNonFolderDisabled := true ; to save time here, we will re-enable after power menu feature is executed
+}
+
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
 return
@@ -6512,6 +6525,43 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 	; if not excluded
 	return true
 }
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DisableNonFolder:
+EnableNonFolder:
+;------------------------------------------------------------
+
+for strMenuPath, objMenu in g_objMenusIndex
+{
+	intShortcut := 0
+	loop, % objMenu.MaxIndex()
+	{
+		if (objMenu.MenuType = "Group")
+			continue
+		
+		intMenuItemsCount++ ; for objMenuColumnBreak
+		if StrLen(objMenu[A_Index].FavoriteName) ; exclude separators and column breaks
+			strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objMenu[A_Index].FavoriteName
+		else
+			strMenuName := ""
+		
+		if (objMenu[A_Index].FavoriteType = "Group")
+			strMenuName .= " " . g_strGroupIndicatorPrefix . objMenu[A_Index].Submenu.MaxIndex() - 1 . g_strGroupIndicatorSuffix
+		if (g_intHotkeyReminders > 1) and g_objHotkeysByLocation.HasKey(objMenu[A_Index].FavoriteLocation)
+			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? g_objHotkeysByLocation[objMenu[A_Index].FavoriteLocation] : Hotkey2Text(g_objHotkeysByLocation[objMenu[A_Index].FavoriteLocation])) . ")"
+		
+		; ###_V(intShortcut, objMenu.MenuPath, objMenu[A_Index].FavoriteType, strMenuName)
+		if StrLen(strMenuName) and !InStr("B|Folder|Special|Menu|QAP", objMenu[A_Index].FavoriteType)
+			Menu, % objMenu.MenuPath, % (A_ThisLabel = "DisableNonFolder" ? "Disable" : "Enable"), %strMenuName%
+	}
+}
+
+strMenuPath := ""
+objMenu := ""
+
+return
 ;------------------------------------------------------------
 
 
@@ -6934,6 +6984,13 @@ strFavoriteWindowPosition := ""
 g_arrFavoriteWindowPosition := ""
 g_blnPowerMenu := ""
 g_strPowerMenu := ""
+
+; make sure OpenFavoriteCleanup is always executed
+if (g_blnNonFolderDisabled)
+{
+	Gosub, EnableNonFolder ; ### to save time here, could be executed when power menu feature is executed?
+	g_blnNonFolderDisabled := false
+}
 
 return
 ;------------------------------------------------------------
