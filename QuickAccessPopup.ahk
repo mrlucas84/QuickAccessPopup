@@ -19,6 +19,7 @@ BUGS
 - when DOPus is not supported and we open menu in DOpus, the favorite is not open in Explorer but the current DOpus window is resized
 
 TO-DO
+- implement ChangeFolderInDialog effect in menu
 - implement open group
 - make sure relative paths are supported for everything folders, files, applications, custom icons.
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -45,6 +46,8 @@ FPCONNECT
 Version: 6.0.4 alpha (2015-09-??)
 - disable non folder menu items (except QAP features) when power menu features "Change folder in dialog" and "Open in new window" are selected
 - re-enable non folder menu items after power menu features is executed
+- add an option to enable Change folder in dialog boxes with main QAP hotkeys and make sure user understands the risk of changing folder in non-file dialog boxes
+- fix a bug with special folders when using class IDs in Total Commander
 
 Version: 6.0.3 alpha (2015-09-20)
 * New tab in Option to set power menu hotkeys
@@ -1146,7 +1149,7 @@ InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", 0, "iconDon
 
 ; Power Menu features
 InitQAPFeatureObject("Open in New Window", lMenuPowerNewWindow, "", "", 1, "iconFolder")
-InitQAPFeatureObject("Navigate Dialog", lMenuPowerNavigateDialog, "", "", 2, "iconChangeFolder", "+^D")
+InitQAPFeatureObject("Navigate Dialog", lMenuPowerNavigateDialog, "", "", 2, "iconChangeFolder")
 InitQAPFeatureObject("Edit Favorite", lMenuPowerEditFavorite, "", "", 4, "iconEditFavorite")
 InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "", 6, "iconClipboard", "+^V")
 
@@ -1392,6 +1395,9 @@ IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, 1
 IniRead, g_blnOpenMenuOnTaskbar, %g_strIniFile%, Global, OpenMenuOnTaskbar, 1
 IniRead, g_blnRememberSettingsPosition, %g_strIniFile%, Global, RememberSettingsPosition, 1
 IniRead, g_blnDonor, %g_strIniFile%, Global, Donor, 0 ; Please, be fair. Don't cheat with this.
+IniRead, g_blnChangeFolderInDialog, %g_strIniFile%, Global, ChangeFolderInDialog, 0
+if (g_blnChangeFolderInDialog)
+	IniRead, g_blnChangeFolderInDialog, %g_strIniFile%, Global, UnderstandChangeFoldersInDialogRisk, 0
 
 IniRead, g_strDirectoryOpusPath, %g_strIniFile%, Global, DirectoryOpusPath, %A_Space% ; empty string if not found
 IniRead, g_blnDirectoryOpusUseTabs, %g_strIniFile%, Global, DirectoryOpusUseTabs, 1 ; use tabs by default
@@ -2886,6 +2892,9 @@ loop, % g_arrPopupHotkeyNames%0%
 	Gui, 2:Add, Link, x15 ys w240 gOptionsTitlesSubClicked, % g_arrOptionsTitlesSub%A_Index%
 }
 
+Gui, 2:Add, CheckBox, y+15 x15 w600 vf_blnChangeFolderInDialog gChangeFoldersInDialogClicked, %lOptionsChangeFolderInDialog%
+GuiControl, , f_blnChangeFolderInDialog, %g_blnChangeFolderInDialog%
+
 ;---------------------------------------
 ; Tab 3: Power Menu Features
 
@@ -3069,6 +3078,59 @@ return
 
 
 ;------------------------------------------------------------
+ChangeFoldersInDialogClicked:
+;------------------------------------------------------------
+Gui, 2:Submit, NoHide
+
+if !(f_blnChangeFolderInDialog)
+	return
+GuiControl, 2:, f_blnChangeFolderInDialog, 0
+
+intGui2WinID := WinExist("A")
+
+Gui, 3:New, , %lOptionsChangeFolderInDialog%
+Gui, 3:+Owner2
+
+if (g_blnUseColors)
+	Gui, 3:Color, %g_strGuiWindowColor%
+Gui, 3:Font, s10 w700, Verdana
+Gui, 3:Add, Text, x10 y10 w400, %lOptionsChangeFolderInDialog%
+Gui, 3:Font
+Gui, 3:Add, Text, x10 w400, % L(lOptionsChangeFolderInDialogText , Hotkey2Text(g_arrPopupHotkeys3), Hotkey2Text(g_arrPopupHotkeys4), Hotkey2Text(g_arrPopupHotkeys1), Hotkey2Text(g_arrPopupHotkeys2))
+Gui, 3:Add, Checkbox, x10 w400 vf_blnUnderstandChangeFoldersInDialogRisk, %lOptionsChangeFolderInDialogCheckbox%
+
+Gui, Add, Button, y+25 x10 vf_btnChangeFolderInDialogOK gChangeFoldersInDialogOK, %lDialogOK%
+Gui, Add, Button, yp x+20 vf_btnChangeFolderInDialogCancel gChangeFoldersInDialogCancel, %lGuiCancel%
+	
+GuiCenterButtons(lOptionsChangeFolderInDialog, 10, 5, 20, "f_btnChangeFolderInDialogOK", "f_btnChangeFolderInDialogCancel")
+
+GuiControl, Focus, f_btnChangeFolderInDialogCancel
+Gui, Show, AutoSize Center
+Gui, 2:+Disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ChangeFoldersInDialogOK:
+ChangeFoldersInDialogCancel:
+;------------------------------------------------------------
+Gui, 3:Submit, NoHide
+
+if (A_ThisLabel = "ChangeFoldersInDialogOK")
+{
+	GuiControl, 2:, f_blnChangeFolderInDialog, 1
+	IniWrite, 1, %g_strIniFile%, Global, UnderstandChangeFoldersInDialogRisk
+}
+
+Gosub, 3GuiClose
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 ButtonSelectDOpusPath:
 ;------------------------------------------------------------
 Gui, 2:+OwnDialogs
@@ -3153,6 +3215,8 @@ Menu, Tray, % f_blnOptionsRunAtStartup ? "Check" : "Uncheck", %lMenuRunAtStartup
 
 g_blnDisplayTrayTip := f_blnDisplayTrayTip
 IniWrite, %g_blnDisplayTrayTip%, %g_strIniFile%, Global, DisplayTrayTip
+g_blnChangeFolderInDialog := f_blnChangeFolderInDialog
+IniWrite, %g_blnChangeFolderInDialog%, %g_strIniFile%, Global, ChangeFolderInDialog
 g_blnDisplayIcons := f_blnDisplayIcons
 IniWrite, %g_blnDisplayIcons%, %g_strIniFile%, Global, DisplayIcons
 g_intRecentFoldersMax := f_intRecentFoldersMax
@@ -6424,7 +6488,7 @@ if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in a
 Gosub, InsertColumnBreaks
 
 ; ###_V(g_strPowerMenu, lMenuPowerNavigateDialog, lMenuPowerNewWindow)
-if StrLen(g_strPowerMenu) and InStr(lMenuPowerNavigateDialog . "|" . lMenuPowerNewWindow, g_strPowerMenu)
+if (g_strPowerMenu = lMenuPowerNavigateDialog)
 {
 	Gosub, DisableNonFolder
 	g_blnNonFolderDisabled := true ; to save time here, we will re-enable after power menu feature is executed
@@ -6495,7 +6559,7 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 	SetTargetClassWinIdAndControl(strMouseOrKeyboard = g_arrPopupHotkeys1)
 
 	blnCanNavigate := WindowIsExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
-		; ### removed to move to Power Menu: or WindowIsDialog(g_strTargetClass, g_strTargetWinId)
+		or (g_blnChangeFolderInDialog and WindowIsDialog(g_strTargetClass, g_strTargetWinId))
 		or (g_blnUseDirectoryOpus and WindowIsDirectoryOpus(g_strTargetClass))
 		or (g_blnUseTotalCommander and WindowIsTotalCommander(g_strTargetClass))
 		or (g_blnUseFPconnect and WindowIsFPconnect(g_strTargetWinId))
@@ -7251,9 +7315,9 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 	{
 		if (SubStr(strLocation, 1, 1) = "{")
 			if (strTargetName = "TotalCommander")
-				strSpecialFolderLocation := "::" . strLocation
+				strLocation := "::" . strLocation
 			else
-				strSpecialFolderLocation := "shell:::" . strLocation
+				strLocation := "shell:::" . strLocation
 		; else keep strLocation as is
 	}
 	else if (strUse = "AHK")
@@ -7680,6 +7744,7 @@ if g_strFullLocation is integer
 }
 else ; normal folder
 {
+	; ###_V("g_strFullLocation", g_strFullLocation)
 	; g_strTotalCommanderNewTabOrWindow in ini file should contain "/O /T" to open in an new tab of the existing file list (default), or "/N" to open in a new file list
 	Run, %g_strTotalCommanderPath% %g_strTotalCommanderNewTabOrWindow% /S "/L=%g_strFullLocation%" ; /L= left pane of the new window
 	WinWaitActive, ahk_class TTOTAL_CMD, , 10
