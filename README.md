@@ -13,7 +13,7 @@ By JnLlnd on [AHKScript forum](http://ahkscript.org/boards/memberlist.php?mode=v
 
 ## History
 
-See QuickAccessPopup.ahk header
+See [QuickAccessPopup.ahk header](https://github.com/JnLlnd/QuickAccessPopup/blob/alpha/QuickAccessPopup.ahk)
 
 
 ## <a name="copyright"></a>Copyright

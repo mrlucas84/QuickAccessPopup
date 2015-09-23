@@ -43,7 +43,7 @@ FPCONNECT
 - FPconnect should provide the ahk_class for the file manager (to be used fo winmove)
 
 
-Version: 6.0.4 alpha (2015-09-??)
+Version: 6.0.4 alpha (2015-09-23)
 - disable non folder menu items (except QAP features) when power menu features "Change folder in dialog" and "Open in new window" are selected
 - re-enable non folder menu items after power menu features is executed
 - add an option to enable Change folder in dialog boxes with main QAP hotkeys and make sure user understands the risk of changing folder in non-file dialog boxes
@@ -222,7 +222,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.0.3 alpha
+;@Ahk2Exe-SetVersion 6.0.4 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -275,7 +275,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.0.3" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.0.4" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
