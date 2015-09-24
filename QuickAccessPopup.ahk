@@ -16,10 +16,12 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- when DOPus is not supported and we open menu in DOpus, the favorite is not open in Explorer but the current DOpus window is resized
+- no separator/column added before back link
+- no seperator/column in groups
+- wrong defaut value in group advanced settings after another group has been edited
+- when saving group with default adv settings, save default value 200 ms
 
 TO-DO
-- implement ChangeFolderInDialog effect in menu
 - implement open group
 - make sure relative paths are supported for everything folders, files, applications, custom icons.
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -42,6 +44,11 @@ FPCONNECT
 - note that FPconnect should not be used with DOpus or TC: source of conflicts
 - FPconnect should provide the ahk_class for the file manager (to be used fo winmove)
 
+
+Version: 6.0.5 alpha (2015-09-??)
+- fix bug when accepting change folder in dialog option with checkbox unchecked
+- fix bug when DOpus or TC are not supported and we open menu in DOpus or TC
+-
 
 Version: 6.0.4 alpha (2015-09-23)
 - disable non folder menu items (except QAP features) when power menu features "Change folder in dialog" and "Open in new window" are selected
@@ -222,7 +229,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.0.4 alpha
+;@Ahk2Exe-SetVersion 6.0.5 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -275,7 +282,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.0.4" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.0.5" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -3118,7 +3125,7 @@ ChangeFoldersInDialogCancel:
 ;------------------------------------------------------------
 Gui, 3:Submit, NoHide
 
-if (A_ThisLabel = "ChangeFoldersInDialogOK")
+if (A_ThisLabel = "ChangeFoldersInDialogOK" and f_blnUnderstandChangeFoldersInDialogRisk)
 {
 	GuiControl, 2:, f_blnChangeFolderInDialog, 1
 	IniWrite, 1, %g_strIniFile%, Global, UnderstandChangeFoldersInDialogRisk
@@ -4038,7 +4045,6 @@ if InSTr(strGuiFavoriteLabel, "GuiEditFavorite")
 	{
 	   ; 1 boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
 	   ; 2 delay in milliseconds to insert between each favorite to restore
-	   ; 3 delay in milliseconds to insert between each retries of Explorer launch
 		strGroupSettings := g_objEditedFavorite.FavoriteGroupSettings . ",,," ; ,,, to make sure all fields are re-init
 		StringSplit, arrGroupSettings, strGroupSettings, `,
 	}
@@ -4277,12 +4283,8 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 	else if (g_objEditedFavorite.FavoriteType = "Group")
 	{
 		Gui, 2:Add, Text, x20 y+20 vf_AdvancedSettingsLabel2, %lGuiGroupRestoreDelay%
-		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupRestoreDelay, %arrGroupSettings2%
+		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupRestoreDelay, % (arrGroupSettings2 = "" ? 200 : arrGroupSettings2)
 		Gui, 2:Add, Text, x+10 yp vf_AdvancedSettingsLabel3, %lGuiGroupRestoreDelayMilliseconds%
-
-		Gui, 2:Add, Text, x20 y+20 vf_AdvancedSettingsLabel4, %lGuiGroupExplorerDelay%
-		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupExplorerDelay, %arrGroupSettings3%
-		Gui, 2:Add, Text, x+10 yp vf_AdvancedSettingsLabel5, %lGuiGroupRestoreDelayMilliseconds%
 	}
 	else
 	{
@@ -4368,7 +4370,7 @@ CheckboxUseDefaultSettingsClicked:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_AdvancedSettingsButton1|f_intGroupRestoreDelay|f_intGroupExplorerDelay|f_strFavoriteLaunchWith|f_AdvancedSettingsButton2|f_strFavoriteArguments|f_blnFavoriteFtpEncoding"
+strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_AdvancedSettingsButton1|f_intGroupRestoreDelay|f_strFavoriteLaunchWith|f_AdvancedSettingsButton2|f_strFavoriteArguments|f_blnFavoriteFtpEncoding"
 
 Loop, Parse, strAdvancedSettingsControls, |
 	GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), %A_LoopField%
@@ -5068,7 +5070,7 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
 	
 	g_objEditedFavorite.FavoriteGroupSettings := f_blnRadioGroupReplace
-	g_objEditedFavorite.FavoriteGroupSettings .= (f_blnUseDefaultSettings ? "" : "," . f_intGroupRestoreDelay . "," . f_intGroupExplorerDelay)
+	g_objEditedFavorite.FavoriteGroupSettings .= (f_blnUseDefaultSettings ? "" : "," . f_intGroupRestoreDelay)
 	
 	g_objEditedFavorite.FavoriteLoginName := f_strFavoriteLoginName
 	g_objEditedFavorite.FavoritePassword := f_strFavoritePassword
@@ -6864,8 +6866,46 @@ return
 
 
 ;------------------------------------------------------------
+OpenGroupOfFavorites:
+;------------------------------------------------------------
+
+objThisGroupFavorite := g_objThisFavorite
+###_V("objThisGroupFavorite", objThisGroupFavorite.FavoriteGroupSettings)
+
+; g_arrGroupSettings1: boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
+; g_arrGroupSettings2: delay in milliseconds to insert between each favorite to restore
+strGroupSettings := objThisGroupFavorite.FavoriteGroupSettings
+StringSplit, g_arrGroupSettings, strGroupSettings, `,
+
+if (g_arrGroupSettings1)
+	###_D("close")
+
+objThisGroupList := g_objMenusIndex[lMainMenuName . " " . objThisGroupFavorite.FavoriteLocation]
+
+loop, % objThisGroupList.MaxIndex() - 1 ; skip first item back-link
+{
+	g_objThisFavorite := objThisGroupList[A_Index + 1]
+	; ###_O("g_objThisFavorite", g_objThisFavorite)
+	
+	Sleep, %g_arrGroupSettings2%
+	g_blnFirstItemOfGroup := (A_Index = 1)
+	gosub, OpenFavoriteFromGroup
+}
+
+OpenGroupOfFavoritesCleanup:
+objThisGroupFavorite := ""
+objThisGroupList := ""
+strGroupSettings := ""
+g_arrGroupSettings := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 OpenFavorite:
 OpenFavoriteGroup:
+OpenFavoriteFromGroup:
 OpenFavoriteFromHotkey:
 OpenRecentFolder:
 OpenCurrentFolder:
@@ -6876,10 +6916,19 @@ OpenClipboard:
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
-gosub, OpenFavoriteGetFavoriteObject ; define g_objThisFavorite and g_strFullLocation
+if (A_ThisLabel <> "OpenFavoriteFromGroup") ; object already set by OpenGroupOfFavorites
+	gosub, OpenFavoriteGetFavoriteObject ; define g_objThisFavorite
 
 if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
 {
+	gosub, OpenFavoriteCleanup
+	return
+}
+
+if (g_objThisFavorite.FavoriteType = "Group")
+{
+	gosub, OpenGroupOfFavorites
+	
 	gosub, OpenFavoriteCleanup
 	return
 }
@@ -6907,7 +6956,7 @@ if (g_objThisFavorite.FavoriteType = "FTP")
 
 gosub, SetTargetName ; sets g_strTargetAppName, can change g_strHokeyTypeDetected to "Launch"
 
-gosub, OpenFavoriteGetFullLocation ; sets g_objThisFavorite and g_strFullLocation
+gosub, OpenFavoriteGetFullLocation ; sets g_strFullLocation
 
 if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 {
@@ -7076,11 +7125,11 @@ else if WindowIsDialog(g_strTargetClass, g_strTargetWinId)
 	g_strTargetAppName := "Dialog"
 else if WindowIsTreeview(g_strTargetWinId)
 	g_strTargetAppName := "Treeview"
-else if WindowIsDirectoryOpus(g_strTargetClass)
+else if WindowIsDirectoryOpus(g_strTargetClass) and (g_blnUseDirectoryOpus)
 	g_strTargetAppName := "DirectoryOpus"
-else if WindowIsTotalCommander(g_strTargetClass)
+else if WindowIsTotalCommander(g_strTargetClass) and (g_blnUseTotalCommander)
 	g_strTargetAppName := "TotalCommander"
-else if WindowIsFPconnect(g_strTargetWinId)
+else if WindowIsFPconnect(g_strTargetWinId) and (g_blnUseFPconnect)
 	g_strTargetAppName := "FPconnect"
 else if WindowIsQuickAccessPopup(g_strTargetClass)
 	g_strTargetAppName := "QuickAccessPopup"
@@ -7780,8 +7829,8 @@ OpenFavoriteWindowResize:
 
 if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
 {
-	; ###_V(A_ThisLabel, g_strNewWindowId, g_arrFavoriteWindowPosition1, g_arrFavoriteWindowPosition2, g_arrFavoriteWindowPosition3, g_arrFavoriteWindowPosition7)
-	Sleep, %g_arrFavoriteWindowPosition7%
+	; ###_V(A_ThisLabel, g_strNewWindowId, g_arrFavoriteWindowPosition1, g_arrFavoriteWindowPosition2, g_arrFavoriteWindowPosition3, g_arrFavoriteWindowPosition4, g_arrFavoriteWindowPosition5, g_arrFavoriteWindowPosition6, g_arrFavoriteWindowPosition7)
+	Sleep, % g_arrFavoriteWindowPosition7 * (g_blnFirstItemOfGroup ? 2 : 1)
 	if (g_arrFavoriteWindowPosition2 = -1) ; Minimized
 		WinMinimize, %g_strNewWindowId%
 	else if (g_arrFavoriteWindowPosition2 = 1) ; Maximized
