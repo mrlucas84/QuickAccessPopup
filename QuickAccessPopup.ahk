@@ -16,10 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- no separator/column added before back link
-- no seperator/column in groups
-- wrong defaut value in group advanced settings after another group has been edited
-- when saving group with default adv settings, save default value 200 ms
 
 TO-DO
 - implement open group
@@ -45,10 +41,17 @@ FPCONNECT
 - FPconnect should provide the ahk_class for the file manager (to be used fo winmove)
 
 
+HISTORY
+=======
+
 Version: 6.0.5 alpha (2015-09-??)
 - fix bug when accepting change folder in dialog option with checkbox unchecked
-- fix bug when DOpus or TC are not supported and we open menu in DOpus or TC
--
+- fix bug when DOpus or TC are not supported and we open menu in DOpus or TC window
+- create a daily backup of ini file for alpha versions users
+- prevent inserting separator/column added before back link in menus
+- fix bug phantom defaut value in group advanced settings after another group has been edited
+- fix bug some special folders not working with TC and DOpus
+- fix bugs when moving multiple favorites to another menu
 
 Version: 6.0.4 alpha (2015-09-23)
 - disable non folder menu items (except QAP features) when power menu features "Change folder in dialog" and "Open in new window" are selected
@@ -1298,6 +1301,13 @@ ReloadIniFile:
 StringReplace, strIniBackupFile, g_strIniFile, .ini, -backup.ini
 FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
 
+if (g_strCurrentBranch = "alpha")
+; create a daily backup of the ini file for alpha versions users
+{
+	StringReplace, strIniBackupFile, strIniBackupFile, .ini, % "-" . SubStr(A_Now, 1, 8) . ".ini"
+	if !FileExist(strIniBackupFile)
+		FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
+}
 ; reinit after Settings save if already exist
 g_objMenuInGui := Object() ; object of menu currently in Gui
 g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
@@ -4013,7 +4023,7 @@ g_objEditedFavorite := Object()
 g_strDefaultIconResource := ""
 g_strNewFavoriteIconResource := ""
 
-if InSTr(strGuiFavoriteLabel, "GuiEditFavorite")
+if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 {
 	Gui, 1:ListView, f_lvFavoritesList
 	g_intOriginalMenuPosition := LV_GetNext()
@@ -4046,7 +4056,7 @@ if InSTr(strGuiFavoriteLabel, "GuiEditFavorite")
 	   ; 1 boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
 	   ; 2 delay in milliseconds to insert between each favorite to restore
 		strGroupSettings := g_objEditedFavorite.FavoriteGroupSettings . ",,," ; ,,, to make sure all fields are re-init
-		StringSplit, arrGroupSettings, strGroupSettings, `,
+		StringSplit, g_arrGroupSettingsGui, strGroupSettings, `,
 	}
 }
 else
@@ -4060,7 +4070,11 @@ else
 		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intY . "," . intWidth . "," . intHeight . ",200"
 	}
 	else
+	{
 		g_strNewFavoriteWindowPosition := ",,,,,," ; to avoid having phantom values
+		strGroupSettings := ",,,,,"
+		StringSplit, g_arrGroupSettingsGui, strGroupSettings, `, ; to avoid having phantom values
+	}
 
 	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", strGuiFavoriteLabel)
 	{
@@ -4096,6 +4110,7 @@ intY := ""
 intWidth := ""
 intHeight := ""
 intMinMax := ""
+strGroupSettings := ""
 
 return
 ;------------------------------------------------------------
@@ -4175,8 +4190,8 @@ if (g_objEditedFavorite.FavoriteType = "FTP")
 if (g_objEditedFavorite.FavoriteType = "Group")
 {
 	Gui, 2:Add, Text, x20 y+20, %lGuiGroupSaveRestoreOption%
-	Gui, 2:Add, Radio, % "x20 y+10 vf_blnRadioGroupAdd " . (arrGroupSettings1 ? "" : "checked"), %lGuiGroupSaveAddWindowsLabel%
-	Gui, 2:Add, Radio, % "x20 y+5 vf_blnRadioGroupReplace " . (arrGroupSettings1 ? "checked" : ""), %lGuiGroupSaveReplaceWindowsLabel%
+	Gui, 2:Add, Radio, % "x20 y+10 vf_blnRadioGroupAdd " . (g_arrGroupSettingsGui1 ? "" : "checked"), %lGuiGroupSaveAddWindowsLabel%
+	Gui, 2:Add, Radio, % "x20 y+5 vf_blnRadioGroupReplace " . (g_arrGroupSettingsGui1 ? "checked" : ""), %lGuiGroupSaveReplaceWindowsLabel%
 }
 
 return
@@ -4271,7 +4286,7 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 
 	Gui, 2:Add, Checkbox, x20 y40 vf_blnUseDefaultSettings gCheckboxUseDefaultSettingsClicked, %lDialogUseDefaultSettings%
 
-	blnShowAdvancedSettings := StrLen(g_objEditedFavorite.FavoriteAppWorkingDir . arrGroupSettings2 . arrGroupSettings3 . g_objEditedFavorite.FavoriteLaunchWith . g_objEditedFavorite.FavoriteArguments)
+	blnShowAdvancedSettings := StrLen(g_objEditedFavorite.FavoriteAppWorkingDir . g_arrGroupSettingsGui2 . g_arrGroupSettingsGui3 . g_objEditedFavorite.FavoriteLaunchWith . g_objEditedFavorite.FavoriteArguments)
 	GuiControl, , f_blnUseDefaultSettings, % !blnShowAdvancedSettings
 
 	if (g_objEditedFavorite.FavoriteType = "Application")
@@ -4283,7 +4298,7 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 	else if (g_objEditedFavorite.FavoriteType = "Group")
 	{
 		Gui, 2:Add, Text, x20 y+20 vf_AdvancedSettingsLabel2, %lGuiGroupRestoreDelay%
-		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupRestoreDelay, % (arrGroupSettings2 = "" ? 200 : arrGroupSettings2)
+		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupRestoreDelay, %g_arrGroupSettingsGui2%
 		Gui, 2:Add, Text, x+10 yp vf_AdvancedSettingsLabel3, %lGuiGroupRestoreDelayMilliseconds%
 	}
 	else
@@ -4904,9 +4919,10 @@ GuiMoveOneFavoriteSave:
 Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
 
-; original and destination menus values
+strThisLabel := A_ThisLabel
 
-if (A_ThisLabel = "GuiAddFavoriteSave")
+; original and destination menus values
+if (strThisLabel = "GuiAddFavoriteSave")
 {
 	strOriginalMenu := ""
 	g_intOriginalMenuPosition := 0
@@ -4924,7 +4940,7 @@ if (!g_intNewItemPos) ; if in GuiMoveOneFavoriteSave g_intNewItemPos may be alre
 if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|Group", g_objEditedFavorite.FavoriteType))
 {
 	Oops(lDialogFavoriteNameNotAllowed, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""), lDialogFavoriteParentMenu)
-	if (A_ThisLabel = "GuiMoveOneFavoriteSave")
+	if (strThisLabel = "GuiMoveOneFavoriteSave")
 		g_intOriginalMenuPosition++
 	gosub, GuiAddFavoriteSaveCleanup
 	return
@@ -4937,7 +4953,7 @@ if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|G
 
 ; validation (not required for GuiMoveOneFavoriteSave because info in g_objEditedFavorite is not changed)
 
-if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
+if (strThisLabel <> "GuiMoveOneFavoriteSave")
 {
 	if !StrLen(f_strFavoriteShortName)
 	{
@@ -4993,17 +5009,17 @@ if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
 	}
 }
 
-if !FolderNameIsNew((A_ThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : f_strFavoriteShortName), g_objMenusIndex[strDestinationMenu])
+if !FolderNameIsNew((strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : f_strFavoriteShortName), g_objMenusIndex[strDestinationMenu])
 	and !InStr("X|K", g_objEditedFavorite.FavoriteType) ; same name OK for separators
 	; we have the same name in the destination menu
 	; if this is the same menu and the same name, this is OK
 	if (strDestinationMenu <> strOriginalMenu) or (f_strFavoriteShortName <> g_objEditedFavorite.FavoriteName)
 	{
 		if (g_objEditedFavorite.FavoriteType = "QAP")
-			Oops(lDialogFavoriteNameNotNewQAPfeature, f_strFavoriteShortName)
+			Oops(lDialogFavoriteNameNotNewQAPfeature, (strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : f_strFavoriteShortName))
 		else
-			Oops(lDialogFavoriteNameNotNew, f_strFavoriteShortName)
-		if (A_ThisLabel = "GuiMoveOneFavoriteSave")
+			Oops(lDialogFavoriteNameNotNew, (strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : f_strFavoriteShortName))
+		if (strThisLabel = "GuiMoveOneFavoriteSave")
 			g_intOriginalMenuPosition++
 		gosub, GuiAddFavoriteSaveCleanup
 		return
@@ -5020,7 +5036,7 @@ if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " "
 
 ; if adding menu or group, create submenu object
 
-if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (A_ThisLabel = "GuiAddFavoriteSave"))
+if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (strThisLabel = "GuiAddFavoriteSave"))
 {
 	objNewMenu := Object() ; object for the new menu or group
 	objNewMenu.MenuPath := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
@@ -5040,7 +5056,7 @@ if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (A_ThisLabel = "Gu
 
 ; update menu object and hotkeys object except if we move favorites
 
-if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
+if (strThisLabel <> "GuiMoveOneFavoriteSave")
 {
 	g_objEditedFavorite.FavoriteName := f_strFavoriteShortName
 	
@@ -5138,7 +5154,7 @@ if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if 
 GuiControl, 1:, f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath) . "|" ; required if submenu was added
 Gosub, AdjustColumnsWidth
 
-if (A_ThisLabel <> "GuiMoveOneFavoriteSave")
+if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	Gosub, BuildMainMenuWithStatus ; update menus but not hotkeys
 
 GuiControl, Enable, f_btnGuiSaveFavorites
@@ -5146,13 +5162,14 @@ GuiControl, , f_btnGuiCancel, %lDialogCancelButton%
 
 g_blnMenuReady := true
 
-if (A_ThisLabel = "GuiMoveOneFavoriteSave")
+if (strThisLabel = "GuiMoveOneFavoriteSave")
 	g_intNewItemPos++ ; move next favorite after this one in the destination menu (or will be deleted in GuiMoveOneFavoriteSave after the loop)
 else
 	g_intNewItemPos := "" ; delete it for next use
 
 GuiAddFavoriteSaveCleanup:
-if (A_ThisLabel <> "GuiMoveOneFavoriteSave") ; preserve if moving multiple favorites; will be cleaned after GuiMoveMultipleFavoritesSave
+if (strThisLabel <> "GuiMoveOneFavoriteSave") ; do not execute at each favorite when moving multiple favorites
+	or (A_ThisLabel = "GuiAddFavoriteSaveCleanup") ; but executed it when called at the end of GuiMoveMultipleFavoritesSave
 {
 	strOriginalMenu := ""
 	strDestinationMenu := ""
@@ -5678,6 +5695,7 @@ GuiControl, Focus, f_lvFavoritesList
 Gui, 1:ListView, f_lvFavoritesList
 
 if (LV_GetCount("Selected") > 1)
+	or (LV_GetNext() = 1 and g_objMenuInGui[1].FavoriteType = "B")
 	return
 
 intInsertPosition := LV_GetCount() ? (LV_GetNext() ? LV_GetNext() : LV_GetCount() + 1) : 1
@@ -6872,12 +6890,12 @@ OpenGroupOfFavorites:
 objThisGroupFavorite := g_objThisFavorite
 ###_V("objThisGroupFavorite", objThisGroupFavorite.FavoriteGroupSettings)
 
-; g_arrGroupSettings1: boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
-; g_arrGroupSettings2: delay in milliseconds to insert between each favorite to restore
+; g_arrGroupSettingsOpen1: boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
+; g_arrGroupSettingsOpen2: delay in milliseconds to insert between each favorite to restore (in addition to default 200 ms)
 strGroupSettings := objThisGroupFavorite.FavoriteGroupSettings
-StringSplit, g_arrGroupSettings, strGroupSettings, `,
+StringSplit, g_arrGroupSettingsOpen, strGroupSettings, `,
 
-if (g_arrGroupSettings1)
+if (g_arrGroupSettingsOpen1)
 	###_D("close")
 
 objThisGroupList := g_objMenusIndex[lMainMenuName . " " . objThisGroupFavorite.FavoriteLocation]
@@ -6887,7 +6905,7 @@ loop, % objThisGroupList.MaxIndex() - 1 ; skip first item back-link
 	g_objThisFavorite := objThisGroupList[A_Index + 1]
 	; ###_O("g_objThisFavorite", g_objThisFavorite)
 	
-	Sleep, %g_arrGroupSettings2%
+	Sleep, % g_arrGroupSettingsOpen2 + 200 ; add 200 ms as minimal default delay
 	g_blnFirstItemOfGroup := (A_Index = 1)
 	gosub, OpenFavoriteFromGroup
 }
@@ -6896,7 +6914,7 @@ OpenGroupOfFavoritesCleanup:
 objThisGroupFavorite := ""
 objThisGroupList := ""
 strGroupSettings := ""
-g_arrGroupSettings := ""
+g_arrGroupSettingsOpen := ""
 
 return
 ;------------------------------------------------------------
@@ -7346,18 +7364,11 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 	else
 		strUse := objSpecialFolder.Use4NewExplorer
 
-	if (strUse = "NEW") ; re-assign values as if it was a new window request
+	if (strUse = "NEW") ; re-assign values as if it was a new window request to be open in *Explorer*
 	{
 		strUse := objSpecialFolder.Use4NewExplorer
 		strHokeyTypeDetected := "Launch"
-		if (g_blnUseDirectoryOpus)
-			strTargetName := "DirectoryOpus"
-		else if (g_blnUseTotalCommander)
-			strTargetName := "TotalCommander"
-		else if (g_blnUseFPconnect)
-			strTargetName := "FPconnect"
-		else
-			strTargetName := "Explorer"
+		strTargetName := "Explorer"
 	}
 	
 	if (strUse = "CLS")
