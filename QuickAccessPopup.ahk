@@ -16,9 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- group load works when hotkey detected launch - but when hotkey detected navigate?
-- group load when in DOpus window, or when DOpus supported - related to navigate?
-- power menu Edit favorite cannot edit a fav inside a group (could it open the group in Settings?) and should not open the group
 - FTP fav stopped working in DOpus with v6.0.4 but works in v6.0.5 (why?)
 
 TO-DO
@@ -58,6 +55,8 @@ Version: 6.0.5 alpha (2015-09-??)
 - fix bug phantom defaut value in group advanced settings after another group has been edited
 - fix bug some special folders not working with TC and DOpus
 - fix bugs when moving multiple favorites to another menu
+
+- fix bug power menu Edit a favorite can now edit a Group favorite
 
 Version: 6.0.4 alpha (2015-09-23)
 - disable non folder menu items (except QAP features) when power menu features "Change folder in dialog" and "Open in new window" are selected
@@ -6994,11 +6993,14 @@ OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
+if (A_ThisLabel = "OpenFavoriteFromGroup")
+	###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
-if (A_ThisLabel <> "OpenFavoriteFromGroup") ; object already set by OpenGroupOfFavorites
+if (A_ThisLabel = "OpenFavoriteFromGroup") ; object already set by OpenGroupOfFavorites
+	g_strHokeyTypeDetected := "Launch" ; all favorites in group are for Launch (no Navigate)
+else
 	gosub, OpenFavoriteGetFavoriteObject ; define g_objThisFavorite
 
 if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
@@ -7007,7 +7009,7 @@ if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
 	return
 }
 
-if (g_objThisFavorite.FavoriteType = "Group")
+if (g_objThisFavorite.FavoriteType = "Group") and (g_strPowerMenu <> lMenuPowerEditFavorite)
 {
 	gosub, OpenGroupOfFavorites
 	
@@ -7048,7 +7050,8 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 
 blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not take into account if keyboard shortcut
 
-; ###_V("OpenFavorite", g_strHokeyTypeDetected, g_strTargetWinId, g_strTargetControl, g_strTargetClass)
+if (A_ThisLabel = "OpenFavoriteFromGroup")
+	###_V(A_ThisLabel . "-2", g_strHokeyTypeDetected, g_strTargetAppName, g_strTargetWinId, g_strTargetControl, g_strTargetClass, g_strFullLocation)
 ; ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 
 ; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
