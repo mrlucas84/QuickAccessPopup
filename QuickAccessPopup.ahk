@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- fav should be Launch when DOpus or TC not supported
 - FTP fav stopped working in DOpus with v6.0.4 but works in v6.0.5 (why?)
 
 TO-DO
@@ -47,15 +48,14 @@ FPCONNECT
 HISTORY
 =======
 
-Version: 6.0.5 alpha (2015-09-??)
+Version: 6.0.5 alpha (2015-09-25)
+- create a daily backup of ini file for alpha versions users
+- fix bug some special folders not working with TC and DOpus
+- fix bug prevent inserting separator/column added before back link in menus
 - fix bug when accepting change folder in dialog option with checkbox unchecked
 - fix bug when DOpus or TC are not supported and we open menu in DOpus or TC window
-- create a daily backup of ini file for alpha versions users
-- prevent inserting separator/column added before back link in menus
 - fix bug phantom defaut value in group advanced settings after another group has been edited
-- fix bug some special folders not working with TC and DOpus
 - fix bugs when moving multiple favorites to another menu
-
 - fix bug power menu Edit a favorite can now edit a Group favorite
 
 Version: 6.0.4 alpha (2015-09-23)
