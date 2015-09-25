@@ -16,8 +16,14 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- group load works when hotkey detected launch - but when hotkey detected navigate?
+- group load when in DOpus window, or when DOpus supported - related to navigate?
+- power menu Edit favorite cannot edit a fav inside a group (could it open the group in Settings?) and should not open the group
+- FTP fav stopped working in DOpus with v6.0.4 but works in v6.0.5 (why?)
 
 TO-DO
+- continue close Explorer before group load
+- memorize in folders fav members of group with what app restore (Explorer or DOpus)
 - implement open group
 - make sure relative paths are supported for everything folders, files, applications, custom icons.
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -6888,7 +6894,7 @@ OpenGroupOfFavorites:
 ;------------------------------------------------------------
 
 objThisGroupFavorite := g_objThisFavorite
-###_V("objThisGroupFavorite", objThisGroupFavorite.FavoriteGroupSettings)
+; ###_V("objThisGroupFavorite", objThisGroupFavorite.FavoriteGroupSettings)
 
 ; g_arrGroupSettingsOpen1: boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
 ; g_arrGroupSettingsOpen2: delay in milliseconds to insert between each favorite to restore (in addition to default 200 ms)
@@ -6896,8 +6902,8 @@ strGroupSettings := objThisGroupFavorite.FavoriteGroupSettings
 StringSplit, g_arrGroupSettingsOpen, strGroupSettings, `,
 
 if (g_arrGroupSettingsOpen1)
-	###_D("close")
-
+	gosub, OpenGroupOfFavoritesCloseExplorers
+	
 objThisGroupList := g_objMenusIndex[lMainMenuName . " " . objThisGroupFavorite.FavoriteLocation]
 
 loop, % objThisGroupList.MaxIndex() - 1 ; skip first item back-link
@@ -6918,6 +6924,64 @@ g_arrGroupSettingsOpen := ""
 
 return
 ;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+OpenGroupOfFavoritesCloseExplorers:
+;------------------------------------------------------------
+
+intSleepTime := 67 ; for visual effect only...
+Tooltip, %lGuiGroupClosing%
+
+strWindowsId := ""
+for objExplorer in ComObjCreate("Shell.Application").Windows
+{
+	; do not close in this loop as it mess up the handlers
+	strType := ""
+	try strType := objExplorer.Type ; Gets the type name of the contained document object. "Document HTML" for IE windows. Should be empty for file Explorer windows.
+	strWindowID := ""
+	try strWindowID := objExplorer.HWND ; Try to get the handle of the window. Some ghost Explorer in the ComObjCreate may return an empty handle
+	if !StrLen(strType) and StrLen(strWindowID) ; strType must be empty and strWindowID must not be empty
+		strWindowsId .= objExplorer.HWND . "|"
+}
+StringTrimRight, strWindowsId, strWindowsId, 1 ; remove last | separator
+Loop, Parse, strWindowsId, |
+{
+	WinClose, ahk_id %A_LoopField%
+	Sleep, %intSleepTime%
+}
+
+/*
+if (g_blnUseTotalCommander)
+{
+	WinGet, arrIDs, List, ahk_class TTOTAL_CMD
+	Loop, %arrIDs%
+	{
+		WinClose, % "ahk_id " . arrIDs%A_Index%
+		Sleep, %intSleepTime%
+	}
+}
+*/
+
+if (g_blnUseDirectoryOpus)
+{
+	WinGet, arrIDs, List, ahk_class dopus.lister
+	Loop, %arrIDs%
+	{
+		WinClose, % "ahk_id " . arrIDs%A_Index%
+		Sleep, %intSleepTime%
+	}
+}
+Tooltip ; clear tooltip
+
+intSleepTime := ""
+strWindowsId := ""
+objExplorer := ""
+arrIDs := ""
+
+return
+;------------------------------------------------------------
+
 
 
 ;------------------------------------------------------------
