@@ -16,8 +16,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- fav should be Launch when DOpus or TC not supported
-- FTP fav stopped working in DOpus with v6.0.4 but works in v6.0.5 (why?)
+seems OK... - fav should be Launch when DOpus or TC not supported
+seems OK... - FTP fav stopped working in DOpus with v6.0.4 but works in v6.0.5 (why?)
 
 TO-DO
 - continue close Explorer before group load
@@ -47,6 +47,8 @@ FPCONNECT
 
 HISTORY
 =======
+
+Version: 6.0.6 alpha (2015-09-??)
 
 Version: 6.0.5 alpha (2015-09-25)
 - create a daily backup of ini file for alpha versions users
@@ -237,7 +239,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.0.5 alpha
+;@Ahk2Exe-SetVersion 6.0.6 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -290,7 +292,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.0.5" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.0.6" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -4292,6 +4294,8 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 	Gui, 2:Add, Checkbox, x20 y40 vf_blnUseDefaultSettings gCheckboxUseDefaultSettingsClicked, %lDialogUseDefaultSettings%
 
 	blnShowAdvancedSettings := StrLen(g_objEditedFavorite.FavoriteAppWorkingDir . g_arrGroupSettingsGui2 . g_arrGroupSettingsGui3 . g_objEditedFavorite.FavoriteLaunchWith . g_objEditedFavorite.FavoriteArguments)
+		or (!g_blnNewFavoriteFtpEncoding and g_objEditedFavorite.FavoriteType = "FTP")
+
 	GuiControl, , f_blnUseDefaultSettings, % !blnShowAdvancedSettings
 
 	if (g_objEditedFavorite.FavoriteType = "Application")
@@ -4308,16 +4312,16 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 	}
 	else
 	{
-		Gui, 2:Add, Text, x20 y+20 w300 vf_AdvancedSettingsLabel6, %lDialogLaunchWith%
+		Gui, 2:Add, Text, x20 y+20 w300 vf_AdvancedSettingsLabel4, %lDialogLaunchWith%
 		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteLaunchWith, % g_objEditedFavorite.FavoriteLaunchWith
 		Gui, 2:Add, Button, x+10 yp vf_AdvancedSettingsButton2 gButtonSelectLaunchWith, %lDialogBrowseButton%
 	}
 
 	if (g_objEditedFavorite.FavoriteType <> "Group")
 	{
-		Gui, 2:Add, Text, y+20 x20 w300 vf_AdvancedSettingsLabel7, %lDialogArgumentsLabel%
+		Gui, 2:Add, Text, y+20 x20 w300 vf_AdvancedSettingsLabel5, %lDialogArgumentsLabel%
 		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments gFavoriteArgumentChanged, % g_objEditedFavorite.FavoriteArguments
-		Gui, 2:Add, Text, x20 y+5 w400 vf_AdvancedSettingsLabel8, %lDialogArgumentsPlaceholders%
+		Gui, 2:Add, Text, x20 y+5 w400 vf_AdvancedSettingsLabel6, %lDialogArgumentsPlaceholders%
 		
 		Gui, 2:Add, Text, x20 y+10 w400 vf_PlaceholdersCheckLabel, %lDialogArgumentsPlaceholdersCheckLabel%
 		Gui, 2:Add, Edit, x20 y+5 w400 vf_strPlaceholdersCheck ReadOnly
@@ -4392,11 +4396,28 @@ Gui, 2:Submit, NoHide
 
 strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_AdvancedSettingsButton1|f_intGroupRestoreDelay|f_strFavoriteLaunchWith|f_AdvancedSettingsButton2|f_strFavoriteArguments|f_blnFavoriteFtpEncoding"
 
+; show or hide controls
 Loop, Parse, strAdvancedSettingsControls, |
-	GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), %A_LoopField%
+	if (g_blnUseTotalCommander and A_LoopField = "f_blnFavoriteFtpEncoding")
+		; hide if Total Commander is used because URL is never encoded with TC (as hardcoded in OpenFavorite)
+		GuiControl, Hide, f_blnFavoriteFtpEncoding
+	else
+		GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), %A_LoopField%
 
-Loop, 9
+; show or hide labels
+Loop, 6
 	GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), f_AdvancedSettingsLabel%A_Index%
+
+if (f_blnUseDefaultSettings)
+; if use default, reset values to default
+{
+	strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_intGroupRestoreDelay|f_strFavoriteLaunchWith|f_strFavoriteArguments|f_strPlaceholdersCheck"
+	Loop, Parse, strAdvancedSettingsControls, |
+		GuiControl, , %A_LoopField% ; empty control to reset default value
+
+	; default value is true, except if Total Commander is used
+	GuiControl, , f_blnFavoriteFtpEncoding, % (g_blnUseTotalCommander ? 0 : 1)
+}
 
 strAdvancedSettingsControls := ""
 
@@ -6993,7 +7014,7 @@ OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
-if (A_ThisLabel = "OpenFavoriteFromGroup")
+; if (A_ThisLabel = "OpenFavoriteFromGroup")
 	###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
@@ -7050,7 +7071,7 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 
 blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not take into account if keyboard shortcut
 
-if (A_ThisLabel = "OpenFavoriteFromGroup")
+; if (A_ThisLabel = "OpenFavoriteFromGroup")
 	###_V(A_ThisLabel . "-2", g_strHokeyTypeDetected, g_strTargetAppName, g_strTargetWinId, g_strTargetControl, g_strTargetClass, g_strFullLocation)
 ; ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 
