@@ -20,8 +20,8 @@ seems OK... - fav should be Launch when DOpus or TC not supported
 seems OK... - FTP fav stopped working in DOpus with v6.0.4 but works in v6.0.5 (why?)
 
 TO-DO
-- continue close Explorer before group load
 - memorize in folders fav members of group with what app restore (Explorer or DOpus)
+  -> open with selected
 - implement open group
 - make sure relative paths are supported for everything folders, files, applications, custom icons.
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -4061,8 +4061,9 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 	if (g_objEditedFavorite.FavoriteType = "Group")
 	{
 	   ; 1 boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
-	   ; 2 delay in milliseconds to insert between each favorite to restore
-		strGroupSettings := g_objEditedFavorite.FavoriteGroupSettings . ",,," ; ,,, to make sure all fields are re-init
+	   ; 2 restore folders with "Explorer", "Directory Opus" or "Total Commander"
+	   ; 3 delay in milliseconds to insert between each favorite to restore
+		strGroupSettings := g_objEditedFavorite.FavoriteGroupSettings . ",,,," ; ,,, to make sure all fields are re-init
 		StringSplit, g_arrGroupSettingsGui, strGroupSettings, `,
 	}
 }
@@ -4199,6 +4200,14 @@ if (g_objEditedFavorite.FavoriteType = "Group")
 	Gui, 2:Add, Text, x20 y+20, %lGuiGroupSaveRestoreOption%
 	Gui, 2:Add, Radio, % "x20 y+10 vf_blnRadioGroupAdd " . (g_arrGroupSettingsGui1 ? "" : "checked"), %lGuiGroupSaveAddWindowsLabel%
 	Gui, 2:Add, Radio, % "x20 y+5 vf_blnRadioGroupReplace " . (g_arrGroupSettingsGui1 ? "checked" : ""), %lGuiGroupSaveReplaceWindowsLabel%
+
+	if (g_blnUseDirectoryOpus or g_blnUseTotalCommander)
+	{
+		Gui, 2:Add, Text, x20 y+20, %lGuiGroupSaveRestoreWith%
+		Gui, 2:Add, Radio, % "x20 y+10 vf_blnRadioGroupRestoreWithExplorer " . (g_arrGroupSettingsGui2 = "Windows Explorer" ? "checked" : ""), Windows Explorer
+		Gui, 2:Add, Radio, % "x20 y+5 vf_blnRadioGroupRestoreWithOther " . (g_arrGroupSettingsGui2 <> "Windows Explorer" ? "checked" : "")
+			, % (g_blnUseDirectoryOpus ? "Directory Opus" : "Total Commander") ; will be selected by default if empty (when Add)
+	}
 }
 
 return
@@ -4293,7 +4302,7 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 
 	Gui, 2:Add, Checkbox, x20 y40 vf_blnUseDefaultSettings gCheckboxUseDefaultSettingsClicked, %lDialogUseDefaultSettings%
 
-	blnShowAdvancedSettings := StrLen(g_objEditedFavorite.FavoriteAppWorkingDir . g_arrGroupSettingsGui2 . g_arrGroupSettingsGui3 . g_objEditedFavorite.FavoriteLaunchWith . g_objEditedFavorite.FavoriteArguments)
+	blnShowAdvancedSettings := StrLen(g_objEditedFavorite.FavoriteAppWorkingDir . g_arrGroupSettingsGui3 . g_objEditedFavorite.FavoriteLaunchWith . g_objEditedFavorite.FavoriteArguments)
 		or (!g_blnNewFavoriteFtpEncoding and g_objEditedFavorite.FavoriteType = "FTP")
 
 	GuiControl, , f_blnUseDefaultSettings, % !blnShowAdvancedSettings
@@ -4307,7 +4316,7 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 	else if (g_objEditedFavorite.FavoriteType = "Group")
 	{
 		Gui, 2:Add, Text, x20 y+20 vf_AdvancedSettingsLabel2, %lGuiGroupRestoreDelay%
-		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupRestoreDelay, %g_arrGroupSettingsGui2%
+		Gui, 2:Add, Edit, x20 y+5 w50 center number Limit4 vf_intGroupRestoreDelay, %g_arrGroupSettingsGui3%
 		Gui, 2:Add, Text, x+10 yp vf_AdvancedSettingsLabel3, %lGuiGroupRestoreDelayMilliseconds%
 	}
 	else
@@ -5112,6 +5121,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
 	
 	g_objEditedFavorite.FavoriteGroupSettings := f_blnRadioGroupReplace
+	g_objEditedFavorite.FavoriteGroupSettings .= (f_blnRadioGroupRestoreWithExplorer ? ",Windows Explorer" : ",Other")
 	g_objEditedFavorite.FavoriteGroupSettings .= (f_blnUseDefaultSettings ? "" : "," . f_intGroupRestoreDelay)
 	
 	g_objEditedFavorite.FavoriteLoginName := f_strFavoriteLoginName
@@ -5209,6 +5219,8 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave") ; do not execute at each favorite 
 	; make sure all gui variables are flushed before next fav add or edit
 	f_blnRadioGroupAdd := ""
 	f_blnRadioGroupReplace := ""
+	f_blnRadioGroupRestoreWithExplorer := ""
+	f_blnRadioGroupRestoreWithOther := ""
 	f_blnUseDefaultSettings := ""
 	f_chkRememberWindowPosition := ""
 	f_drpParentMenu := ""
@@ -7014,8 +7026,8 @@ OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
-; if (A_ThisLabel = "OpenFavoriteFromGroup")
-	###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
+if (A_ThisLabel = "OpenFavoriteFromGroup")
+	###_O("objThisGroupList", objThisGroupList) ; ###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
@@ -7071,7 +7083,7 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 
 blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not take into account if keyboard shortcut
 
-; if (A_ThisLabel = "OpenFavoriteFromGroup")
+if (A_ThisLabel = "OpenFavoriteFromGroup")
 	###_V(A_ThisLabel . "-2", g_strHokeyTypeDetected, g_strTargetAppName, g_strTargetWinId, g_strTargetControl, g_strTargetClass, g_strFullLocation)
 ; ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 

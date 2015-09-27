@@ -192,6 +192,7 @@ global lGuiGroupSaveNewGroup := "New group"
 global lGuiGroupSaveReplaceGroup := "Group ""~1~"" exists. Replace it?"
 global lGuiGroupSaveReplaceWindowsLabel := "Replace existing Explorer windows" ; changed
 global lGuiGroupSaveRestoreOption := "When restoring this group:"
+global lGuiGroupSaveRestoreWith := "Restore folders with:"
 global lGuiGroupSaveSelect := "Select the favorites to save in this group" ; changed was "... the folders to..."
 global lGuiGroupSaveSelectAll := "Select All"
 global lGuiGroupSaveSelectExisting := "or select an existing group to overwrite:"
