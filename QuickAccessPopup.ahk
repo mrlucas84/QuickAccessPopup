@@ -4061,7 +4061,7 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 	if (g_objEditedFavorite.FavoriteType = "Group")
 	{
 	   ; 1 boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
-	   ; 2 restore folders with "Explorer", "Directory Opus" or "Total Commander"
+	   ; 2 restore folders with "Explorer" or "Other" (Directory Opus, Total Commander or FPconnect)
 	   ; 3 delay in milliseconds to insert between each favorite to restore
 		strGroupSettings := g_objEditedFavorite.FavoriteGroupSettings . ",,,," ; ,,, to make sure all fields are re-init
 		StringSplit, g_arrGroupSettingsGui, strGroupSettings, `,
@@ -6929,28 +6929,29 @@ objThisGroupFavorite := g_objThisFavorite
 ; ###_V("objThisGroupFavorite", objThisGroupFavorite.FavoriteGroupSettings)
 
 ; g_arrGroupSettingsOpen1: boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
-; g_arrGroupSettingsOpen2: delay in milliseconds to insert between each favorite to restore (in addition to default 200 ms)
+; g_arrGroupSettingsOpen2: restore folders with "Explorer" or "Other" (Directory Opus, Total Commander or FPconnect)
+; g_arrGroupSettingsOpen3: delay in milliseconds to insert between each favorite to restore (in addition to default 200 ms)
 strGroupSettings := objThisGroupFavorite.FavoriteGroupSettings
 StringSplit, g_arrGroupSettingsOpen, strGroupSettings, `,
 
 if (g_arrGroupSettingsOpen1)
 	gosub, OpenGroupOfFavoritesCloseExplorers
 	
-objThisGroupList := g_objMenusIndex[lMainMenuName . " " . objThisGroupFavorite.FavoriteLocation]
+objThisGroupFavoritesList := g_objMenusIndex[lMainMenuName . " " . objThisGroupFavorite.FavoriteLocation]
 
-loop, % objThisGroupList.MaxIndex() - 1 ; skip first item back-link
+loop, % objThisGroupFavoritesList.MaxIndex() - 1 ; skip first item backlink
 {
-	g_objThisFavorite := objThisGroupList[A_Index + 1]
+	g_objThisFavorite := objThisGroupFavoritesList[A_Index + 1] ; skip first item backlink
 	; ###_O("g_objThisFavorite", g_objThisFavorite)
 	
-	Sleep, % g_arrGroupSettingsOpen2 + 200 ; add 200 ms as minimal default delay
+	Sleep, % g_arrGroupSettingsOpen3 + 200 ; add 200 ms as minimal default delay
 	g_blnFirstItemOfGroup := (A_Index = 1)
 	gosub, OpenFavoriteFromGroup
 }
 
 OpenGroupOfFavoritesCleanup:
 objThisGroupFavorite := ""
-objThisGroupList := ""
+objThisGroupFavoritesList := ""
 strGroupSettings := ""
 g_arrGroupSettingsOpen := ""
 
@@ -6965,45 +6966,48 @@ OpenGroupOfFavoritesCloseExplorers:
 intSleepTime := 67 ; for visual effect only...
 Tooltip, %lGuiGroupClosing%
 
-strWindowsId := ""
-for objExplorer in ComObjCreate("Shell.Application").Windows
+if (g_arrGroupSettingsOpen2 = "Other")
 {
-	; do not close in this loop as it mess up the handlers
-	strType := ""
-	try strType := objExplorer.Type ; Gets the type name of the contained document object. "Document HTML" for IE windows. Should be empty for file Explorer windows.
-	strWindowID := ""
-	try strWindowID := objExplorer.HWND ; Try to get the handle of the window. Some ghost Explorer in the ComObjCreate may return an empty handle
-	if !StrLen(strType) and StrLen(strWindowID) ; strType must be empty and strWindowID must not be empty
-		strWindowsId .= objExplorer.HWND . "|"
-}
-StringTrimRight, strWindowsId, strWindowsId, 1 ; remove last | separator
-Loop, Parse, strWindowsId, |
-{
-	WinClose, ahk_id %A_LoopField%
-	Sleep, %intSleepTime%
-}
-
-/*
-if (g_blnUseTotalCommander)
-{
-	WinGet, arrIDs, List, ahk_class TTOTAL_CMD
-	Loop, %arrIDs%
+	if (g_blnUseDirectoryOpus)
 	{
-		WinClose, % "ahk_id " . arrIDs%A_Index%
+		WinGet, arrIDs, List, ahk_class dopus.lister
+		Loop, %arrIDs%
+		{
+			WinClose, % "ahk_id " . arrIDs%A_Index%
+			Sleep, %intSleepTime%
+		}
+	}
+	else if (g_blnUseTotalCommander)
+	{
+		WinGet, arrIDs, List, ahk_class TTOTAL_CMD
+		Loop, %arrIDs%
+		{
+			WinClose, % "ahk_id " . arrIDs%A_Index%
+			Sleep, %intSleepTime%
+		}
+	}
+}
+else ; g_arrGroupSettingsOpen2 = "Windows Explorer" or ""
+{
+	strWindowsId := ""
+	for objExplorer in ComObjCreate("Shell.Application").Windows
+	{
+		; do not close in this loop as it mess up the handlers
+		strType := ""
+		try strType := objExplorer.Type ; Gets the type name of the contained document object. "Document HTML" for IE windows. Should be empty for file Explorer windows.
+		strWindowID := ""
+		try strWindowID := objExplorer.HWND ; Try to get the handle of the window. Some ghost Explorer in the ComObjCreate may return an empty handle
+		if !StrLen(strType) and StrLen(strWindowID) ; strType must be empty and strWindowID must not be empty
+			strWindowsId .= objExplorer.HWND . "|"
+	}
+	StringTrimRight, strWindowsId, strWindowsId, 1 ; remove last | separator
+	Loop, Parse, strWindowsId, |
+	{
+		WinClose, ahk_id %A_LoopField%
 		Sleep, %intSleepTime%
 	}
 }
-*/
 
-if (g_blnUseDirectoryOpus)
-{
-	WinGet, arrIDs, List, ahk_class dopus.lister
-	Loop, %arrIDs%
-	{
-		WinClose, % "ahk_id " . arrIDs%A_Index%
-		Sleep, %intSleepTime%
-	}
-}
 Tooltip ; clear tooltip
 
 intSleepTime := ""
@@ -7013,7 +7017,6 @@ arrIDs := ""
 
 return
 ;------------------------------------------------------------
-
 
 
 ;------------------------------------------------------------
@@ -7026,8 +7029,8 @@ OpenCurrentFolder:
 OpenClipboard:
 ;------------------------------------------------------------
 
-if (A_ThisLabel = "OpenFavoriteFromGroup")
-	###_O("objThisGroupList", objThisGroupList) ; ###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
+; if (A_ThisLabel = "OpenFavoriteFromGroup")
+;	###_O("objThisGroupFavoritesList", objThisGroupFavoritesList) ; ###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
@@ -7083,8 +7086,8 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 
 blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not take into account if keyboard shortcut
 
-if (A_ThisLabel = "OpenFavoriteFromGroup")
-	###_V(A_ThisLabel . "-2", g_strHokeyTypeDetected, g_strTargetAppName, g_strTargetWinId, g_strTargetControl, g_strTargetClass, g_strFullLocation)
+; if (A_ThisLabel = "OpenFavoriteFromGroup")
+;	###_V(A_ThisLabel . "-2", g_strHokeyTypeDetected, g_strTargetAppName, g_strTargetWinId, g_strTargetControl, g_strTargetClass, g_strFullLocation)
 ; ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 
 ; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
@@ -7258,7 +7261,9 @@ if (g_strTargetAppName = "Desktop")
     g_strHokeyTypeDetected := "Launch"
 
 if (g_strHokeyTypeDetected = "Launch")
-	if InStr("Desktop|Dialog|Console|Unknown", g_strTargetAppName) ; these targets cannot launch in a new window
+	if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup" and g_arrGroupSettingsOpen2 = "Windows Explorer")
+		g_strTargetAppName := "Explorer"
+	else if InStr("Desktop|Dialog|Console|Unknown", g_strTargetAppName) ; these targets cannot launch in a new window
 		or (g_blnUseDirectoryOpus or g_blnUseTotalCommander or g_blnUseFPconnect) ; use these file managers
 		if (g_blnUseDirectoryOpus)
 			g_strTargetAppName := "DirectoryOpus"
