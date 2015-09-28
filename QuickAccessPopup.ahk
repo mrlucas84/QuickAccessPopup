@@ -16,14 +16,12 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-seems OK... - fav should be Launch when DOpus or TC not supported
-seems OK... - FTP fav stopped working in DOpus with v6.0.4 but works in v6.0.5 (why?)
+- FTP could be Navigate in DOpus or TC
 
 TO-DO
-- memorize in folders fav members of group with what app restore (Explorer or DOpus)
-  -> open with selected
-- implement open group
-- make sure relative paths are supported for everything folders, files, applications, custom icons.
+- make sure relative paths are supported for everything:
+  - TO TEST: apps start in directory, documents launch with
+  - OK folders, documents, applications, custom icons (relative path must be edited in ini file)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
@@ -47,6 +45,12 @@ FPCONNECT
 
 HISTORY
 =======
+
+Version: 6.0.7 alpha (2015-09-??)
+- support relative paths for icon file (but they have to be made relative in the ini file)
+- fix bug when checking if a file exitst and location has relative path
+- init group settings empty when favorite is not a group
+- stop making FTP favorite always open in a new window or tab
 
 Version: 6.0.6 alpha (2015-09-27)
 - open group completed but not fuly tested
@@ -244,7 +248,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.0.6 alpha
+;@Ahk2Exe-SetVersion 6.0.7 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -297,7 +301,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.0.6" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.0.7" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -4037,6 +4041,8 @@ GuiFavoriteInit:
 g_objEditedFavorite := Object()
 g_strDefaultIconResource := ""
 g_strNewFavoriteIconResource := ""
+strGroupSettings := ",,,,,,," ; ,,, to make sure all fields are re-init
+StringSplit, g_arrGroupSettingsGui, strGroupSettings, `,
 
 if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 {
@@ -4086,11 +4092,7 @@ else
 		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intY . "," . intWidth . "," . intHeight . ",200"
 	}
 	else
-	{
 		g_strNewFavoriteWindowPosition := ",,,,,," ; to avoid having phantom values
-		strGroupSettings := ",,,,,"
-		StringSplit, g_arrGroupSettingsGui, strGroupSettings, `, ; to avoid having phantom values
-	}
 
 	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", strGuiFavoriteLabel)
 	{
@@ -4648,6 +4650,7 @@ if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and !StrLen(f
 ; Source: http://ahkscript.org/boards/viewtopic.php?f=5&t=5108#p29970
 VarSetCapacity(strThisIconFile, 1024) ; must be placed before strNewIconFile is initialized because VarSetCapacity erase its content
 ParseIconResource(g_strNewFavoriteIconResource, strThisIconFile, intThisIconIndex)
+strThisIconFile := PathCombine(A_WorkingDir, strThisIconFile)
 
 WinGet, hWnd, ID, A
 if (intThisIconIndex >= 0) ; adjust index for positive index only (not for negative index)
@@ -5128,9 +5131,12 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
 	g_objEditedFavorite.FavoriteWindowPosition := strNewFavoriteWindowPosition
 	
-	g_objEditedFavorite.FavoriteGroupSettings := f_blnRadioGroupReplace
-	g_objEditedFavorite.FavoriteGroupSettings .= (f_blnRadioGroupRestoreWithExplorer ? ",Windows Explorer" : ",Other")
-	g_objEditedFavorite.FavoriteGroupSettings .= (f_blnUseDefaultSettings ? "" : "," . f_intGroupRestoreDelay)
+	if (g_objEditedFavorite.FavoriteType = "Group")
+	{
+		g_objEditedFavorite.FavoriteGroupSettings := f_blnRadioGroupReplace
+		g_objEditedFavorite.FavoriteGroupSettings .= "," . (f_blnRadioGroupRestoreWithOther ? "Other" : "Windows Explorer")
+		g_objEditedFavorite.FavoriteGroupSettings .= (f_blnUseDefaultSettings ? "" : "," . f_intGroupRestoreDelay)
+	}
 	
 	g_objEditedFavorite.FavoriteLoginName := f_strFavoriteLoginName
 	g_objEditedFavorite.FavoritePassword := f_strFavoritePassword
@@ -7063,11 +7069,11 @@ if (g_objThisFavorite.FavoriteType = "Group") and (g_strPowerMenu <> lMenuPowerE
 
 if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for these favorites, file/folder must exist
 	and (g_strPowerMenu <> lMenuPowerEditFavorite)
-	if !FileExist(EnvVars(g_objThisFavorite.FavoriteLocation))
+	if !FileExist(PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLocation)))
 	{
 		Gui, 1:+OwnDialogs
 		MsgBox, 0, % L(lDialogFavoriteDoesNotExistTitle, g_strAppNameText)
-			, % L(lDialogFavoriteDoesNotExistPrompt, EnvVars(g_objThisFavorite.FavoriteLocation))
+			, % L(lDialogFavoriteDoesNotExistPrompt, PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLocation)))
 		gosub, OpenFavoriteCleanup
 		return
 	}
@@ -7078,9 +7084,6 @@ if (g_blnPowerMenu)
 		g_strHokeyTypeDetected := "Launch"
 	else if (g_strPowerMenu = lMenuPowerNavigateDialog)
 		g_strHokeyTypeDetected := "Navigate" ;  if we get here, we know it is a dialog box
-
-if (g_objThisFavorite.FavoriteType = "FTP")
-	g_strHokeyTypeDetected := "Launch"
 
 gosub, SetTargetName ; sets g_strTargetAppName, can change g_strHokeyTypeDetected to "Launch"
 
@@ -7189,7 +7192,7 @@ if InStr("OpenFavorite|OpenFavoriteFromHotkey", g_strOpenFavoriteLabel) and (g_o
 
 ; --- Navigate Folder ---
 
-if (g_objThisFavorite.FavoriteType = "Folder" and g_strHokeyTypeDetected = "Navigate")
+if (InStr("Folder|FTP", g_objThisFavorite.FavoriteType) and g_strHokeyTypeDetected = "Navigate")
 {
 	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
 	gosub, OpenFavoriteNavigate%g_strTargetAppName%
