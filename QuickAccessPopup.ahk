@@ -48,9 +48,10 @@ FPCONNECT
 HISTORY
 =======
 
-Version: 6.0.6 alpha (2015-09-??)
-- making default URL encoding to true for FTP favorites, except for Total Commander always set FTP encoding to false
+Version: 6.0.6 alpha (2015-09-27)
+- open group completed but not fuly tested
 - add an option in groups to determine if folder will be open with Explorer or the active alternative file manager (Directory Opus, Total Commander or FPconnect), FPconnect not fully supported yet
+- making default URL encoding to true for FTP favorites, except for Total Commander always set FTP encoding to false
 - fix bug, when folder name from DOpus includes HTML entities like apostrophe replaced by "apos;"
 - current folders menu now supports FTP listers in DOpus 
 
