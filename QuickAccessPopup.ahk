@@ -49,6 +49,10 @@ HISTORY
 =======
 
 Version: 6.0.6 alpha (2015-09-??)
+- making default URL encoding to true for FTP favorites, except for Total Commander always set FTP encoding to false
+- add an option in groups to determine if folder will be open with Explorer or the active alternative file manager (Directory Opus, Total Commander or FPconnect), FPconnect not fully supported yet
+- fix bug, when folder name from DOpus includes HTML entities like apostrophe replaced by "apos;"
+- current folders menu now supports FTP listers in DOpus 
 
 Version: 6.0.5 alpha (2015-09-25)
 - create a daily backup of ini file for alpha versions users
@@ -2028,14 +2032,14 @@ if (g_blnUseDirectoryOpus)
 		if !StrLen(objLister.LocationURL) or InStr(objLister.LocationURL, "coll://")
 			continue
 		
-		if NameIsInObject(objLister.LocationURL, objCurrentFoldersList)
+		if NameIsInObject(objLister.Name, objCurrentFoldersList)
 			continue
 		
 		intExplorersIndex++
 			
 		objCurrentFolder := Object()
 		objCurrentFolder.LocationURL := objLister.LocationURL
-		objCurrentFolder.Name := objLister.LocationURL
+		objCurrentFolder.Name := objLister.Name
 		
 		; used for DOpus windows to discriminatre different listers
 		objCurrentFolder.WindowId := objLister.Lister
@@ -2134,6 +2138,8 @@ CollectDOpusListersList(strList)
 			objLister.Tab := ParseDOpusListerProperty(strSubStr, "tab")
 			objLister.Tab_state := ParseDOpusListerProperty(strSubStr, "tab_state")
 			objLister.LocationURL := SubStr(strSubStr, InStr(strSubStr, ">") + 1)
+			
+			objLister.Name := ComUnHTML(objLister.LocationURL) ; convert HTML entities to text (like "&apos;")
 
 			WinGetPos, intX, intY, intW, intH, % "ahk_id " . objLister.lister
 			objLister.Position := intX . "|" . intY . "|" . intW . "|" . intH
@@ -2141,9 +2147,10 @@ CollectDOpusListersList(strList)
 			objLister.MinMax := intMinMax
 			objLister.Pane := objLister.Side
 			
-			if !InStr(objLister.LocationURL, "ftp://")
+			; if !InStr(objLister.LocationURL, "ftp://") - removed in v6.0.6 - FTP from DOpus now supported
 				; Swith Explorer to DOpus FTP folder not supported (see https://github.com/JnLlnd/FoldersPopup/issues/84)
-				objListers.Insert(A_Index, objLister)
+				
+			objListers.Insert(A_Index, objLister)
 				
 			strList := SubStr(strList, StrLen(strSubStr))
 		}
@@ -7341,6 +7348,8 @@ else if (g_strOpenFavoriteLabel = "OpenCurrentFolder")
 		strThisMenuItem := SubStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], 3) ; remove "::" from beginning
 		strFavoriteType := "Special"
 	}
+	else if InStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], "ftp://") ; possible with DOpus listers
+		strFavoriteType := "FTP"
 	else
 		strFavoriteType := "Folder"
 	
@@ -9114,6 +9123,15 @@ NameIsInObject(strName, obj)
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+HasHotkey(strCandidateHotkey)
+;------------------------------------------------------------
+{
+	return StrLen(strCandidateHotkey) and (strCandidateHotkey <> "None")
+}
+;------------------------------------------------------------
+
+
 ;------------------------------------------------
 UriDecode(str)
 ; by polyethene
@@ -9128,6 +9146,63 @@ UriDecode(str)
 	return str
 }
 ;------------------------------------------------
+
+
+;------------------------------------------------------------
+ComUnHTML(html)
+; convert HTML entities to text (like "&apos;") - author unknown
+; http://www.autohotkey.com/board/topic/47356-unhtm-remove-html-formatting-from-a-string-updated/page-2#entry467499
+;------------------------------------------------------------
+{
+	oHTML := ComObjCreate("HtmlFile")
+	oHTML.write(html)
+	return oHTML.documentElement.innerText
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ExpandPlaceholders(strArguments, strLocation)
+; {LOC} (full location), {NAME} (file name), {DIR} (directory), {EXT} (extension), {NOEXT} (file name without extension) or {DRIVE} (drive)
+;------------------------------------------------------------
+{
+	SplitPath, strLocation, strOutFileName, strOutDir, strOutExtension, strOutNameNoExt, strOutDrive
+	
+	strExpanded := strArguments
+	StringReplace, strExpanded, strExpanded, {LOC}, %strLocation%, All
+	StringReplace, strExpanded, strExpanded, {NAME}, %strOutFileName%, All
+	StringReplace, strExpanded, strExpanded, {DIR}, %strOutDir%, All
+	StringReplace, strExpanded, strExpanded, {EXT}, %strOutExtension%, All
+	StringReplace, strExpanded, strExpanded, {NOEXT}, %strOutNameNoExt%, All
+	StringReplace, strExpanded, strExpanded, {DRIVE}, %strOutDrive%, All
+	
+	return strExpanded
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SetTargetClassWinIdAndControl(blnMouseElseKeyboard)
+; set g_strTargetClass, g_strTargetWinId and g_strTargetControl
+;------------------------------------------------------------
+{
+	global
+	
+	if (blnMouseElseKeyboard)
+	{
+		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		; TrayTip, Navigate Mouse, %strMouseOrKeyboard% = %g_strMouseNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%`n%g_strTargetControl%
+	}
+	else ; Keyboard
+	{
+		g_strTargetWinId := WinExist("A")
+		g_strTargetControl := ""
+		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
+		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
+	}
+}
+;------------------------------------------------------------
 
 
 
@@ -9332,54 +9407,3 @@ StrPutVar(string, ByRef var, encoding)
 ;------------------------------------------------------------
 
 
-;------------------------------------------------------------
-ExpandPlaceholders(strArguments, strLocation)
-; {LOC} (full location), {NAME} (file name), {DIR} (directory), {EXT} (extension), {NOEXT} (file name without extension) or {DRIVE} (drive)
-;------------------------------------------------------------
-{
-	SplitPath, strLocation, strOutFileName, strOutDir, strOutExtension, strOutNameNoExt, strOutDrive
-	
-	strExpanded := strArguments
-	StringReplace, strExpanded, strExpanded, {LOC}, %strLocation%, All
-	StringReplace, strExpanded, strExpanded, {NAME}, %strOutFileName%, All
-	StringReplace, strExpanded, strExpanded, {DIR}, %strOutDir%, All
-	StringReplace, strExpanded, strExpanded, {EXT}, %strOutExtension%, All
-	StringReplace, strExpanded, strExpanded, {NOEXT}, %strOutNameNoExt%, All
-	StringReplace, strExpanded, strExpanded, {DRIVE}, %strOutDrive%, All
-	
-	return strExpanded
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-HasHotkey(strCandidateHotkey)
-;------------------------------------------------------------
-{
-	return StrLen(strCandidateHotkey) and (strCandidateHotkey <> "None")
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-SetTargetClassWinIdAndControl(blnMouseElseKeyboard)
-; set g_strTargetClass, g_strTargetWinId and g_strTargetControl
-;------------------------------------------------------------
-{
-	global
-	
-	if (blnMouseElseKeyboard)
-	{
-		MouseGetPos, , , g_strTargetWinId, g_strTargetControl
-		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		; TrayTip, Navigate Mouse, %strMouseOrKeyboard% = %g_strMouseNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%`n%g_strTargetControl%
-	}
-	else ; Keyboard
-	{
-		g_strTargetWinId := WinExist("A")
-		g_strTargetControl := ""
-		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
-		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
-	}
-}
-;------------------------------------------------------------
