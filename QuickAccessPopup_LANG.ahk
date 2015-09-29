@@ -306,6 +306,7 @@ global lOopsHotkeyAlreadyUsed := "The hotkey ""~1~"" is already used for ~2~.`n`
 global lOopsHotkeyNotInMenus := "Error: location ""~1~"" for hotkey ""~1~"" not found in menus."
 global lOopsInvalidWindowPosition := "Invalid window position value(s)" ; new
 global lOopsGroup := "group" ; new
+global lOopsLaunchWithNotFound := """Launch with"" application not found:`n`n~1~`n`nCheck the favorite's advanced settings."
 global lOopsLocation := "location" ; new
 global lOopsQAPfeature := "QAP feature" ; new
 global lOopsTitle := "~1~ (~2~)"

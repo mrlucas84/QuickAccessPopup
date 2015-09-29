@@ -19,9 +19,6 @@ BUGS
 - FTP could be Navigate in DOpus or TC
 
 TO-DO
-- make sure relative paths are supported for everything:
-  - TO TEST: apps start in directory, documents launch with
-  - OK folders, documents, applications, custom icons (relative path must be edited in ini file)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
@@ -51,6 +48,7 @@ Version: 6.0.7 alpha (2015-09-??)
 - fix bug when checking if a file exitst and location has relative path
 - init group settings empty when favorite is not a group
 - stop making FTP favorite always open in a new window or tab
+- QA that relative paths are fully supported in: folders, documents, applications, custom icons (relative path must be edited in ini file) and in advanced settings "launch with" and apps "start in" directory
 
 Version: 6.0.6 alpha (2015-09-27)
 - open group completed but not fuly tested
@@ -7436,7 +7434,13 @@ else
 }
 
 if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; always empty for Application favorites
-	g_strFullLocation := EnvVars(g_objThisFavorite.FavoriteLaunchWith) . " """ . g_strFullLocation . """" ; enclose document path in double-quotes
+{
+	strFullLaunchWith := PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLaunchWith))
+	if !FileExist(strFullLaunchWith) and (g_strPowerMenu <> lMenuPowerEditFavorite)
+		Oops(lOopsLaunchWithNotFound, strFullLaunchWith) ; leave g_strFullLocation as-is
+	else
+		g_strFullLocation := strFullLaunchWith . " """ . g_strFullLocation . """" ; enclose document path in double-quotes
+}
 
 if StrLen(g_objThisFavorite.FavoriteArguments)
 	g_strFullLocation .= " " . ExpandPlaceholders(g_objThisFavorite.FavoriteArguments, g_strFullLocation) ; let user enter double-quotes as required by his arguments
@@ -7450,6 +7454,7 @@ strOutNameNoExt := ""
 strOutDrive := ""
 strLoginName := ""
 strPassword := ""
+strFullLaunchWith := ""
 
 return
 ;------------------------------------------------------------
