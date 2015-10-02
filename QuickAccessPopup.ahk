@@ -16,12 +16,13 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- FTP could be Navigate in DOpus or TC
 
 TO-DO
+- test FPconnect
+- copy favorite
+- improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
-- improve exclusion lists gui in options, help text, class collector, QAP feature "Copy window class"
 
 LATER
 -----
@@ -46,9 +47,10 @@ HISTORY
 Version: 6.0.7 alpha (2015-09-??)
 - support relative paths for icon file (but they have to be made relative in the ini file)
 - fix bug when checking if a file exitst and location has relative path
-- init group settings empty when favorite is not a group
+- empty group settings when favorite is not a group
 - stop making FTP favorite always open in a new window or tab
 - QA that relative paths are fully supported in: folders, documents, applications, custom icons (relative path must be edited in ini file) and in advanced settings "launch with" and apps "start in" directory
+- add windows identification parameter in FPconnect properties for the active file manager.
 
 Version: 6.0.6 alpha (2015-09-27)
 - open group completed but not fuly tested
@@ -7942,16 +7944,28 @@ return
 OpenFavoriteInNewWindowFPconnect:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
+; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID)
 
-Run, %g_strFPconnectPath% %g_strFullLocation% /new, , , intPid
-WinWaitActive, ahk_pid %intPid%
+Run, %g_strFPconnectPath% %g_strFullLocation% /new
 
-; ### does not work testing FPconnect with FreeCommanderXE
-; g_strNewWindowId := "ahk_pid " . intPid
-g_strNewWindowId := ""
+; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID, g_strNewWindowId, intPid)
+if StrLen(g_strFPconnectWindowID)
+; g_strFPconnectWindowID is read in the FPconnect.ini file for the connected file manager.
+; It must contain at least some characters of the connected app title, and enough to be specific to this window.
+; It is used here to wait for the FM window as identified in FPconnect.ini. And it is copied to g_strNewWindowId
+{
+	intPreviousTitleMatchMode := A_TitleMatchMode ; save current match mode
+	SetTitleMatchMode, RegEx ; change match mode to RegEx
+	; with RegEx, for example, ahk_class IEFrame searches for any window whose class name contains IEFrame anywhere
+	; (because by default, regular expressions find a match anywhere in the target string).
+	WinWaitActive, %g_strFPconnectWindowID%, , 10 ; wait for the window as identified in FPconnect.ini
+	SetTitleMatchMode, %intPreviousTitleMatchMode% ; restore previous match mode
+	g_strNewWindowId := g_strFPconnectWindowID
+}
+else
+	g_strNewWindowId := ""
 
-intPid := ""
+intPreviousTitleMatchMode := ""
 
 return
 ;------------------------------------------------------------
@@ -7961,8 +7975,12 @@ return
 OpenFavoriteWindowResize:
 ;------------------------------------------------------------
 
+; ###_V(A_ThisLabel, g_strNewWindowId, g_strFPconnectWindowID)
+
 if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
 {
+	intPreviousTitleMatchMode := A_TitleMatchMode
+	SetTitleMatchMode, RegEx ; with RegEx: for example, ahk_class IEFrame searches for any window whose class name contains IEFrame anywhere (because by default, regular expressions find a match anywhere in the target string).
 	; ###_V(A_ThisLabel, g_strNewWindowId, g_arrFavoriteWindowPosition1, g_arrFavoriteWindowPosition2, g_arrFavoriteWindowPosition3, g_arrFavoriteWindowPosition4, g_arrFavoriteWindowPosition5, g_arrFavoriteWindowPosition6, g_arrFavoriteWindowPosition7)
 	Sleep, % g_arrFavoriteWindowPosition7 * (g_blnFirstItemOfGroup ? 2 : 1)
 	if (g_arrFavoriteWindowPosition2 = -1) ; Minimized
@@ -7980,7 +7998,10 @@ if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
 			, %g_arrFavoriteWindowPosition5% ; width
 			, %g_arrFavoriteWindowPosition6% ; height
 	}
+	SetTitleMatchMode, %intPreviousTitleMatchMode%
 }
+
+intPreviousTitleMatchMode := ""
 
 return
 ;------------------------------------------------------------
@@ -8622,6 +8643,7 @@ IniRead, strFPconnectAppPathFilename, %strFPconnectIniPath%, Options, AppPath, %
 g_blnUseFPconnect := FileExist(EnvVars(strFPconnectAppPathFilename))
 
 IniRead, strFPconnectTargetPathFilename, %strFPconnectIniPath%, Options, TargetPath, %A_Space% ; empty by default
+IniRead, g_strFPconnectWindowID, %strFPconnectIniPath%, Options, WindowID, %A_Space% ; empty by default
 
 if (g_blnUseFPconnect)
 {
