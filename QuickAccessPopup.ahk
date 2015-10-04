@@ -18,9 +18,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- test FPconnect
-- copy favorite
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
+- copy favorite
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 
@@ -44,7 +43,10 @@ FPCONNECT
 HISTORY
 =======
 
-Version: 6.0.7 alpha (2015-09-??)
+Version: 6.0.8 alpha (2015-10-??)
+- 
+
+Version: 6.0.7 alpha (2015-10-01)
 - support relative paths for icon file (but they have to be made relative in the ini file)
 - fix bug when checking if a file exitst and location has relative path
 - empty group settings when favorite is not a group
@@ -248,7 +250,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.0.7 alpha
+;@Ahk2Exe-SetVersion 6.0.8 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -301,7 +303,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.0.7" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.0.8" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -351,6 +353,9 @@ g_strDirectoryOpusRtPath := ""
 g_strFPconnectPath := ""
 g_strFPconnectAppFilename := ""
 g_strFPconnectTargetFilename := ""
+g_strFPconnectAppPathFilename := ""
+g_strFPconnectCommandline := ""
+g_strFPconnectNewTabSwitch := ""
 
 ; if the app runs from a zip file, the script directory is created under the system Temp folder
 if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
@@ -7655,14 +7660,21 @@ return
 OpenFavoriteNavigateFPconnect:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation)
+if InStr(g_strFullLocation, " ")
+	g_strFullLocation := """" . g_strFullLocation . """"
+StringReplace, strFPconnectParamString, g_strFPconnectCommandline, % "%Path%", %g_strFullLocation%
+StringReplace, strFPconnectParamString, strFPconnectParamString, % "%NewTabSwitch%"
+
+; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID, g_strFPconnectAppPathFilename, g_strFPconnectCommandline, g_strFPconnectNewTabSwitch, strFPconnectParamString, g_strFPconnectAppFilename, g_strTargetWinId)
 
 if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
 {
 	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
 	Sleep, 200
 }
-Run, %g_strFPconnectPath% %g_strFullLocation%
+Run, %g_strFPconnectAppPathFilename% %strFPconnectParamString%
+
+strFPconnectParamString :=""
 
 return
 ;------------------------------------------------------------
@@ -7944,9 +7956,15 @@ return
 OpenFavoriteInNewWindowFPconnect:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID)
+; old Run, %g_strFPconnectPath% %g_strFullLocation% /new
+if InStr(g_strFullLocation, " ")
+	g_strFullLocation := """" . g_strFullLocation . """"
+StringReplace, strFPconnectParamString, g_strFPconnectCommandline, % "%Path%", %g_strFullLocation%
+StringReplace, strFPconnectParamString, strFPconnectParamString, % "%NewTabSwitch%", %g_strFPconnectNewTabSwitch%
+; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID, g_strFPconnectAppPathFilename, g_strFPconnectCommandline, g_strFPconnectNewTabSwitch, strFPconnectParamString, g_strFPconnectAppFilename)
 
-Run, %g_strFPconnectPath% %g_strFullLocation% /new
+; Run, % g_strFPconnectAppPathFilename . " """ . strFPconnectParamString . """"
+Run, %g_strFPconnectAppPathFilename% %strFPconnectParamString%
 
 ; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID, g_strNewWindowId, intPid)
 if StrLen(g_strFPconnectWindowID)
@@ -7958,7 +7976,7 @@ if StrLen(g_strFPconnectWindowID)
 	SetTitleMatchMode, RegEx ; change match mode to RegEx
 	; with RegEx, for example, ahk_class IEFrame searches for any window whose class name contains IEFrame anywhere
 	; (because by default, regular expressions find a match anywhere in the target string).
-	WinWaitActive, %g_strFPconnectWindowID%, , 10 ; wait for the window as identified in FPconnect.ini
+	WinWaitActive, ahk_exe %g_strFPconnectAppFilename%, , 10 ; wait for the window as identified in FPconnect.ini
 	SetTitleMatchMode, %intPreviousTitleMatchMode% ; restore previous match mode
 	g_strNewWindowId := g_strFPconnectWindowID
 }
@@ -7966,6 +7984,7 @@ else
 	g_strNewWindowId := ""
 
 intPreviousTitleMatchMode := ""
+strFPconnectParamString := ""
 
 return
 ;------------------------------------------------------------
@@ -7975,7 +7994,7 @@ return
 OpenFavoriteWindowResize:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, g_strNewWindowId, g_strFPconnectWindowID)
+###_V(A_ThisLabel, g_strNewWindowId, g_strFPconnectWindowID)
 
 if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
 {
@@ -8607,7 +8626,7 @@ return
 
 
 ;------------------------------------------------------------
-CheckFPconnect:
+CheckFPconnect: ; #### adapt
 ;------------------------------------------------------------
 
 strCheckFPconnectPath := A_ScriptDir . "\FPconnect\FPconnect.exe"
@@ -8636,26 +8655,30 @@ return
 SetFPconnect:
 ;------------------------------------------------------------
 
-StringTrimRight, strFPconnectIniPath, g_strFPconnectPath, 4
-strFPconnectIniPath := strFPconnectIniPath . ".ini"
+strFPconnectIniPath := A_WorkingDir . "\QAPconnect.ini"
+IniRead, str, %strFPconnectIniPath%
+###_D(str)
 
-IniRead, strFPconnectAppPathFilename, %strFPconnectIniPath%, Options, AppPath, %A_Space% ; empty by default
-g_blnUseFPconnect := FileExist(EnvVars(strFPconnectAppPathFilename))
-
-IniRead, strFPconnectTargetPathFilename, %strFPconnectIniPath%, Options, TargetPath, %A_Space% ; empty by default
-IniRead, g_strFPconnectWindowID, %strFPconnectIniPath%, Options, WindowID, %A_Space% ; empty by default
+IniRead, g_strFPconnectAppPathFilename, %strFPconnectIniPath%, Options, AppPath, %A_Space% ; empty by default
+g_strFPconnectAppPathFilename := EnvVars(g_strFPconnectAppPathFilename)
+g_blnUseFPconnect := FileExist(EnvVars(g_strFPconnectAppPathFilename))
 
 if (g_blnUseFPconnect)
 {
-	strFPconnectAppPathFilename := EnvVars(strFPconnectAppPathFilename)
-	SplitPath, strFPconnectAppPathFilename, g_strFPconnectAppFilename
+	SplitPath, g_strFPconnectAppPathFilename, g_strFPconnectAppFilename
+	g_strFPconnectWindowID := "ahk_exe " . g_strFPconnectAppFilename ; ahk_exe worked with filename only, not with full exe path
+	
+	IniRead, strFPconnectTargetPathFilename, %strFPconnectIniPath%, Options, TargetPath, %A_Space% ; empty by default
 	strFPconnectTargetPathFilename := EnvVars(strFPconnectTargetPathFilename)
 	SplitPath, strFPconnectTargetPathFilename, g_strFPconnectTargetFilename
+	
+	IniRead, g_strFPconnectCommandline, %strFPconnectIniPath%, Options, Commandline, %A_Space% ; empty by default
+	IniRead, g_strFPconnectNewTabSwitch, %strFPconnectIniPath%, Options, NewTabSwitch, %A_Space% ; empty by default
 }
 else
 	Oops(lOopsWrongFPconnectAppPathFilename, g_strFPconnectPath, strFPconnectIniPath)
 
-strFPconnectAppPathFilename := ""
+strFPconnectIniPath := ""
 strFPconnectTargetPathFilename := ""
 
 return
