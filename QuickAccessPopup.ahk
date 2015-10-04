@@ -348,14 +348,14 @@ g_objHotkeysByLocation := Object() ; Hotkeys by Location
 
 g_blnUseDirectoryOpus := ""
 g_blnUseTotalCommander := ""
-g_blnUseFPconnect := ""
+g_blnUseQAPconnect := ""
 g_strDirectoryOpusRtPath := ""
-g_strFPconnectPath := ""
-g_strFPconnectAppFilename := ""
-g_strFPconnectTargetFilename := ""
-g_strFPconnectAppPathFilename := ""
-g_strFPconnectCommandline := ""
-g_strFPconnectNewTabSwitch := ""
+g_strQAPconnectPath := ""
+g_strQAPconnectAppFilename := ""
+g_strQAPconnectTargetFilename := ""
+g_strQAPconnectAppPathFilename := ""
+g_strQAPconnectCommandline := ""
+g_strQAPconnectNewTabSwitch := ""
 
 ; if the app runs from a zip file, the script directory is created under the system Temp folder
 if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
@@ -1470,16 +1470,16 @@ else
 IniRead, g_strFPconnectPath, %g_strIniFile%, Global, FPconnectPath, %A_Space% ; empty string if not found
 if StrLen(g_strFPconnectPath)
 {
-	g_blnUseFPconnect := FileExist(g_strFPconnectPath)
-	if (g_blnUseFPconnect)
-		Gosub, SetFPconnect
+	g_blnUseQAPconnect := FileExist(g_strFPconnectPath)
+	if (g_blnUseQAPconnect)
+		Gosub, SetQAPconnect
 	else
 		if (g_strFPconnectPath <> "NO")
 			Oops(lOopsWrongThirdPartyPath, "FPconnect", g_strFPconnectPath, lOptionsThirdParty)
 }
 else
 	if (g_strFPconnectPath <> "NO")
-		Gosub, CheckFPconnect
+		Gosub, CheckQAPconnect
 
 IniRead, g_strTheme, %g_strIniFile%, Global, Theme, Windows
 IniRead, g_strAvailableThemes, %g_strIniFile%, Global, AvailableThemes
@@ -3375,12 +3375,12 @@ else
 
 g_strFPconnectPath := f_strFPconnectPath
 IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
-g_blnUseFPconnect := StrLen(g_strFPconnectPath)
-if (g_blnUseFPconnect)
+g_blnUseQAPconnect := StrLen(g_strFPconnectPath)
+if (g_blnUseQAPconnect)
 {
-	g_blnUseFPconnect := FileExist(g_strFPconnectPath)
-	if (g_blnUseFPconnect)
-		Gosub, SetFPconnect
+	g_blnUseQAPconnect := FileExist(g_strFPconnectPath)
+	if (g_blnUseQAPconnect)
+		Gosub, SetQAPconnect
 }
 
 ; if language or theme changed, offer to restart the app
@@ -4080,7 +4080,7 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 	if (g_objEditedFavorite.FavoriteType = "Group")
 	{
 	   ; 1 boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
-	   ; 2 restore folders with "Explorer" or "Other" (Directory Opus, Total Commander or FPconnect)
+	   ; 2 restore folders with "Explorer" or "Other" (Directory Opus, Total Commander or QAPconnect)
 	   ; 3 delay in milliseconds to insert between each favorite to restore
 		strGroupSettings := g_objEditedFavorite.FavoriteGroupSettings . ",,,," ; ,,, to make sure all fields are re-init
 		StringSplit, g_arrGroupSettingsGui, strGroupSettings, `,
@@ -6639,7 +6639,7 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 		or (g_blnChangeFolderInDialog and WindowIsDialog(g_strTargetClass, g_strTargetWinId))
 		or (g_blnUseDirectoryOpus and WindowIsDirectoryOpus(g_strTargetClass))
 		or (g_blnUseTotalCommander and WindowIsTotalCommander(g_strTargetClass))
-		or (g_blnUseFPconnect and WindowIsFPconnect(g_strTargetWinId))
+		or (g_blnUseQAPconnect and WindowIsQAPconnect(g_strTargetWinId))
 		or WindowIsQuickAccessPopup(g_strTargetClass)
 
 	return blnCanNavigate
@@ -6817,11 +6817,11 @@ WindowIsTotalCommander(strClass)
 
 
 ;------------------------------------------------------------
-WindowIsFPconnect(strWinId)
+WindowIsQAPconnect(strWinId)
 ;------------------------------------------------------------
 {
-	global g_strFPconnectAppFilename
-	global g_strFPconnectTargetFilename
+	global g_strQAPconnectAppFilename
+	global g_strQAPconnectTargetFilename
 
 	if (strWinId = 0)
 		return false
@@ -6837,9 +6837,9 @@ WindowIsFPconnect(strWinId)
     DllCall("Psapi.dll\GetModuleFileNameExW", "UInt", hProcess, "Int", 0, "Str", strFCAppFile, "UInt", intPathLength)
     DllCall("CloseHandle", "UInt", hProcess)
 	
-	; get filename only and compare with FPconnect filename or FPconnect target filename (see FPconnect doc)
+	; get filename only and compare with QAPconnect filename or QAPconnect target filename (see QAPconnect doc)
 	SplitPath, strFCAppFile, strFCAppFile
-	return (strFCAppFile = g_strFPconnectAppFilename) or (strFCAppFile = g_strFPconnectTargetFilename)
+	return (strFCAppFile = g_strQAPconnectAppFilename) or (strFCAppFile = g_strQAPconnectTargetFilename)
 }
 ;------------------------------------------------------------
 
@@ -6948,7 +6948,7 @@ objThisGroupFavorite := g_objThisFavorite
 ; ###_V("objThisGroupFavorite", objThisGroupFavorite.FavoriteGroupSettings)
 
 ; g_arrGroupSettingsOpen1: boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
-; g_arrGroupSettingsOpen2: restore folders with "Explorer" or "Other" (Directory Opus, Total Commander or FPconnect)
+; g_arrGroupSettingsOpen2: restore folders with "Explorer" or "Other" (Directory Opus, Total Commander or QAPconnect)
 ; g_arrGroupSettingsOpen3: delay in milliseconds to insert between each favorite to restore (in addition to default 200 ms)
 strGroupSettings := objThisGroupFavorite.FavoriteGroupSettings
 StringSplit, g_arrGroupSettingsOpen, strGroupSettings, `,
@@ -7266,8 +7266,8 @@ else if WindowIsDirectoryOpus(g_strTargetClass) and (g_blnUseDirectoryOpus)
 	g_strTargetAppName := "DirectoryOpus"
 else if WindowIsTotalCommander(g_strTargetClass) and (g_blnUseTotalCommander)
 	g_strTargetAppName := "TotalCommander"
-else if WindowIsFPconnect(g_strTargetWinId) and (g_blnUseFPconnect)
-	g_strTargetAppName := "FPconnect"
+else if WindowIsQAPconnect(g_strTargetWinId) and (g_blnUseQAPconnect)
+	g_strTargetAppName := "QAPconnect"
 else if WindowIsQuickAccessPopup(g_strTargetClass)
 	g_strTargetAppName := "QuickAccessPopup"
 else
@@ -7280,13 +7280,13 @@ if (g_strHokeyTypeDetected = "Launch")
 	if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup" and g_arrGroupSettingsOpen2 = "Windows Explorer")
 		g_strTargetAppName := "Explorer"
 	else if InStr("Desktop|Dialog|Console|Unknown", g_strTargetAppName) ; these targets cannot launch in a new window
-		or (g_blnUseDirectoryOpus or g_blnUseTotalCommander or g_blnUseFPconnect) ; use these file managers
+		or (g_blnUseDirectoryOpus or g_blnUseTotalCommander or g_blnUseQAPconnect) ; use these file managers
 		if (g_blnUseDirectoryOpus)
 			g_strTargetAppName := "DirectoryOpus"
 		else if (g_blnUseTotalCommander)
 			g_strTargetAppName := "TotalCommander"
-		else if (g_blnUseFPconnect)
-			g_strTargetAppName := "FPconnect"
+		else if (g_blnUseQAPconnect)
+			g_strTargetAppName := "QAPconnect"
 		else
 			g_strTargetAppName := "Explorer"
 
@@ -7474,7 +7474,7 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 	global g_objSpecialFolders
 	global g_blnUseDirectoryOpus
 	global g_blnUseTotalCommander
-	global g_blnUseFPconnect
+	global g_blnUseQAPconnect
 
 	strLocation := objFavorite.FavoriteLocation ; make sure FavoriteLocation was not expanded by EnvVars
 	objSpecialFolder := g_objSpecialFolders[strLocation]
@@ -7489,7 +7489,7 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 		strUse := objSpecialFolder.Use4DOpus
 	else if (strTargetName = "TotalCommander")
 		strUse := objSpecialFolder.Use4TC
-	else if (strTargetName = "FPconnect")
+	else if (strTargetName = "QAPconnect")
 		strUse := objSpecialFolder.Use4FPc
 	else
 		strUse := objSpecialFolder.Use4NewExplorer
@@ -7657,24 +7657,24 @@ return
 
 
 ;------------------------------------------------------------
-OpenFavoriteNavigateFPconnect:
+OpenFavoriteNavigateQAPconnect:
 ;------------------------------------------------------------
 
 if InStr(g_strFullLocation, " ")
 	g_strFullLocation := """" . g_strFullLocation . """"
-StringReplace, strFPconnectParamString, g_strFPconnectCommandline, % "%Path%", %g_strFullLocation%
-StringReplace, strFPconnectParamString, strFPconnectParamString, % "%NewTabSwitch%"
+StringReplace, strQAPconnectParamString, g_strQAPconnectCommandline, % "%Path%", %g_strFullLocation%
+StringReplace, strQAPconnectParamString, strQAPconnectParamString, % "%NewTabSwitch%"
 
-; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID, g_strFPconnectAppPathFilename, g_strFPconnectCommandline, g_strFPconnectNewTabSwitch, strFPconnectParamString, g_strFPconnectAppFilename, g_strTargetWinId)
+; ###_V(A_ThisLabel, g_strQAPconnectPath, g_strFullLocation, g_strQAPconnectWindowID, g_strQAPconnectAppPathFilename, g_strQAPconnectCommandline, g_strQAPconnectNewTabSwitch, strQAPconnectParamString, g_strQAPconnectAppFilename, g_strTargetWinId)
 
 if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
 {
 	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
 	Sleep, 200
 }
-Run, %g_strFPconnectAppPathFilename% %strFPconnectParamString%
+Run, %g_strQAPconnectAppPathFilename% %strQAPconnectParamString%
 
-strFPconnectParamString :=""
+strQAPconnectParamString :=""
 
 return
 ;------------------------------------------------------------
@@ -7953,38 +7953,38 @@ return
 
 
 ;------------------------------------------------------------
-OpenFavoriteInNewWindowFPconnect:
+OpenFavoriteInNewWindowQAPconnect:
 ;------------------------------------------------------------
 
-; old Run, %g_strFPconnectPath% %g_strFullLocation% /new
+; old Run, %g_strQAPconnectPath% %g_strFullLocation% /new
 if InStr(g_strFullLocation, " ")
 	g_strFullLocation := """" . g_strFullLocation . """"
-StringReplace, strFPconnectParamString, g_strFPconnectCommandline, % "%Path%", %g_strFullLocation%
-StringReplace, strFPconnectParamString, strFPconnectParamString, % "%NewTabSwitch%", %g_strFPconnectNewTabSwitch%
-; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID, g_strFPconnectAppPathFilename, g_strFPconnectCommandline, g_strFPconnectNewTabSwitch, strFPconnectParamString, g_strFPconnectAppFilename)
+StringReplace, strQAPconnectParamString, g_strQAPconnectCommandline, % "%Path%", %g_strFullLocation%
+StringReplace, strQAPconnectParamString, strQAPconnectParamString, % "%NewTabSwitch%", %g_strQAPconnectNewTabSwitch%
+; ###_V(A_ThisLabel, g_strQAPconnectPath, g_strFullLocation, g_strQAPconnectWindowID, g_strQAPconnectAppPathFilename, g_strQAPconnectCommandline, g_strQAPconnectNewTabSwitch, strQAPconnectParamString, g_strQAPconnectAppFilename)
 
-; Run, % g_strFPconnectAppPathFilename . " """ . strFPconnectParamString . """"
-Run, %g_strFPconnectAppPathFilename% %strFPconnectParamString%
+; Run, % g_strQAPconnectAppPathFilename . " """ . strQAPconnectParamString . """"
+Run, %g_strQAPconnectAppPathFilename% %strQAPconnectParamString%
 
-; ###_V(A_ThisLabel, g_strFPconnectPath, g_strFullLocation, g_strFPconnectWindowID, g_strNewWindowId, intPid)
-if StrLen(g_strFPconnectWindowID)
-; g_strFPconnectWindowID is read in the FPconnect.ini file for the connected file manager.
+; ###_V(A_ThisLabel, g_strQAPconnectPath, g_strFullLocation, g_strQAPconnectWindowID, g_strNewWindowId, intPid)
+if StrLen(g_strQAPconnectWindowID)
+; g_strQAPconnectWindowID is read in the QAPconnect.ini file for the connected file manager.
 ; It must contain at least some characters of the connected app title, and enough to be specific to this window.
-; It is used here to wait for the FM window as identified in FPconnect.ini. And it is copied to g_strNewWindowId
+; It is used here to wait for the FM window as identified in QAPconnect.ini. And it is copied to g_strNewWindowId
 {
 	intPreviousTitleMatchMode := A_TitleMatchMode ; save current match mode
 	SetTitleMatchMode, RegEx ; change match mode to RegEx
 	; with RegEx, for example, ahk_class IEFrame searches for any window whose class name contains IEFrame anywhere
 	; (because by default, regular expressions find a match anywhere in the target string).
-	WinWaitActive, ahk_exe %g_strFPconnectAppFilename%, , 10 ; wait for the window as identified in FPconnect.ini
+	WinWaitActive, ahk_exe %g_strQAPconnectAppFilename%, , 10 ; wait for the window as identified in QAPconnect.ini
 	SetTitleMatchMode, %intPreviousTitleMatchMode% ; restore previous match mode
-	g_strNewWindowId := g_strFPconnectWindowID
+	g_strNewWindowId := g_strQAPconnectWindowID
 }
 else
 	g_strNewWindowId := ""
 
 intPreviousTitleMatchMode := ""
-strFPconnectParamString := ""
+strQAPconnectParamString := ""
 
 return
 ;------------------------------------------------------------
@@ -7994,7 +7994,7 @@ return
 OpenFavoriteWindowResize:
 ;------------------------------------------------------------
 
-###_V(A_ThisLabel, g_strNewWindowId, g_strFPconnectWindowID)
+###_V(A_ThisLabel, g_strNewWindowId, g_strQAPconnectWindowID)
 
 if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
 {
@@ -8120,7 +8120,7 @@ strLatestVersions := Url2Var(strUrlCheck4Update
 				+ (2 * (g_blnDonor ? 1 : 0))
 				+ (4 * (g_blnUseDirectoryOpus ? 1 : 0))
 				+ (8 * (g_blnUseTotalCommander ? 1 : 0))
-				+ (16 * (g_blnUseFPconnect ? 1 : 0))
+				+ (16 * (g_blnUseQAPconnect ? 1 : 0))
     . "&lsys=" . A_Language
     . "&lfp=" . g_strLanguageCode)
 if !StrLen(strLatestVersions)
@@ -8626,7 +8626,7 @@ return
 
 
 ;------------------------------------------------------------
-CheckFPconnect: ; #### adapt
+CheckQAPconnect: ; #### adapt
 ;------------------------------------------------------------
 
 strCheckFPconnectPath := A_ScriptDir . "\FPconnect\FPconnect.exe"
@@ -8639,9 +8639,9 @@ if FileExist(strCheckFPconnectPath)
 	else
 	{
 		g_strFPconnectPath := strCheckFPconnectPath
-		Gosub, SetFPconnect
+		Gosub, SetQAPconnect
 	}
-	g_blnUseFPconnect := (g_strFPconnectPath <> "NO")
+	g_blnUseQAPconnect := (g_strFPconnectPath <> "NO")
 	IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
 }
 
@@ -8652,34 +8652,34 @@ return
 
 
 ;------------------------------------------------------------
-SetFPconnect:
+SetQAPconnect:
 ;------------------------------------------------------------
 
-strFPconnectIniPath := A_WorkingDir . "\QAPconnect.ini"
-IniRead, str, %strFPconnectIniPath%
+strQAPconnectIniPath := A_WorkingDir . "\QAPconnect.ini"
+IniRead, str, %strQAPconnectIniPath%
 ###_D(str)
 
-IniRead, g_strFPconnectAppPathFilename, %strFPconnectIniPath%, Options, AppPath, %A_Space% ; empty by default
-g_strFPconnectAppPathFilename := EnvVars(g_strFPconnectAppPathFilename)
-g_blnUseFPconnect := FileExist(EnvVars(g_strFPconnectAppPathFilename))
+IniRead, g_strQAPconnectAppPathFilename, %strQAPconnectIniPath%, Options, AppPath, %A_Space% ; empty by default
+g_strQAPconnectAppPathFilename := EnvVars(g_strQAPconnectAppPathFilename)
+g_blnUseQAPconnect := FileExist(EnvVars(g_strQAPconnectAppPathFilename))
 
-if (g_blnUseFPconnect)
+if (g_blnUseQAPconnect)
 {
-	SplitPath, g_strFPconnectAppPathFilename, g_strFPconnectAppFilename
-	g_strFPconnectWindowID := "ahk_exe " . g_strFPconnectAppFilename ; ahk_exe worked with filename only, not with full exe path
+	SplitPath, g_strQAPconnectAppPathFilename, g_strQAPconnectAppFilename
+	g_strQAPconnectWindowID := "ahk_exe " . g_strQAPconnectAppFilename ; ahk_exe worked with filename only, not with full exe path
 	
-	IniRead, strFPconnectTargetPathFilename, %strFPconnectIniPath%, Options, TargetPath, %A_Space% ; empty by default
-	strFPconnectTargetPathFilename := EnvVars(strFPconnectTargetPathFilename)
-	SplitPath, strFPconnectTargetPathFilename, g_strFPconnectTargetFilename
+	IniRead, strQAPconnectTargetPathFilename, %strQAPconnectIniPath%, Options, TargetPath, %A_Space% ; empty by default
+	strQAPconnectTargetPathFilename := EnvVars(strQAPconnectTargetPathFilename)
+	SplitPath, strQAPconnectTargetPathFilename, g_strQAPconnectTargetFilename
 	
-	IniRead, g_strFPconnectCommandline, %strFPconnectIniPath%, Options, Commandline, %A_Space% ; empty by default
-	IniRead, g_strFPconnectNewTabSwitch, %strFPconnectIniPath%, Options, NewTabSwitch, %A_Space% ; empty by default
+	IniRead, g_strQAPconnectCommandline, %strQAPconnectIniPath%, Options, Commandline, %A_Space% ; empty by default
+	IniRead, g_strQAPconnectNewTabSwitch, %strQAPconnectIniPath%, Options, NewTabSwitch, %A_Space% ; empty by default
 }
 else
-	Oops(lOopsWrongFPconnectAppPathFilename, g_strFPconnectPath, strFPconnectIniPath)
+	Oops(lOopsWrongQAPconnectAppPathFilename, g_strQAPconnectPath, strQAPconnectIniPath)
 
-strFPconnectIniPath := ""
-strFPconnectTargetPathFilename := ""
+strQAPconnectIniPath := ""
+strQAPconnectTargetPathFilename := ""
 
 return
 ;------------------------------------------------------------
