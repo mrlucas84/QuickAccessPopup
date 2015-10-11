@@ -1481,7 +1481,7 @@ IniRead, g_strExclusionKeyboardClassList, %g_strIniFile%, Global, ExclusionKeybo
 ; ---------------------
 ; Options Tab 5 File Managers
 
-IniRead, g_intActiveFileManager, %g_strIniFile%, Global, ActiveFileManager
+IniRead, g_intActiveFileManager, %g_strIniFile%, Global, ActiveFileManager ; if not exist returns "ERROR"
 
 if (g_intActiveFileManager = "ERROR") ; no selection
 	Gosub, CheckActiveFileManager
@@ -1491,10 +1491,9 @@ if (g_intActiveFileManager = 4) ; QAPconnect connected File Manager
 	IniRead, g_strQAPconnectFileManager, %g_strIniFile%, Global, QAPconnectFileManager, %A_Space% ; empty string if not found
 	Gosub, LoadIniQAPconnectValues
 	
-	blnActiveFileManangerOK := StrLen(g_strQAPconnectAppFilename) 
+	blnActiveFileManangerOK := StrLen(g_strQAPconnectAppPathFilename)
 	if (blnActiveFileManangerOK)
-		blnActiveFileManangerOK := FileExist(g_strQAPconnectAppFilename)
-	
+		blnActiveFileManangerOK := FileExist(g_strQAPconnectAppPathFilename)
 }
 else if (g_intActiveFileManager > 1) ; 2 Directory Opus or 3 Total Commander
 {
@@ -1508,10 +1507,13 @@ else if (g_intActiveFileManager > 1) ; 2 Directory Opus or 3 Total Commander
 }
 if (g_intActiveFileManager > 1) ; 2 Directory Opus, 3 Total Commander or 4 QAPconnect
 	if (blnActiveFileManangerOK)
-		Gosub, SetActiveFileManager
+		Gosub, Set%strActiveFileManagerSystemName% ; SetDirectoryOpus, SetTotalCommander or SetQAPconnect
 	else
 	{
-		Oops(lOopsWrongThirdPartyPath, g_arrActiveFileManagerDisplayNames%g_intActiveFileManager%, g_str%strActiveFileManagerSystemName%Path, lOptionsThirdParty)
+		if (g_intActiveFileManager = 4) ; QAPconnect
+			Oops(lOopsWrongThirdPartyPathQAPconnect, g_strQAPconnectFileManager, g_strQAPconnectAppPathFilename, "QAPconnect.ini", lOptionsThirdPartyQAPconnectEdit, lOptionsThirdParty)
+		else ; 2 Directory Opus or 3 Total Commander
+			Oops(lOopsWrongThirdPartyPath, g_arrActiveFileManagerDisplayNames%g_intActiveFileManager%, g_str%strActiveFileManagerSystemName%Path, lOptionsThirdParty)
 		g_intActiveFileManager := 1 ; must be after previous line
 	}
 
@@ -3488,7 +3490,7 @@ else if (g_intActiveFileManager > 1) ; 2 Directory Opus or 3 Total Commander
 			g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
 	IniWrite, % g_str%strActiveFileManagerSystemName%NewTabOrWindow, %g_strIniFile%, Global, %strActiveFileManagerSystemName%NewTabOrWindow
 		
-	Gosub, Set%strActiveFileManagerSystemName%
+	Gosub, Set%strActiveFileManagerSystemName% ; SetDirectoryOpus, SetTotalCommander or SetQAPconnect
 }
 
 ;---------------------------------------
@@ -8613,41 +8615,120 @@ return
 
 
 ;------------------------------------------------------------
-RunDOpusRt(strCommand, strLocation := "", strParam := "")
-; put A_Space at the beginning of strParam if required - some param (like ",paths") must have no space 
+CheckActiveFileManager:
 ;------------------------------------------------------------
+
+loop, 2
 {
-	global g_strDirectoryOpusRtPath
-	
-	if FileExist(g_strDirectoryOpusRtPath)
-		Run, % """" . g_strDirectoryOpusRtPath . """ " . strCommand . " """ . strLocation . """" . strParam
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-CheckDirectoryOpus:
-;------------------------------------------------------------
-
-g_strCheckDirectoryOpusPath := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
-
-if FileExist(g_strCheckDirectoryOpusPath)
-{
-	MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, "Directory Opus")
-	IfMsgBox, No
-		g_strDirectoryOpusPath := "NO"
-	else
+	intFileManager := A_Index + 1 ; 2 DirectoryOpus or 3 Total Commander
+	Gosub, CheckOneFileManager
+	if (g_intActiveFileManager = intFileManager)
 	{
-		g_strDirectoryOpusPath := g_strCheckDirectoryOpusPath
-		Gosub, SetDirectoryOpus
+		Gosub, CheckActiveFileManagerCleanUp
+		return
 	}
-	g_blnUseDirectoryOpus := (g_strDirectoryOpusPath <> "NO")
-	IniWrite, %g_strDirectoryOpusPath%, %g_strIniFile%, Global, DirectoryOpusPath
-	g_blnDirectoryOpusUseTabs := true
-	IniWrite, %g_blnDirectoryOpusUseTabs%, %g_strIniFile%, Global, DirectoryOpusUseTabs
-	; g_strDirectoryOpusNewTabOrWindow will contain "NEWTAB" to open in a new tab if DirectoryOpusUseTabs is 1 (default) or "NEW" to open in a new lister
-	g_strDirectoryOpusNewTabOrWindow := "NEWTAB"
 }
+
+; if no other file manager was selected
+g_intActiveFileManager := 1
+IniWrite, 1, %g_strIniFile%, Global, ActiveFileManager
+
+CheckActiveFileManagerCleanUp:
+intFileManager := ""
+strCheckOneFileManager := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+CheckOneFileManager:
+;------------------------------------------------------------
+
+strFileManagerSystemName := g_arrActiveFileManagerSystemNames%intFileManager%
+IniRead, blnDontCheck, %g_strIniFile%, Global, DontCheck%strFileManagerSystemName%, 0
+
+if !(blnDontCheck)
+{
+	strFileManagerDisplayName := g_arrActiveFileManagerDisplayNames%intFileManager%
+	if (intFileManager = 2) ; Directory Opus
+		strCheckPath := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
+	else ; 3 Total Commander
+		strCheckPath := GetTotalCommanderPath()
+
+	if FileExist(strCheckPath)
+	{
+		MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, strFileManagerDisplayName)
+		IfMsgBox, No
+			IniWrite, 1, %g_strIniFile%, Global, DontCheck%strFileManagerSystemName%
+		else
+		{
+			g_intActiveFileManager := intFileManager
+			IniWrite, %g_intActiveFileManager%, %g_strIniFile%, Global, ActiveFileManager
+			g_str%strFileManagerSystemName%Path := strCheckPath
+			Gosub, Set%strFileManagerSystemName%
+			IniWrite, % g_str%strFileManagerSystemName%Path, %g_strIniFile%, Global, %strFileManagerSystemName%Path
+			g_bln%strFileManagerSystemName%UseTabs := true
+			IniWrite, % g_bln%strFileManagerSystemName%UseTabs, %g_strIniFile%, Global, %strFileManagerSystemName%UseTabs
+			
+			if (g_intActiveFileManager = 2) ; Directory Opus
+				g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
+			else ; 3 Total Commander
+				g_strTotalCommanderNewTabOrWindow := "/O /T" ; to open in a new tab
+			IniWrite, % g_str%strFileManagerSystemName%NewTabOrWindow, %g_strIniFile%, Global, %strFileManagerSystemName%NewTabOrWindow
+		}
+	}
+}
+
+strFileManagerSystemName := ""
+blnDontCheck := ""
+strFileManagerDisplayName := ""
+strCheckPath := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetTotalCommanderPath()
+; ### used - do not remove
+;------------------------------------------------------------
+{
+	RegRead, strPath, HKEY_CURRENT_USER, Software\Ghisler\Total Commander\, InstallDir
+	If !StrLen(strPath)
+		RegRead, strPath, HKEY_LOCAL_MACHINE, Software\Ghisler\Total Commander\, InstallDir
+
+	if FileExist(strPath . "\TOTALCMD64.EXE")
+		strPath := strPath . "\TOTALCMD64.EXE"
+	else
+		strPath := strPath . "\TOTALCMD.EXE"
+	return strPath
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+LoadIniQAPconnectValues:
+;------------------------------------------------------------
+
+/* QAPconnect.ini sample:
+[EF Commander Free (v9.50)]
+; http://www.softpedia.com/get/File-managers/EF-Commander-Free.shtml
+AppPath=..\EF Commander Free\EFCommanderFreePortable.exe
+Commandline=/O /A=%Path%
+NewTabSwitch=
+TargetPath=EFCWT.EXE
+*/
+
+IniRead, g_strQAPconnectAppPathFilename, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, AppPath, %A_Space% ; empty by default
+g_strQAPconnectAppPathFilename := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectAppPathFilename))
+IniRead, g_strQAPconnectCommandline, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, Commandline, %A_Space% ; empty by default
+IniRead, g_strQAPconnectNewTabSwitch, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, NewTabSwitch, %A_Space% ; empty by default
+IniRead, g_strQAPconnectTargetPath, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, TargetPath, %A_Space% ; empty by default
+if StrLen(g_strQAPconnectTargetPath)
+	g_strQAPconnectTargetPath := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectTargetPath))
+
+; ###_V(A_ThisLabel, g_strQAPconnectAppPathFilename, g_strQAPconnectCommandline, g_strQAPconnectNewTabSwitch, g_strQAPconnectTargetPath)
 
 return
 ;------------------------------------------------------------
@@ -8675,54 +8756,6 @@ return
 
 
 ;------------------------------------------------------------
-CheckTotalCommander:
-;------------------------------------------------------------
-
-strCheckTotalCommanderPath := GetTotalCommanderPath()
-
-if FileExist(strCheckTotalCommanderPath)
-{
-	MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, "Total Commander")
-	IfMsgBox, No
-		g_strTotalCommanderPath := "NO"
-	else
-	{
-		g_strTotalCommanderPath := strCheckTotalCommanderPath
-		Gosub, SetTotalCommander
-	}
-	g_blnUseTotalCommander := (g_strTotalCommanderPath <> "NO")
-	IniWrite, %g_strTotalCommanderPath%, %g_strIniFile%, Global, TotalCommanderPath
-	g_blnTotalCommanderUseTabs := true
-	IniWrite, %g_blnTotalCommanderUseTabs%, %g_strIniFile%, Global, TotalCommanderUseTabs
-	; g_strTotalCommanderNewTabOrWindow will contain "/O /T" to open in a new tab if TotalCommanderUseTabs is 1 (default) or "/N" to open in a new file list
-	g_strTotalCommanderNewTabOrWindow := "/O /T"
-}
-
-strCheckTotalCommanderPath := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GetTotalCommanderPath()
-; ### used - do not remove
-;------------------------------------------------------------
-{
-	RegRead, strPath, HKEY_CURRENT_USER, Software\Ghisler\Total Commander\, InstallDir
-	If !StrLen(strPath)
-		RegRead, strPath, HKEY_LOCAL_MACHINE, Software\Ghisler\Total Commander\, InstallDir
-
-	if FileExist(strPath . "\TOTALCMD64.EXE")
-		strPath := strPath . "\TOTALCMD64.EXE"
-	else
-		strPath := strPath . "\TOTALCMD.EXE"
-	return strPath
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 SetTotalCommander:
 ;------------------------------------------------------------
 
@@ -8735,58 +8768,6 @@ else
 ; additional icon for TotalCommander
 g_objIconsFile["TotalCommander"] := g_strTotalCommanderPath
 g_objIconsIndex["TotalCommander"] := 1
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-CheckQAPconnect: ; #### adapt
-;------------------------------------------------------------
-
-strCheckFPconnectPath := A_ScriptDir . "\FPconnect\FPconnect.exe"
-
-if FileExist(strCheckFPconnectPath)
-{
-	MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, "FPconnect")
-	IfMsgBox, No
-		g_strFPconnectPath := "NO"
-	else
-	{
-		g_strFPconnectPath := strCheckFPconnectPath
-		Gosub, SetQAPconnect
-	}
-	g_blnUseQAPconnect := (g_strFPconnectPath <> "NO")
-	IniWrite, %g_strFPconnectPath%, %g_strIniFile%, Global, FPconnectPath
-}
-
-strCheckFPconnectPath := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-LoadIniQAPconnectValues:
-;------------------------------------------------------------
-
-/* QAPconnect.ini sample:
-[EF Commander Free (v9.50)]
-; http://www.softpedia.com/get/File-managers/EF-Commander-Free.shtml
-AppPath=..\EF Commander Free\EFCommanderFreePortable.exe
-Commandline=/O /A=%Path%
-NewTabSwitch=
-TargetPath=EFCWT.EXE
-*/
-
-IniRead, g_strQAPconnectAppPathFilename, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, AppPath, %A_Space% ; empty by default
-g_strQAPconnectAppPathFilename := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectAppPathFilename))
-IniRead, g_strQAPconnectCommandline, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, Commandline, %A_Space% ; empty by default
-IniRead, g_strQAPconnectNewTabSwitch, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, NewTabSwitch, %A_Space% ; empty by default
-IniRead, g_strQAPconnectTargetPath, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, TargetPath, %A_Space% ; empty by default
-g_strQAPconnectTargetPath := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectTargetPath))
-
-; ###_V(A_ThisLabel, g_strQAPconnectAppPathFilename, g_strQAPconnectCommandline, g_strQAPconnectNewTabSwitch, g_strQAPconnectTargetPath)
 
 return
 ;------------------------------------------------------------
@@ -8818,23 +8799,15 @@ return
 
 
 ;------------------------------------------------------------
-CheckActiveFileManager:
+RunDOpusRt(strCommand, strLocation := "", strParam := "")
+; put A_Space at the beginning of strParam if required - some param (like ",paths") must have no space 
 ;------------------------------------------------------------
-
-; ##### to be done
-g_intActiveFileManager := 1 ; temporarely
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-SetActiveFileManager:
-;------------------------------------------------------------
-
-; ##### to be done
-
-return
+{
+	global g_strDirectoryOpusRtPath
+	
+	if FileExist(g_strDirectoryOpusRtPath)
+		Run, % """" . g_strDirectoryOpusRtPath . """ " . strCommand . " """ . strLocation . """" . strParam
+}
 ;------------------------------------------------------------
 
 
