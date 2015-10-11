@@ -18,6 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- exit when Win XP
 - refactor file managers
 - refactor file managers import in ImportFPsettings
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
@@ -595,7 +596,6 @@ InitSystemArrays:
 ;-----------------------------------------------------------
 
 ; ----------------------
-; HOTKEYS
 ; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
 strPopupHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard"
 StringSplit, g_arrPopupHotkeyNames, strPopupHotkeyNames, |
@@ -609,7 +609,6 @@ g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|Whe
 StringSplit, g_arrMouseButtons, g_strMouseButtons, |
 
 ; ----------------------
-; ICONS
 ; Icon files and index tested on Win 7 and Win 8.1. Not tested on Win 10.
 strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetworkNeighborhood|iconControlPanel|iconRecycleBin|iconRecentFolders"
 	. "|iconSpecialFolders|iconGroup|iconCurrentFolders|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu"
@@ -1441,24 +1440,46 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 
 Gosub, LoadIniPopupHotkeys
 
+; ---------------------
+; Options Tab 1 General
+
 IniRead, g_blnDisplayTrayTip, %g_strIniFile%, Global, DisplayTrayTip, 1
-IniRead, g_blnDisplayIcons, %g_strIniFile%, Global, DisplayIcons, 1
-g_blnDisplayIcons := (g_blnDisplayIcons and OSVersionIsWorkstation())
+IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, 1
+IniRead, g_blnRememberSettingsPosition, %g_strIniFile%, Global, RememberSettingsPosition, 1
+IniRead, g_intRecentFoldersMax, %g_strIniFile%, Global, RecentFoldersMax, 10
+
 IniRead, g_intPopupMenuPosition, %g_strIniFile%, Global, PopupMenuPosition, 1
 IniRead, strPopupFixPosition, %g_strIniFile%, Global, PopupFixPosition, 20,20
-IniRead, g_intHotkeyReminders, %g_strIniFile%, Global, HotkeyReminders, 3
 StringSplit, g_arrPopupFixPosition, strPopupFixPosition, `,
+IniRead, g_intHotkeyReminders, %g_strIniFile%, Global, HotkeyReminders, 3
 IniRead, g_blnDisplayNumericShortcuts, %g_strIniFile%, Global, DisplayMenuShortcuts, 0
-IniRead, g_blnDiagMode, %g_strIniFile%, Global, DiagMode, 0
-IniRead, g_intRecentFoldersMax, %g_strIniFile%, Global, RecentFoldersMax, 10
-IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 32
-IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, 1
 IniRead, g_blnOpenMenuOnTaskbar, %g_strIniFile%, Global, OpenMenuOnTaskbar, 1
-IniRead, g_blnRememberSettingsPosition, %g_strIniFile%, Global, RememberSettingsPosition, 1
-IniRead, g_blnDonor, %g_strIniFile%, Global, Donor, 0 ; Please, be fair. Don't cheat with this.
+IniRead, g_blnDisplayIcons, %g_strIniFile%, Global, DisplayIcons, 1
+g_blnDisplayIcons := (g_blnDisplayIcons and OSVersionIsWorkstation())
+IniRead, g_intIconSize, %g_strIniFile%, Global, IconSize, 32
+
+; ---------------------
+; Options Tab 2 Menu Hotkeys
+
 IniRead, g_blnChangeFolderInDialog, %g_strIniFile%, Global, ChangeFolderInDialog, 0
 if (g_blnChangeFolderInDialog)
 	IniRead, g_blnChangeFolderInDialog, %g_strIniFile%, Global, UnderstandChangeFoldersInDialogRisk, 0
+
+IniRead, g_strTheme, %g_strIniFile%, Global, Theme, Windows
+IniRead, g_strAvailableThemes, %g_strIniFile%, Global, AvailableThemes
+g_blnUseColors := (g_strTheme <> "Windows")
+	
+; ---------------------
+; Options Tab 3 Power Menu
+
+; ---------------------
+; Options Tab 4 Exclusion List
+
+IniRead, g_strExclusionMouseClassList, %g_strIniFile%, Global, ExclusionMouseClassList, %A_Space% ; empty string if not found
+IniRead, g_strExclusionKeyboardClassList, %g_strIniFile%, Global, ExclusionKeyboardClassList, %A_Space% ; empty string if not found
+
+; ---------------------
+; Options Tab 5 File Managers
 
 IniRead, g_intActiveFileManager, %g_strIniFile%, Global, ActiveFileManager
 
@@ -1494,16 +1515,18 @@ if (g_intActiveFileManager > 1) ; 2 Directory Opus, 3 Total Commander or 4 QAPco
 		g_intActiveFileManager := 1 ; must be after previous line
 	}
 
-IniRead, g_strTheme, %g_strIniFile%, Global, Theme, Windows
-IniRead, g_strAvailableThemes, %g_strIniFile%, Global, AvailableThemes
-g_blnUseColors := (g_strTheme <> "Windows")
-	
+; ---------------------
+; Other
+
+IniRead, g_blnDiagMode, %g_strIniFile%, Global, DiagMode, 0
+IniRead, g_blnDonor, %g_strIniFile%, Global, Donor, 0 ; Please, be fair. Don't cheat with this.
+
 IniRead, blnDefaultMenuBuilt, %g_strIniFile%, Global, DefaultMenuBuilt, 0 ; default false
 if !(blnDefaultMenuBuilt)
  	Gosub, AddToIniDefaultMenu ; modify the ini file Folders section before reading it
 
-IniRead, g_strExclusionMouseClassList, %g_strIniFile%, Global, ExclusionMouseClassList, %A_Space% ; empty string if not found
-IniRead, g_strExclusionKeyboardClassList, %g_strIniFile%, Global, ExclusionKeyboardClassList, %A_Space% ; empty string if not found
+; ---------------------
+; Favorites
 
 IfNotExist, %g_strIniFile%
 {
