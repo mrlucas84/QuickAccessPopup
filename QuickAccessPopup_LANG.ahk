@@ -373,13 +373,14 @@ global lOptionsTabOtherOptionsIntro := "Make ~1~ work the way you like!"
 global lOptionsTheme := "Theme"
 global lOptionsThirdParty := "File managers support"
 global lOptionsThirdPartyDetail := "Select the ~1~ program file (.exe) to enable ~1~ integration."
-global lOptionsThirdPartyDetailQAPconnect := "Select your file manager (or add it to ~1~)." ; changed
+global lOptionsThirdPartyDetailQAPconnect := "Select your file manager (or edit ~1~ to add it - see help)." ; changed
+global lOptionsThirdPartyFileNotFound := "~1~ application file ""~2~"" not found." ; new
 global lOptionsThirdPartyPrompt := "Program file:"
 global lOptionsThirdPartyQAPconnectApplication := "Application:" ; new
 global lOptionsThirdPartyQAPconnectEdit := "Edit QAPconnect.ini" ; new
 global lOptionsThirdPartyQAPconnectRadio := "File Manager selected in ~1~" ; new
 global lOptionsThirdPartySelectedHelp := "Selected File Manager: ~1~ (<a href=""~2~"">~3~</a>)" ; new
-global lOptionsThirdPartySelectFile := "Please, select the file manager application file using the ""Browse"" button" ; new
+global lOptionsThirdPartySelectFile := "Please, select the ~1~ application file using the ""Browse"" button" ; new
 global lOptionsThirdPartyTitle := "~1~ users"
 global lOptionsThirdPartyTitleFPconnect := "Other file managers users using FPconnect"
 global lOptionsThirdPartyUseTabs := "Use tabs instead of opening in a new window" ; changed

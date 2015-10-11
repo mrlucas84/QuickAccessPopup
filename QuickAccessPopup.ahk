@@ -18,6 +18,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- refactor file managers
+- refactor file managers import in ImportFPsettings
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - copy favorite
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -346,7 +348,7 @@ g_strQAPFeaturesList := ""
 
 g_objHotkeysByLocation := Object() ; Hotkeys by Location
 
-g_strQAPconnectIniPath := ""
+g_strQAPconnectIniPath := A_WorkingDir . "\QAPconnect.ini"
 g_strQAPconnectFileManager := ""
 g_strQAPconnectAppFilename := ""
 g_strQAPconnectTargetFilename := ""
@@ -3006,6 +3008,7 @@ Gui, 2:Add, Text, y+10 x32 w500 vf_lblFileManagerDetail hidden
 Gui, 2:Add, Text, y+10 x32 vf_lblFileManagerPrompt hidden, %lDialogApplicationLabel%:
 Gui, 2:Add, Edit, yp x+10 w300 h20 vf_strFileManagerPath hidden
 IniRead, strQAPconnectFileManagersList, %g_strQAPconnectIniPath%, , , %A_Space% ; list of QAPconnect.ini applications, empty by default
+
 if StrLen(strQAPconnectFileManagersList)
 {
 	strQAPconnectFileManagersList .= "|"
@@ -3015,8 +3018,10 @@ if StrLen(strQAPconnectFileManagersList)
 }
 Gui, 2:Add, DropDownList, xp yp w300 vf_drpQAPconnectFileManager hidden, %strQAPconnectFileManagersList%
 Gui, 2:Add, Button, x+10 yp vf_btnFileManagerPath gButtonSelectFileManagerPath hidden, %lDialogBrowseButton%
-Gui, 2:Add, Button, xp yp vf_btnQAPconnectEdit gButtonQAPconnectEdit hidden, %lOptionsThirdPartyQAPconnectEdit%
 Gui, 2:Add, Checkbox, y+10 x32 w590 vf_blnFileManagerUseTabs hidden, %lOptionsThirdPartyUseTabs%
+Gui, 2:Add, Button, xp yp vf_btnQAPconnectEdit gButtonQAPconnectEdit hidden, %lOptionsThirdPartyQAPconnectEdit%
+
+Gosub, ActiveFileManagerClicked ; init visible fields
 
 ;---------------------------------------
 ; Build Gui footer
@@ -3056,17 +3061,17 @@ GuiControl, % (f_radActiveFileManager1 or f_radActiveFileManager4 ? "Hide" : "Sh
 GuiControl, % (!f_radActiveFileManager4 ? "Hide" : "Show"), f_btnQAPconnectEdit
 GuiControl, % (f_radActiveFileManager1 or f_radActiveFileManager4 ? "Hide" : "Show"), f_blnFileManagerUseTabs
 
-if (f_radActiveFileManager2)
+if (f_radActiveFileManager2) ; Directory Opus
 {
 	g_intClickedFileManager := 2
 	strHelpUrl := "http://code.jeanlalonde.ca/using-folderspopup-with-directory-opus/"
 }
-else if (f_radActiveFileManager3)
+else if (f_radActiveFileManager3) ; Total Commander
 {
 	g_intClickedFileManager := 3
 	strHelpUrl := "http://code.jeanlalonde.ca/using-folderspopup-with-total-commander/"
 }
-else if (f_radActiveFileManager4)
+else if (f_radActiveFileManager4) ; QAPconnect
 {
 	g_intClickedFileManager := 4
 	strHelpUrl := "###"
@@ -3074,54 +3079,23 @@ else if (f_radActiveFileManager4)
 else ; f_radActiveFileManager1
 	g_intClickedFileManager := 1
 
-if !(f_radActiveFileManager1)
+if !(f_radActiveFileManager1) ; Directory Opus, Total Commander or QAPconnect
 {
 	strClickedFileManagerSystemNames := g_arrActiveFileManagerSystemNames%g_intClickedFileManager%
+	
+	if !StrLen(g_str%strClickedFileManagerSystemNames%Path)
+		IniRead, g_str%strClickedFileManagerSystemNames%Path, %g_strIniFile%, Global, %strClickedFileManagerSystemNames%Path, %A_Space% ; empty if error
+	
 	GuiControl, , f_lnkFileManagerHelp, % L(lOptionsThirdPartySelectedHelp, g_arrActiveFileManagerDisplayNames%g_intClickedFileManager%, strHelpUrl, lGuiHelp)
-	GuiControl, , f_lblFileManagerDetail, % (f_radActiveFileManager4 ? L(lOptionsThirdPartyDetailQAPconnect, QAPconnect.ini) : L(lOptionsThirdPartyDetail, g_arrActiveFileManagerDisplayNames%g_intClickedFileManager%))
+	GuiControl, , f_lblFileManagerDetail, % (f_radActiveFileManager4 ? L(lOptionsThirdPartyDetailQAPconnect, "QAPconnect.ini") : L(lOptionsThirdPartyDetail, g_arrActiveFileManagerDisplayNames%g_intClickedFileManager%))
 	GuiControl, , f_strFileManagerPath, % g_str%strClickedFileManagerSystemNames%Path
-	if !(f_radActiveFileManager4)
+	if !(f_radActiveFileManager4) ; Directory Opus or Total Commander
+	{
+		if !StrLen(g_bln%strClickedFileManagerSystemNames%UseTabs)
+			IniRead, g_bln%strClickedFileManagerSystemNames%UseTabs, %g_strIniFile%, Global, %strClickedFileManagerSystemNames%UseTabs, %A_Space% ; empty if error
 		GuiControl, , f_blnFileManagerUseTabs, % (g_bln%strClickedFileManagerSystemNames%UseTabs ? 1 : 0)
+	}
 }
-
-/*
-#####
-Gui, 2:Font, s8 w700
-Gui, 2:Add, Link, yp x+5, (<a href="http://code.jeanlalonde.ca/using-folderspopup-with-directory-opus/">%lGuiHelp%</a>)
-Gui, 2:Font
-Gui, 2:Add, Text, y+5 x32, % L(lOptionsThirdPartyDetail, "Directory Opus")
-Gui, 2:Add, Text, y+10 x32, %lOptionsThirdPartyPrompt%
-Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strDirectoryOpusPath, %g_strDirectoryOpusPath%
-Gui, 2:Add, Button, x+10 yp vf_btnSelectDOpusPath gButtonSelectDOpusPath, %lDialogBrowseButton%
-Gui, 2:Add, Checkbox, x+10 yp vf_blnDirectoryOpusUseTabs, %lOptionsThirdPartyUseTabs%
-GuiControl, , f_blnDirectoryOpusUseTabs, %g_blnDirectoryOpusUseTabs%
-
-Gui, 2:Font, s8 w700
-Gui, 2:Add, Link, yp x+5, (<a href="http://code.jeanlalonde.ca/using-folderspopup-with-total-commander/">%lGuiHelp%</a>)
-Gui, 2:Font
-Gui, 2:Add, Text, y+5 x32, % L(lOptionsThirdPartyDetail, "Total Commander")
-Gui, 2:Add, Text, y+10 x32, %lOptionsThirdPartyPrompt%
-Gui, 2:Add, Edit, x+10 yp w300 h20 vf_strTotalCommanderPath, %g_strTotalCommanderPath%
-Gui, 2:Add, Button, x+10 yp vf_btnSelectTCPath gButtonSelectTCPath, %lDialogBrowseButton%
-Gui, 2:Add, Checkbox, x+10 yp vf_blnTotalCommanderUseTabs, %lOptionsThirdPartyUseTabs%
-GuiControl, , f_blnTotalCommanderUseTabs, %g_blnTotalCommanderUseTabs%
-
-Gui, 2:Font, s8 w700
-Gui, 2:Add, Link, yp x+5, (<a href="https://github.com/rolandtoth/FPconnect">%lGuiHelp%</a>)
-Gui, 2:Font
-Gui, 2:Add, Text, y+5 x32, %lOptionsThirdPartyDetailQAPconnect%
-Gui, 2:Add, Text, y+10 x32, %lOptionsThirdPartyQAPconnectApplication%
-IniRead, strQAPconnectFileManagersList, %g_strQAPconnectIniPath%, , , %A_Space% ; list of QAPconnect.ini applications, empty by default
-if StrLen(strQAPconnectFileManagersList)
-{
-	strQAPconnectFileManagersList .= "|"
-	StringReplace, strQAPconnectFileManagersList, strQAPconnectFileManagersList, `n, |, All
-	if StrLen(g_strQAPconnectFileManager)
-		StringReplace, strQAPconnectFileManagersList, strQAPconnectFileManagersList, %g_strQAPconnectFileManager%|, %g_strQAPconnectFileManager%||
-}
-Gui, 2:Add, DropDownList, x+10 yp w300 vf_drpQAPconnectFileManager, %strQAPconnectFileManagersList%
-Gui, 2:Add, Button, x+10 yp vf_btnQAPconnectEdit gButtonQAPconnectEdit, %lOptionsThirdPartyQAPconnectEdit%
-*/
 
 strClickedFileManagerSystemNames := ""
 strHelpUrl := ""
@@ -3279,80 +3253,32 @@ return
 ;------------------------------------------------------------
 ButtonSelectFileManagerPath:
 ;------------------------------------------------------------
-
-; to-do #####
-
-return
-;------------------------------------------------------------
-
-
-/*
-;------------------------------------------------------------
-ButtonSelectDOpusPath:
-;------------------------------------------------------------
 Gui, 2:+OwnDialogs
 
-if StrLen(g_strDirectoryOpusPath) and (g_strDirectoryOpusPath <> "NO")
-	strCurrentDOpusLocation := g_strDirectoryOpusPath
+strActiveFileManagerSystemName := g_arrActiveFileManagerSystemNames%g_intClickedFileManager%
+if StrLen(g_str%strActiveFileManagerSystemName%Path)
+	strCurrentLocation := g_str%strActiveFileManagerSystemName%Path
 else
-	strCurrentDOpusLocation := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
+{
+	IniRead, strCurrentLocation, %g_strIniFile%, Global, %strActiveFileManagerSystemName%Path, %A_Space% ; empty if error
+	if !StrLen(strCurrentLocation)
+		if (g_intClickedFileManager = 2) ; Directory Opus
+			strCurrentLocation := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
+		else ; Total Commander
+			strCurrentLocation := GetTotalCommanderPath()
+}
+FileSelectFile, strNewLocation, 3, %strCurrentLocation%, %lDialogAddFolderSelect%
 
-FileSelectFile, strNewDOpusLocation, 3, %strCurrentDOpusLocation%, %lDialogAddFolderSelect%
-
-if !(StrLen(strNewDOpusLocation))
+if !(StrLen(strNewLocation))
 	return
 
-GuiControl, 2:, f_strDirectoryOpusPath, %strNewDOpusLocation%
+GuiControl, 2:, f_strFileManagerPath, %strNewLocation%
+
+strActiveFileManagerSystemName := ""
+strCurrentLocation := ""
 
 return
 ;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ButtonSelectTCPath:
-;------------------------------------------------------------
-Gui, 2:+OwnDialogs
-
-if StrLen(g_strTotalCommanderPath) and (g_strTotalCommanderPath <> "NO")
-	strCurrentTCLocation := g_strTotalCommanderPath
-else
-	strCurrentTCLocation := GetTotalCommanderPath()
-
-FileSelectFile, strNewTCLocation, 3, %strCurrentTCLocation%, %lDialogAddFolderSelect%
-
-if !(StrLen(strNewTCLocation))
-	return
-
-GuiControl, 2:, f_strTotalCommanderPath, %strNewTCLocation%
-
-strNewTCLocation := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ButtonSelectFPcPath:
-;------------------------------------------------------------
-Gui, 2:+OwnDialogs
-
-if StrLen(g_strFPconnectPath) and (g_strFPconnectPath <> "NO")
-	strCurrentFPcLocation := g_strFPconnectPath
-else
-	strCurrentFPcLocation := A_ScriptDir . "\FPconnect\FPconnect.exe"
-
-FileSelectFile, strNewFPcLocation, 3, %strCurrentFPcLocation%, %lDialogAddFolderSelect%
-
-if !(StrLen(strNewFPcLocation))
-	return
-
-GuiControl, 2:, f_strFPconnectPath, %strNewFPcLocation%
-
-strNewFPcLocation := ""
-
-return
-;------------------------------------------------------------
-*/
 
 
 ;------------------------------------------------------------
@@ -3368,22 +3294,49 @@ return
 ;------------------------------------------------------------
 ButtonOptionsSave:
 ;------------------------------------------------------------
-Gui, 2:Submit
+Gui, 2:Submit, NoHide
 
 g_blnMenuReady := false
 
+;---------------------------------------
 ; Tab 5: File Managers validation
 
-if (f_intActiveFileManager = 2) and !StrLen(f_strDirectoryOpusPath)
-	or (f_intActiveFileManager = 3) and !StrLen(f_strTotalCommanderPath)
-	or (f_intActiveFileManager = 4) and !StrLen(f_drpQAPconnectFileManager)
+strActiveFileManagerDisplayName := g_arrActiveFileManagerDisplayNames%g_intClickedFileManager%
+
+if (g_intClickedFileManager = 4) ; QAPconnect
 {
-	Oops(lOptionsThirdPartySelectFile)
-	Gosub, 2GuiClose
-	g_blnMenuReady := true
+	blnActiveFileManangerOK := StrLen(f_drpQAPconnectFileManager)
+	if (blnActiveFileManangerOK)
+	{
+		g_strQAPconnectFileManager := f_drpQAPconnectFileManager
+		Gosub, LoadIniQAPconnectValues ; values are already expanded
+		blnActiveFileManangerOK := FileExist(g_strQAPconnectAppPathFilename)
+		if (blnActiveFileManangerOK)
+			g_strQAPconnectFileManager := f_drpQAPconnectFileManager
+	}
+}
+else if (g_intClickedFileManager > 1) ; 2 Directory Opus or 3 Total Commander
+{
+	blnActiveFileManangerOK := StrLen(f_strFileManagerPath)
+	if (blnActiveFileManangerOK)
+		blnActiveFileManangerOK := FileExist(PathCombine(A_WorkingDir, EnvVars(f_strFileManagerPath)))
+}
+; ###_V(A_ThisLabel, g_intClickedFileManager, f_drpQAPconnectFileManager, blnActiveFileManangerOK, g_strQAPconnectFileManager, g_strQAPconnectTargetPath)
+if !(blnActiveFileManangerOK)
+{
+	if (g_intClickedFileManager = 4)
+		Oops(lOptionsThirdPartyFileNotFound, f_drpQAPconnectFileManager, g_strQAPconnectAppPathFilename)
+	else ; 2 Directory Opus or 3 Total Commander
+		if StrLen(f_strFileManagerPath)
+			Oops(lOptionsThirdPartyFileNotFound, strActiveFileManagerDisplayName, PathCombine(A_WorkingDir, EnvVars(f_strFileManagerPath)))
+		else
+			Oops(lOptionsThirdPartySelectFile, strActiveFileManagerDisplayName)
+
 	return
 }
-; ##### else validate that files exists
+; from here, we know that we have valid file manager path values
+
+; ###_V(A_ThisLabel, g_intClickedFileManager, g_strQAPconnectFileManager, g_strQAPconnectAppPathFilename, strActiveFileManagerDisplayName, f_strFileManagerPath)
 
 ;---------------------------------------
 ; Tab 1: General options
@@ -3483,49 +3436,38 @@ IniWrite, %g_strExclusionKeyboardClassList%, %g_strIniFile%, Global, ExclusionKe
 
 ; #####
 g_intActiveFileManager := g_intClickedFileManager
+IniWrite, %g_intActiveFileManager%, %g_strIniFile%, Global, ActiveFileManager
+	
 strActiveFileManagerSystemName := g_arrActiveFileManagerSystemNames%g_intActiveFileManager%
+; strActiveFileManagerDisplayName define during validation earlier
 
 if (g_intActiveFileManager = 4) ; QAPconnect
 {
-	g_strQAPconnectFileManager := f_drpQAPconnectFileManager
-	Gosub, LoadIniQAPconnectValues
-	blnActiveFileManangerOK := FileExist(g_strQAPconnectAppFilename)
-	if (blnActiveFileManangerOK)
-	{
-		IniWrite, %g_strQAPconnectFileManager%, %g_strIniFile%, Global, QAPconnectFileManager
-		Gosub, SetQAPconnect
-	}
+	IniWrite, %g_strQAPconnectFileManager%, %g_strIniFile%, Global, QAPconnectFileManager
+	Gosub, SetQAPconnect
 }
 else if (g_intActiveFileManager > 1) ; 2 Directory Opus or 3 Total Commander
 {
-	blnActiveFileManangerOK := FileExist(g_str%strActiveFileManagerSystemName%Path)
-	if (blnActiveFileManangerOK)
-	{
-		g_str%strActiveFileManagerSystemName%Path := f_strFileManagerPath
-		IniWrite, % g_str%strActiveFileManagerSystemName%Path, %g_strIniFile%, Global, %strActiveFileManagerSystemName%Path
-		g_bln%strActiveFileManagerSystemName%UseTabs := f_bln%strActiveFileManagerSystemName%UseTabs
-		IniWrite, % g_bln%strActiveFileManagerSystemName%UseTabs, %g_strIniFile%, Global, %strActiveFileManagerSystemName%UseTabs
+	g_str%strActiveFileManagerSystemName%Path := f_strFileManagerPath
+	IniWrite, % g_str%strActiveFileManagerSystemName%Path, %g_strIniFile%, Global, %strActiveFileManagerSystemName%Path
+	
+	g_bln%strActiveFileManagerSystemName%UseTabs := f_blnFileManagerUseTabs
+	IniWrite, % g_bln%strActiveFileManagerSystemName%UseTabs, %g_strIniFile%, Global, %strActiveFileManagerSystemName%UseTabs
+	if (g_intActiveFileManager = 2)
+		if (g_blnDirectoryOpusUseTabs)
+			g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
+		else
+			g_strDirectoryOpusNewTabOrWindow := "NEW" ; open new folder in a new DOpus lister (instance)
+	else ; Total Commander
+		if (g_blnTotalCommanderUseTabs)
+			g_strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
+		else
+			g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
+	IniWrite, % g_str%strActiveFileManagerSystemName%NewTabOrWindow, %g_strIniFile%, Global, %strActiveFileManagerSystemName%NewTabOrWindow
 		
-		if (g_intActiveFileManager = 2)
-			if (g_blnDirectoryOpusUseTabs)
-				g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
-			else
-				g_strDirectoryOpusNewTabOrWindow := "NEW" ; open new folder in a new DOpus lister (instance)
-		else ; Total Commander
-			if (g_blnTotalCommanderUseTabs)
-				g_strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
-			else
-				g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
-			
-		Gosub, Set%strActiveFileManagerSystemName%
-	}
+	Gosub, Set%strActiveFileManagerSystemName%
 }
-else ; Windows Explorer
-	blnActiveFileManangerOK := true
-	
-if (blnActiveFileManangerOK)
-	IniWrite, %g_intActiveFileManager%, %g_strIniFile%, Global, ActiveFileManager ; will be loaded as g_intActiveFileManager
-	
+
 ;---------------------------------------
 ; End of tabs
 
@@ -3556,6 +3498,7 @@ g_blnMenuReady := true
 strLanguageCodePrev := ""
 strThemePrev := ""
 strActiveFileManagerSystemName := ""
+strActiveFileManagerDisplayName := ""
 blnActiveFileManangerOK := ""
 
 return
@@ -8740,6 +8683,7 @@ return
 
 ;------------------------------------------------------------
 GetTotalCommanderPath()
+; ### used - do not remove
 ;------------------------------------------------------------
 {
 	RegRead, strPath, HKEY_CURRENT_USER, Software\Ghisler\Total Commander\, InstallDir
@@ -8812,11 +8756,14 @@ NewTabSwitch=
 TargetPath=EFCWT.EXE
 */
 
-g_strQAPconnectIniPath := A_WorkingDir . "\QAPconnect.ini"
 IniRead, g_strQAPconnectAppPathFilename, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, AppPath, %A_Space% ; empty by default
+g_strQAPconnectAppPathFilename := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectAppPathFilename))
 IniRead, g_strQAPconnectCommandline, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, Commandline, %A_Space% ; empty by default
 IniRead, g_strQAPconnectNewTabSwitch, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, NewTabSwitch, %A_Space% ; empty by default
 IniRead, g_strQAPconnectTargetPath, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, TargetPath, %A_Space% ; empty by default
+g_strQAPconnectTargetPath := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectTargetPath))
+
+; ###_V(A_ThisLabel, g_strQAPconnectAppPathFilename, g_strQAPconnectCommandline, g_strQAPconnectNewTabSwitch, g_strQAPconnectTargetPath)
 
 return
 ;------------------------------------------------------------
@@ -8859,7 +8806,7 @@ return
 
 
 ;------------------------------------------------------------
-SetActiveFileMananger:
+SetActiveFileManager:
 ;------------------------------------------------------------
 
 ; ##### to be done
