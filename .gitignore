@@ -1,7 +1,7 @@
 *.PRJ
 img/
 PAD/
-*.ini
+quickaccesspopup*.ini
 Divers/
 BK/
 FPconnect/
