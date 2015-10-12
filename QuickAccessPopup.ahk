@@ -18,8 +18,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- exit when Win XP
-- reword "Remember window position" with "Use default window position" and revert variable
 - refactor file managers import in ImportFPsettings
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - copy favorite
@@ -43,7 +41,12 @@ HISTORY
 =======
 
 Version: 6.1.1 alpha (2015-10-??)
-- 
+- support for custom file managers (in addition to Directory Opus and Total Commander) using the settings file QAPconnect.ini; thanks to Roland Toth (tpr) for his help maintaining these settings (https://github.com/rolandtoth)
+- refactoring of custom file managers support (including Directory Opus and Total Commander), with a new user interface in Options to select the custom file manager
+- add Edit QAPconnect.ini menu to Tray menu
+- when running QAP under Win XP or Vista, show a message inviting user to run Folders Popup and qui QAP
+- in Add/Edit Favorite dialog box, reword the checkbox label "Remember window position" to "Use default window position" and revert the checkbox behaviour
+
 
 Version: 6.0.7 alpha (2015-10-01)
 - support relative paths for icon file (but they have to be made relative in the ini file)
@@ -348,11 +351,22 @@ g_objHotkeysByLocation := Object() ; Hotkeys by Location
 g_strQAPconnectIniPath := A_WorkingDir . "\QAPconnect.ini"
 g_strQAPconnectFileManager := ""
 g_strQAPconnectAppFilename := ""
-g_strQAPconnectTargetFilename := ""
+g_strQAPconnectCompanionFilename := ""
 g_strQAPconnectAppPath := ""
-g_strQAPconnectCommandline := ""
+g_strQAPconnectCommandLine := ""
 g_strQAPconnectNewTabSwitch := ""
-g_strQAPconnectTargetPath := ""
+g_strQAPconnectCompanionPath := ""
+
+;---------------------------------
+; Initial validation
+
+if InStr("WIN_VISTA|WIN_2003|WIN_XP|WIN_2000", A_OSVersion)
+{
+	MsgBox, 4, %g_strAppNameFile%, % L(lOopsOSVerrsionError, g_strAppNameFile)
+	IfMsgBox, Yes
+		Run, http://code.jeanlalonde.ca/folderspopup/
+	ExitApp
+}
 
 ; if the app runs from a zip file, the script directory is created under the system Temp folder
 if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is created
@@ -360,6 +374,9 @@ if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is cre
 	Oops(lOopsZipFileError, g_strAppNameFile)
 	ExitApp
 }
+
+;---------------------------------
+; Set working directory
 
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for developement environment only - won't be compiled
@@ -369,6 +386,9 @@ else if InStr(A_ComputerName, "STIC") ; for my work hotkeys
 	g_strIniFile := A_WorkingDir . "\" . g_strAppNameFile . "-WORK.ini"
 ; / End of code for developement environment only - won't be compiled
 ;@Ahk2Exe-IgnoreEnd
+
+;---------------------------------
+; Initialization
 
 ; Keep gosubs in this order
 Gosub, InitSystemArrays
@@ -1510,7 +1530,7 @@ if (g_intActiveFileManager > 1) ; 2 DirectoryOpus, 3 TotalCommander or 4 QAPconn
 	else
 	{
 		if (g_intActiveFileManager = 4) ; QAPconnect
-			Oops(lOopsWrongThirdPartyPathQAPconnect, g_strQAPconnectFileManager, g_strQAPconnectAppPath, "QAPconnect.ini", lOptionsThirdPartyQAPconnectEdit, lOptionsThirdParty)
+			Oops(lOopsWrongThirdPartyPathQAPconnect, g_strQAPconnectFileManager, g_strQAPconnectAppPath, "QAPconnect.ini", L(lMenuEditIniFile, "QAPconnect.ini"), lOptionsThirdParty)
 		else ; 2 DirectoryOpus or 3 TotalCommander
 			Oops(lOopsWrongThirdPartyPath, g_arrActiveFileManagerDisplayNames%g_intActiveFileManager%, g_str%strActiveFileManagerSystemName%Path, lOptionsThirdParty)
 		g_intActiveFileManager := 1 ; must be after previous line
@@ -1999,7 +2019,8 @@ Menu, Tray, Add
 ;@Ahk2Exe-IgnoreEnd
 ; Menu, Tray, Add, % L(lMenuFPMenu, g_strAppNameText, lMenuMenu), :%lMainMenuName% ; REMOVED seems to cause a BUG in submenu display (first display only) - unexplained...
 Menu, Tray, Add, % lMenuSettings . "...", GuiShow
-Menu, Tray, Add, % g_strAppNameFile . ".ini", ShowIniFile
+Menu, Tray, Add, % L(lMenuEditIniFile, g_strAppNameFile . ".ini"), ShowSettingsIniFile
+Menu, Tray, Add, % L(lMenuEditIniFile, "QAPconnect.ini"), ShowQAPconnectIniFile
 Menu, Tray, Add
 Menu, Tray, Add, %lMenuRunAtStartup%, RunAtStartup
 Menu, Tray, Add, %lMenuSuspendHotkeys%, SuspendHotkeys
@@ -3040,12 +3061,12 @@ if StrLen(strQAPconnectFileManagersList)
 	if StrLen(g_strQAPconnectFileManager)
 		StringReplace, strQAPconnectFileManagersList, strQAPconnectFileManagersList, %g_strQAPconnectFileManager%|, %g_strQAPconnectFileManager%||
 }
-Gui, 2:Add, DropDownList, xp yp w300 vf_drpQAPconnectFileManager hidden, %strQAPconnectFileManagersList%
+Gui, 2:Add, DropDownList, xp yp w300 vf_drpQAPconnectFileManager hidden Sort, %strQAPconnectFileManagersList%
 if StrLen(g_strQAPconnectFileManager)
 	GuiControl, ChooseString, f_drpQAPconnectFileManager, %g_strQAPconnectFileManager%
 Gui, 2:Add, Button, x+10 yp vf_btnFileManagerPath gButtonSelectFileManagerPath hidden, %lDialogBrowseButton%
 Gui, 2:Add, Checkbox, y+10 x32 w590 vf_blnFileManagerUseTabs hidden, %lOptionsThirdPartyUseTabs%
-Gui, 2:Add, Button, xp yp vf_btnQAPconnectEdit gButtonQAPconnectEdit hidden, %lOptionsThirdPartyQAPconnectEdit%
+Gui, 2:Add, Button, xp yp vf_btnQAPconnectEdit gShowQAPconnectIniFile hidden, % L(lMenuEditIniFile, "QAPconnect.ini")
 
 Gosub, ActiveFileManagerClicked ; init visible fields
 
@@ -3308,16 +3329,6 @@ return
 
 
 ;------------------------------------------------------------
-ButtonQAPconnectEdit:
-;------------------------------------------------------------
-
-Run, %g_strQAPconnectIniPath%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 ButtonOptionsSave:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
@@ -3347,7 +3358,7 @@ else if (g_intClickedFileManager > 1) ; 2 DirectoryOpus or 3 TotalCommander
 	if (blnActiveFileManangerOK)
 		blnActiveFileManangerOK := FileExist(PathCombine(A_WorkingDir, EnvVars(f_strFileManagerPath)))
 }
-; ###_V(A_ThisLabel, g_intClickedFileManager, f_drpQAPconnectFileManager, blnActiveFileManangerOK, g_strQAPconnectFileManager, g_strQAPconnectTargetPath)
+; ###_V(A_ThisLabel, g_intClickedFileManager, f_drpQAPconnectFileManager, blnActiveFileManangerOK, g_strQAPconnectFileManager, g_strQAPconnectCompanionPath)
 if (g_intClickedFileManager > 1 and !blnActiveFileManangerOK)
 {
 	if (g_intClickedFileManager = 4)
@@ -4389,7 +4400,7 @@ if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay; for example: "1,0,100,50,640,480,200"
 	StringSplit, arrNewFavoriteWindowPosition, g_strNewFavoriteWindowPosition, `,
 
-	Gui, 2:Add, Checkbox, % "x20 y40 section vf_chkRememberWindowPosition gCheckboxWindowPositionClicked " . (arrNewFavoriteWindowPosition1 ? "checked" : ""), %lDialogRememberWindowPosition%
+	Gui, 2:Add, Checkbox, % "x20 y40 section vf_chkUseDefaultWindowPosition gCheckboxWindowPositionClicked " . (arrNewFavoriteWindowPosition1 ? "" : "checked"), %lDialogUseDefaultWindowPosition%
 	
 	Gui, 2:Add, Text, % "y+20 x20 section vf_lblWindowPositionState " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogState%
 	
@@ -4872,24 +4883,24 @@ RadioButtonWindowPositionMinMaxClicked:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionState
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax1
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax2
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax3
+GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionState
+GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax1
+GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax2
+GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMinMax3
 
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelayLabel
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelay
-GuiControl, % (f_chkRememberWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMayFail
+GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelayLabel
+GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelay
+GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMayFail
 
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPosition
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionX
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionX
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionY
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionY
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionW
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionW
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionH
-GuiControl, % (f_chkRememberWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionH
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPosition
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionX
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionX
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionY
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionY
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionW
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionW
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPositionH
+GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_intWindowPositionH
 
 return
 ;------------------------------------------------------------
@@ -5162,8 +5173,8 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 		return
 	}
 
-	strNewFavoriteWindowPosition := f_chkRememberWindowPosition
-	if (f_chkRememberWindowPosition)
+	strNewFavoriteWindowPosition := (f_chkUseDefaultWindowPosition ? 0 : 1)
+	if (!f_chkUseDefaultWindowPosition)
 		strNewFavoriteWindowPosition .= "," . (f_lblWindowPositionMinMax1 ? 0 : (f_lblWindowPositionMinMax2 ? 1 : -1))
 			. "," . f_intWindowPositionX . "," . f_intWindowPositionY . "," . f_intWindowPositionW . "," . f_intWindowPositionH . "," . f_lblWindowPositionDelay
 	if !ValidateWindowPosition(strNewFavoriteWindowPosition)
@@ -5355,7 +5366,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave") ; do not execute at each favorite 
 	f_blnRadioGroupRestoreWithExplorer := ""
 	f_blnRadioGroupRestoreWithOther := ""
 	f_blnUseDefaultSettings := ""
-	f_chkRememberWindowPosition := ""
+	f_chkUseDefaultWindowPosition := ""
 	f_drpParentMenu := ""
 	f_drpParentMenuItems := ""
 	f_drpQAP := ""
@@ -6936,7 +6947,7 @@ WindowIsQAPconnect(strWinId)
 ;------------------------------------------------------------
 {
 	global g_strQAPconnectAppFilename
-	global g_strQAPconnectTargetFilename
+	global g_strQAPconnectCompanionFilename
 
 	if (strWinId = 0)
 		return false
@@ -6954,7 +6965,7 @@ WindowIsQAPconnect(strWinId)
 	
 	; get filename only and compare with QAPconnect filename or QAPconnect target filename (see QAPconnect doc)
 	SplitPath, strFCAppFile, strFCAppFile
-	return (strFCAppFile = g_strQAPconnectAppFilename) or (strFCAppFile = g_strQAPconnectTargetFilename)
+	return (strFCAppFile = g_strQAPconnectAppFilename) or (strFCAppFile = g_strQAPconnectCompanionFilename)
 }
 ;------------------------------------------------------------
 
@@ -7775,10 +7786,10 @@ OpenFavoriteNavigateQAPconnect:
 
 if InStr(g_strFullLocation, " ")
 	g_strFullLocation := """" . g_strFullLocation . """"
-StringReplace, strQAPconnectParamString, g_strQAPconnectCommandline, % "%Path%", %g_strFullLocation%
+StringReplace, strQAPconnectParamString, g_strQAPconnectCommandLine, % "%Path%", %g_strFullLocation%
 StringReplace, strQAPconnectParamString, strQAPconnectParamString, % "%NewTabSwitch%"
 
-; ###_V(A_ThisLabel, g_strFullLocation, strQAPconnectParamString, g_strQAPconnectWindowID, g_strQAPconnectAppPath, g_strQAPconnectCommandline, g_strQAPconnectNewTabSwitch, g_strQAPconnectAppFilename, g_strTargetWinId)
+; ###_V(A_ThisLabel, g_strFullLocation, strQAPconnectParamString, g_strQAPconnectWindowID, g_strQAPconnectAppPath, g_strQAPconnectCommandLine, g_strQAPconnectNewTabSwitch, g_strQAPconnectAppFilename, g_strTargetWinId)
 
 if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
 {
@@ -8072,9 +8083,9 @@ OpenFavoriteInNewWindowQAPconnect:
 ; old Run, %g_strQAPconnectPath% %g_strFullLocation% /new
 if InStr(g_strFullLocation, " ")
 	g_strFullLocation := """" . g_strFullLocation . """"
-StringReplace, strQAPconnectParamString, g_strQAPconnectCommandline, % "%Path%", %g_strFullLocation%
+StringReplace, strQAPconnectParamString, g_strQAPconnectCommandLine, % "%Path%", %g_strFullLocation%
 StringReplace, strQAPconnectParamString, strQAPconnectParamString, % "%NewTabSwitch%", %g_strQAPconnectNewTabSwitch%
-; ###_V(A_ThisLabel, g_strQAPconnectPath, g_strFullLocation, g_strQAPconnectWindowID, g_strQAPconnectAppPath, g_strQAPconnectCommandline, g_strQAPconnectNewTabSwitch, strQAPconnectParamString, g_strQAPconnectAppFilename)
+; ###_V(A_ThisLabel, g_strQAPconnectPath, g_strFullLocation, g_strQAPconnectWindowID, g_strQAPconnectAppPath, g_strQAPconnectCommandLine, g_strQAPconnectNewTabSwitch, strQAPconnectParamString, g_strQAPconnectAppFilename)
 
 ; Run, % g_strQAPconnectAppPath . " """ . strQAPconnectParamString . """"
 Run, %g_strQAPconnectAppPath% %strQAPconnectParamString%
@@ -8149,10 +8160,20 @@ return
 ;========================================================================================================================
 
 ;------------------------------------------------------------
-ShowIniFile:
+ShowSettingsIniFile:
 ;------------------------------------------------------------
 
 Run, %g_strIniFile%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ShowQAPconnectIniFile:
+;------------------------------------------------------------
+
+Run, %g_strQAPconnectIniPath%
 
 return
 ;------------------------------------------------------------
@@ -8712,21 +8733,21 @@ LoadIniQAPconnectValues:
 [EF Commander Free (v9.50)]
 ; http://www.softpedia.com/get/File-managers/EF-Commander-Free.shtml
 AppPath=..\EF Commander Free\EFCommanderFreePortable.exe
-Commandline=/O /A=%Path%
+CommandLine=/O /A=%Path%
 NewTabSwitch=
-TargetPath=EFCWT.EXE
+CompanionPath=EFCWT.EXE
 */
 
 IniRead, g_strQAPconnectAppPath, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, AppPath, %A_Space% ; empty by default
 g_strQAPconnectAppPath := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectAppPath))
-IniRead, g_strQAPconnectCommandline, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, Commandline, %A_Space% ; empty by default
+IniRead, g_strQAPconnectCommandLine, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, CommandLine, %A_Space% ; empty by default
 IniRead, g_strQAPconnectNewTabSwitch, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, NewTabSwitch, %A_Space% ; empty by default
-IniRead, g_strQAPconnectTargetPath, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, TargetPath, %A_Space% ; empty by default
-if StrLen(g_strQAPconnectTargetPath)
-	g_strQAPconnectTargetPath := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectTargetPath))
-SplitPath, g_strQAPconnectTargetPath, g_strQAPconnectTargetFilename
+IniRead, g_strQAPconnectCompanionPath, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, CompanionPath, %A_Space% ; empty by default
+if StrLen(g_strQAPconnectCompanionPath)
+	g_strQAPconnectCompanionPath := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectCompanionPath))
+SplitPath, g_strQAPconnectCompanionPath, g_strQAPconnectCompanionFilename
 
-; ###_V(A_ThisLabel, g_strQAPconnectAppPath, g_strQAPconnectCommandline, g_strQAPconnectNewTabSwitch, g_strQAPconnectTargetPath)
+; ###_V(A_ThisLabel, g_strQAPconnectAppPath, g_strQAPconnectCommandLine, g_strQAPconnectNewTabSwitch, g_strQAPconnectCompanionPath)
 
 return
 ;------------------------------------------------------------
@@ -8741,7 +8762,7 @@ if (g_intActiveFileManager = 4) ; QAPconnect
 	SplitPath, g_strQAPconnectAppPath, g_strQAPconnectAppFilename
 	g_strQAPconnectWindowID := "ahk_exe " . g_strQAPconnectAppFilename ; ahk_exe worked with filename only, not with full exe path
 	
-	; ###_V(A_ThisLabel, g_strQAPconnectAppPath, g_strQAPconnectAppFilename, g_strQAPconnectWindowID, g_strQAPconnectTargetPath)
+	; ###_V(A_ThisLabel, g_strQAPconnectAppPath, g_strQAPconnectAppFilename, g_strQAPconnectWindowID, g_strQAPconnectCompanionPath)
 }
 else ; DirectoryOpus or TotalCommander
 {
