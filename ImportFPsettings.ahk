@@ -11,6 +11,11 @@ Convert favorites and import options from Folders Popup (folderspopup.ini) to Qu
 Do not import groups. If it does not exist, the QuickAccessPopup.ini file is created in ths program's directory. If it
 already exists, this program will OVERWRITE the existing options and REPLACE ALL existing favorites in this file.
 
+Version: 0.2 alpha (2015-10-12)
+- Adapted after file manager support refactoring in QAP with QAPconnect.ini
+- Make ImportOneOption accept a new value
+- Make ImportOneOption return the imported value
+
 Version: 0.1 alpha (2015-09-15)
 - Initial alpha test release
 
@@ -24,7 +29,7 @@ Version: 0.1 alpha (2015-09-15)
 
 ;@Ahk2Exe-SetName ImportFPsettings
 ;@Ahk2Exe-SetDescription Import settings from Folders Popup to Quick Access Popup
-;@Ahk2Exe-SetVersion 0.1 alpha
+;@Ahk2Exe-SetVersion 0.2 alpha
 ;@Ahk2Exe-SetOrigFilename ImportFPsettings.exe
 
 
@@ -48,7 +53,7 @@ ListLines, On
 
 global g_strAppNameFile := "ImportFPsettings"
 global g_strAppNameText := "Import Settings - FP to QAP"
-global g_strCurrentVersion := "0.1" ; "major.minor.bugs" or "major.minor.beta.release"
+global g_strCurrentVersion := "0.2" ; "major.minor.bugs" or "major.minor.beta.release"
 global g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 global g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -96,7 +101,7 @@ else
 
 MsgBox, 0, %g_strAppNameText% %g_strAppVersion%, %strMessage%
 
-if !FileExist(g_strFPStartupShortcut) ; if a FP shortcut exists in startup folder, use its app folder
+if FileExist(g_strFPStartupShortcut) ; if a FP shortcut exists in startup folder, use its app folder
 {
 	FileGetShortcut, %g_strFPStartupShortcut%, , g_strFPStartupWorkingDir
 	g_strFPIniFile := g_strFPStartupWorkingDir . "\FoldersPopup.ini"
@@ -143,7 +148,7 @@ IfMsgBox, No
 IfMsgBox, Yes
 	gosub, ImportFavoritesSettings
 
-MsgBox, , %g_strAppNameText% %g_strAppVersion%, Task finished.`n`nFolders Popup file:`n%g_strFPIniFile%`n`nQuick Access Popup file:`n%g_strQAPIniFile%`n`nImported "Options": %blnImportOptions%`nImported "Favorites": %blnImportFavorites%
+MsgBox, 0, %g_strAppNameText% %g_strAppVersion%, Task finished.`n`nFolders Popup file:`n%g_strFPIniFile%`n`nQuick Access Popup file:`n%g_strQAPIniFile%`n`nImported "Options": %blnImportOptions%`nImported "Favorites": %blnImportFavorites%
 
 return
 ;-----------------------------------------------------------
@@ -153,7 +158,7 @@ return
 ConfirmFPIniFile:
 ;-----------------------------------------------------------
 
-MsgBox, 35, %g_strAppNameText% %g_strAppVersion%, Use the source Folders Popup settings file:`n%g_strCandidateFPIniFile%?`n`nIf you answer "No", you will select the Folders Popup settings file.
+MsgBox, 35, %g_strAppNameText% %g_strAppVersion%, Use the source Folders Popup settings file:`n%g_strCandidateFPIniFile%?`n`nClick "No" to select another the Folders Popup settings file.
 IfMsgBox, Cancel
 	ExitApp
 IfMsgBox, Yes
@@ -188,7 +193,6 @@ ImportOneOption("DirectoryOpusPath")
 ImportOneOption("DirectoryOpusUseTabs")
 ImportOneOption("TotalCommanderPath")
 ImportOneOption("TotalCommanderUseTabs")
-ImportOneOption("FPconnectPath")
 
 ImportOneOption("LastVersionUsedProd")
 ImportOneOption("LastVersionUsedBeta")
@@ -198,8 +202,8 @@ ImportOneOption("LatestVersionSkippedBeta")
 ImportOneOption("Theme")
 ImportOneOption("AvailableThemes")
 
-AvailableThemes=Windows|Grey|Light Blue|Light Green|Light Red|Yellow
 ; read FP themes and import themes
+AvailableThemes=Windows|Grey|Light Blue|Light Green|Light Red|Yellow
 
 IniRead, strThemes, %g_strQAPIniFile%, Global, AvailableThemes
 loop, Parse, strThemes, |
@@ -212,12 +216,43 @@ loop, Parse, strThemes, |
 	ImportOneOption("MenuBackgroundColor", , strTheme)
 }	
 
+; adapt and import File Managers settings
+strDirectoryOpusPath := ImportOneOption("DirectoryOpusPath")
+if (strDirectoryOpusPath = "NO")
+{
+	strDirectoryOpusPath := ""
+	IniDelete, %g_strQAPIniFile%, Global, DirectoryOpusPath
+}
+ImportOneOption("DirectoryOpusUseTabs")
+ImportOneOption("DirectoryOpusNewTabOrWindow", , , "NEWTAB")
+
+strTotalCommanderPath := ImportOneOption("TotalCommanderPath")
+if (strTotalCommanderPath = "NO")
+{
+	strTotalCommanderPath := ""
+	IniDelete, %g_strQAPIniFile%, Global, TotalCommanderPath
+}
+ImportOneOption("TotalCommanderUseTabs")
+ImportOneOption("TotalCommanderNewTabOrWindow")
+
+If StrLen(strDirectoryOpusPath)
+	intActiveFileManager := 2
+else If StrLen(strTotalCommanderPath)
+	intActiveFileManager := 3
+else
+	intActiveFileManager := 1
+ImportOneOption("ActiveFileManager", , , intActiveFileManager)
+
+IniRead, strFPconnectPath, %g_strFPIniFile%, Global, FPConnectPath
+if StrLen(strFPconnectPath) and (strFPconnectPath <> "NO")
+	MsgBox, 48, %g_strAppNameText% %g_strAppVersion%, The Folders Popup addon "FPconnect" has been integrated in Quick Access Popup.`n`nTo configure your file manager in Quick Access Popup, open the "Settings" window, click the "Options" button and, in the "File managers support" tab, select "QAPconnect".
+
 return
 ;-----------------------------------------------------------
 
 
 ;-----------------------------------------------------------
-ImportOneOption(strSourceName, strDestname := "", strSection := "Global")
+ImportOneOption(strSourceName, strDestname := "", strSection := "Global", strNewValue := "")
 ;-----------------------------------------------------------
 {
 	if !StrLen(strDestname)
@@ -225,8 +260,15 @@ ImportOneOption(strSourceName, strDestname := "", strSection := "Global")
 	
 	IniRead, strSourceValue, %g_strFPIniFile%, %strSection%, %strSourceName%
 
-	if (strSourceValue <> "ERROR")
-		IniWrite, %strSourceValue%, %g_strQAPIniFile%, %strSection%, %strDestname%
+	if (strSourceValue = "ERROR")
+		if StrLen(strNewValue)
+			strSourceValue := strNewValue
+		else
+			return
+
+	IniWrite, %strSourceValue%, %g_strQAPIniFile%, %strSection%, %strDestname%
+	
+	return %strSourceValue%
 }
 ;-----------------------------------------------------------
 
