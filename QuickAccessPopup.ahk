@@ -8664,42 +8664,35 @@ CheckOneFileManager:
 ;------------------------------------------------------------
 
 strFileManagerSystemName := g_arrActiveFileManagerSystemNames%intFileManager%
-IniRead, blnDontCheck, %g_strIniFile%, Global, DontCheck%strFileManagerSystemName%, 0
 
-if !(blnDontCheck)
+strFileManagerDisplayName := g_arrActiveFileManagerDisplayNames%intFileManager%
+if (intFileManager = 2) ; DirectoryOpus
+	strCheckPath := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
+else ; 3 TotalCommander
+	strCheckPath := GetTotalCommanderPath()
+
+if FileExist(strCheckPath)
 {
-	strFileManagerDisplayName := g_arrActiveFileManagerDisplayNames%intFileManager%
-	if (intFileManager = 2) ; DirectoryOpus
-		strCheckPath := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
-	else ; 3 TotalCommander
-		strCheckPath := GetTotalCommanderPath()
-
-	if FileExist(strCheckPath)
+	MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, strFileManagerDisplayName)
+	IfMsgBox, Yes
 	{
-		MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, strFileManagerDisplayName)
-		IfMsgBox, No
-			IniWrite, 1, %g_strIniFile%, Global, DontCheck%strFileManagerSystemName%
-		else
-		{
-			g_intActiveFileManager := intFileManager
-			IniWrite, %g_intActiveFileManager%, %g_strIniFile%, Global, ActiveFileManager
-			g_str%strFileManagerSystemName%Path := strCheckPath
-			Gosub, Set%strFileManagerSystemName%
-			IniWrite, % g_str%strFileManagerSystemName%Path, %g_strIniFile%, Global, %strFileManagerSystemName%Path
-			g_bln%strFileManagerSystemName%UseTabs := true
-			IniWrite, % g_bln%strFileManagerSystemName%UseTabs, %g_strIniFile%, Global, %strFileManagerSystemName%UseTabs
-			
-			if (g_intActiveFileManager = 2) ; DirectoryOpus
-				g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
-			else ; 3 TotalCommander
-				g_strTotalCommanderNewTabOrWindow := "/O /T" ; to open in a new tab
-			IniWrite, % g_str%strFileManagerSystemName%NewTabOrWindow, %g_strIniFile%, Global, %strFileManagerSystemName%NewTabOrWindow
-		}
+		g_intActiveFileManager := intFileManager
+		IniWrite, %g_intActiveFileManager%, %g_strIniFile%, Global, ActiveFileManager
+		g_str%strFileManagerSystemName%Path := strCheckPath
+		Gosub, Set%strFileManagerSystemName%
+		IniWrite, % g_str%strFileManagerSystemName%Path, %g_strIniFile%, Global, %strFileManagerSystemName%Path
+		g_bln%strFileManagerSystemName%UseTabs := true
+		IniWrite, % g_bln%strFileManagerSystemName%UseTabs, %g_strIniFile%, Global, %strFileManagerSystemName%UseTabs
+		
+		if (g_intActiveFileManager = 2) ; DirectoryOpus
+			g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
+		else ; 3 TotalCommander
+			g_strTotalCommanderNewTabOrWindow := "/O /T" ; to open in a new tab
+		IniWrite, % g_str%strFileManagerSystemName%NewTabOrWindow, %g_strIniFile%, Global, %strFileManagerSystemName%NewTabOrWindow
 	}
 }
 
 strFileManagerSystemName := ""
-blnDontCheck := ""
 strFileManagerDisplayName := ""
 strCheckPath := ""
 
