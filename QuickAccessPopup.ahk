@@ -40,13 +40,12 @@ QAP FEATURES MENUS
 HISTORY
 =======
 
-Version: 6.1.1 alpha (2015-10-??)
+Version: 6.1.1 alpha (2015-10-12)
 - support for custom file managers (in addition to Directory Opus and Total Commander) using the settings file QAPconnect.ini; thanks to Roland Toth (tpr) for his help maintaining these settings (https://github.com/rolandtoth)
 - refactoring of custom file managers support (including Directory Opus and Total Commander), with a new user interface in Options to select the custom file manager
 - add Edit QAPconnect.ini menu to Tray menu
 - when running QAP under Win XP or Vista, show a message inviting user to run Folders Popup and qui QAP
 - in Add/Edit Favorite dialog box, reword the checkbox label "Remember window position" to "Use default window position" and revert the checkbox behaviour
-
 
 Version: 6.0.7 alpha (2015-10-01)
 - support relative paths for icon file (but they have to be made relative in the ini file)
