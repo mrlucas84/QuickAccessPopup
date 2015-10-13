@@ -5,9 +5,9 @@
 #define MyAppExeName "QuickAccessPopup.exe"
 #define FPImportExeName "ImportFPsettings.exe"
 
-#define MyAppVersion "v6.1.1 ALPHA"
-#define MyVersionFileName "6_1_1-alpha"
-#define FPImportVersionFileName "ImportFPsettings-0_2-ALPHA.exe"
+#define MyAppVersion "v6.1.2 ALPHA"
+#define MyVersionFileName "6_1_2-alpha"
+#define FPImportVersionFileName "ImportFPsettings-0_3-ALPHA.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -47,7 +47,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\QuickAccessPopup-{#MyVersionFileName}-64-bit.exe"; DestDir: "{app}"; DestName: "QuickAccessPopup.exe"; Check: IsWin64; Flags: 64bit ignoreversion
 ; Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\QuickAccessPopup-{#MyVersionFileName}-32-bit.exe"; DestDir: "{app}"; DestName: "QuickAccessPopup.exe"; Check: "not IsWin64"; Flags: 32bit ignoreversion
 Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\{#FPImportVersionFileName}"; DestDir: "{app}"; DestName: "ImportFPsettings.exe"
-Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\QAPconnect.ini"; DestDir: "{app}"; DestName: "QAPconnect.ini"
+Source: "C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\QAPconnect.ini"; DestDir: "{userappdata}"; DestName: "QAPconnect.ini"
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Dirs]

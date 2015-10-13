@@ -40,6 +40,10 @@ QAP FEATURES MENUS
 HISTORY
 =======
 
+Version: 6.1.2 alpha (2015-10-13)
+- fix bug with file manager detection at startup
+- fix bug in setup program installing QAPconnect.ini in the app folder instead of userapp folder
+
 Version: 6.1.1 alpha (2015-10-12)
 - support for custom file managers (in addition to Directory Opus and Total Commander) using the settings file QAPconnect.ini; thanks to Roland Toth (tpr) for his help maintaining these settings (https://github.com/rolandtoth)
 - refactoring of custom file managers support (including Directory Opus and Total Commander), with a new user interface in Options to select the custom file manager
@@ -251,7 +255,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.1.1 alpha
+;@Ahk2Exe-SetVersion 6.1.2 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -304,7 +308,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.1.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.1.2" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -8678,7 +8682,7 @@ if FileExist(strCheckPath)
 		g_intActiveFileManager := intFileManager
 		IniWrite, %g_intActiveFileManager%, %g_strIniFile%, Global, ActiveFileManager
 		g_str%strFileManagerSystemName%Path := strCheckPath
-		Gosub, Set%strFileManagerSystemName%
+		Gosub, SetActiveFileManager
 		IniWrite, % g_str%strFileManagerSystemName%Path, %g_strIniFile%, Global, %strFileManagerSystemName%Path
 		g_bln%strFileManagerSystemName%UseTabs := true
 		IniWrite, % g_bln%strFileManagerSystemName%UseTabs, %g_strIniFile%, Global, %strFileManagerSystemName%UseTabs

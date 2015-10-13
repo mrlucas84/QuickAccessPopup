@@ -11,6 +11,9 @@ Convert favorites and import options from Folders Popup (folderspopup.ini) to Qu
 Do not import groups. If it does not exist, the QuickAccessPopup.ini file is created in ths program's directory. If it
 already exists, this program will OVERWRITE the existing options and REPLACE ALL existing favorites in this file.
 
+Version: 0.3 alpha (2015-10-13)
+- Remove duplicate imports of file managers settings
+
 Version: 0.2 alpha (2015-10-12)
 - Adapted after file manager support refactoring in QAP with QAPconnect.ini
 - Make ImportOneOption accept a new value
@@ -189,10 +192,6 @@ ImportOneOption("PopupFixPosition")
 ImportOneOption("PopupMenuPosition")
 ImportOneOption("RecentFolders")
 ImportOneOption("RememberSettingsPosition")
-ImportOneOption("DirectoryOpusPath")
-ImportOneOption("DirectoryOpusUseTabs")
-ImportOneOption("TotalCommanderPath")
-ImportOneOption("TotalCommanderUseTabs")
 
 ImportOneOption("LastVersionUsedProd")
 ImportOneOption("LastVersionUsedBeta")
