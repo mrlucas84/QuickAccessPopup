@@ -7,7 +7,7 @@
 
 #define MyAppVersion "v6.1.1 ALPHA"
 #define MyVersionFileName "6_1_1-alpha"
-#define FPImportVersionFileName "ImportFPsettings-0_1-ALPHA.exe"
+#define FPImportVersionFileName "ImportFPsettings-0_2-ALPHA.exe"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -25,7 +25,7 @@ DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 LicenseFile=C:\Dropbox\AutoHotkey\QuickAccessPopup\Inno Setup files\licence.txt
 OutputDir=C:\Dropbox\AutoHotkey\QuickAccessPopup\build-beta\
-OutputBaseFilename={#MyAppNameLower}-setup
+OutputBaseFilename={#MyAppNameLower}-setup-alpha
 SetupIconFile=C:\Dropbox\AutoHotkey\QuickAccessPopup\QuickAccessPopup-ALPHA-red-512.ico
 Compression=lzma
 SolidCompression=yes
