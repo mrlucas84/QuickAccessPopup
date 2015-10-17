@@ -5,8 +5,8 @@
 #define MyAppExeName "QuickAccessPopup.exe"
 #define FPImportExeName "ImportFPsettings.exe"
 
-#define MyAppVersion "v6.1.2 ALPHA"
-#define MyVersionFileName "6_1_2-alpha"
+#define MyAppVersion "v6.1.3 ALPHA"
+#define MyVersionFileName "6_1_3-alpha"
 #define FPImportVersionFileName "ImportFPsettings-0_3-ALPHA.exe"
 
 [Setup]
