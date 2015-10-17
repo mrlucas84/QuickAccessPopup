@@ -16,9 +16,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- backlink dispaly empty menu (intermittent)
 
 TO-DO
-- refactor file managers import in ImportFPsettings
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - copy favorite
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -39,6 +39,17 @@ QAP FEATURES MENUS
 
 HISTORY
 =======
+
+Version: 6.1.3 alpha (2015-10-17)
+- remove Navigate Dialog from QAP features, now in Power menu
+- remove Copy location to clipboard from QAP features, now in Power menu
+- fix bug list of QAP features in Add Favorite including Power menu features by error
+- fix bug validating window position for items without window position like menus
+- fix bug after changing a hotkey twice before saving
+- fix bug Power menu Copy Location was launching group
+- fix bug Power menu Copy Location was copying inexsting favorite path for groups and QAP features items
+- fix bug Power menu Open in new window was launching dummy folder
+- improved Option, File managers intro text
 
 Version: 6.1.2 alpha (2015-10-13)
 - fix bug with file manager detection at startup
@@ -255,7 +266,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.1.2 alpha
+;@Ahk2Exe-SetVersion 6.1.3 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -308,7 +319,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.1.2" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.1.3" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -1221,21 +1232,21 @@ InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", 0, "iconDon
 
 ; Power Menu features
 InitQAPFeatureObject("Open in New Window", lMenuPowerNewWindow, "", "", 1, "iconFolder")
-InitQAPFeatureObject("Navigate Dialog", lMenuPowerNavigateDialog, "", "", 2, "iconChangeFolder")
-InitQAPFeatureObject("Edit Favorite", lMenuPowerEditFavorite, "", "", 4, "iconEditFavorite")
-InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "", 6, "iconClipboard", "+^V")
+; removed InitQAPFeatureObject("Navigate Dialog", lMenuPowerNavigateDialog, "", "", 2, "iconChangeFolder")
+InitQAPFeatureObject("Edit Favorite", lMenuPowerEditFavorite, "", "", 3, "iconEditFavorite")
+InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "", 5, "iconClipboard", "+^V")
 
 ;--------------------------------
 ; Build folders list for dropdown
 
 g_strQAPFeaturesList := ""
-for strQAPFeatureName, objThisQAPFeature in g_objQAPFeaturesCodeByDefaultName
-	if !(objThisQAPFeature.QAPFeaturePowerOrder) ; exclude Power menu features
+for strQAPFeatureName, strThisQAPFeatureCode in g_objQAPFeaturesCodeByDefaultName
+	if !(g_objQAPFeatures[strThisQAPFeatureCode].QAPFeaturePowerOrder) ; exclude Power menu features
 		g_strQAPFeaturesList .= strQAPFeatureName . "|"
 StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1
 
 strQAPFeatureName := ""
-objThisQAPFeature := ""
+strThisQAPFeatureCode := ""
 strQAPFeaturePowerOrder := ""
 strQAPFeaturePowerCode := ""
 
@@ -1275,6 +1286,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
 	objOneQAPFeature.QAPFeaturePowerOrder := intQAPFeaturePowerOrder
 	objOneQAPFeature.DefaultHotkey := strDefaultHotkey
+	; ###_O("objOneQAPFeature", objOneQAPFeature)
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisLocalizedName, "{" . strQAPFeatureCode . "}")
@@ -4416,6 +4428,7 @@ if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 
 	Gui, 2:Add, Text, % "y+20 x20 vf_lblWindowPositionDelayLabel " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionDelay%
 	Gui, 2:Add, Edit, % "yp x+20 w36 center vf_lblWindowPositionDelay " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), % (arrNewFavoriteWindowPosition7 = "" ? 200 : arrNewFavoriteWindowPosition7)
+	Gui, 2:Add, Text, % "x+10 yp vf_lblWindowPositionMillisecondsLabel " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lGuiGroupRestoreDelayMilliseconds%
 	Gui, 2:Add, Text, % "y+20 x20 vf_lblWindowPositionMayFail " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionMayFail%
 	
 	Gui, 2:Add, Text, % "ys x200 section vf_lblWindowPosition " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPosition%
@@ -4893,6 +4906,7 @@ GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPos
 
 GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelayLabel
 GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionDelay
+GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMillisecondsLabel
 GuiControl, % (!f_chkUseDefaultWindowPosition ? "Show" : "Hide"), f_lblWindowPositionMayFail
 
 GuiControl, % (!f_chkUseDefaultWindowPosition and f_lblWindowPositionMinMax1 ? "Show" : "Hide"), f_lblWindowPosition
@@ -5176,15 +5190,18 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 		return
 	}
 
-	strNewFavoriteWindowPosition := (f_chkUseDefaultWindowPosition ? 0 : 1)
-	if (!f_chkUseDefaultWindowPosition)
-		strNewFavoriteWindowPosition .= "," . (f_lblWindowPositionMinMax1 ? 0 : (f_lblWindowPositionMinMax2 ? 1 : -1))
-			. "," . f_intWindowPositionX . "," . f_intWindowPositionY . "," . f_intWindowPositionW . "," . f_intWindowPositionH . "," . f_lblWindowPositionDelay
-	if !ValidateWindowPosition(strNewFavoriteWindowPosition)
+	if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 	{
-		Oops(lOopsInvalidWindowPosition)
-		gosub, GuiAddFavoriteSaveCleanup
-		return
+		strNewFavoriteWindowPosition := (f_chkUseDefaultWindowPosition ? 0 : 1)
+		if (!f_chkUseDefaultWindowPosition)
+			strNewFavoriteWindowPosition .= "," . (f_lblWindowPositionMinMax1 ? 0 : (f_lblWindowPositionMinMax2 ? 1 : -1))
+				. "," . f_intWindowPositionX . "," . f_intWindowPositionY . "," . f_intWindowPositionW . "," . f_intWindowPositionH . "," . f_lblWindowPositionDelay
+		if !ValidateWindowPosition(strNewFavoriteWindowPosition)
+		{
+			Oops(lOopsInvalidWindowPosition)
+			gosub, GuiAddFavoriteSaveCleanup
+			return
+		}
 	}
 }
 
@@ -5946,7 +5963,8 @@ g_intIniLine := 1 ; reset counter before saving to another ini file
 RecursiveSaveFavoritesToIniFile(g_objMainMenu)
 
 Loop, % g_objHotkeysToDisableWhenSave.MaxIndex()
-	Hotkey, % g_objHotkeysToDisableWhenSave[A_Index], , Off ; if used elsewhere, will be reloaded by LoadFavoriteHotkeys
+	Hotkey, % g_objHotkeysToDisableWhenSave[A_Index], , Off UseErrorLevel ; if used elsewhere, will be reloaded by LoadFavoriteHotkeys
+; if (ErrorLevel) do nothing. This can happen when changing a hotkey twice before saving
 g_objHotkeysToDisableWhenSave := ""
 
 ; clean-up unused hotkeys if favorites were deleted
@@ -6713,10 +6731,6 @@ PowerHotkeyKeyboard:
 g_blnPowerMenu := true
 g_strHokeyTypeDetected := "Power"
 
-SetTargetClassWinIdAndControl(A_ThisLabel = "PowerHotkeyMouse")
-; ###_V(A_ThisLabel, g_strPowerMenu, g_strTargetClass, g_strTargetWinId, !WindowIsDialog(g_strTargetClass, g_strTargetWinId))
-Menu, g_menuPower, % (WindowIsDialog(g_strTargetClass, g_strTargetWinId) ? "Enable" : "Disable"), %lMenuPowerNavigateDialog%
-
 Menu, g_menuPower, Show
 
 return
@@ -7194,7 +7208,7 @@ if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
 	return
 }
 
-if (g_objThisFavorite.FavoriteType = "Group") and (g_strPowerMenu <> lMenuPowerEditFavorite)
+if (g_objThisFavorite.FavoriteType = "Group") and !(g_blnPowerMenu)
 {
 	gosub, OpenGroupOfFavorites
 	
@@ -7261,10 +7275,18 @@ if (g_blnPowerMenu)
 	
 	if (g_strPowerMenu = lMenuCopyLocation) ; EnvVars expanded
 	{
-		; ###_O(g_strHokeyTypeDetected, g_objThisFavorite)
-		Clipboard := g_strFullLocation
-		TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
-		
+		if !InStr("Group|QAP", g_objThisFavorite.FavoriteType) ; for these types, there is no path to copy
+		{
+			Clipboard := g_strFullLocation
+			TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
+		}		
+		gosub, OpenFavoriteCleanup
+		return
+	}
+	
+	if (g_strPowerMenu = lMenuPowerNewWindow) and (g_objThisFavorite.FavoriteType = "Group")
+	; cannot open group in new window
+	{
 		gosub, OpenFavoriteCleanup
 		return
 	}
