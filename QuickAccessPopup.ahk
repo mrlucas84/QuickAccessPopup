@@ -19,6 +19,7 @@ BUGS
 - backlink dispaly empty menu (intermittent)
 
 TO-DO
+- in groups, for DOpus and TC, tell in which tab open folders
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - copy favorite
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -39,6 +40,9 @@ QAP FEATURES MENUS
 
 HISTORY
 =======
+
+Version: 6.1.4 alpha (2015-10-??)
+- 
 
 Version: 6.1.3 alpha (2015-10-17)
 - remove Navigate Dialog from QAP features, now in Power menu
@@ -266,7 +270,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.1.3 alpha
+;@Ahk2Exe-SetVersion 6.1.4 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -319,7 +323,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.1.3" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.1.4" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -339,8 +343,8 @@ g_strMenuPathSeparator := ">" ; spaces before/after are added only when submenus
 g_strGuiMenuSeparator := "----------------" ;  single-line displayed as line separators, allowed in item names
 g_strGuiMenuSeparatorShort := "---" ;  short single-line displayed as line separators, allowed in item names
 g_strGuiDoubleLine := "===" ;  double-line displayed in column break and end of menu indicators, allowed in item names
-g_strGroupIndicatorPrefix := Chr(171) ; "[[" ; group item indicator, not allolowed in any item name
-g_strGroupIndicatorSuffix := Chr(187) ; "]]" ; displayed in Settings with g_strGroupIndicatorPrefix, and with number of items in menus, allowed in item names
+g_strGroupIndicatorPrefix := Chr(171) ; group item indicator, not allolowed in any item name
+g_strGroupIndicatorSuffix := Chr(187) ; displayed in Settings with g_strGroupIndicatorPrefix, and with number of items in menus, allowed in item names
 g_intListW := "" ; Gui width captured by GuiSize and used to adjust columns in fav list
 g_strEscapePipe := "Ð¡þ€" ; used to escape pipe in ini file, should not be in item names or location but not checked
 
@@ -1676,7 +1680,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		objLoadIniFavorite.FavoriteIconResource := arrThisFavorite4 ; icon resource in format "iconfile,iconindex"
 		objLoadIniFavorite.FavoriteArguments := ReplaceAllInString(arrThisFavorite5, g_strEscapePipe, "|") ; application arguments
 		objLoadIniFavorite.FavoriteAppWorkingDir := arrThisFavorite6 ; application working directory
-		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height,Delay (comma delimited)
+		objLoadIniFavorite.FavoriteWindowPosition := arrThisFavorite7 ; Boolean,Left,Top,Width,Height,Delay,RestoreSide (comma delimited)
 		objLoadIniFavorite.FavoriteLaunchWith := arrThisFavorite8 ; launch favorite with this executable
 		objLoadIniFavorite.FavoriteLoginName := ReplaceAllInString(arrThisFavorite9, g_strEscapePipe, "|") ; login name for FTP favorite
 		objLoadIniFavorite.FavoritePassword := ReplaceAllInString(arrThisFavorite10, g_strEscapePipe, "|") ; password for FTP favorite
@@ -3486,7 +3490,6 @@ IniWrite, %g_strExclusionKeyboardClassList%, %g_strIniFile%, Global, ExclusionKe
 ;---------------------------------------
 ; Save Tab 5: File Managers
 
-; #####
 g_intActiveFileManager := g_intClickedFileManager
 IniWrite, %g_intActiveFileManager%, %g_strIniFile%, Global, ActiveFileManager
 	
@@ -4237,7 +4240,7 @@ else
 		g_strNewFavoriteWindowPosition := "1," . intMinMax . "," . intX . "," . intY . "," . intWidth . "," . intHeight . ",200"
 	}
 	else
-		g_strNewFavoriteWindowPosition := ",,,,,," ; to avoid having phantom values
+		g_strNewFavoriteWindowPosition := ",,,,,,," ; to avoid having phantom values
 
 	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", strGuiFavoriteLabel)
 	{
@@ -4312,7 +4315,7 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 {
 	if !InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
 	{
-		Gui, 2:Add, Text, x20 y+20, % g_objFavoriteTypesLocationLabels[g_objEditedFavorite.FavoriteType] . " *"
+		Gui, 2:Add, Text, x20 y+10, % g_objFavoriteTypesLocationLabels[g_objEditedFavorite.FavoriteType] . " *"
 		Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
 		if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
 			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation vf_btnSelectFolderLocation, %lDialogBrowseButton%
@@ -4343,10 +4346,10 @@ else ; "Special" or "QAP"
 if (g_objEditedFavorite.FavoriteType = "FTP")
 {
 	Gui, 2:Add, Text, x20 y+5, %lGuiLoginName%
-	Gui, 2:Add, Edit, x20 y+5 w300 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
-
-	Gui, 2:Add, Text, x20 y+5, %lGuiPassword%
-	Gui, 2:Add, Edit, x20 y+5 w300 h20 Password vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
+	Gui, 2:Add, Text, x180 yp, %lGuiPassword%
+	
+	Gui, 2:Add, Edit, x20 y+5 w140 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
+	Gui, 2:Add, Edit, x180 yp w140 h20 Password vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
 	Gui, 2:Add, Text, x20 y+5, %lGuiPasswordNotEncripted%
 }
 
@@ -4364,6 +4367,20 @@ if (g_objEditedFavorite.FavoriteType = "Group")
 			, % g_arrActiveFileManagerDisplayNames%g_intActiveFileManager% ; will be selected by default if empty (when Add)
 	}
 }
+
+if InStr("Folder|Special|FTP", g_objEditedFavorite.FavoriteType) ; when adding folders or FTP sites
+	and (g_intActiveFileManager = 2 or g_intActiveFileManager = 3) ; in Directory Opus or TotalCommander
+	and InStr(g_objMenuInGui.MenuPath, g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix) ; in a group
+{
+	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "0,,,,,,,L"
+	StringSplit, arrNewFavoriteWindowPosition, g_strNewFavoriteWindowPosition, `,
+
+	Gui, 2:Add, Text, x20 y+20, % L(lGuiGroupRestoreSide, (g_intActiveFileManager = 2 ? "Directory Opus" : "Total Commander"))
+	Gui, 2:Add, Radio, % "x+10 yp vf_intRadioGroupRestoreSide " . (arrNewFavoriteWindowPosition8 = "L" ? "checked" : ""), %lDialogWindowPositionLeft%
+	Gui, 2:Add, Radio, % "x+10 yp " . (arrNewFavoriteWindowPosition8 = "R" ? "checked" : ""), %lDialogWindowPositionRight%
+}
+
+arrNewFavoriteWindowPosition := ""
 
 return
 ;------------------------------------------------------------
@@ -4412,7 +4429,7 @@ if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
-	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay; for example: "1,0,100,50,640,480,200"
+	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "1,0,100,50,640,480,200"
 	StringSplit, arrNewFavoriteWindowPosition, g_strNewFavoriteWindowPosition, `,
 
 	Gui, 2:Add, Checkbox, % "x20 y40 section vf_chkUseDefaultWindowPosition gCheckboxWindowPositionClicked " . (arrNewFavoriteWindowPosition1 ? "" : "checked"), %lDialogUseDefaultWindowPosition%
@@ -5196,6 +5213,13 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 		if (!f_chkUseDefaultWindowPosition)
 			strNewFavoriteWindowPosition .= "," . (f_lblWindowPositionMinMax1 ? 0 : (f_lblWindowPositionMinMax2 ? 1 : -1))
 				. "," . f_intWindowPositionX . "," . f_intWindowPositionY . "," . f_intWindowPositionW . "," . f_intWindowPositionH . "," . f_lblWindowPositionDelay
+		else
+			strNewFavoriteWindowPosition .= ",,,,,," ; exact number of comas required for RestoreSide
+				
+		GuiControlGet, intRadioGroupRestoreSide, , f_intRadioGroupRestoreSide
+		if !(ErrorLevel) ; if errorlevel, control does not exist
+			strNewFavoriteWindowPosition .= "," . (f_intRadioGroupRestoreSide = 1 ? "L" : "R")
+		
 		if !ValidateWindowPosition(strNewFavoriteWindowPosition)
 		{
 			Oops(lOopsInvalidWindowPosition)
@@ -8051,6 +8075,10 @@ return
 OpenFavoriteInNewWindowDirectoryOpus:
 ;------------------------------------------------------------
 
+; RunDOpusRt("/acmd Go ", objIniExplorersInGroup[intDOIndexPane].Name, " NEWTAB") ; open in a new tab of pane 1
+; RunDOpusRt("/acmd Go ", objIniExplorersInGroup[intDOIndexPane].Name, " OPENINRIGHT") ; open in a first tab of pane 2
+; RunDOpusRt("/acmd Go ", objIniExplorersInGroup[intDOIndexPane].Name, " OPENINRIGHT NEWTAB") ; open in a new tab of pane 2
+
 RunDOpusRt("/acmd Go ", g_strFullLocation, " " . g_strDirectoryOpusNewTabOrWindow) ; open in a new lister or tab
 WinWait, ahk_class dopus.lister, , 10
 WinActivate, ahk_class dopus.lister
@@ -8653,7 +8681,6 @@ return
 
 ;========================================================================================================================
 !_080_THIRD-PARTY:
-return
 ;========================================================================================================================
 
 
