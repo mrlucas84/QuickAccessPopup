@@ -19,7 +19,6 @@ BUGS
 - backlink dispaly empty menu (intermittent)
 
 TO-DO
-- in groups, for DOpus and TC, tell in which tab open folders
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - copy favorite
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -42,6 +41,7 @@ HISTORY
 =======
 
 Version: 6.1.4 alpha (2015-10-??)
+- in groups, with Directory Opus or Total Commander, set in folders and FTP favorites in which side (left or right) display the favorite
 - 
 
 Version: 6.1.3 alpha (2015-10-17)
@@ -4374,9 +4374,9 @@ if InStr("Folder|Special|FTP", g_objEditedFavorite.FavoriteType) ; when adding f
 {
 	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "0,,,,,,,L"
 	StringSplit, arrNewFavoriteWindowPosition, g_strNewFavoriteWindowPosition, `,
-
+	
 	Gui, 2:Add, Text, x20 y+20, % L(lGuiGroupRestoreSide, (g_intActiveFileManager = 2 ? "Directory Opus" : "Total Commander"))
-	Gui, 2:Add, Radio, % "x+10 yp vf_intRadioGroupRestoreSide " . (arrNewFavoriteWindowPosition8 = "L" ? "checked" : ""), %lDialogWindowPositionLeft%
+	Gui, 2:Add, Radio, % "x+10 yp vf_intRadioGroupRestoreSide " . (arrNewFavoriteWindowPosition8 <> "R" ? "checked" : ""), %lDialogWindowPositionLeft% ; if "L" or ""
 	Gui, 2:Add, Radio, % "x+10 yp " . (arrNewFavoriteWindowPosition8 = "R" ? "checked" : ""), %lDialogWindowPositionRight%
 }
 
@@ -7125,13 +7125,17 @@ if (g_arrGroupSettingsOpen1)
 	
 objThisGroupFavoritesList := g_objMenusIndex[lMainMenuName . " " . objThisGroupFavorite.FavoriteLocation]
 
+g_blnFirstTotalCommanderRight := true ; used only with TotalCommander but set it anyway
+
 loop, % objThisGroupFavoritesList.MaxIndex() - 1 ; skip first item backlink
 {
 	g_objThisFavorite := objThisGroupFavoritesList[A_Index + 1] ; skip first item backlink
 	; ###_O("g_objThisFavorite", g_objThisFavorite)
 	
 	Sleep, % g_arrGroupSettingsOpen3 + 200 ; add 200 ms as minimal default delay
+	
 	g_blnFirstItemOfGroup := (A_Index = 1)
+
 	gosub, OpenFavoriteFromGroup
 }
 
@@ -8079,10 +8083,36 @@ OpenFavoriteInNewWindowDirectoryOpus:
 ; RunDOpusRt("/acmd Go ", objIniExplorersInGroup[intDOIndexPane].Name, " OPENINRIGHT") ; open in a first tab of pane 2
 ; RunDOpusRt("/acmd Go ", objIniExplorersInGroup[intDOIndexPane].Name, " OPENINRIGHT NEWTAB") ; open in a new tab of pane 2
 
-RunDOpusRt("/acmd Go ", g_strFullLocation, " " . g_strDirectoryOpusNewTabOrWindow) ; open in a new lister or tab
+if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
+{
+	if (g_blnFirstItemOfGroup) ; force left in new lister
+		strTabParameter := "NEW=nodual"
+	else
+	{
+		; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "0,,,,,,,L"
+		strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
+		StringSplit, arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
+		if StrLen(arrFavoriteWindowPosition8)
+			strTabParameter := "NEWTAB " . (arrFavoriteWindowPosition8 = "L" ? "OPENINLEFT" : "OPENINRIGHT")
+		else
+			strTabParameter := g_strDirectoryOpusNewTabOrWindow
+	}
+}
+else
+{
+	strTabParameter := g_strDirectoryOpusNewTabOrWindow
+	arrFavoriteWindowPosition8 := ""
+}
+
+; ###_V("", g_strFullLocation, strTabParameter)
+RunDOpusRt("/acmd Go ", g_strFullLocation, " " . strTabParameter) ; open in a new lister or tab, left or right
 WinWait, ahk_class dopus.lister, , 10
 WinActivate, ahk_class dopus.lister
 g_strNewWindowId := "ahk_class dopus.lister"
+
+strTabParameter := ""
+strFavoriteWindowPosition := ""
+arrFavoriteWindowPosition := ""
 
 return
 ;------------------------------------------------------------
@@ -8093,16 +8123,36 @@ OpenFavoriteInNewWindowTotalCommander:
 ;------------------------------------------------------------
 
 ; ###_V(A_ThisLabel, g_strTotalCommanderPath, g_strTotalCommanderNewTabOrWindow)
-
+if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
+{
+	; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "0,,,,,,,L"
+	strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
+	StringSplit, arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
+	if !StrLen(arrFavoriteWindowPosition8)
+		arrFavoriteWindowPosition8 := "L"
+}
+	
 if g_strFullLocation is integer
 {
 	if !WinExist("ahk_class TTOTAL_CMD") ; open a first instance
 		or InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; or open a new instance
+		or (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup" and g_blnFirstItemOfGroup)
 	{
 		Run, %g_strTotalCommanderPath%
 		WinWaitActive, ahk_class TTOTAL_CMD, , 10
 		Sleep, 200 ; wait additional time to improve SendMessage reliability in OpenFavoriteNavigateTotalCommander
 	}
+	
+	if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
+	{
+		if (arrFavoriteWindowPosition8 = "L")
+			intTCCommandFocus := 4001 ; cm_FocusLeft
+		else
+			intTCCommandFocus := 4002 ; cm_FocusRight
+		Sleep, 100 ; wait to improve SendMessage reliability
+		SendMessage, 0x433, %intTCCommandFocus%, , , ahk_class TTOTAL_CMD
+	}
+	
 	if !InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; open the folder in a new tab
 	{
 		intTCCommandOpenNewTab := 3001 ; cm_OpenNewTab
@@ -8118,12 +8168,45 @@ if g_strFullLocation is integer
 }
 else ; normal folder
 {
-	; ###_V("g_strFullLocation", g_strFullLocation)
+	if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
+	{
+		if (g_blnFirstItemOfGroup)
+		{
+			strTabParameter := "/N" ; /N new window
+			strSideParameter := "L" ; /L= left pane of the new window
+		}
+		else
+		{
+			if (arrFavoriteWindowPosition8 = "R" and g_blnFirstTotalCommanderRight)
+			{
+				strTabParameter := "/O" ; change folder in existing initial folder
+				g_blnFirstTotalCommanderRight := false
+			}
+			else
+				strTabParameter := "/O /T" ; new tab of existing file list
+			strSideParameter := arrFavoriteWindowPosition8 ; "L" or "R"
+		}
+	}
+	else
+	{
+		strTabParameter := g_strTotalCommanderNewTabOrWindow
+		strSideParameter := "L" ; /L= left pane of the new window
+		arrFavoriteWindowPosition8 := ""
+	}
+
+	; ###_V("", g_strFullLocation, strTabParameter, strSideParameter)
 	; g_strTotalCommanderNewTabOrWindow in ini file should contain "/O /T" to open in an new tab of the existing file list (default), or "/N" to open in a new file list
-	Run, %g_strTotalCommanderPath% %g_strTotalCommanderNewTabOrWindow% /S "/L=%g_strFullLocation%" ; /L= left pane of the new window
+	Run, %g_strTotalCommanderPath% %strTabParameter% /S "/%strSideParameter%=%g_strFullLocation%"
 	WinWaitActive, ahk_class TTOTAL_CMD, , 10
 }
 g_strNewWindowId := "ahk_class TTOTAL_CMD"
+
+intTCCommandOpenNewTab := ""
+intTCCommandFocus := ""
+strTabParameter := ""
+strSideParameter := ""
+strFavoriteWindowPosition := ""
+arrFavoriteWindowPosition := ""
 
 return
 ;------------------------------------------------------------
