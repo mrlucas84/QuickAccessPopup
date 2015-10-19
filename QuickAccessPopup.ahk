@@ -20,7 +20,6 @@ BUGS
 
 TO-DO
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
-- copy favorite
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 
@@ -40,9 +39,11 @@ QAP FEATURES MENUS
 HISTORY
 =======
 
-Version: 6.1.4 alpha (2015-10-??)
+Version: 6.1.4 alpha (2015-10-18)
+- add copy favorite button to Settings gui; copied favorite inherit all properties except hotkey
+- add Ctrl+C hotkey to Settings gui to copy favorite, update gui hotkeys help text
 - in groups, with Directory Opus or Total Commander, set in folders and FTP favorites in which side (left or right) display the favorite
-- 
+- Ctrl+Right on a group in Settings gui now open the group
 
 Version: 6.1.3 alpha (2015-10-17)
 - remove Navigate Dialog from QAP features, now in Power menu
@@ -558,6 +559,10 @@ else
 	Gosub, GuiRemoveFavorite
 return
 
+^C::
+	Gosub, GuiCopyFavorite
+return
+
 #If
 ; End of Gui Hotkeys
 
@@ -593,6 +598,7 @@ FileInstall, FileInstall\default_browser_icon.html, %g_strTempDir%\default_brows
 FileInstall, FileInstall\about-32.png, %g_strTempDir%\about-32.png
 FileInstall, FileInstall\add_property-48.png, %g_strTempDir%\add_property-48.png
 FileInstall, FileInstall\delete_property-48.png, %g_strTempDir%\delete_property-48.png
+FileInstall, FileInstall\copy-48.png, %g_strTempDir%\copy-48.png
 FileInstall, FileInstall\keyboard-48.png, %g_strTempDir%\keyboard-48.png
 FileInstall, FileInstall\separator-26.png, %g_strTempDir%\separator-26.png
 FileInstall, FileInstall\column-26.png, %g_strTempDir%\column-26.png
@@ -1311,10 +1317,11 @@ InsertGuiControlPos("f_lnkGuiDropHelpClicked",		 -88, -130)
 InsertGuiControlPos("f_lnkGuiHotkeysHelpClicked",	  40, -130)
 
 InsertGuiControlPos("f_picGuiOptions",				 -44,   10, true) ; true = center
-InsertGuiControlPos("f_picGuiAddFavorite",			 -44,  122, true)
-InsertGuiControlPos("f_picGuiEditFavorite",			 -44,  199, true)
-InsertGuiControlPos("f_picGuiRemoveFavorite",		 -44,  274, true)
-InsertGuiControlPos("f_picGuiHotkeysManage",		 -44, -150, true, true) ; true = center, true = draw
+InsertGuiControlPos("f_picGuiAddFavorite",			 -44,  120, true)
+InsertGuiControlPos("f_picGuiEditFavorite",			 -44,  190, true)
+InsertGuiControlPos("f_picGuiRemoveFavorite",		 -44,  260, true)
+InsertGuiControlPos("f_picGuiCopyFavorite",			 -44,  330, true)
+InsertGuiControlPos("f_picGuiHotkeysManage",		 -44, -140, true, true) ; true = center, true = draw
 InsertGuiControlPos("f_picGuiDonate",				  50,  -62, true, true)
 InsertGuiControlPos("f_picGuiHelp",					 -44,  -62, true, true)
 InsertGuiControlPos("f_picGuiAbout",				-104,  -62, true, true)
@@ -1337,10 +1344,11 @@ InsertGuiControlPos("f_lblGuiAbout",				-104,  -20, true)
 InsertGuiControlPos("f_lblGuiHelp",					 -44,  -20, true)
 InsertGuiControlPos("f_lblAppName",					  10,   10)
 InsertGuiControlPos("f_lblAppTagLine",				  10,   42)
-InsertGuiControlPos("f_lblGuiAddFavorite",			 -44,  172, true)
-InsertGuiControlPos("f_lblGuiEditFavorite",			 -44,  249, true)
+InsertGuiControlPos("f_lblGuiAddFavorite",			 -44,  170, true)
+InsertGuiControlPos("f_lblGuiEditFavorite",			 -44,  240, true)
 InsertGuiControlPos("f_lblGuiOptions",				 -44,   45, true)
-InsertGuiControlPos("f_lblGuiRemoveFavorite",		 -44,  324, true)
+InsertGuiControlPos("f_lblGuiRemoveFavorite",		 -44,  310, true)
+InsertGuiControlPos("f_lblGuiCopyFavorite",			 -44,  380, true)
 InsertGuiControlPos("f_lblSubmenuDropdownLabel",	  40,   66)
 InsertGuiControlPos("f_lblGuiHotkeysManage",		 -44, -100, true)
 
@@ -1694,7 +1702,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		; update the current menu object
 		objCurrentMenu.Insert(objLoadIniFavorite)
 		
-		if !InStr("XK", objLoadIniFavorite.FavoriteType) ; menu separators and column breaks do not use a item position numeric shortcut number
+		if !InStr("X|K", objLoadIniFavorite.FavoriteType) ; menu separators and column breaks do not use a item position numeric shortcut number
 			intMenuItemPos++
 	}
 }
@@ -3607,6 +3615,7 @@ Gui, 1:Add, Text, vf_lblAppTagLine, %lAppTagline%
 Gui, 1:Add, Picture, vf_picGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static3
 Gui, 1:Add, Picture, vf_picGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
 Gui, 1:Add, Picture, vf_picGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static5
+Gui, 1:Add, Picture, vf_picGuiCopyFavorite gGuiCopyFavorite x+1 yp, %g_strTempDir%\copy-48.png ; Static5
 Gui, 1:Add, Picture, vf_picGuiHotkeysManage gGuiHotkeysManage x+1 yp, %g_strTempDir%\keyboard-48.png ; Static6
 Gui, 1:Add, Picture, vf_picGuiOptions gGuiOptions x+1 yp, %g_strTempDir%\settings-32.png ; Static7
 Gui, 1:Add, Picture, vf_picPreviousMenu gGuiGotoPreviousMenu hidden x+1 yp, %g_strTempDir%\left-12.png ; Static8
@@ -3624,6 +3633,7 @@ Gui, 1:Add, Text, vf_lblGuiOptions gGuiOptions x0 y+20, %lGuiOptions% ; Static17
 Gui, 1:Add, Text, vf_lblGuiAddFavorite center gGuiAddFavoriteSelectType x+1 yp, %lGuiAddFavorite% ; Static18
 Gui, 1:Add, Text, vf_lblGuiEditFavorite center gGuiEditFavorite x+1 yp w88, %lGuiEditFavorite% ; Static19, w88 to make room fot when multiple favorites are selected
 Gui, 1:Add, Text, vf_lblGuiRemoveFavorite center gGuiRemoveFavorite x+1 yp, %lGuiRemoveFavorite% ; Static20
+Gui, 1:Add, Text, vf_lblGuiCopyFavorite center gGuiCopyFavorite x+1 yp, %lDialogCopy% ; Static20
 Gui, 1:Add, Text, vf_lblGuiHotkeysManage center gGuiHotkeysManage x+1 yp, %lDialogHotkeys% ; Static21
 Gui, 1:Add, Text, vf_lblGuiAbout center gGuiAbout x+1 yp, %lGuiAbout% ; Static22
 Gui, 1:Add, Text, vf_lblGuiHelp center gGuiHelp x+1 yp, %lGuiHelp% ; Static23
@@ -4065,6 +4075,7 @@ GuiAddThisFolder:
 GuiAddFromDropFiles:
 GuiEditFavorite:
 GuiEditFavoriteFromPower:
+GuiCopyFavorite:
 ;------------------------------------------------------------
 
 strGuiFavoriteLabel := A_ThisLabel
@@ -4082,7 +4093,7 @@ Gui, 1:Submit, NoHide
 if (strGuiFavoriteLabel = "GuiAddFavorite")
 	Gosub, 2GuiClose ; to avoid flashing Gui 1:
 
-Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (InStr(strGuiFavoriteLabel, "GuiEditFavorite") ? lDialogEdit : lDialogAdd), g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType)
+Gui, 2:New, , % L(lDialogAddEditFavoriteTitle, (InStr(strGuiFavoriteLabel, "GuiEditFavorite") ? lDialogEdit : (strGuiFavoriteLabel = "GuiCopyFavorite" ? lDialogCopy : lDialogAdd)), g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType)
 Gui, 2:+Owner1
 Gui, 2:+OwnDialogs
 if (g_blnUseColors)
@@ -4114,6 +4125,13 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 	Gui, 2:Add, Button, yp vf_btnEditFavoriteCancel gGuiEditFavoriteCancel, %lGuiCancel%
 	
 	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogEdit, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnEditFavoriteSave", "f_btnEditFavoriteCancel")
+}
+else if InStr(strGuiFavoriteLabel, "GuiCopyFavorite")
+{
+	Gui, 2:Add, Button, y400 vf_btnCopyFavoriteCopy gGuiCopyFavoriteSave default, %lDialogCopy%
+	Gui, 2:Add, Button, yp vf_btnAddFavoriteCancel gGuiAddFavoriteCancel, %lGuiCancel%
+	
+	GuiCenterButtons(L(lDialogAddEditFavoriteTitle, lDialogCopy, g_strAppNameText, g_strAppVersion, g_objEditedFavorite.FavoriteType), 10, 5, 20, "f_btnCopyFavoriteCopy", "f_btnAddFavoriteCancel")
 }
 else
 {
@@ -4192,7 +4210,7 @@ g_strNewFavoriteIconResource := ""
 strGroupSettings := ",,,,,,," ; ,,, to make sure all fields are re-init
 StringSplit, g_arrGroupSettingsGui, strGroupSettings, `,
 
-if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
+if InStr(strGuiFavoriteLabel, "GuiEditFavorite") or (strGuiFavoriteLabel = "GuiCopyFavorite")
 {
 	Gui, 1:ListView, f_lvFavoritesList
 	g_intOriginalMenuPosition := LV_GetNext()
@@ -4204,11 +4222,20 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 		return
 	}
 	
-	g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
+	if (strGuiFavoriteLabel = "GuiCopyFavorite")
+	{
+		g_objEditedFavorite := Object()
+		for strKey, strValue in g_objMenuInGui[g_intOriginalMenuPosition]
+			g_objEditedFavorite[strKey] := strValue
+	}
+	else
+		g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
 	
 	if (g_objEditedFavorite.FavoriteType = "B")
 		g_blnAbordEdit := true
-	else if InStr("XK", g_objEditedFavorite.FavoriteType) ; favorite is menu separator or column break
+	else if InStr("X|K", g_objEditedFavorite.FavoriteType) ; favorite is menu separator or column break
+		g_blnAbordEdit := true
+	else if (strGuiFavoriteLabel = "GuiCopyFavorite" and InStr("Menu|Group", g_objEditedFavorite.FavoriteType)) ; menu or group cannot be copied
 		g_blnAbordEdit := true
 	
 	if (g_blnAbordEdit = true)
@@ -4218,7 +4245,10 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite")
 	g_strNewFavoriteWindowPosition := g_objEditedFavorite.FavoriteWindowPosition
 	g_blnNewFavoriteFtpEncoding := g_objEditedFavorite.FavoriteFtpEncoding
 
-	g_strNewFavoriteHotkey := g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation]
+	if (strGuiFavoriteLabel = "GuiCopyFavorite")
+		g_strNewFavoriteHotkey := "None" ; copied favorite has no hotkey
+	else
+		g_strNewFavoriteHotkey := g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation]
 
 	if (g_objEditedFavorite.FavoriteType = "Group")
 	{
@@ -4319,6 +4349,9 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 		Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
 		if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
 			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation vf_btnSelectFolderLocation, %lDialogBrowseButton%
+		
+		if (strGuiFavoriteLabel = "GuiCopyFavorite")
+			g_objEditedFavorite.FavoriteLocation := "" ; to avoid side effect on original favorite hotkey
 	}
 	
 	if (g_objEditedFavorite.FavoriteType = "Application")
@@ -4633,7 +4666,7 @@ Loop, % g_objMenusIndex[f_drpParentMenu].MaxIndex()
 	if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "B") ; skip ".." back link to parent menu
 		or (g_objEditedFavorite.FavoriteName = g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteName)
 			and (g_objMenuInGui.MenuPath = g_objMenusIndex[f_drpParentMenu].MenuPath ; skip edited item itself if not a separator
-			and !InStr("XK", g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType)) ; but make sure to keep separators
+			and !InStr("X|K", g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType)) ; but make sure to keep separators
 		Continue
 	else if (g_objMenusIndex[f_drpParentMenu][A_Index].FavoriteType = "X")
 		strDropdownParentMenuItems .= g_strGuiMenuSeparator . g_strGuiMenuSeparator . "|"
@@ -4948,7 +4981,7 @@ Gui, 1:ListView, f_lvFavoritesList
 
 g_intOriginalMenuPosition := LV_GetNext()
 
-if (g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType = "Menu")
+if InStr("Menu|Group", g_objMenuInGui[g_intOriginalMenuPosition].FavoriteType)
 	Gosub, OpenMenuFromGuiHotkey
 
 return
@@ -5125,6 +5158,7 @@ return
 GuiAddFavoriteSave:
 GuiEditFavoriteSave:
 GuiMoveOneFavoriteSave:
+GuiCopyFavoriteSave:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
@@ -5132,7 +5166,7 @@ Gui, 2:+OwnDialogs
 strThisLabel := A_ThisLabel
 
 ; original and destination menus values
-if (strThisLabel = "GuiAddFavoriteSave")
+if InStr("GuiAddFavoriteSave|GuiCopyFavoriteSave", strThisLabel)
 {
 	strOriginalMenu := ""
 	g_intOriginalMenuPosition := 0
@@ -5281,6 +5315,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteName := f_strFavoriteShortName
 	
 	; before updating g_objEditedFavorite.FavoriteLocation, check if location was changed and update hotkeys objects
+	; ###_V(A_ThisLabel, g_strNewFavoriteHotkey, g_objEditedFavorite.FavoriteLocation, f_strFavoriteLocation, HasHotkey(g_strNewFavoriteHotkey))
 	if StrLen(g_objEditedFavorite.FavoriteLocation) and (g_objEditedFavorite.FavoriteLocation <> f_strFavoriteLocation)
 	{
 		g_objHotkeysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
@@ -5329,6 +5364,8 @@ if (g_intNewItemPos)
 	g_objMenusIndex[strDestinationMenu].Insert(g_intNewItemPos, g_objEditedFavorite)
 else
 	g_objMenusIndex[strDestinationMenu].Insert(g_objEditedFavorite) ; if no item is selected, add to the end of menu
+
+; ###_O("g_objMenusIndex[strDestinationMenu]", g_objMenusIndex[strDestinationMenu], "FavoriteName")
 
 /*
 ###_D(""
