@@ -17,27 +17,31 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 BUGS
 - backlink dispaly empty menu (intermittent)
+- Clipboard menu should be preserved if Clipboard does ot contain path or url
+
+Win10 validation
+- Tray message long à s'effacer. -> Just sleep for any amount of time after each call to TrayTip, and it seems to work in the proper order. (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
+- TrayTip [, Title, Text, Seconds, Options] option 0x10 to remove sound - do also for FP
+- Titre/Description dans le EXE affiché en majuscule donc trop long "Folders Popup (freeware) - Move like a breeze between your frequently used folders and documents!"
+- Réviser les icônes (ex.: Add this folder (pin) pas bon sur Win 10)
+
+Inno Setup / ImportFPSettings
+- a importé FP.ini mais n'a pas ajouté les menus Settings et My ...
 
 TO-DO
+- add QAP feature Add this folder Express (see this item)
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 
-LATER
------
-
-HELP
-* Update links to QAP website in Help
-* Update links to QAP reviews in Donate
-
-LANGUAGE
-
-QAP FEATURES MENUS
-* Does not support Current Folders in Explorer and Group menus for TC and FPc users
-
 
 HISTORY
 =======
+
+Version: 6.1.5 alpha (2015-10-??)
+- stop loading not updated translation files until they alre ready, causing error when upgrading from FP
+- replace CLSID with hardcoded AHK pah for Programs folder in Start Menu
+- add Add This Folder QAP feature to My QAP Essentials menu
 
 Version: 6.1.4 alpha (2015-10-18)
 - add copy favorite button to Settings gui; copied favorite inherit all properties except hotkey
@@ -271,7 +275,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
-;@Ahk2Exe-SetVersion 6.1.4 alpha
+;@Ahk2Exe-SetVersion 6.1.5 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -324,7 +328,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.1.4" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.1.5" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -584,6 +588,7 @@ InitFileInstall:
 g_strTempDir := A_WorkingDir . "\_temp"
 FileCreateDir, %g_strTempDir%
 
+/*
 FileInstall, FileInstall\QuickAccessPopup_LANG_DE.txt, %g_strTempDir%\QuickAccessPopup_LANG_DE.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_FR.txt, %g_strTempDir%\QuickAccessPopup_LANG_FR.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_NL.txt, %g_strTempDir%\QuickAccessPopup_LANG_NL.txt, 1
@@ -592,6 +597,7 @@ FileInstall, FileInstall\QuickAccessPopup_LANG_SV.txt, %g_strTempDir%\QuickAcces
 FileInstall, FileInstall\QuickAccessPopup_LANG_IT.txt, %g_strTempDir%\QuickAccessPopup_LANG_IT.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_ES.txt, %g_strTempDir%\QuickAccessPopup_LANG_ES.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_PT-BR.txt, %g_strTempDir%\QuickAccessPopup_LANG_PT-BR.txt, 1
+*/
 
 FileInstall, FileInstall\default_browser_icon.html, %g_strTempDir%\default_browser_icon.html, 1
 
@@ -927,9 +933,6 @@ if (A_OSVersion = "WIN_7") ; Performance Information and Tool not available on W
 InitSpecialFolderObject("{35786D3C-B075-49b9-88DD-029876E11C01}", "", -1, "", "", ""
 	, "Portable Devices", "" ; Appareils mobiles
 	, "CLS", "CLS", "NEW", "NEW", "NEW", "NEW", "NEW")
-InitSpecialFolderObject("{7be9d83c-a729-4d97-b5a7-1b7313c39e0a}", "", -1, "A_Programs", "programs", ""
-	, lMenuProgramsFolderStartMenu, "" ; Menu Démarrer / Programmes (Menu Start/Programs)
-	, "CLS", "CLS", "NEW", "AHK", "DOA", "AHK", "AHK")
 InitSpecialFolderObject("{22877a6d-37a1-461a-91b0-dbda5aaebc99}", "", -1, "", "", ""
 	, "Recent Places", "" ; Emplacements récents
 	, "CLS", "CLS", "NEW", "NEW", "NEW", "NEW", "NEW")
@@ -1048,6 +1051,9 @@ InitSpecialFolderObject(A_Temp, "", -1, "A_Temp", "temp", ""
 InitSpecialFolderObject(A_WinDir, "", -1, "A_WinDir", "windows", ""
 	, "Windows", "iconWinver"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
+InitSpecialFolderObject(A_Programs, "", -1, "A_Programs", "programs", "" ; CLSID was "{7be9d83c-a729-4d97-b5a7-1b7313c39e0a}" but not working under Win 10
+	, lMenuProgramsFolderStartMenu, "" ; Menu Démarrer / Programmes (Menu Start/Programs)
+	, "CLS", "CLS", "CLS", "CLS", "DOA", "AHK", "AHK")
 
 ;------------------------------------------------------------
 ; Build folders list for dropdown
@@ -1735,8 +1741,9 @@ strThisMenuName := lMenuMyQAPMenu
 Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
 
 AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
-AddToIniOneDefaultMenu("{Current Folders}", lMenuCurrentFolders . "...", "QAP")
+AddToIniOneDefaultMenu("{Add This Folder}", lMenuAddThisFolder . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu("{Current Folders}", lMenuCurrentFolders . "...", "QAP")
 AddToIniOneDefaultMenu("{Recent Folders}", lMenuRecentFolders . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu("{Clipboard}", lMenuClipboard . "...", "QAP")
@@ -4105,6 +4112,8 @@ g_strTypesForTabAdvancedOptions := "Folder|Document|Application|Special|URL|FTP|
 Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h380 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
 intTabNumber := 0
 
+blnIsGroupMember := InStr(g_objMenuInGui.MenuPath, g_strGroupIndicatorPrefix)
+
 ; ------ BUILD TABS ------
 
 Gosub, GuiFavoriteTabBasic
@@ -4162,6 +4171,7 @@ Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
 GuiAddFavoriteCleanup:
+blnIsGroupMember := ""
 strGuiFavoriteLabel := ""
 arrTop := ""
 g_strNewLocation := ""
@@ -4403,7 +4413,7 @@ if (g_objEditedFavorite.FavoriteType = "Group")
 
 if InStr("Folder|Special|FTP", g_objEditedFavorite.FavoriteType) ; when adding folders or FTP sites
 	and (g_intActiveFileManager = 2 or g_intActiveFileManager = 3) ; in Directory Opus or TotalCommander
-	and InStr(g_objMenuInGui.MenuPath, g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix) ; in a group
+	and (blnIsGroupMember)) ; in a group
 {
 	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "0,,,,,,,L"
 	StringSplit, arrNewFavoriteWindowPosition, g_strNewFavoriteWindowPosition, `,
@@ -4430,8 +4440,6 @@ Gui, 2:Add, Text, x20 y40 vf_lblFavoriteParentMenu
 Gui, 2:Add, DropDownList, x20 y+5 w300 vf_drpParentMenu gDropdownParentMenuChanged
 	, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath, (g_objEditedFavorite.FavoriteType = "Menu" ? lMainMenuName . " " . g_objEditedFavorite.FavoriteLocation : "")) . "|"
 
-blnIsGroupMember := InStr(g_objMenuInGui.MenuPath, g_strGroupIndicatorPrefix)
-
 Gui, 2:Add, Text, x20 y+10 vf_lblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
 Gui, 2:Add, DropDownList, x20 y+5 w290 vf_drpParentMenuItems AltSubmit
 
@@ -4446,8 +4454,6 @@ if !(blnIsGroupMember)
 	Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
 	Gui, 2:Add, Button, yp x+10 gButtonChangeFavoriteHotkey, %lOptionsChangeHotkey%
 }
-
-blnIsGroupMember := ""
 
 return
 ;------------------------------------------------------------
@@ -5780,7 +5786,7 @@ intWidth := 840
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
 
-Gui, 2:New, , % L(lDialogHotkeysManageTitle, strAppName, strAppVersion)
+Gui, 2:New, , % L(lDialogHotkeysManageTitle, g_strAppNameText, g_strAppVersion)
 Gui, 2:+Owner1
 Gui, 2:+OwnDialogs
 if (g_blnUseColors)
@@ -5804,7 +5810,7 @@ GuiControl, , f_blnSeeShortHotkeyNames, % (g_intHotkeyReminders = 2) ; 1 = no na
 Gosub, LoadHotkeysManageList
 
 Gui, 2:Add, Button, x+10 y+30 vf_btnHotkeysManageClose g2GuiClose h33, %lGui2Close%
-GuiCenterButtons(L(lDialogHotkeysManageTitle, strAppName, strAppVersion), , , , "f_btnHotkeysManageClose")
+GuiCenterButtons(L(lDialogHotkeysManageTitle, g_strAppNameText, g_strAppVersion), , , , "f_btnHotkeysManageClose")
 Gui, 2:Add, Text, x10, %A_Space%
 
 Gui, 2:Show, AutoSize Center
@@ -5898,7 +5904,7 @@ LV_Delete()
 
 intHotkeysManageListWinID := WinExist("A")
 if not DllCall("LockWindowUpdate", Uint, intHotkeysManageListWinID)
-	Oops("An error occured while locking window display in`n" . L(lDialogHotkeysManageTitle, strAppName, strAppVersion))
+	Oops("An error occured while locking window display in`n" . L(lDialogHotkeysManageTitle, g_strAppNameText, g_strAppVersion))
 
 ; Position (hidden)|Menu|Favorite Name|Type|Hotkey|Favorite Location
 loop, 4
