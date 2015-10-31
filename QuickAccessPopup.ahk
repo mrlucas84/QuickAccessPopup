@@ -19,9 +19,6 @@ BUGS
 - backlink dispaly empty menu (intermittent)
 - Clipboard menu should be preserved if Clipboard does ot contain path or url
 
-Win10 validation
-- Réviser les icônes (ex.: Add this folder (pin) pas bon sur Win 10)
-
 Inno Setup / ImportFPSettings
 - a importé FP.ini mais n'a pas ajouté les menus Settings et My ...
 
@@ -45,6 +42,7 @@ Version: 6.1.5 alpha (2015-10-??)
 - shorten TrayTip texts for better display on Win 10
 - shorten executable file description for Win 10
 - add a function to return OS version up to WIN_10
+- update some menu icons for Windows 10
 
 Version: 6.1.4 alpha (2015-10-18)
 - add copy favorite button to Settings gui; copied favorite inherit all properties except hotkey
@@ -458,7 +456,7 @@ if (g_blnDisplayTrayTip)
 {
 ; 1 NavigateOrLaunchHotkeyMouse, 2 NavigateOrLaunchHotkeyKeyboard, 3 PowerHotkeyMouse, 4 PowerHotkeyKeyboard
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText)
-		, % L(lTrayTipInstalledDetail, g_strAppNameText
+		, % L(lTrayTipInstalledDetail
 			, HotkeySections2Text(strModifiers1, strMouseButton1, strOptionsKey1)
 			, HotkeySections2Text(strModifiers2, strMouseButton2, strOptionsKey2))
 		, , 17 ; 1 info icon + 16 no sound)
@@ -659,26 +657,60 @@ g_strMouseButtons := "None|LButton|MButton|RButton|XButton1|XButton2|WheelUp|Whe
 StringSplit, g_arrMouseButtons, g_strMouseButtons, |
 
 ; ----------------------
-; Icon files and index tested on Win 7 and Win 8.1. Not tested on Win 10.
+; Icon files and index tested on Win 7 and Win 10. Win 8.1 assumed as Win 7.
 
-strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetworkNeighborhood|iconControlPanel|iconRecycleBin|iconRecentFolders"
-	. "|iconSpecialFolders|iconGroup|iconCurrentFolders|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu"
-	. "|iconNetwork|iconUnknown|iconFolder|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic"
-	. "|iconMyVideo|iconHistory|iconFavorites|iconTemporary|iconWinver|iconFonts|iconApplication|iconClipboard"
-    . "|iconAbout|iconHelp|iconOptions|iconFTP|iconExit|iconHotkeys|iconNoContent|iconLaunch"
-	. "|iconChangeFolder|iconEditFavorite"
-strIconsFile := "imageres|imageres|imageres|imageres|imageres|imageres|imageres|imageres"
-			. "|imageres|shell32|imageres|imageres|imageres|imageres|imageres|shell32"
-			. "|imageres|shell32|shell32|shell32|shell32|imageres|shell32|imageres"
-			. "|imageres|shell32|shell32|shell32|winver|shell32|shell32|shell32"
-			. "|shell32|shell32|shell32|shell32|shell32|shell32|shell32|shell32"
-			. "|imageres|shell32"
-strIconsIndex := "106|189|68|105|115|23|50|113"
-			. "|203|99|96|113|110|217|208|298"
-			. "|29|176|4|297|46|176|55|104"
-			. "|179|240|87|153|1|39|304|261"
-			. "|222|24|301|104|216|174|110|215"
-			. "|177|68"
+strIconsMenus := "iconControlPanel|iconNetwork|iconRecycleBin|iconPictures|iconCurrentFolders"
+	. "|iconMyMusic|iconMyComputer|iconDesktop|iconSettings|iconRecentFolders"
+	. "|iconRecentFolders|iconNetworkNeighborhood|iconDownloads|iconChangeFolder|iconMyVideo"
+	. "|iconDocuments|iconSpecialFolders|iconDonate|iconAddThisFolder"
+	. "|iconFolder|iconHelp|iconFonts|iconGroupLoad|iconTemplates"
+	. "|iconEditFavorite|iconFavorites|iconGroup|iconFTP|iconNoContent"
+	. "|iconTemporary|iconHotkeys|iconUnknown|iconLaunch|iconExit"
+	. "|iconAbout|iconHistory|iconClipboard|iconGroupSave|iconSubmenu"
+	. "|iconOptions|iconApplication|iconWinver"
+
+if (GetOsVersion() = "WIN_10")
+{
+	strIconsFile := "imageres|imageres|imageres|imageres|imageres"
+		. "|imageres|imageres|imageres|imageres|imageres"
+		. "|imageres|imageres|imageres|imageres|imageres"
+		. "|imageres|imageres|imageres|imageres"
+		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|winver"
+	strIconsIndex := "23|29|50|68|96"
+		. "|104|105|106|110|113"
+		. "|113|115|176|177|179"
+		. "|189|204|209|225"
+		. "|4|24|39|46|55"
+		. "|68|87|99|104|110"
+		. "|153|174|176|215|216"
+		. "|222|240|261|299|300"
+		. "|319|324|1"
+}
+else
+{
+	strIconsFile := "imageres|imageres|imageres|imageres|imageres"
+		. "|imageres|imageres|imageres|imageres|imageres"
+		. "|imageres|imageres|imageres|imageres|imageres"
+		. "|imageres|imageres|imageres|imageres"
+		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|winver"
+	strIconsIndex := "23|29|50|68|96"
+		. "|104|105|106|110|113"
+		. "|113|115|176|177|179"
+		. "|189|203|208|217"
+		. "|4|24|39|46|55"
+		. "|68|87|99|104|110"
+		. "|153|174|176|215|216"
+		. "|222|240|261|297|298"
+		. "|301|304|1"
+}
 
 StringSplit, arrIconsFile, strIconsFile, |
 StringSplit, arrIconsIndex, strIconsIndex, |
