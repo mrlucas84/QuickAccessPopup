@@ -20,7 +20,6 @@ BUGS
 - Clipboard menu should be preserved if Clipboard does ot contain path or url
 
 Win10 validation
-- Tray message long à s'effacer. -> Just sleep for any amount of time after each call to TrayTip, and it seems to work in the proper order. (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 - TrayTip [, Title, Text, Seconds, Options] option 0x10 to remove sound - do also for FP
 - Titre/Description dans le EXE affiché en majuscule donc trop long "Folders Popup (freeware) - Move like a breeze between your frequently used folders and documents!"
 - Réviser les icônes (ex.: Add this folder (pin) pas bon sur Win 10)
@@ -42,6 +41,9 @@ Version: 6.1.5 alpha (2015-10-??)
 - stop loading not updated translation files until they alre ready, causing error when upgrading from FP
 - replace CLSID with hardcoded AHK pah for Programs folder in Start Menu
 - add Add This Folder QAP feature to My QAP Essentials menu
+- fix title in Manage hotkeys dialog box
+- add a 20 ms delay after TrayTip to imprive display on Windows 10
+- add option to TrayTip to stop sound (on Win 10 and maybe before)
 
 Version: 6.1.4 alpha (2015-10-18)
 - add copy favorite button to Settings gui; copied favorite inherit all properties except hotkey
@@ -452,14 +454,15 @@ IfExist, %A_Startup%\%g_strAppNameFile%.lnk ; update the shortcut in case the ex
 }
 
 if (g_blnDisplayTrayTip)
+{
 ; 1 NavigateOrLaunchHotkeyMouse, 2 NavigateOrLaunchHotkeyKeyboard, 3 PowerHotkeyMouse, 4 PowerHotkeyKeyboard
-	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
+	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText)
 		, % L(lTrayTipInstalledDetail, g_strAppNameText
 			, HotkeySections2Text(strModifiers1, strMouseButton1, strOptionsKey1)
-			, HotkeySections2Text(strModifiers2, strMouseButton2, strOptionsKey2)
-			, HotkeySections2Text(strModifiers3, strMouseButton3, strOptionsKey3)
-			, HotkeySections2Text(strModifiers4, strMouseButton4, strOptionsKey4))
+			, HotkeySections2Text(strModifiers2, strMouseButton2, strOptionsKey2))
 		, , 17 ; 1 info icon + 16 no sound)
+	Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
+}
 
 g_blnMenuReady := true
 
@@ -2633,8 +2636,11 @@ BuildMainMenuWithStatus:
 ;------------------------------------------------------------
 
 if (A_ThisLabel = "BuildMainMenuWithStatus")
-	TrayTip, % L(lTrayTipWorkingTitle, g_strAppNameText, g_strAppVersion)
-		, %lTrayTipWorkingDetail%, , 1
+{
+	TrayTip, % L(lTrayTipWorkingTitle, g_strAppNameText)
+		, %lTrayTipWorkingDetail%, , 17
+	Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
+}
 
 Menu, %lMainMenuName%, Add
 Menu, %lMainMenuName%, DeleteAll
@@ -2654,8 +2660,11 @@ if !(g_blnDonor)
 }
 
 if (A_ThisLabel = "BuildMainMenuWithStatus")
-	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion)
-		, %lTrayTipWorkingDetailFinished%, , 1
+{
+	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText)
+		, %lTrayTipWorkingDetailFinished%, , 17
+	Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
+}
 
 return
 ;------------------------------------------------------------
@@ -4413,7 +4422,7 @@ if (g_objEditedFavorite.FavoriteType = "Group")
 
 if InStr("Folder|Special|FTP", g_objEditedFavorite.FavoriteType) ; when adding folders or FTP sites
 	and (g_intActiveFileManager = 2 or g_intActiveFileManager = 3) ; in Directory Opus or TotalCommander
-	and (blnIsGroupMember)) ; in a group
+	and (blnIsGroupMember) ; in a group
 {
 	;  0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "0,,,,,,,L"
 	StringSplit, arrNewFavoriteWindowPosition, g_strNewFavoriteWindowPosition, `,
@@ -7001,7 +7010,10 @@ WindowIsTreeview(strWinId)
 	WinGet, strControlsList, ControlList, ahk_id %strWinId%
 	blnIsTreeView := InStr(strControlsList, "SysTreeView321") and InStr(strControlsList, "SHBrowseForFolder")
 	if (blnIsTreeView)
-		TrayTip, %lWindowIsTreeviewTitle%, % L(lWindowIsTreeviewText, g_strAppNameText), , 2
+	{
+		TrayTip, %lWindowIsTreeviewTitle%, %lWindowIsTreeviewText%, , 18
+		Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
+	}
 	
 	return blnIsTreeView
 }
@@ -7142,7 +7154,8 @@ else if (g_strPowerMenu = lMenuPowerEditFavorite)
 else if (g_strPowerMenu = lMenuPowerNavigateDialog)
 	strMessage := lPowerMenuTrayTipNavigateDialog
 
-TrayTip, %g_strAppNameText%, %strMessage%
+TrayTip, %g_strAppNameText%, %strMessage%, , 17
+Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 
 strMessage := ""
 
@@ -7349,7 +7362,8 @@ if (g_blnPowerMenu)
 		if !InStr("Group|QAP", g_objThisFavorite.FavoriteType) ; for these types, there is no path to copy
 		{
 			Clipboard := g_strFullLocation
-			TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 1
+			TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 17
+			Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 		}		
 		gosub, OpenFavoriteCleanup
 		return
@@ -8072,7 +8086,8 @@ if (g_arrFavoriteWindowPosition1)
 	{
 		if (A_Index > 25)
 		{
-			TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText, g_strAppVersion), % L(lDialogErrorMoving, g_strFullLocation)
+			TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText), % L(lDialogErrorMoving, g_strFullLocation), , 2 ; with sound
+			Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 			Break
 		}
 		Sleep, %g_arrFavoriteWindowPosition7%
