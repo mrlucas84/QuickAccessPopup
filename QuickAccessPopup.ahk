@@ -34,7 +34,6 @@ HISTORY
 
 Version: 6.1.5 alpha (2015-10-??)
 - stop loading not updated translation files until they alre ready, causing error when upgrading from FP
-- replace CLSID with hardcoded AHK pah for Programs folder in Start Menu
 - add Add This Folder QAP feature to My QAP Essentials menu
 - fix title in Manage hotkeys dialog box
 - add a 20 ms delay after TrayTip to improve display on Windows 10
@@ -43,6 +42,8 @@ Version: 6.1.5 alpha (2015-10-??)
 - shorten executable file description for Win 10
 - add a function to return OS version up to WIN_10
 - update some menu icons for Windows 10
+- update special folders initialization for Windows 10
+
 
 Version: 6.1.4 alpha (2015-10-18)
 - add copy favorite button to Settings gui; copied favorite inherit all properties except hotkey
@@ -957,9 +958,10 @@ InitSpecialFolderObject("{ED7BA470-8E54-465E-825C-99712043E01C}", "", -1, "", ""
 InitSpecialFolderObject("{323CA680-C24D-4099-B94D-446DD2D7249E}", "", -1, "", "favorites", ""
 	, "Favorites", "" ; Favoris (<> Favorites (Internet))
 	, "CLS", "CLS", "CLS", "NEW", "DOA", "NEW", "NEW")
-InitSpecialFolderObject("{3080F90E-D7AD-11D9-BD98-0000947B0257}", "", -1, "", "", ""
-	, "Flip 3D", "" ; Pas de traduction
-	, "CLS", "CLS", "NEW", "NEW", "NEW", "NEW", "NEW")
+if (GetOsVersion() <> "WIN_10")
+	InitSpecialFolderObject("{3080F90E-D7AD-11D9-BD98-0000947B0257}", "", -1, "", "", ""
+		, "Flip 3D", "" ; Pas de traduction
+		, "CLS", "CLS", "NEW", "NEW", "NEW", "NEW", "NEW")
 InitSpecialFolderObject("{6DFD7C5C-2451-11d3-A299-00C04F8EF6AF}", "", -1, "", "", ""
 	, "Folder Options", "" ; Options des dossiers
 	, "CLS", "CLS", "NEW", "NEW", "NEW", "NEW", "NEW")
@@ -1003,7 +1005,7 @@ RegRead, g_strMyPicturesPath, HKEY_CURRENT_USER, Software\Microsoft\Windows\Curr
 InitSpecialFolderObject(g_strMyPicturesPath, "", 39, "", "mypictures", ""
 	, lMenuPictures, "iconPictures"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
-RegRead, strException, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Favorites
+RegRead, strException, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Favorites ; Favorites (Internet)
 InitSpecialFolderObject(strException, "", -1, "", "", ""
 	, lMenuFavoritesInternet, "iconFavorites"
 	, "CLS", "CLS", "CLS", "CLS", "CLS", "CLS", "CLS")
@@ -1023,9 +1025,14 @@ InitSpecialFolderObject("%APPDATA%", "", -1, "A_AppData", "appdata", ""
 InitSpecialFolderObject("%APPDATA%\Microsoft\Windows\Recent", "", -1, "", "recent", ""
 	, lMenuRecentItems, "iconRecentFolders"
 	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
-InitSpecialFolderObject("%APPDATA%\Microsoft\Windows\Cookies", "", -1, "", "cookies", ""
-	, lMenuCookies, "iconFolder"
-	, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
+if (GetOsVersion() = "WIN_10")
+	InitSpecialFolderObject("%LocalAppData%\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC\MicrosoftEdge\Cookies", "", -1, "", "cookies", ""
+		, lMenuCookies, "iconFolder"
+		, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
+else
+	InitSpecialFolderObject("%APPDATA%\Microsoft\Windows\Cookies", "", -1, "", "cookies", ""
+		, lMenuCookies, "iconFolder"
+		, "CLS", "CLS", "CLS", "CLS", "DOA", "CLS", "CLS")
 InitSpecialFolderObject("%APPDATA%\Microsoft\Internet Explorer\Quick Launch", "", -1, "", "", ""
 	, lMenuQuickLaunch, "iconFolder"
 	, "CLS", "CLS", "CLS", "CLS", "CLS", "CLS", "CLS")
@@ -7396,7 +7403,7 @@ if (g_blnPowerMenu)
 		if !InStr("Group|QAP", g_objThisFavorite.FavoriteType) ; for these types, there is no path to copy
 		{
 			Clipboard := g_strFullLocation
-			TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, 17
+			TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, , 17
 			Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 		}		
 		gosub, OpenFavoriteCleanup
