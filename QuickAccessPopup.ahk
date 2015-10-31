@@ -20,8 +20,6 @@ BUGS
 - Clipboard menu should be preserved if Clipboard does ot contain path or url
 
 Win10 validation
-- TrayTip [, Title, Text, Seconds, Options] option 0x10 to remove sound - do also for FP
-- Titre/Description dans le EXE affiché en majuscule donc trop long "Folders Popup (freeware) - Move like a breeze between your frequently used folders and documents!"
 - Réviser les icônes (ex.: Add this folder (pin) pas bon sur Win 10)
 
 Inno Setup / ImportFPSettings
@@ -42,8 +40,11 @@ Version: 6.1.5 alpha (2015-10-??)
 - replace CLSID with hardcoded AHK pah for Programs folder in Start Menu
 - add Add This Folder QAP feature to My QAP Essentials menu
 - fix title in Manage hotkeys dialog box
-- add a 20 ms delay after TrayTip to imprive display on Windows 10
+- add a 20 ms delay after TrayTip to improve display on Windows 10
 - add option to TrayTip to stop sound (on Win 10 and maybe before)
+- shorten TrayTip texts for better display on Win 10
+- shorten executable file description for Win 10
+- add a function to return OS version up to WIN_10
 
 Version: 6.1.4 alpha (2015-10-18)
 - add copy favorite button to Settings gui; copied favorite inherit all properties except hotkey
@@ -276,7 +277,7 @@ f_typNameOfVariable
 ; Note: prefix comma with `
 
 ;@Ahk2Exe-SetName Quick Access Popup
-;@Ahk2Exe-SetDescription Quick Access Popup - Freeware launcher for Windows.
+;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
 ;@Ahk2Exe-SetVersion 6.1.5 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
@@ -659,6 +660,7 @@ StringSplit, g_arrMouseButtons, g_strMouseButtons, |
 
 ; ----------------------
 ; Icon files and index tested on Win 7 and Win 8.1. Not tested on Win 10.
+
 strIconsMenus := "iconDesktop|iconDocuments|iconPictures|iconMyComputer|iconNetworkNeighborhood|iconControlPanel|iconRecycleBin|iconRecentFolders"
 	. "|iconSpecialFolders|iconGroup|iconCurrentFolders|iconRecentFolders|iconSettings|iconAddThisFolder|iconDonate|iconSubmenu"
 	. "|iconNetwork|iconUnknown|iconFolder|iconGroupSave|iconGroupLoad|iconDownloads|iconTemplates|iconMyMusic"
@@ -8442,7 +8444,7 @@ blnSetup := (FileExist(A_ScriptDir . "\_do_not_remove_or_rename.txt") = "" ? 0 :
 
 strLatestVersions := Url2Var(strUrlCheck4Update
 	. "?v=" . g_strCurrentVersion
-	. "&os=" . A_OSVersion
+	. "&os=" . GetOSVersion()
 	. "&is64=" . A_Is64bitOS
     . "&setup=" . (blnSetup)
 				+ (2 * (g_blnDonor ? 1 : 0))
@@ -9025,6 +9027,18 @@ Oops(strMessage, objVariables*)
 	MsgBox, 48, % L(lOopsTitle, g_strAppNameText, g_strAppVersion), % L(strMessage, objVariables*)
 }
 ; ------------------------------------------------
+
+
+;------------------------------------------------------------
+GetOSVersion()
+;------------------------------------------------------------
+{
+	if (GetOSVersionInfo().MajorVersion = 10)
+		return "WIN_10"
+	else
+		return A_OSVersion
+}
+;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
