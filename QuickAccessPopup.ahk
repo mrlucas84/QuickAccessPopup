@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- %APPDATA% (and other special folders with system variables?) not working in Explorer (working in DOpus)
 - backlink dispaly empty menu (intermittent)
 - Clipboard menu should be preserved if Clipboard does ot contain path or url
 
@@ -43,6 +44,7 @@ Version: 6.1.5 alpha (2015-10-??)
 - add a function to return OS version up to WIN_10
 - update some menu icons for Windows 10
 - update special folders initialization for Windows 10
+- adaptation for the new approach implemented setup program using the common AppData folder as repository allowing system admin to setup QAP pour end users
 
 
 Version: 6.1.4 alpha (2015-10-18)
@@ -297,26 +299,17 @@ ComObjError(False) ; we will do our own error handling
 ; see http://ahkscript.org/boards/viewtopic.php?f=5&t=4477&p=25239#p25236
 DllCall("SetErrorMode", "uint", SEM_FAILCRITICALERRORS := 1)
 
-; By default, the A_WorkingDir is A_ScriptDir.
-; When the shortcut is created by Inno Setup, the working is set to the folder under {userappdata}.
-; In portable mode, the user can set the working directory in his own Windows shortcut.
-; If user enable "Run at startup", the "Start in:" shortcut option is set to the current A_WorkingDir.
-
-; If A_WorkingDir equals A_ScriptDir and the file _do_not_remove_or_rename.txt is found in A_WorkingDir
-; it means that QAP has been installed with the setup program but that it was launched directly in the
-; Program Files directory instead of using the Start menu or Startup shortcuts. In this situation, we
-; know that the working directory has not been set properly. The following lines will fix it.
-if (A_WorkingDir = A_ScriptDir) and FileExist(A_WorkingDir . "\_do_not_remove_or_rename.txt")
-	SetWorkingDir, %A_AppData%\QuickAccessPopup
+Gosub, SetWorkingDirectory
+; ###_V("AFTER SetWorkingDirectory", A_WorkingDir)
 
 ; Force A_WorkingDir to A_ScriptDir if uncomplied (development environment)
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for development environment only - won't be compiled
 ; see http://fincs.ahk4.net/Ahk2ExeDirectives.htm
 SetWorkingDir, %A_ScriptDir%
-; to test user data directory: SetWorkingDir, %A_AppData%\QuickAccessPopup
-
+; ###_V("DEV A_WorkingDir", A_WorkingDir)
 ListLines, On
+; to test user data directory: SetWorkingDir, %A_AppData%\Quick Access Popup
 ; / End of code for developement enviuronment only - won't be compiled
 ;@Ahk2Exe-IgnoreEnd
 
@@ -401,7 +394,7 @@ if InStr(A_ScriptDir, A_Temp) ; must be positioned after g_strAppNameFile is cre
 }
 
 ;---------------------------------
-; Set working directory
+; Set developement ini file
 
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for developement environment only - won't be compiled
@@ -413,7 +406,7 @@ else if InStr(A_ComputerName, "STIC") ; for my work hotkeys
 ;@Ahk2Exe-IgnoreEnd
 
 ;---------------------------------
-; Initialization
+; Init routines
 
 ; Keep gosubs in this order
 Gosub, InitSystemArrays
@@ -583,6 +576,111 @@ return
 ;========================================================================================================================
 !_015_INITIALIZATION_SUBROUTINES:
 ;========================================================================================================================
+
+;-----------------------------------------------------------
+SetWorkingDirectory:
+;-----------------------------------------------------------
+
+/*
+
+First, the whole story...
+
+Check if what mode QAP is running:
+- if the file "_do_not_remove_or_rename.txt" is in A_ScriptDir, we are in Setup mode
+- else we are in Portable mode.
+
+IF PORTABLE
+
+If we are in Portable mode, we keep the A_WorkingDir and return. It is equal to A_ScriptDir except if the user set the "Start In" folder in a shortcut.
+
+IF SETUP
+
+In the Start Menu Group "Quick Access Popup", setup program created a shortcut with "Start In" set to "{commonappdata}\Quick Access Popup"
+(the Start Menu Group is created under the All Users profile unless the user installing the app does not have administrative privileges,
+in which case it is created in the user's profile).
+
+If A_WorkingDir equals A_ScriptDir and we are Setup mode, it means that QAP has been launched directly in the Program Files directory
+instead of using the Start menu or Startup shortcuts. In this situation, we know that the working directory has not been set properly.
+We change it to "{commonappdata}\Quick Access Popup".
+
+In "{commonappdata}\Quick Access Popup", setup program created or saved the files:
+- "{commonappdata}\{#MyAppName}" the files quickaccesspopup-setup.ini" (used to set initial QAP language to setup program language)
+- "QAPconnect.ini" (used by QAP for custom file managers).
+
+If, during setup, the user selected the "Import Folders Popup settings and favorites" option, the setup program will import the FP settings
+and create the file "quickaccesspopup.ini" in "{commonappdata}\Quick Access Popup". An administrator could also create this file that will
+be used as a template to be copied to "{userappdata}\Quick Access Popup" when QAP is launched for the first time.
+
+Normally, when the user starts QAP with the Start Group shortcut, A_WorkingDir is set to "{commonappdata}\Quick Access Popup".
+If not, keep the A_WorkingDir set by the user and return.
+
+If A_WorkingDir is "{commonappdata}\Quick Access Popup", check if "{userappdata}\Quick Access Popup" exists. If not, create it.
+If the files "quickaccesspopup-setup.ini", "QAPconnect.ini" and "quickaccesspopup.ini" do not exist in "{userappdata}\Quick Access Popup",
+copy them from "{commonappdata}\Quick Access Popup".
+
+Then, set A_WorkingDir to "{userappdata}\Quick Access Popup" and return.
+
+AFTER A_WORKINGDIR IS SET (PORTABLE OR SETUP)
+
+QAP check if quickaccesspopup.ini exists in A_WorkingDir. If not, it creates a new one, etc. (as in previous versions of FP and QAP).
+If yes, it continues initialization with this file.
+
+STARTUP SHORTCUT
+
+If the "Run at startup" is enabled, a shortcut is created in the user's startup folder with "Start In" set to the current A_WorkingDir.
+In Portable mode, A_WorkingDir is what the user decided. In Setup mode, A_WorkingDir is "{userappdata}\Quick Access Popup" (unless user changed it).
+
+*/
+
+; Now, step-by-step...
+
+; Check if what mode QAP is running:
+; - if the file "_do_not_remove_or_rename.txt" is in A_ScriptDir, we are in Setup mode
+; - else we are in Portable mode.
+
+; ###_V("A_ScriptDir\_do_not_remove_or_rename.txt exists?", FileExist(A_ScriptDir . "\_do_not_remove_or_rename.txt"), A_ScriptDir, A_WorkingDir)
+
+; If we are in Portable mode, we keep the A_WorkingDir and return. It is equal to A_ScriptDir except if the user set the "Start In" folder in a shortcut.
+if !FileExist(A_ScriptDir . "\_do_not_remove_or_rename.txt")
+	return
+
+; Now we are in Setup mode
+
+; If A_WorkingDir equals A_ScriptDir and we are Setup mode, it means that QAP has been launched directly in the Program Files directory
+; instead of using the Start menu or Startup shortcuts. In this situation, we know that the working directory has not been set properly.
+; We change it to "{commonappdata}\Quick Access Popup".
+
+if (A_WorkingDir = A_ScriptDir) and FileExist(A_WorkingDir . "\_do_not_remove_or_rename.txt")
+	SetWorkingDir, %A_AppDataCommon%\Quick Access Popup
+
+; Normally, when the user starts QAP with the Start Group shortcut, A_WorkingDir is set to "{commonappdata}\Quick Access Popup".
+; If not, QAP was possibily launched with a Startup shortcut that set the A_WorkingDir to "{userappdata}\Quick Access Popup".
+; Keep the A_WorkingDir set by the shortcut and return.
+
+if (A_WorkingDir <> A_AppDataCommon . "\Quick Access Popup")
+	return
+
+; If A_WorkingDir is "{commonappdata}\Quick Access Popup", check if "{userappdata}\Quick Access Popup" exists. If not, create it.
+
+if !FileExist(A_AppData . "\Quick Access Popup")
+	FileCreateDir, %A_AppData%\Quick Access Popup
+
+; If the files "quickaccesspopup-setup.ini", "QAPconnect.ini" and "quickaccesspopup.ini" do not exist in "{userappdata}\Quick Access Popup",
+; copy them from "{commonappdata}\Quick Access Popup".
+if !FileExist(A_AppData . "\Quick Access Popup\quickaccesspopup-setup.ini")
+	FileCopy, %A_AppDataCommon%\Quick Access Popup\quickaccesspopup-setup.ini, %A_AppData%\Quick Access Popup
+if !FileExist(A_AppData . "\Quick Access Popup\QAPconnect.ini")
+	FileCopy, %A_AppDataCommon%\Quick Access Popup\QAPconnect.ini, %A_AppData%\Quick Access Popup
+if !FileExist(A_AppData . "\Quick Access Popup\quickaccesspopup.ini")
+	FileCopy, %A_AppDataCommon%\Quick Access Popup\quickaccesspopup.ini, %A_AppData%\Quick Access Popup
+
+; Then, set A_WorkingDir to "{userappdata}\Quick Access Popup" and return.
+
+SetWorkingDir, %A_AppData%\Quick Access Popup
+
+return
+;-----------------------------------------------------------
+
 
 ;-----------------------------------------------------------
 InitFileInstall:
