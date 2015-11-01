@@ -21,11 +21,7 @@ BUGS
   but then the menu entry for Clipbopard get broken 1/2 times; note 1: broken only when Current Folders is refreshed too; note 2: menu also broen 1/2 when called from shortcut
   (bug found when working on "Clipboard menu should be preserved if Clipboard does not contain path or url")
 
-Inno Setup / ImportFPSettings
-- a importé FP.ini mais n'a pas ajouté les menus Settings et My ...
-
 TO-DO
-- remove PowerMenu NavigateDialog unused code (search lMenuPowerNavigateDialog)
 - add QAP feature Add this folder Express (see this item)
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -1392,7 +1388,6 @@ InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", 0, "iconDon
 
 ; Power Menu features
 InitQAPFeatureObject("Open in New Window", lMenuPowerNewWindow, "", "", 1, "iconFolder")
-; removed InitQAPFeatureObject("Navigate Dialog", lMenuPowerNavigateDialog, "", "", 2, "iconChangeFolder")
 InitQAPFeatureObject("Edit Favorite", lMenuPowerEditFavorite, "", "", 3, "iconEditFavorite")
 InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "", 5, "iconClipboard", "+^V")
 
@@ -6917,13 +6912,6 @@ if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in a
 
 Gosub, InsertColumnBreaks
 
-; ###_V(g_strPowerMenu, lMenuPowerNavigateDialog, lMenuPowerNewWindow)
-if (g_strPowerMenu = lMenuPowerNavigateDialog)
-{
-	Gosub, DisableNonFolder
-	g_blnNonFolderDisabled := true ; to save time here, we will re-enable after power menu feature is executed
-}
-
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
 return
@@ -7016,43 +7004,6 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 	; if not excluded
 	return true
 }
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-DisableNonFolder:
-EnableNonFolder:
-;------------------------------------------------------------
-
-for strMenuPath, objMenu in g_objMenusIndex
-{
-	intShortcut := 0
-	loop, % objMenu.MaxIndex()
-	{
-		if (objMenu.MenuType = "Group")
-			continue
-		
-		intMenuItemsCount++ ; for objMenuColumnBreak
-		if StrLen(objMenu[A_Index].FavoriteName) ; exclude separators and column breaks
-			strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objMenu[A_Index].FavoriteName
-		else
-			strMenuName := ""
-		
-		if (objMenu[A_Index].FavoriteType = "Group")
-			strMenuName .= " " . g_strGroupIndicatorPrefix . objMenu[A_Index].Submenu.MaxIndex() - 1 . g_strGroupIndicatorSuffix
-		if (g_intHotkeyReminders > 1) and g_objHotkeysByLocation.HasKey(objMenu[A_Index].FavoriteLocation)
-			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? g_objHotkeysByLocation[objMenu[A_Index].FavoriteLocation] : Hotkey2Text(g_objHotkeysByLocation[objMenu[A_Index].FavoriteLocation])) . ")"
-		
-		; ###_V(intShortcut, objMenu.MenuPath, objMenu[A_Index].FavoriteType, strMenuName)
-		if StrLen(strMenuName) and !InStr("B|Folder|Special|Menu|QAP", objMenu[A_Index].FavoriteType)
-			Menu, % objMenu.MenuPath, % (A_ThisLabel = "DisableNonFolder" ? "Disable" : "Enable"), %strMenuName%
-	}
-}
-
-strMenuPath := ""
-objMenu := ""
-
-return
 ;------------------------------------------------------------
 
 
@@ -7602,13 +7553,6 @@ strFavoriteWindowPosition := ""
 g_arrFavoriteWindowPosition := ""
 g_blnPowerMenu := ""
 g_strPowerMenu := ""
-
-; make sure OpenFavoriteCleanup is always executed
-if (g_blnNonFolderDisabled)
-{
-	Gosub, EnableNonFolder ; ### to save time here, could be executed when power menu feature is executed?
-	g_blnNonFolderDisabled := false
-}
 
 return
 ;------------------------------------------------------------
