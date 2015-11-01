@@ -16,14 +16,16 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- %APPDATA% (and other special folders with system variables?) not working in Explorer (working in DOpus)
 - backlink dispaly empty menu (intermittent)
-- Clipboard menu should be preserved if Clipboard does ot contain path or url
+- when Clipboard menu had content, clipboard replace with non file/URL content, the Clipboard menu is maintained with its previous content
+  but then the menu entry for Clipbopard get broken 1/2 times; note 1: broken only when Current Folders is refreshed too; note 2: menu also broen 1/2 when called from shortcut
+  (bug found when working on "Clipboard menu should be preserved if Clipboard does not contain path or url")
 
 Inno Setup / ImportFPSettings
 - a importé FP.ini mais n'a pas ajouté les menus Settings et My ...
 
 TO-DO
+- remove PowerMenu NavigateDialog unused code (search lMenuPowerNavigateDialog)
 - add QAP feature Add this folder Express (see this item)
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -45,7 +47,7 @@ Version: 6.1.5 alpha (2015-10-??)
 - update some menu icons for Windows 10
 - update special folders initialization for Windows 10
 - adaptation for the new approach implemented setup program using the common AppData folder as repository allowing system admin to setup QAP pour end users
-
+- fix bug locations with system variable (like %APPDATA%) not being expanded before sent to Explorer 
 
 Version: 6.1.4 alpha (2015-10-18)
 - add copy favorite button to Settings gui; copied favorite inherit all properties except hotkey
@@ -2327,6 +2329,8 @@ for intIndex, objFolder in objExplorersWindows
 	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 }
 
+; ##### Clipboard bug doe not occur if following 4 lines are commented - but this break the Current folders menu...
+Menu, g_menuCurrentFolders, Add
 Menu, g_menuCurrentFolders, DeleteAll
 if (g_blnUseColors)
 	Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
@@ -2584,19 +2588,15 @@ return
 
 ;------------------------------------------------------------
 BuildClipboardMenuInit:
-BuildClipboardMenu:
 ;------------------------------------------------------------
 
-Menu, g_menuClipboard, Add ; create the menu
+; create the empty menu allowing to be attached to parent menu even if never refreshed
 
-if (A_ThisLabel = "BuildClipboardMenuInit")
-	return
-
+Menu, g_menuClipboard, Add 
 Menu, g_menuClipboard, DeleteAll
 if (g_blnUseColors)
-	Menu, g_menuClipboard, Color, %g_strMenuBackgroundColor%
-
-Gosub, RefreshClipboardMenu
+    Menu, g_menuClipboard, Color, %g_strMenuBackgroundColor%
+AddMenuIcon("g_menuClipboard", lMenuNoClipboard, "GuiShow", "iconNoContent", false)	; will never be called because disabled
 
 return
 ;------------------------------------------------------------
@@ -2607,7 +2607,6 @@ RefreshClipboardMenu:
 ;------------------------------------------------------------
 
 blnPreviousClipboardMenuDeleted := false
-blnClipboardMenuHasContent := false
 intShortcutClipboardMenu := 0
 strURLsInClipboard := ""
 
@@ -2625,10 +2624,10 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 			Menu, g_menuClipboard, DeleteAll
 			blnPreviousClipboardMenuDeleted := true
 		}
-		blnClipboardMenuHasContent := true
 
 		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . strClipboardLine
 		if (g_blnDisplayIcons)
+		{
 			if LocationIsDocument(strClipboardLineExpanded)
 			{
 				GetIcon4Location(strClipboardLineExpanded, strThisIconFile, intThisIconIndex)
@@ -2636,6 +2635,7 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 			}
 			else
 				strIconValue := "iconFolder"
+		}
 		AddMenuIcon("g_menuClipboard", strMenuName, "OpenClipboard", strIconValue)
 	}
 
@@ -2658,7 +2658,6 @@ Loop, parse, strURLsInClipboard, `n
 		Menu, g_menuClipboard, DeleteAll
 		blnPreviousClipboardMenuDeleted := true
 	}
-	blnClipboardMenuHasContent := true
 
 	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . A_LoopField
 	if StrLen(strMenuName) < 260 ; skip too long URLs
@@ -2667,13 +2666,6 @@ Loop, parse, strURLsInClipboard, `n
 		if (blnDisplayIcon)
 			Menu, g_menuClipboard, Icon, %strMenuName%, %strThisIconFile%, %intThisIconIndex%, %g_intIconSize%
 	}
-}
-
-if !(blnClipboardMenuHasContent)
-{
-	Menu, g_menuClipboard, Add
-	Menu, g_menuClipboard, DeleteAll
-	AddMenuIcon("g_menuClipboard", lMenuNoClipboard, "GuiShow", "iconNoContent", false)	; will never be called because disabled
 }
 
 blnPreviousClipboardMenuDeleted := ""
@@ -2907,13 +2899,13 @@ RecursiveBuildOneMenu(objCurrentMenu)
 				Menu, % objCurrentMenu.MenuPath, UseErrorLevel, on
 				if (objCurrentMenu[A_Index].FavoriteType = "Folder") ; this is a folder
 					ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex, "iconFolder")
-				else if (objCurrentMenu[A_Index].FavoriteType = "Url") ; this is an URL
+				else if (objCurrentMenu[A_Index].FavoriteType = "URL") ; this is an URL
 					if StrLen(objCurrentMenu[A_Index].FavoriteIconResource)
 						ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex)
 					else
 						GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strThisIconFile, intThisIconIndex)
 						; not sure it is required to have a physical file with .html extension - but keep it as is by safety
-				else ; this is a document
+				else ; this is a document or application, ### or Special / FTP / QAP that must have FavoriteIconResource ?)
 					if StrLen(objCurrentMenu[A_Index].FavoriteIconResource)
 						ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex)
 					else
@@ -7804,17 +7796,13 @@ if (g_objThisFavorite.FavoriteType = "FTP")
 		, % "ftp://" . strLoginName . (StrLen(strPassword) ? ":" . strPassword : "") . (StrLen(strLoginName) ? "@" : "")
 }
 else
-{
-	g_strFullLocation := EnvVars(g_strFullLocation)
-
 	if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
+		; expand system variables
 		; make the location absolute based on the current working directory
-		g_strFullLocation := PathCombine(A_WorkingDir, g_strFullLocation) ; expand the relative path, based on the current working directory
-
-	if (g_objThisFavorite.FavoriteType = "Special")
+		g_strFullLocation := PathCombine(A_WorkingDir, EnvVars(g_strFullLocation))
+	else if (g_objThisFavorite.FavoriteType = "Special")
 		g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_strTargetAppName, g_objThisFavorite) ; can change values of g_strHokeyTypeDetected and g_strTargetAppName
-
-}
+	; else URL or QAP (no need to expand or make absolute), keep g_strFullLocation as in g_objThisFavorite.FavoriteLocation
 
 if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; always empty for Application favorites
 {
@@ -7881,7 +7869,8 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 				strLocation := "::" . strLocation
 			else
 				strLocation := "shell:::" . strLocation
-		; else keep strLocation as is
+		else ; expand strLocation
+			strLocation := EnvVars(strLocation)			
 	}
 	else if (strUse = "AHK")
 	{
