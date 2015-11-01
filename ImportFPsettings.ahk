@@ -11,6 +11,11 @@ Convert favorites and import options from Folders Popup (folderspopup.ini) to Qu
 Do not import groups. If it does not exist, the QuickAccessPopup.ini file is created in ths program's directory. If it
 already exists, this program will OVERWRITE the existing options and REPLACE ALL existing favorites in this file.
 
+Version: 0.4 alpha (2015-11-01)
+- Adapt to the new setup program copying files to "{commonappdata}\Quick Access Popup"
+- Add destination file selection
+- Improve selection and confirmation workflow for source and destination file
+
 Version: 0.3 alpha (2015-10-13)
 - Remove duplicate imports of file managers settings
 
@@ -32,7 +37,7 @@ Version: 0.1 alpha (2015-09-15)
 
 ;@Ahk2Exe-SetName ImportFPsettings
 ;@Ahk2Exe-SetDescription Import settings from Folders Popup to Quick Access Popup
-;@Ahk2Exe-SetVersion 0.2 alpha
+;@Ahk2Exe-SetVersion 0.4 alpha
 ;@Ahk2Exe-SetOrigFilename ImportFPsettings.exe
 
 
@@ -56,32 +61,34 @@ ListLines, On
 
 global g_strAppNameFile := "ImportFPsettings"
 global g_strAppNameText := "Import Settings - FP to QAP"
-global g_strCurrentVersion := "0.2" ; "major.minor.bugs" or "major.minor.beta.release"
+global g_strCurrentVersion := "0.4" ; "major.minor.bugs" or "major.minor.beta.release"
 global g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 global g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
 global g_strQAPAppNameFile := "QuickAccessPopup"
 global g_strQAPAppNameText := "Quick Access Popup"
-global g_strQAPIniFile := A_WorkingDir . "\" . g_strQAPAppNameFile . ".ini"
+global g_strQAPDefaultIniFile := A_WorkingDir . "\" . g_strQAPAppNameFile . ".ini"
+global g_strQAPIniFile
+
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for developement environment only - won't be compiled
+/*
 if (A_ComputerName = "JEAN-PC") ; for my home PC
-	g_strQAPIniFile := A_WorkingDir . "\" . g_strQAPAppNameFile . "-HOME.ini"
+	g_strQAPDefaultIniFile := A_WorkingDir . "\" . g_strQAPAppNameFile . "-HOME.ini"
 else if InStr(A_ComputerName, "STIC") ; for my work hotkeys
-	g_strQAPIniFile := A_WorkingDir . "\" . g_strQAPAppNameFile . "-WORK.ini"
+	g_strQAPDefaultIniFile := A_WorkingDir . "\" . g_strQAPAppNameFile . "-WORK.ini"
+*/
 ; / End of code for developement environment only - won't be compiled
 ;@Ahk2Exe-IgnoreEnd
 
-global g_strFPIniFile
+global g_strFPIniFile := ""
 global g_intIniLine
 
 global g_strFPStartupShortcut := A_Startup . "\FoldersPopup.lnk"
-global g_strFPUserDataIniFile := A_AppData . "\FoldersPopup\FoldersPopup.ini"
+global g_strFPDefaultIniFile := A_AppData . "\FoldersPopup\FoldersPopup.ini"
 
 global g_strGuiMenuSeparator := "----------------"
 global g_strGuiMenuColumnBreak := "==="
-
-global g_blnQAPIniFileExist := StrLen(FileExist(g_strQAPIniFile))
 
 Loop
 {
@@ -95,42 +102,61 @@ Loop
 		break
 }
 
-strMessage := g_strAppNameText . " " . g_strAppVersion . "`n`nWith this script, you will:`n`n- Select your existing Folders Popup settings file`n- Decide if you import the Folders Popup OPTIONS to Quick Access Popup`n- Decide if you import the Folders Popup FAVORITES to Quick Access Popup`n- Select the destination Quick Access Popup settings file.`n`n"
+; Welcome message
 
-if (g_blnQAPIniFileExist)
-	strMessage .= "Note: This will OVERWRITE the existing options and REPLACE ALL existing favorites in your Quick Access Popup settings file:`n" . g_strQAPIniFile
-else
-	strMessage .= "The Quick Access Popup settings file will be created in this directory:`n" . g_strQAPIniFile
+strMessage := g_strAppNameText . " " . g_strAppVersion . "`n`nWith this script, you will:`n`n- Select the Folders Popup settings file to import`n- Select the Quick Access Popup destination settings file`n`n- Decide if you import the Folders Popup OPTIONS to Quick Access Popup`n- Decide if you import the Folders Popup FAVORITES to Quick Access Popup`n`n"
 
 MsgBox, 0, %g_strAppNameText% %g_strAppVersion%, %strMessage%
+
+; Select source FP file
 
 if FileExist(g_strFPStartupShortcut) ; if a FP shortcut exists in startup folder, use its app folder
 {
 	FileGetShortcut, %g_strFPStartupShortcut%, , g_strFPStartupWorkingDir
-	g_strFPIniFile := g_strFPStartupWorkingDir . "\FoldersPopup.ini"
+	g_strCandidateFPIniFile := g_strFPStartupWorkingDir . "\FoldersPopup.ini"
 }
 
-if !StrLen(g_strFPIniFile) ; else, see if we have a FP folder under appdata
-	if StrLen(FileExist(g_strFPUserDataIniFile))
-		g_strCandidateFPIniFile := g_strFPUserDataIniFile
+if !StrLen(g_strCandidateFPIniFile) ; else, see if we have a FP folder under appdata
+	if StrLen(FileExist(g_strFPDefaultIniFile))
+		g_strCandidateFPIniFile := g_strFPDefaultIniFile
 
-Gosub, ConfirmFPIniFile ; confirm that we use this ini file
-
-if !StrLen(g_strFPIniFile) ; if not, select a file
-	Loop
-	{
+Loop
+{
+	if StrLen(g_strCandidateFPIniFile)
+		Gosub, ConfirmFPIniFile ; confirm that we use this ini file / if user choose Cancel, ExitApp
+	
+	if !StrLen(g_strFPIniFile) ; if not, select a file
 		FileSelectFile, g_strCandidateFPIniFile, 1, , Select the FoldersPopup.ini to import, *.ini
-		if StrLen(g_strCandidateFPIniFile)
-			Gosub, ConfirmFPIniFile
-		else
-			ExitApp
-	}
-	until StrLen(g_strFPIniFile)
+	if !StrLen(g_strCandidateFPIniFile) ; if no file selected, return to default
+		g_strCandidateFPIniFile := g_strFPDefaultIniFile
+
+}
+until StrLen(g_strFPIniFile)
+
+; Select destination QAP file
+
+g_strCandidateQAPIniFile := g_strQAPDefaultIniFile
+
+Loop
+{
+	if StrLen(g_strCandidateQAPIniFile)
+		Gosub, ConfirmQAPIniFile ; confirm that we use this ini file / if user choose Cancel, ExitApp
+
+	if !StrLen(g_strQAPIniFile) ; if not, select a file
+		FileSelectFile, g_strCandidateQAPIniFile, 1, , Select the destination QuickFoldersPopup.ini, *.ini
+	if !StrLen(g_strCandidateQAPIniFile) ; if no file selected, return to default
+		g_strCandidateQAPIniFile := g_strQAPDefaultIniFile
+}
+until StrLen(g_strQAPIniFile)
+
+; Import options
 
 blnImportOptions := "Yes"
 strMessage := "Import ""Options"" settings?"
-if (g_blnQAPIniFileExist)
-	strMessage .= "`n`nNote: This will OVERWRITE the existing options in your Quick Access Popup settings file."
+
+if StrLen(FileExist(g_strQAPIniFile))
+	strMessage .= "`n`nNote: This will OVERWRITE the existing options in your Quick Access Popup settings file:`n" . g_strQAPIniFile
+
 MsgBox, 35, %g_strAppNameText% %g_strAppVersion%, %strMessage% 
 IfMsgBox, Cancel
 	ExitApp
@@ -139,10 +165,17 @@ IfMsgBox, No
 IfMsgBox, Yes
 	gosub, ImportOptionsSettings
 
+if (blnImportOptions = "Yes")
+	MsgBox, 0, %g_strAppNameText% %g_strAppVersion% - Options imported, Options imported...`n`nFrom Folders Popup file:`n%g_strFPIniFile%`n`nTo Quick Access Popup file:`n%g_strQAPIniFile%
+
+; Import favorites
+
 blnImportFavorites := "Yes"
 strMessage := "Import ""Favorites"" settings?"
-if (g_blnQAPIniFileExist)
-	strMessage .= "`n`nNote: This will REPLACE ALL existing favorites in your Quick Access Popup settings file."
+
+if StrLen(FileExist(g_strQAPIniFile))
+	strMessage .= "`n`nNote: This will REPLACE ALL existing favorites in your Quick Access Popup settings file:`n" . g_strQAPIniFile
+
 MsgBox, 35, %g_strAppNameText% %g_strAppVersion%, %strMessage%
 IfMsgBox, Cancel
 	ExitApp
@@ -151,7 +184,12 @@ IfMsgBox, No
 IfMsgBox, Yes
 	gosub, ImportFavoritesSettings
 
-MsgBox, 0, %g_strAppNameText% %g_strAppVersion%, Task finished.`n`nFolders Popup file:`n%g_strFPIniFile%`n`nQuick Access Popup file:`n%g_strQAPIniFile%`n`nImported "Options": %blnImportOptions%`nImported "Favorites": %blnImportFavorites%
+if (blnImportFavorites = "Yes")
+	MsgBox, 0, %g_strAppNameText% %g_strAppVersion% - Favorites imported, Favorites imported...`n`nFrom Folders Popup file:`n%g_strFPIniFile%`n`nTo Quick Access Popup file:`n%g_strQAPIniFile%
+
+; Summary
+
+MsgBox, 0, %g_strAppNameText% %g_strAppVersion%, Import finished.`n`nFrom Folders Popup file:`n%g_strFPIniFile%`n`nTo Quick Access Popup file:`n%g_strQAPIniFile%`n`nImport finished.`n- imported "Options": %blnImportOptions%`n- imported "Favorites": %blnImportFavorites%
 
 return
 ;-----------------------------------------------------------
@@ -161,11 +199,33 @@ return
 ConfirmFPIniFile:
 ;-----------------------------------------------------------
 
-MsgBox, 35, %g_strAppNameText% %g_strAppVersion%, Use the source Folders Popup settings file:`n%g_strCandidateFPIniFile%?`n`nClick "No" to select another the Folders Popup settings file.
+MsgBox, 35, %g_strAppNameText% %g_strAppVersion%, Use the source Folders Popup settings file:`n%g_strCandidateFPIniFile%?`n`nClick "No" to select another Folders Popup settings file.
 IfMsgBox, Cancel
 	ExitApp
 IfMsgBox, Yes
 	g_strFPIniFile := g_strCandidateFPIniFile
+
+return
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
+ConfirmQAPIniFile:
+;-----------------------------------------------------------
+
+strMessage := "Select the destination Quick Access Popup settings file:`n" . g_strCandidateQAPIniFile . "?`n`nClick ""No"" to select another Quick Access Popup settings file."
+
+if (g_strCandidateQAPIniFile)
+	strMessage .= "`n`nNote: This will OVERWRITE the existing options and REPLACE ALL existing favorites in your Quick Access Popup settings file:`n" . g_strQAPIniFile
+else
+	strMessage .= "`n`nThe Quick Access Popup settings file will be created at this location:`n" . g_strCandidateQAPIniFile
+
+
+MsgBox, 35, %g_strAppNameText% %g_strAppVersion%, %strMessage%
+IfMsgBox, Cancel
+	ExitApp
+IfMsgBox, Yes
+	g_strQAPIniFile := g_strCandidateQAPIniFile
 
 return
 ;-----------------------------------------------------------
