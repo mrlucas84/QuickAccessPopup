@@ -2,7 +2,7 @@
 /*
 
 Quick Access Popup
-Written using AutoHotkey_L v1.1.09.03+ (http://ahkscript.org/)
+Written using AutoHotkey_L v1.1.22+ (http://ahkscript.org/)
 By Jean Lalonde (JnLlnd on AHKScript.org forum)
 	
 Based on FoldersPopup from the same author
@@ -16,13 +16,13 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- backlink dispaly empty menu (intermittent)
+- sometimes backlink in Settings display an empty menu (intermittent, rare)
 - when Clipboard menu had content, clipboard replace with non file/URL content, the Clipboard menu is maintained with its previous content
   but then the menu entry for Clipbopard get broken 1/2 times; note 1: broken only when Current Folders is refreshed too; note 2: menu also broen 1/2 when called from shortcut
   (bug found when working on "Clipboard menu should be preserved if Clipboard does not contain path or url")
 
 TO-DO
-- add QAP feature Add this folder Express (see this item)
+- add QAP feature Add this folder Express (see this item in wishlist)
 - improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
@@ -31,7 +31,7 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.1.5 alpha (2015-10-??)
+Version: 6.1.5 alpha (2015-11-01)
 - stop loading not updated translation files until they alre ready, causing error when upgrading from FP
 - add Add This Folder QAP feature to My QAP Essentials menu
 - fix title in Manage hotkeys dialog box
@@ -297,8 +297,8 @@ ComObjError(False) ; we will do our own error handling
 ; see http://ahkscript.org/boards/viewtopic.php?f=5&t=4477&p=25239#p25236
 DllCall("SetErrorMode", "uint", SEM_FAILCRITICALERRORS := 1)
 
-Gosub, SetWorkingDirectory
-; ###_V("AFTER SetWorkingDirectory", A_WorkingDir)
+Gosub, SetQAPWorkingDirectory
+; ###_V("AFTER SetQAPWorkingDirectory", A_WorkingDir)
 
 ; Force A_WorkingDir to A_ScriptDir if uncomplied (development environment)
 ;@Ahk2Exe-IgnoreBegin
@@ -576,7 +576,7 @@ return
 ;========================================================================================================================
 
 ;-----------------------------------------------------------
-SetWorkingDirectory:
+SetQAPWorkingDirectory:
 ;-----------------------------------------------------------
 
 /*
