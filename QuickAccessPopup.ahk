@@ -16,10 +16,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- when Copy QAP Feature favorite, drop down is not selected in first tab
 - sometimes backlink in Settings display an empty menu (intermittent, rare)
-- when Clipboard menu had content, clipboard replace with non file/URL content, the Clipboard menu is maintained with its previous content
-  but then the menu entry for Clipbopard get broken 1/2 times; note 1: broken only when Current Folders is refreshed too; note 2: menu also broen 1/2 when called from shortcut
-  (bug found when working on "Clipboard menu should be preserved if Clipboard does not contain path or url")
 
 TO-DO
 - add QAP feature Add this folder Express (see this item in wishlist)
@@ -30,6 +28,11 @@ TO-DO
 
 HISTORY
 =======
+
+Version: 6.1.6 alpha (2015-11-??)
+- sort entries in QAP feature Clipboard menu, merging files and URLs
+- open groups in TC and DOpus in a new instance only if group is set to Replace existing windows; remove unnecessary /S switch for TC
+- review how first group item is managed in TC and DOpus
 
 Version: 6.1.5 alpha (2015-11-01)
 - stop loading not updated translation files until they alre ready, causing error when upgrading from FP
@@ -277,7 +280,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.1.5 alpha
+;@Ahk2Exe-SetVersion 6.1.6 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -321,7 +324,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.1.5" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.1.6" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -2601,9 +2604,11 @@ return
 RefreshClipboardMenu:
 ;------------------------------------------------------------
 
-blnPreviousClipboardMenuDeleted := false
 intShortcutClipboardMenu := 0
-strURLsInClipboard := ""
+strContentsInClipboard := ""
+
+GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strURLIconFile, intUrlIconIndex)
+; not sure it is required to have a physical file with .html extension - but keep it as is by safety
 
 ; Parse Clipboard for folder, document or application filenames (filenames alone on one line)
 Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
@@ -2613,25 +2618,18 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 
 	if StrLen(FileExist(strClipboardLineExpanded))
 	{
-		if !(blnPreviousClipboardMenuDeleted)
-		{
-			Menu, g_menuClipboard, Add
-			Menu, g_menuClipboard, DeleteAll
-			blnPreviousClipboardMenuDeleted := true
-		}
-
-		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . strClipboardLine
+		strContentsInClipboard .= "`n" . A_LoopField
+		
 		if (g_blnDisplayIcons)
 		{
 			if LocationIsDocument(strClipboardLineExpanded)
 			{
 				GetIcon4Location(strClipboardLineExpanded, strThisIconFile, intThisIconIndex)
-				strIconValue := strThisIconFile . "," . intThisIconIndex
+				strContentsInClipboard .= "`t" . strThisIconFile . "," . intThisIconIndex
 			}
 			else
-				strIconValue := "iconFolder"
+				strContentsInClipboard .= "`t" . "iconFolder"
 		}
-		AddMenuIcon("g_menuClipboard", strMenuName, "OpenClipboard", strIconValue)
 	}
 
 	; Parse Clipboard line for URLs (anywhere on the line)
@@ -2639,36 +2637,34 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 	Gosub, GetURLsInClipboardLine
 }
 
-Sort, strURLsInClipboard
-
-Loop, parse, strURLsInClipboard, `n
+if StrLen(strContentsInClipboard)
 {
-	if !StrLen(A_LoopField)
-		break
-	
-	; if we get here, we have at least one URL, check if we need to delete previous menu
-	if !(blnPreviousClipboardMenuDeleted)
-	{
-		Menu, g_menuClipboard, Add
-		Menu, g_menuClipboard, DeleteAll
-		blnPreviousClipboardMenuDeleted := true
-	}
+	Menu, g_menuClipboard, Add
+	Menu, g_menuClipboard, DeleteAll
 
-	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . A_LoopField
-	if StrLen(strMenuName) < 260 ; skip too long URLs
+	Sort, strContentsInClipboard
+
+	Loop, parse, strContentsInClipboard, `n
 	{
-		Menu, g_menuClipboard, Add, %strMenuName%, OpenClipboard
-		if (blnDisplayIcon)
-			Menu, g_menuClipboard, Icon, %strMenuName%, %strThisIconFile%, %intThisIconIndex%, %g_intIconSize%
+		if !StrLen(A_LoopField)
+			continue
+		
+		; arrContentsInClipboard1 = path or URL, arrContentsInClipboard2 = icon (file,index or icon code)
+		StringSplit, arrContentsInClipboard, A_LoopField, `t
+		
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . arrContentsInClipboard1
+		if StrLen(strMenuName) < 260 ; skip too long URLs
+			AddMenuIcon("g_menuClipboard", strMenuName, "OpenClipboard", arrContentsInClipboard2)
 	}
 }
 
-blnPreviousClipboardMenuDeleted := ""
 intShortcutClipboardMenu := ""
-strURLsInClipboard := ""
+strContentsInClipboard := ""
 strClipboardLine := ""
 strClipboardLineExpanded := ""
 strURLSearchString := ""
+strURLIconFile := ""
+intUrlIconIndex := ""
 
 return
 ;------------------------------------------------------------
@@ -2729,7 +2725,7 @@ StringTrimLeft, strURLSearchString, strURLSearchString, %intCharactersToOmit%
 
 Gosub, GetURLsInClipboardLine ; Recursive call to self (end of loop)
 
-strURLsInClipboard .= strURLCleansed . "`n"
+strContentsInClipboard .= "`n" . strURLCleansed . "`t" . strURLIconFile . "," . intUrlIconIndex
 
 return
 ;------------------------------------------------------------
@@ -7257,13 +7253,12 @@ objThisGroupFavorite := g_objThisFavorite
 ; g_arrGroupSettingsOpen3: delay in milliseconds to insert between each favorite to restore (in addition to default 200 ms)
 strGroupSettings := objThisGroupFavorite.FavoriteGroupSettings
 StringSplit, g_arrGroupSettingsOpen, strGroupSettings, `,
+g_blnGroupReplaceWindows := g_arrGroupSettingsOpen1
 
-if (g_arrGroupSettingsOpen1)
+if (g_blnGroupReplaceWindows)
 	gosub, OpenGroupOfFavoritesCloseExplorers
 	
 objThisGroupFavoritesList := g_objMenusIndex[lMainMenuName . " " . objThisGroupFavorite.FavoriteLocation]
-
-g_blnFirstTotalCommanderRight := true ; used only with TotalCommander but set it anyway
 
 loop, % objThisGroupFavoritesList.MaxIndex() - 1 ; skip first item backlink
 {
@@ -8215,7 +8210,7 @@ OpenFavoriteInNewWindowDirectoryOpus:
 
 if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
 {
-	if (g_blnFirstItemOfGroup) ; force left in new lister
+	if (g_blnFirstItemOfGroup and g_blnGroupReplaceWindows) ; force left in new lister
 		strTabParameter := "NEW=nodual"
 	else
 	{
@@ -8258,15 +8253,17 @@ if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
 	; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "0,,,,,,,L"
 	strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
 	StringSplit, arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
-	if !StrLen(arrFavoriteWindowPosition8)
-		arrFavoriteWindowPosition8 := "L"
+	if StrLen(arrFavoriteWindowPosition8)
+		strSideParameter := arrFavoriteWindowPosition8
+	else
+		strSideParameter := "L"
 }
 	
 if g_strFullLocation is integer
 {
 	if !WinExist("ahk_class TTOTAL_CMD") ; open a first instance
 		or InStr(g_strTotalCommanderNewTabOrWindow, "/N") ; or open a new instance
-		or (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup" and g_blnFirstItemOfGroup)
+		or (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup" and (g_blnFirstItemOfGroup and g_blnGroupReplaceWindows))
 	{
 		Run, %g_strTotalCommanderPath%
 		WinWaitActive, ahk_class TTOTAL_CMD, , 10
@@ -8275,7 +8272,7 @@ if g_strFullLocation is integer
 	
 	if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
 	{
-		if (arrFavoriteWindowPosition8 = "L")
+		if (strSideParameter = "L")
 			intTCCommandFocus := 4001 ; cm_FocusLeft
 		else
 			intTCCommandFocus := 4002 ; cm_FocusRight
@@ -8299,34 +8296,21 @@ if g_strFullLocation is integer
 else ; normal folder
 {
 	if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
-	{
-		if (g_blnFirstItemOfGroup)
-		{
+		if (g_blnFirstItemOfGroup and g_blnGroupReplaceWindows)
 			strTabParameter := "/N" ; /N new window
-			strSideParameter := "L" ; /L= left pane of the new window
-		}
 		else
-		{
-			if (arrFavoriteWindowPosition8 = "R" and g_blnFirstTotalCommanderRight)
-			{
-				strTabParameter := "/O" ; change folder in existing initial folder
-				g_blnFirstTotalCommanderRight := false
-			}
-			else
-				strTabParameter := "/O /T" ; new tab of existing file list
-			strSideParameter := arrFavoriteWindowPosition8 ; "L" or "R"
-		}
-	}
+			strTabParameter := "/O /T" ; /O same instance, /T new tab
 	else
 	{
 		strTabParameter := g_strTotalCommanderNewTabOrWindow
 		strSideParameter := "L" ; /L= left pane of the new window
-		arrFavoriteWindowPosition8 := ""
 	}
 
 	; ###_V("", g_strFullLocation, strTabParameter, strSideParameter)
 	; g_strTotalCommanderNewTabOrWindow in ini file should contain "/O /T" to open in an new tab of the existing file list (default), or "/N" to open in a new file list
-	Run, %g_strTotalCommanderPath% %strTabParameter% /S "/%strSideParameter%=%g_strFullLocation%"
+	; was Run, %g_strTotalCommanderPath% %strTabParameter% /S "/%strSideParameter%=%g_strFullLocation%"
+	Run, %g_strTotalCommanderPath% %strTabParameter% "/%strSideParameter%=%g_strFullLocation%"
+	; strClipboard .= "`n" . g_strTotalCommanderPath . " " . strTabParameter . " ""/" . strSideParameter . "=" . g_strFullLocation . """" ; #####
 	WinWaitActive, ahk_class TTOTAL_CMD, , 10
 }
 g_strNewWindowId := "ahk_class TTOTAL_CMD"
