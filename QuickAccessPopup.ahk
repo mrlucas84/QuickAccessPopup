@@ -16,8 +16,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- when Copy QAP Feature favorite, drop down is not selected in first tab
-- sometimes backlink in Settings display an empty menu (intermittent, rare)
+- in Settings, up arrow back to main show empty list (backline not initialized correctly in some situations - after menu name changed)
+- in Settings, rename a submenu, go in a menu, click after last item, add item: this item goes before the backlink
+- (intermittent, rare) sometimes backlink in Settings display an empty menu
 
 TO-DO
 - add QAP feature Add this folder Express (see this item in wishlist)
@@ -29,10 +30,12 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.1.6 alpha (2015-11-??)
-- sort entries in QAP feature Clipboard menu, merging files and URLs
-- open groups in TC and DOpus in a new instance only if group is set to Replace existing windows; remove unnecessary /S switch for TC
+Version: 6.1.6 alpha (2015-11-05)
+- sort entries in QAP feature Clipboard menu with files names and URLs merged
+- open groups in Total Commander and Directory Opus in a new instance only if group is set to Replace existing windows; remove unnecessary /S switch for TC
 - review how first group item is managed in TC and DOpus
+- when copying a Special folder or a QAP Feature favorites in Settings, set properly the drop down to the copied value in first tab
+- create a daily backup and keep the 20 last copies for alpha stage, last 10 for beta stage and last 5 for production version
 
 Version: 6.1.5 alpha (2015-11-01)
 - stop loading not updated translation files until they alre ready, causing error when upgrading from FP
@@ -1531,17 +1534,22 @@ LoadIniFile:
 ReloadIniFile:
 ;-----------------------------------------------------------
 
-; create a backup of the ini file before loading
-StringReplace, strIniBackupFile, g_strIniFile, .ini, -backup.ini
-FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
+; delete old backup files (keep only 5/10/20 most recent files)
+StringReplace, strIniBackupFile, g_strIniFile, .ini, -backup-????????.ini
+Loop, %strIniBackupFile%
+	strFileList .= A_LoopFileFullPath . "`n"
+Sort, strFileList, R
+intNumberOfBackups := (g_strCurrentBranch = "alpha" ? 20 : (g_strCurrentBranch = "beta" ? 10 : 5))
+Loop, Parse, strFileList, `n
+	if (A_Index > intNumberOfBackups)
+		if StrLen(A_LoopField)
+			FileDelete, %A_LoopField%
 
-if (g_strCurrentBranch = "alpha")
-; create a daily backup of the ini file for alpha versions users
-{
-	StringReplace, strIniBackupFile, strIniBackupFile, .ini, % "-" . SubStr(A_Now, 1, 8) . ".ini"
-	if !FileExist(strIniBackupFile)
-		FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
-}
+; create a daily backup of the ini file
+StringReplace, strIniBackupFile, strIniBackupFile, ????????, % SubStr(A_Now, 1, 8)
+if !FileExist(strIniBackupFile)
+	FileCopy, %g_strIniFile%, %strIniBackupFile%, 1
+
 ; reinit after Settings save if already exist
 g_objMenuInGui := Object() ; object of menu currently in Gui
 g_objMenusIndex := Object() ; index of menus path used in Gui menu dropdown list and to access the menu object for a given menu path
@@ -1753,6 +1761,8 @@ arrSubMenu := ""
 g_intIniLine := ""
 blnActiveFileManangerOK := ""
 strActiveFileManagerSystemName := ""
+strFileList := ""
+intNumberOfBackups := ""
 
 return
 ;------------------------------------------------------------
@@ -2116,6 +2126,7 @@ return
 ;------------------------------------------------------------
 
 
+
 ;========================================================================================================================
 ; END OF INITIALIZATION
 ;========================================================================================================================
@@ -2188,7 +2199,7 @@ Menu, Tray, Icon, , , 1 ; last 1 to freeze icon during pause or suspend
 Menu, Tray, NoStandard
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for developement phase only - won't be compiled
-Menu, Tray, Icon, %A_ScriptDir%\qap-white-rounded-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
+Menu, Tray, Icon, %A_ScriptDir%\QuickAccessPopup-red-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
 Menu, Tray, Standard
 Menu, Tray, Add
 ; / End of code for developement phase only - won't be compiled
@@ -3857,6 +3868,7 @@ GuiControl, , f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMe
 
 GuiControl, Focus, f_lvFavoritesList
 
+; ###_V("Loaded " . g_objMenuInGui.MenuPath, g_objMenuInGui[1].SubMenu.MenuPath, g_intOriginalMenuPosition)
 return
 ;------------------------------------------------------------
 
@@ -4218,6 +4230,7 @@ GuiCopyFavorite:
 
 strGuiFavoriteLabel := A_ThisLabel
 g_blnAbordEdit := false
+; ###_V(A_ThisLabel, g_intOriginalMenuPosition)
 
 Gosub, GuiFavoriteInit
 if (g_blnAbordEdit)
@@ -4510,7 +4523,7 @@ else ; "Special" or "QAP"
 	Gui, 2:Add, DropDownList
 		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
 		, % lDialogSelectItemToAdd . "...||" . (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : g_strQAPFeaturesList)
-	if InStr(strGuiFavoriteLabel, "GuiEditFavorite") or StrLen(g_strNewLocationSpecialName)
+	if InStr("GuiEditFavorite|GuiCopyFavorite", strGuiFavoriteLabel) or StrLen(g_strNewLocationSpecialName)
 		if (g_objEditedFavorite.FavoriteType = "Special")
 			GuiControl, ChooseString, f_drpSpecial, % g_objSpecialFolders[g_objEditedFavorite.FavoriteLocation].DefaultName
 		else ; QAP
@@ -5173,6 +5186,7 @@ else
 	if (A_ThisLabel = "GuiMenusListChanged")
 		g_objMenuInGui := g_objMenusIndex[strNewDropdownMenu]
 	else if (A_ThisLabel = "GuiGotoUpMenu")
+		; ###_V("", g_objMenuInGui[1].SubMenu.MenuPath)
 		g_objMenuInGui := g_objMenuInGui[1].SubMenu
 	else if (A_ThisLabel = "OpenMenuFromEditForm") or (A_ThisLabel = "OpenMenuFromGuiHotkey")
 		g_objMenuInGui := g_objMenuInGui[g_intOriginalMenuPosition].SubMenu
@@ -5314,8 +5328,11 @@ else ; GuiEditFavoriteSave or GuiMoveOneFavoriteSave
 ; f_drpParentMenu and f_drpParentMenuItems have same field name in 2 gui: GuiAddFavorite and GuiMoveMultipleFavoritesToMenu
 strDestinationMenu := f_drpParentMenu
 
+; ###_O("g_objMenusIndex", g_objMenusIndex)
+; ###_V(A_ThisLabel . 1, g_intNewItemPos, f_drpParentMenuItems, strDestinationMenu)
 if (!g_intNewItemPos) ; if in GuiMoveOneFavoriteSave g_intNewItemPos may be already set
 	g_intNewItemPos := f_drpParentMenuItems + (g_objMenusIndex[strDestinationMenu][1].FavoriteType = "B" ? 1 : 0)
+; ###_V(A_ThisLabel . 2, g_intNewItemPos, f_drpParentMenuItems)
 
 ; validation to avoid unauthorized favorite types in groups
 if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|Group", g_objEditedFavorite.FavoriteType))
@@ -5468,6 +5485,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 		
 		StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
 		g_objEditedFavorite.FavoriteLocation := strMenuLocation
+		; ###_V(A_ThisLabel, strMenuLocation, g_objMenuInGui.MenuPath, g_intOriginalMenuPosition, g_objMenuInGui[g_intOriginalMenuPosition].FavoriteLocation, g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath) ; #####
 	}
 	else
 		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
@@ -6146,7 +6164,7 @@ return
 
 
 ;========================================================================================================================
-!_038_FAVORITE_GUI_SAVE:
+!_038_FAVORITES_GUI_SAVE:
 ;========================================================================================================================
 
 ;------------------------------------------------------------
@@ -6825,7 +6843,7 @@ if (A_ThisLabel = "RestoreBackupMenusObjects")
 	g_objMenusBK := ""
 }
 
-; also back hotkey objects
+; also backup hotkey objects
 
 if (A_ThisLabel = "BackupMenusObjects")
 {
