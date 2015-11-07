@@ -16,8 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- fix text in option Change folder. Put option in General?
-- When opening folder in Settins (before save), Target label does not exist: OpenFavoriteNavigateQuickAccessPopup (line 4963)
 - Add this folder from Dialog box: invalid window position values
 - Folder fav on Sharepoint not working: "C:\Users\jlalonde\AppData\Roaming\Quick Access Popup\http://xxx.yyy.org/tfs/" does not exist or is not available.
 
@@ -34,6 +32,8 @@ HISTORY
 Version: 6.1.7 alpha (2015-11-??)
 - fix bug in Settings, after renaming a submenu, menus index was not updated causing errors when adding fav to submenus or browsing to parent menu
 - refactor create a daily backup and keep the 20 last copies for alpha stage, last 10 for beta stage and last 5 for production version
+- improve text for Change folder option and move it in first position of General tab
+- fix bug when opening folder from popup menu in Settings
 
 Version: 6.1.6 alpha (2015-11-05)
 - sort entries in QAP feature Clipboard menu with files names and URLs merged
@@ -2342,7 +2342,6 @@ for intIndex, objFolder in objExplorersWindows
 	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 }
 
-; ##### Clipboard bug doe not occur if following 4 lines are commented - but this break the Current folders menu...
 Menu, g_menuCurrentFolders, Add
 Menu, g_menuCurrentFolders, DeleteAll
 if (g_blnUseColors)
@@ -3092,7 +3091,11 @@ Gui, 2:Font
 Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsTabOtherOptionsIntro, g_strAppNameText)
 
 ; column 1
-Gui, 2:Add, Text, y+10 x15 Section, %lOptionsLanguage%
+
+Gui, 2:Add, CheckBox, y+15 x15 Section w300 vf_blnChangeFolderInDialog gChangeFoldersInDialogClicked, %lOptionsChangeFolderInDialog%
+GuiControl, , f_blnChangeFolderInDialog, %g_blnChangeFolderInDialog%
+
+Gui, 2:Add, Text, y+10 xs, %lOptionsLanguage%
 Gui, 2:Add, DropDownList, y+5 xs w120 vf_drpLanguage Sort, %lOptionsLanguageLabels%
 GuiControl, ChooseString, f_drpLanguage, %g_strLanguageLabel%
 
@@ -3100,45 +3103,45 @@ Gui, 2:Add, Text, y+10 xs, %lOptionsTheme%
 Gui, 2:Add, DropDownList, y+5 xs w120 vf_drpTheme, %g_strAvailableThemes%
 GuiControl, ChooseString, f_drpTheme, %g_strTheme%
 
-Gui, 2:Add, CheckBox, y+15 xs w220 vf_blnOptionsRunAtStartup, %lOptionsRunAtStartup%
+Gui, 2:Add, CheckBox, y+15 xs w300 vf_blnOptionsRunAtStartup, %lOptionsRunAtStartup%
 GuiControl, , f_blnOptionsRunAtStartup, % FileExist(A_Startup . "\" . g_strAppNameFile . ".lnk") ? 1 : 0
 
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayTrayTip, %lOptionsTrayTip%
+Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnDisplayTrayTip, %lOptionsTrayTip%
 GuiControl, , f_blnDisplayTrayTip, %g_blnDisplayTrayTip%
 
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnCheck4Update, %lOptionsCheck4Update%
+Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnCheck4Update, %lOptionsCheck4Update%
 GuiControl, , f_blnCheck4Update, %g_blnCheck4Update%
 
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnRememberSettingsPosition, %lOptionsRememberSettingsPosition%
+Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnRememberSettingsPosition, %lOptionsRememberSettingsPosition%
 GuiControl, , f_blnRememberSettingsPosition, %g_blnRememberSettingsPosition%
 
-Gui, 2:Add, Text, y+15 xs, %lOptionsRecentFoldersPrompt%
+Gui, 2:Add, Text, y+15 xs w300, %lOptionsRecentFoldersPrompt%
 Gui, 2:Add, Edit, y+5 xs w36 h17 vf_intRecentFoldersMax center, %g_intRecentFoldersMax%
-Gui, 2:Add, Text, yp x+10 w180, %lOptionsRecentFolders%
+Gui, 2:Add, Text, yp x+10 w250, %lOptionsRecentFolders%
 
 ; column 2
 
-Gui, 2:Add, Text, ys x300 w190 Section, %lOptionsMenuPositionPrompt%
+Gui, 2:Add, Text, ys x320 w300 Section, %lOptionsMenuPositionPrompt%
 
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition1 gPopupMenuPositionClicked Group " . (g_intPopupMenuPosition = 1 ? "Checked" : ""), %lOptionsMenuNearMouse%
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition2 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 2 ? "Checked" : ""), %lOptionsMenuActiveWindow%
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radPopupMenuPosition3 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 3 ? "Checked" : ""), %lOptionsMenuFixPosition%
+Gui, 2:Add, Radio, % "y+5 xs w300 vf_radPopupMenuPosition1 gPopupMenuPositionClicked Group " . (g_intPopupMenuPosition = 1 ? "Checked" : ""), %lOptionsMenuNearMouse%
+Gui, 2:Add, Radio, % "y+5 xs w300 vf_radPopupMenuPosition2 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 2 ? "Checked" : ""), %lOptionsMenuActiveWindow%
+Gui, 2:Add, Radio, % "y+5 xs w300 vf_radPopupMenuPosition3 gPopupMenuPositionClicked " . (g_intPopupMenuPosition = 3 ? "Checked" : ""), %lOptionsMenuFixPosition%
 
 Gui, 2:Add, Text, % "y+5 xs+18 vf_lblPopupFixPositionX " . (g_intPopupMenuPosition = 3 ? "" : "Disabled"), %lOptionsPopupFixPositionX%
 Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionX center " . (g_intPopupMenuPosition = 3 ? "" : "Disabled"), %g_arrPopupFixPosition1%
 Gui, 2:Add, Text, % "yp x+5 vf_lblPopupFixPositionY " . (g_intPopupMenuPosition = 3 ? "" : "Disabled"), %lOptionsPopupFixPositionY%
 Gui, 2:Add, Edit, % "yp x+5 w36 h17 vf_strPopupFixPositionY center " . (g_intPopupMenuPosition = 3 ? "" : "Disabled"), %g_arrPopupFixPosition2%
 
-Gui, 2:Add, Text, y+10 x300 w190 Section, %lOptionsHotkeyRemindersPrompt%
+Gui, 2:Add, Text, y+10 xs w300, %lOptionsHotkeyRemindersPrompt%
 
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders1 Group " . (g_intHotkeyReminders = 1 ? "Checked" : ""), %lOptionsHotkeyRemindersNo%
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders2 " . (g_intHotkeyReminders = 2 ? "Checked" : ""), %lOptionsHotkeyRemindersShort%
-Gui, 2:Add, Radio, % "y+5 xs w190 vf_radHotkeyReminders3 " . (g_intHotkeyReminders = 3 ? "Checked" : ""), %lOptionsHotkeyRemindersFull%
+Gui, 2:Add, Radio, % "y+5 xs w300 vf_radHotkeyReminders1 Group " . (g_intHotkeyReminders = 1 ? "Checked" : ""), %lOptionsHotkeyRemindersNo%
+Gui, 2:Add, Radio, % "y+5 xs w300 vf_radHotkeyReminders2 " . (g_intHotkeyReminders = 2 ? "Checked" : ""), %lOptionsHotkeyRemindersShort%
+Gui, 2:Add, Radio, % "y+5 xs w300 vf_radHotkeyReminders3 " . (g_intHotkeyReminders = 3 ? "Checked" : ""), %lOptionsHotkeyRemindersFull%
 
-Gui, 2:Add, CheckBox, y+15 xs w220 vf_blnDisplayNumericShortcuts, %lOptionsDisplayMenuShortcuts%
+Gui, 2:Add, CheckBox, y+15 xs w300 vf_blnDisplayNumericShortcuts, %lOptionsDisplayMenuShortcuts%
 GuiControl, , f_blnDisplayNumericShortcuts, %g_blnDisplayNumericShortcuts%
 
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
+Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
 GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
 
 if !OSVersionIsWorkstation()
@@ -3146,7 +3149,7 @@ if !OSVersionIsWorkstation()
 	g_blnDisplayIcons := false
 	GuiControl, Disable, f_blnDisplayIcons
 }
-Gui, 2:Add, CheckBox, y+10 xs w220 vf_blnDisplayIcons gDisplayIconsClicked, %lOptionsDisplayIcons%
+Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnDisplayIcons gDisplayIconsClicked, %lOptionsDisplayIcons%
 GuiControl, , f_blnDisplayIcons, %g_blnDisplayIcons%
 
 Gui, 2:Add, Text, % "y+10 xs vf_drpIconSizeLabel " . (g_blnDisplayIcons ? "" : "Disabled"), %lOptionsIconSize%
@@ -3172,9 +3175,6 @@ loop, % g_arrPopupHotkeyNames%0%
 	Gui, 2:Font, s8 w500
 	Gui, 2:Add, Link, x15 ys w240 gOptionsTitlesSubClicked, % g_arrOptionsTitlesSub%A_Index%
 }
-
-Gui, 2:Add, CheckBox, y+15 x15 w600 vf_blnChangeFolderInDialog gChangeFoldersInDialogClicked, %lOptionsChangeFolderInDialog%
-GuiControl, , f_blnChangeFolderInDialog, %g_blnChangeFolderInDialog%
 
 ;---------------------------------------
 ; Tab 3: Power Menu Features
@@ -5510,7 +5510,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 		
 		StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
 		g_objEditedFavorite.FavoriteLocation := strMenuLocation
-		; ###_V(A_ThisLabel, strMenuLocation, g_objMenuInGui.MenuPath, g_intOriginalMenuPosition, g_objMenuInGui[g_intOriginalMenuPosition].FavoriteLocation, g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath) ; #####
+		; ###_V(A_ThisLabel, strMenuLocation, g_objMenuInGui.MenuPath, g_intOriginalMenuPosition, g_objMenuInGui[g_intOriginalMenuPosition].FavoriteLocation, g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath)
 	}
 	else
 		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
@@ -7237,18 +7237,6 @@ for intOrder, strCode in g_objQAPFeaturesPowerCodeByOrder
 		break
 	}
 
-if (g_strPowerMenu = lMenuPowerNavigateDialog)
-{
-	SetTargetClassWinIdAndControl(false)
-	; ###_V(A_ThisLabel, g_strPowerMenu, lMenuPowerNavigateDialog)
-	if !WindowIsDialog(g_strTargetClass, g_strTargetWinId)
-	{
-		Oops(lMenuPowerNavigateDialogOops)
-		gosub, OpenPowerMenuHotkeyCleanup
-		return
-	}
-}
-	
 if StrLen(g_strPowerMenu)
 {
 	gosub, OpenPowerMenuTrayTip
@@ -7275,8 +7263,8 @@ else if (g_strPowerMenu = lMenuPowerNewWindow)
 	strMessage := lPowerMenuTrayTipNewWindow
 else if (g_strPowerMenu = lMenuPowerEditFavorite)
 	strMessage := lPowerMenuTrayTipEditFavorite
-else if (g_strPowerMenu = lMenuPowerNavigateDialog)
-	strMessage := lPowerMenuTrayTipNavigateDialog
+else
+	strMessage := ""
 
 TrayTip, %g_strAppNameText%, %strMessage%, , 17
 Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
@@ -7435,11 +7423,8 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for th
 	}
 
 ; preparation for power menu features before setting the full location
-if (g_blnPowerMenu)
-	if (g_strPowerMenu = lMenuPowerNewWindow)
-		g_strHokeyTypeDetected := "Launch"
-	else if (g_strPowerMenu = lMenuPowerNavigateDialog)
-		g_strHokeyTypeDetected := "Navigate" ;  if we get here, we know it is a dialog box
+if (g_blnPowerMenu) and (g_strPowerMenu = lMenuPowerNewWindow)
+	g_strHokeyTypeDetected := "Launch"
 
 gosub, SetTargetName ; sets g_strTargetAppName, can change g_strHokeyTypeDetected to "Launch"
 
@@ -7622,7 +7607,14 @@ else if WindowIsTotalCommander(g_strTargetClass) and (g_intActiveFileManager = 3
 else if WindowIsQAPconnect(g_strTargetWinId) and (g_intActiveFileManager = 4)
 	g_strTargetAppName := "QAPconnect"
 else if WindowIsQuickAccessPopup(g_strTargetClass)
-	g_strTargetAppName := "QuickAccessPopup"
+	if (g_intActiveFileManager = 2)
+		g_strTargetAppName := "DirectoryOpus"
+	else if (g_intActiveFileManager = 3)
+		g_strTargetAppName := "TotalCommander"
+	else if (g_intActiveFileManager = 4)
+		g_strTargetAppName := "QAPconnect"
+	else
+		g_strTargetAppName := "Explorer"
 else
 	g_strTargetAppName := "Unknown"
 
