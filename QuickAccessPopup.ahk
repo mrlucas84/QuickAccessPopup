@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- Folder fav on Sharepoint not working: "C:\Users\jlalonde\AppData\Roaming\Quick Access Popup\http://xxx.yyy.org/tfs/" does not exist or is not available.
 
 TO-DO
 - add QAP feature Add this folder Express (see this item in wishlist)
@@ -35,6 +34,7 @@ Version: 6.1.7 alpha (2015-11-??)
 - fix bug when opening folder from popup menu in Settings
 - fix bug invalid window position values when Add this folder from a dialog box
 - remove default settings checkbox in fav advanced settings and adapt default FTP settings and label for TC
+- fix bug path of folder on network (WebDAV) must not be expanded to absolute path
 
 Version: 6.1.6 alpha (2015-11-05)
 - sort entries in QAP feature Clipboard menu with files names and URLs merged
@@ -7368,7 +7368,8 @@ if (g_objThisFavorite.FavoriteType = "Group") and !(g_blnPowerMenu)
 }
 
 if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for these favorites, file/folder must exist
-	and (g_strPowerMenu <> lMenuPowerEditFavorite)
+	and (g_strPowerMenu <> lMenuPowerEditFavorite) ; except if we edit the favorite
+	and !LocationIsHTTP(g_objThisFavorite.FavoriteLocation) ; except if the folder location is on a server (WebDAV)
 	if !FileExist(PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLocation)))
 	{
 		Gui, 1:+OwnDialogs
@@ -7730,6 +7731,7 @@ if (g_objThisFavorite.FavoriteType = "FTP")
 }
 else
 	if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
+		and !LocationIsHTTP(g_objThisFavorite.FavoriteLocation) ; except if the folder location is on a server (like WebDAV)
 		; expand system variables
 		; make the location absolute based on the current working directory
 		g_strFullLocation := PathCombine(A_WorkingDir, EnvVars(g_strFullLocation))
@@ -9618,6 +9620,15 @@ SetTargetClassWinIdAndControl(blnMouseElseKeyboard)
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
 		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
 	}
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+LocationIsHTTP(strLocation)
+;------------------------------------------------------------
+{
+	return SubStr(strLocation, 1, 7) = "http://") or SubStr(strLocation, 1, 8) = "https://")
 }
 ;------------------------------------------------------------
 
