@@ -349,6 +349,7 @@ global lOptionsDisplayFavoritesHotkeysInMenus := "Display favorites shortcuts in
 global lOptionsGuiTitle := "Options - ~1~ ~2~"
 global lOptionsExclusionList := "Exclusion lists" ; new
 global lOptionsFtpEncoding := "Encode FTP username and password (recommended)" ; new
+global lOptionsFtpEncodingTC := "Encode FTP username and password (not recommended for Total Commander)" ; new
 global lOptionsHotkeyRemindersFull := "Display full names"
 global lOptionsHotkeyRemindersNo := "Do not display"
 global lOptionsHotkeyRemindersPrompt := "Hotkey reminders in menu:"

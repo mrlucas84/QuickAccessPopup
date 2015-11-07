@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- Add this folder from Dialog box: invalid window position values
 - Folder fav on Sharepoint not working: "C:\Users\jlalonde\AppData\Roaming\Quick Access Popup\http://xxx.yyy.org/tfs/" does not exist or is not available.
 
 TO-DO
@@ -34,6 +33,8 @@ Version: 6.1.7 alpha (2015-11-??)
 - refactor create a daily backup and keep the 20 last copies for alpha stage, last 10 for beta stage and last 5 for production version
 - improve text for Change folder option and move it in first position of General tab
 - fix bug when opening folder from popup menu in Settings
+- fix bug invalid window position values when Add this folder from a dialog box
+- remove default settings checkbox in fav advanced settings and adapt default FTP settings and label for TC
 
 Version: 6.1.6 alpha (2015-11-05)
 - sort entries in QAP feature Clipboard menu with files names and URLs merged
@@ -4419,7 +4420,7 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite") or (strGuiFavoriteLabel = "GuiC
 }
 else
 {
-	if (strGuiFavoriteLabel = "GuiAddThisFolder")
+	if (strGuiFavoriteLabel = "GuiAddThisFolder") and !WindowIsDialog(g_strTargetClass, g_strTargetWinId)
 	{
 		WinGetPos, intX, intY, intWidth, intHeight, ahk_id %g_strTargetWinId%
 		WinGet, intMinMax, MinMax, ahk_id %g_strTargetWinId% ; -1: minimized, 1: maximized, 0: neither minimized nor maximized
@@ -4454,7 +4455,7 @@ else
 	}
 	
 	if (g_strAddFavoriteType = "FTP")
-		g_blnNewFavoriteFtpEncoding := true
+		g_blnNewFavoriteFtpEncoding := (g_intActiveFileManager = 3 ? false : true) ; if TotalCommander URL should not be encoded (as hardcoded in OpenFavorite)
 }
 
 Gosub, GuiFavoriteIconDefault
@@ -4660,13 +4661,6 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
 
-	Gui, 2:Add, Checkbox, x20 y40 vf_blnUseDefaultSettings gCheckboxUseDefaultSettingsClicked, %lDialogUseDefaultSettings%
-
-	blnShowAdvancedSettings := StrLen(g_objEditedFavorite.FavoriteAppWorkingDir . g_arrGroupSettingsGui3 . g_objEditedFavorite.FavoriteLaunchWith . g_objEditedFavorite.FavoriteArguments)
-		or (!g_blnNewFavoriteFtpEncoding and g_objEditedFavorite.FavoriteType = "FTP")
-
-	GuiControl, , f_blnUseDefaultSettings, % !blnShowAdvancedSettings
-
 	if (g_objEditedFavorite.FavoriteType = "Application")
 	{
 		Gui, 2:Add, Text, x20 y+20 w300 vf_AdvancedSettingsLabel1, %lDialogWorkingDirLabel%
@@ -4700,11 +4694,9 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 
 	if (g_objEditedFavorite.FavoriteType = "FTP")
 	{
-		Gui, 2:Add, Checkbox, x20 y+5 vf_blnFavoriteFtpEncoding, %lOptionsFtpEncoding%
+		Gui, 2:Add, Checkbox, x20 y+5 vf_blnFavoriteFtpEncoding, % (g_intActiveFileManager = 3 ? lOptionsFtpEncodingTC : lOptionsFtpEncoding)
 		GuiControl, , f_blnFavoriteFtpEncoding, % (g_blnNewFavoriteFtpEncoding ? true : false) ; condition in case empty value would be considered as no label
 	}
-
-	Gosub, CheckboxUseDefaultSettingsClicked ; init controls hidden
 }
 
 return
@@ -4753,42 +4745,6 @@ else
 
 strQAPDefaultHotkey = ""
 strBackupFavoriteHotkey := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-CheckboxUseDefaultSettingsClicked:
-;------------------------------------------------------------
-Gui, 2:Submit, NoHide
-
-strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_AdvancedSettingsButton1|f_intGroupRestoreDelay|f_strFavoriteLaunchWith|f_AdvancedSettingsButton2|f_strFavoriteArguments|f_blnFavoriteFtpEncoding"
-
-; show or hide controls
-Loop, Parse, strAdvancedSettingsControls, |
-	if (g_intActiveFileManager = 3 and A_LoopField = "f_blnFavoriteFtpEncoding") ; 3 TotalCommander
-		; hide if TotalCommander is used because URL is never encoded with TC (as hardcoded in OpenFavorite)
-		GuiControl, Hide, f_blnFavoriteFtpEncoding
-	else
-		GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), %A_LoopField%
-
-; show or hide labels
-Loop, 6
-	GuiControl, % (f_blnUseDefaultSettings ? "Hide" : "Show"), f_AdvancedSettingsLabel%A_Index%
-
-if (f_blnUseDefaultSettings)
-; if use default, reset values to default
-{
-	strAdvancedSettingsControls := "f_strFavoriteAppWorkingDir|f_intGroupRestoreDelay|f_strFavoriteLaunchWith|f_strFavoriteArguments|f_strPlaceholdersCheck"
-	Loop, Parse, strAdvancedSettingsControls, |
-		GuiControl, , %A_LoopField% ; empty control to reset default value
-
-	; default value is true, except if TotalCommander is used
-	GuiControl, , f_blnFavoriteFtpEncoding, % (g_intActiveFileManager = 3 ? 0 : 1) ; 3 TotalCommander
-}
-
-strAdvancedSettingsControls := ""
 
 return
 ;------------------------------------------------------------
