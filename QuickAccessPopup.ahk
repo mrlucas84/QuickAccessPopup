@@ -16,9 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- in Settings, up arrow back to main show empty list (backline not initialized correctly in some situations - after menu name changed)
-- in Settings, rename a submenu, go in a menu, click after last item, add item: this item goes before the backlink
-- (intermittent, rare) sometimes backlink in Settings display an empty menu
+- fix text in option Change folder. Put option in General?
+- When opening folder in Settins (before save), Target label does not exist: OpenFavoriteNavigateQuickAccessPopup (line 4963)
+- Add this folder from Dialog box: invalid window position values
+- Folder fav on Sharepoint not working: "C:\Users\jlalonde\AppData\Roaming\Quick Access Popup\http://xxx.yyy.org/tfs/" does not exist or is not available.
 
 TO-DO
 - add QAP feature Add this folder Express (see this item in wishlist)
@@ -30,12 +31,15 @@ TO-DO
 HISTORY
 =======
 
+Version: 6.1.7 alpha (2015-11-??)
+- fix bug in Settings, after renaming a submenu, menus index was not updated causing errors when adding fav to submenus or browsing to parent menu
+- refactor create a daily backup and keep the 20 last copies for alpha stage, last 10 for beta stage and last 5 for production version
+
 Version: 6.1.6 alpha (2015-11-05)
 - sort entries in QAP feature Clipboard menu with files names and URLs merged
 - open groups in Total Commander and Directory Opus in a new instance only if group is set to Replace existing windows; remove unnecessary /S switch for TC
 - review how first group item is managed in TC and DOpus
 - when copying a Special folder or a QAP Feature favorites in Settings, set properly the drop down to the copied value in first tab
-- create a daily backup and keep the 20 last copies for alpha stage, last 10 for beta stage and last 5 for production version
 
 Version: 6.1.5 alpha (2015-11-01)
 - stop loading not updated translation files until they alre ready, causing error when upgrading from FP
@@ -283,7 +287,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.1.6 alpha
+;@Ahk2Exe-SetVersion 6.1.7 alpha
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -327,7 +331,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.1.6" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.1.7" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -5483,6 +5487,27 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 			. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
 		RecursiveUpdateMenuPath(g_objEditedFavorite.Submenu, strMenuLocation)
 		
+		if (strThisLabel = "GuiEditFavoriteSave")
+		{
+			; update g_objMenusIndex
+			strIndexToRemove := ""
+			for strThisMenuIndexPath, objThisMenu in g_objMenusIndex
+				if (strThisMenuIndexPath <> objThisMenu.MenuPath)
+				; because the menu (or group) name changed, update the menu path of this menu and submenus entries in g_objMenusIndex
+				{
+					; add index item objThisMenu.MenuPath containing the new path
+					g_objMenusIndex.Insert(objThisMenu.MenuPath, objThisMenu)
+					; remember to delete index entry with old path (remove only after loop because remove would break it)
+					strIndexToRemove .= strThisMenuIndexPath . "|"
+				}
+			if StrLen(strIndexToRemove)
+				Loop, Parse, strIndexToRemove, |
+					; remove index entry containing path before rename
+					if StrLen(A_LoopField) ; skip last field
+						g_objMenusIndex.Remove(A_LoopField)
+					
+		}
+		
 		StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
 		g_objEditedFavorite.FavoriteLocation := strMenuLocation
 		; ###_V(A_ThisLabel, strMenuLocation, g_objMenuInGui.MenuPath, g_intOriginalMenuPosition, g_objMenuInGui[g_intOriginalMenuPosition].FavoriteLocation, g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath) ; #####
@@ -5595,6 +5620,9 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave") ; do not execute at each favorite 
 	strMenuPath := ""
 	objMenu := ""
 	g_intNewItemPos := "" ; in case we abort save and retry
+	strIndexToRemove := ""
+	strThisMenuIndexPath := ""
+	objThisMenu := ""
 
 	; make sure all gui variables are flushed before next fav add or edit
 	f_blnRadioGroupAdd := ""
