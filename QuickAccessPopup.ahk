@@ -9628,7 +9628,7 @@ SetTargetClassWinIdAndControl(blnMouseElseKeyboard)
 LocationIsHTTP(strLocation)
 ;------------------------------------------------------------
 {
-	return SubStr(strLocation, 1, 7) = "http://") or SubStr(strLocation, 1, 8) = "https://")
+	return SubStr(strLocation, 1, 7) = "http://" or SubStr(strLocation, 1, 8) = "https://"
 }
 ;------------------------------------------------------------
 
