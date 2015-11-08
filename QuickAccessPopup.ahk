@@ -27,7 +27,7 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.1.7 alpha (2015-11-??)
+Version: 6.1.7 alpha (2015-11-07)
 - fix bug in Settings, after renaming a submenu, menus index was not updated causing errors when adding fav to submenus or browsing to parent menu
 - refactor create a daily backup and keep the 20 last copies for alpha stage, last 10 for beta stage and last 5 for production version
 - improve text for Change folder option and move it in first position of General tab
