@@ -2,7 +2,7 @@
 
 Freeware launcher for Windows.
 
-Written using AHKScript v1.1.09.03+ (http://www.ahkscript.org)  
+Written using AHKScript (http://www.ahkscript.org)  
 By JnLlnd on [AHKScript forum](http://ahkscript.org/boards/memberlist.php?mode=viewprofile&u=66)
 
 ## Links
@@ -13,7 +13,7 @@ By JnLlnd on [AHKScript forum](http://ahkscript.org/boards/memberlist.php?mode=v
 
 ## History
 
-See [QuickAccessPopup.ahk header](https://github.com/JnLlnd/QuickAccessPopup/blob/alpha/QuickAccessPopup.ahk)
+See [QuickAccessPopup.ahk header](https://github.com/JnLlnd/QuickAccessPopup/blob/beta/QuickAccessPopup.ahk)
 
 
 ## <a name="copyright"></a>Copyright
