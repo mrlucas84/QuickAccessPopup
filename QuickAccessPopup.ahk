@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- open WebDAV folder (http://...) works in dialog box but not in Explorer
 
 TO-DO
 - add QAP feature Add this folder Express (see this item in wishlist)
@@ -26,6 +27,10 @@ TO-DO
 
 HISTORY
 =======
+
+Version: 6.2.1 beta (2015-11-08)
+- renumbered and adapted for beta test phase
+- same features as v6.1.7
 
 Version: 6.1.7 alpha (2015-11-07)
 - fix bug in Settings, after renaming a submenu, menus index was not updated causing errors when adding fav to submenus or browsing to parent menu
@@ -288,7 +293,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.1.7 alpha
+;@Ahk2Exe-SetVersion 6.2.1 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -332,8 +337,8 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.1.7" ; "major.minor.bugs" or "major.minor.beta.release"
-g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
+g_strCurrentVersion := "6.2.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
 g_blnDiagMode := False
