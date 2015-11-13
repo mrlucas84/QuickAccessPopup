@@ -17,16 +17,24 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 BUGS
 - open WebDAV folder (http://...) works in dialog box but not in Explorer
+- username/password in FTP favoritews lost
 
 TO-DO
+- add QAP feature "Add window title or class to exclusion list"
 - add QAP feature Add this folder Express (see this item in wishlist)
-- improve exclusion lists gui in options, help text, class collector, QAP feature "Add window to exclusion list"
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 
 
 HISTORY
 =======
+
+Version: 6.2.2 beta (2015-11-12)
+- fix bug minimal value for top/left window position can be 0, not 1
+- improve exclusion lists management in Options, add help text and link, support exclusion based on window title or class
+- trim each line in exclusion list when saving Options
+- remove exclusions for keyboard QAP menu trigger
+- change dev icon to red (beta is green, prod will be white)
 
 Version: 6.2.1 beta (2015-11-08)
 - renumbered and adapted for beta test phase
@@ -293,7 +301,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.2.1 beta
+;@Ahk2Exe-SetVersion 6.2.2 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -337,7 +345,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.2.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.2.2" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -796,7 +804,7 @@ if (GetOsVersion() = "WIN_10")
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
-		. "|189|204|209|225"
+		. "|189|204|209|307"
 		. "|4|24|39|46|55"
 		. "|68|87|99|104|110"
 		. "|153|174|176|215|216"
@@ -1684,8 +1692,8 @@ g_blnUseColors := (g_strTheme <> "Windows")
 ; ---------------------
 ; Options Tab 4 Exclusion List
 
-IniRead, g_strExclusionMouseClassList, %g_strIniFile%, Global, ExclusionMouseClassList, %A_Space% ; empty string if not found
-IniRead, g_strExclusionKeyboardClassList, %g_strIniFile%, Global, ExclusionKeyboardClassList, %A_Space% ; empty string if not found
+IniRead, g_strExclusionMouseList, %g_strIniFile%, Global, ExclusionMouseList, %A_Space% ; empty string if not found
+; IniRead, g_strExclusionKeyboardList, %g_strIniFile%, Global, ExclusionKeyboardList, %A_Space% ; empty string if not found
 
 ; ---------------------
 ; Load Options Tab 5 File Managers
@@ -2209,7 +2217,7 @@ Menu, Tray, Icon, , , 1 ; last 1 to freeze icon during pause or suspend
 Menu, Tray, NoStandard
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for developement phase only - won't be compiled
-Menu, Tray, Icon, %A_ScriptDir%\QuickAccessPopup-red-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
+Menu, Tray, Icon, %A_ScriptDir%\QuickAccessPopup-DEV-red-512.ico, 1, 1 ; last 1 to freeze icon during pause or suspend
 Menu, Tray, Standard
 Menu, Tray, Add
 ; / End of code for developement phase only - won't be compiled
@@ -3209,11 +3217,12 @@ for intOrder, strPowerCode in g_objQAPFeaturesPowerCodeByOrder
 Gui, 2:Tab, 4
 Gui, 2:Font
 
-Gui, 2:Add, Text, x10 y+10 w595, Exclusions list for Mouse hotkeys
-Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionMouseClassList, % ReplaceAllInString(Trim(g_strExclusionMouseClassList), "|", "`n")
+Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsExclusionTitle, Hotkey2Text(g_arrPopupHotkeys1))
+Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionMouseList, % ReplaceAllInString(Trim(g_strExclusionMouseList), "|", "`n")
+Gui, 2:Add, Link, x10 y+10 w595, % L(lOptionsExclusionDetail, Hotkey2Text(g_arrPopupHotkeys1), "http://www.quickaccesspopup.com/can-i-block-the-qap-menu-hotkeys-if-they-interfere-with-one-of-my-other-apps/")
 
-Gui, 2:Add, Text, x10 y+20 w595, Exclusions list for Keyboard hotkey
-Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionKeyboardClassList, % ReplaceAllInString(Trim(g_strExclusionKeyboardClassList), "|", "`n")
+; Gui, 2:Add, Text, x10 y+20 w595, Exclusions list for Keyboard hotkey
+; Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionKeyboardList, % ReplaceAllInString(Trim(g_strExclusionKeyboardList), "|", "`n")
 
 ;---------------------------------------
 ; Tab 5: File Managers
@@ -3648,11 +3657,17 @@ Gosub, LoadIniPopupHotkeys ; reload ini variables and reset hotkeys
 ;---------------------------------------
 ; Save Tab 4: Exclusion list
 
-g_strExclusionMouseClassList := ReplaceAllInString(Trim(f_strExclusionMouseClassList, " `t`n"), "`n", "|")
-IniWrite, %g_strExclusionMouseClassList%, %g_strIniFile%, Global, ExclusionMouseClassList
+strExclusionCleanup := ReplaceAllInString(f_strExclusionMouseList, "`n", "|")
+g_strExclusionMouseList := ""
+Loop, Parse, strExclusionCleanup, |
+	if StrLen(A_LoopField)
+		g_strExclusionMouseList .= Trim(A_LoopField) . "|"
+StringTrimRight, g_strExclusionMouseList, g_strExclusionMouseList, 1 ; remove last |
+; ###_V(A_ThisLabel, f_strExclusionMouseList, strExclusionCleanup, g_strExclusionMouseList)
+IniWrite, %g_strExclusionMouseList%, %g_strIniFile%, Global, ExclusionMouseList
 
-g_strExclusionKeyboardClassList := ReplaceAllInString(Trim(f_strExclusionKeyboardClassList, " `t`n"), "`n", "|")
-IniWrite, %g_strExclusionKeyboardClassList%, %g_strIniFile%, Global, ExclusionKeyboardClassList
+; g_strExclusionKeyboardList := ReplaceAllInString(Trim(f_strExclusionKeyboardList, " `t`n"), "`n", "|")
+; IniWrite, %g_strExclusionKeyboardList%, %g_strIniFile%, Global, ExclusionKeyboardList
 
 ;---------------------------------------
 ; Save Tab 5: File Managers
@@ -3719,6 +3734,7 @@ strThemePrev := ""
 strActiveFileManagerSystemName := ""
 strActiveFileManagerDisplayName := ""
 blnActiveFileManangerOK := ""
+strExclusionCleanup := ""
 
 return
 ;------------------------------------------------------------
@@ -5647,6 +5663,8 @@ RecursiveUpdateMenuPath(objEditedMenu, strMenuPath)
 ValidateWindowPosition(strPosition)
 ;------------------------------------------------------------
 {
+	; Boolean,MinMax,Left,Top,Width,Height,Delay,RestoreSide
+	; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay (default 200 ms), L Left / R Right; for example: "1,0,100,50,640,480,200" or "0,,,,,,,L"
 	StringSplit, arrPosition, strPosition, `,
 	if !(arrPosition1) or (arrPosition2 <> 0) ; no position to validate
 		return true
@@ -5665,7 +5683,7 @@ ValidateWindowPosition(strPosition)
 		blnOK := true
 
 	if (blnOK)
-		blnOK := (arrPosition3 > 0) and (arrPosition4 > 0) and (arrPosition5 > 0) and (arrPosition6 > 0) and (arrPosition7 >= 0)
+		blnOK := (arrPosition3 >= 0) and (arrPosition4 >= 0) and (arrPosition5 > 0) and (arrPosition6 > 0) and (arrPosition7 >= 0)
 	
 	return blnOK
 }
@@ -6994,15 +7012,14 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 {
 	global
 
-	g_intCounterLaunch++
-
 	; g_arrPopupHotkeys1 is mouse hotkey
 	SetTargetClassWinIdAndControl(strMouseOrKeyboard = g_arrPopupHotkeys1)
-	strExclusionClassList := (strMouseOrKeyboard = g_arrPopupHotkeys1 ? g_strExclusionMouseClassList : g_strExclusionKeyboardClassList)
-	; ###_V("CanLaunch`n`n", g_strExclusionClassList, g_strTargetClass . "|")
+	; ###_V("CanLaunch", strExclusionList, g_strTargetClass, g_strTargetWinTitle)
 
-	Loop, Parse, strExclusionClassList, |
-		if StrLen(A_Loopfield) and InStr(g_strTargetClass, A_LoopField)
+	; strExclusionList := (strMouseOrKeyboard = g_arrPopupHotkeys1 ? g_strExclusionMouseList : g_strExclusionKeyboardList)
+	; Loop, Parse, strExclusionList, |
+	Loop, Parse, g_strExclusionMouseList, |
+		if StrLen(A_Loopfield) and (InStr(g_strTargetClass, A_LoopField) or InStr(g_strTargetWinTitle, A_LoopField))
 			return false
 	; if not excluded
 	return true
@@ -9625,6 +9642,8 @@ SetTargetClassWinIdAndControl(blnMouseElseKeyboard)
 		WinGetClass g_strTargetClass, % "ahk_id " . g_strTargetWinId
 		; TrayTip, Navigate Keyboard, %strMouseOrKeyboard% = %g_strKeyboardNavigateHotkey% (%g_intCounter%)`n%g_strTargetWinId%`n%g_strTargetClass%
 	}
+
+	WinGetTitle, g_strTargetWinTitle, % "ahk_id " . g_strTargetWinId
 }
 ;------------------------------------------------------------
 
