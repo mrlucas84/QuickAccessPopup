@@ -346,8 +346,10 @@ global lOptionsDisplayRecentFolders := "R&ecent Folders"
 global lOptionsDisplaySpecialFolders := "S&pecial Folders"
 ; global lOptionsDisplaySpecialMenusShortcuts := "Display these shortcuts in main menu" ; removed
 global lOptionsDisplayFavoritesHotkeysInMenus := "Display favorites shortcuts in menus" ; new
-global lOptionsGuiTitle := "Options - ~1~ ~2~"
-global lOptionsExclusionList := "Exclusion lists" ; new
+global lOptionsExclusionDetail := "To block the QAP mouse menu button (~1~) in an application, enter any part of the window title of the application. You can enter multiple exclusions, one per line. For example, to exclude Google Chrome and Microsoft Word, enter the following two lines in the exclusion list:`n`nGoogle Chrome`nMicrosoft Word`n`nThe QAP hotkey will be disabled in these apps and the ""~1~"" click will be sent to the target window as if QAP was not running. You can fid help and support on this feature <a href=""~2~"">on the QAP website</a>."
+global lOptionsExclusionTitle := "Exclusions list for Mouse trigger (~1~)" ; new
+global lOptionsGuiTitle := "Options - ~1~ ~2~" ; new
+global lOptionsExclusionList := "Exclusions list" ; new
 global lOptionsFtpEncoding := "Encode FTP username and password (recommended)" ; new
 global lOptionsFtpEncodingTC := "Encode FTP username and password (not recommended for Total Commander)" ; new
 global lOptionsHotkeyRemindersFull := "Display full names"
