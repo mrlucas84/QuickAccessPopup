@@ -34,6 +34,13 @@ Version: 6.2.3 beta (2015-11-??)
 - add QAP feature "Get window title and class" and copy info to clipboard
 - add button to launch this feature from the Exclusions list in Options
 - add help line in favorite advanced settings about double-quotes for parameters
+- support favorite locations with relative path, envvars and anywhere in PATH environment variables directories
+- Clipboard feature supports relative path, envvars and files in PATH
+- icons files support relative path, envvars and files in PATH (need to modify GUI to allow text input or icon files path)
+- favorite advanced setting "launch with" supports relative path, envvars and files in PATH
+- external file managers configuration support relative path, envvars and apps in PATH
+- detect Dopus at launch if dopus.exe in PATH or registry App Path key
+
 
 Version: 6.2.2 beta (2015-11-12)
 - fix bug minimal value for top/left window position can be 0, not 1
@@ -1724,13 +1731,13 @@ if (g_intActiveFileManager = 4) ; QAPconnect connected File Manager
 {
 	blnActiveFileManangerOK := StrLen(g_strQAPconnectAppPath)
 	if (blnActiveFileManangerOK)
-		blnActiveFileManangerOK := FileExist(g_strQAPconnectAppPath)
+		blnActiveFileManangerOK := FileExistInPath(g_strQAPconnectAppPath)
 }
 else if (g_intActiveFileManager > 1) ; 2 DirectoryOpus or 3 TotalCommander
 {
 	blnActiveFileManangerOK := StrLen(g_str%strActiveFileManagerSystemName%Path)
 	if (blnActiveFileManangerOK) 
-		blnActiveFileManangerOK := FileExist(g_str%strActiveFileManagerSystemName%Path)
+		blnActiveFileManangerOK := FileExistInPath(g_str%strActiveFileManagerSystemName%Path)
 }
 if (g_intActiveFileManager > 1) ; 2 DirectoryOpus, 3 TotalCommander or 4 QAPconnect
 	if (blnActiveFileManangerOK)
@@ -2648,10 +2655,9 @@ GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strURLIconFile, in
 ; Parse Clipboard for folder, document or application filenames (filenames alone on one line)
 Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 {
-    strClipboardLine := A_LoopField
-	strClipboardLineExpanded := EnvVars(strClipboardLine) ; only to test if file exist - will not be displayed in menu
+	strClipboardLineExpanded := A_LoopField ; only for FileExistInPath - will not be displayed in menu
 
-	if StrLen(FileExist(strClipboardLineExpanded))
+	if FileExistInPath(strClipboardLineExpanded) ; rerturn strClipboardLineExpanded with expanded relative path and envvars, and search in PATH
 	{
 		strContentsInClipboard .= "`n" . A_LoopField
 		
@@ -2668,7 +2674,7 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 	}
 
 	; Parse Clipboard line for URLs (anywhere on the line)
-	strURLSearchString := strClipboardLine
+	strURLSearchString := A_LoopField
 	Gosub, GetURLsInClipboardLine
 }
 
@@ -2695,7 +2701,6 @@ if StrLen(strContentsInClipboard)
 
 intShortcutClipboardMenu := ""
 strContentsInClipboard := ""
-strClipboardLine := ""
 strClipboardLineExpanded := ""
 strURLSearchString := ""
 strURLIconFile := ""
@@ -3550,7 +3555,8 @@ if (g_intClickedFileManager = 4) ; QAPconnect
 	{
 		g_strQAPconnectFileManager := f_drpQAPconnectFileManager
 		Gosub, LoadIniQAPconnectValues ; values are already expanded
-		blnActiveFileManangerOK := FileExist(g_strQAPconnectAppPath)
+		strTempLocation := g_strQAPconnectAppPath ; avoid change in g_strQAPconnectAppPath by FileExistInPath
+		blnActiveFileManangerOK := FileExistInPath(strTempLocation) ; return strTempLocation expanded
 		if (blnActiveFileManangerOK)
 			g_strQAPconnectFileManager := f_drpQAPconnectFileManager
 	}
@@ -3559,7 +3565,10 @@ else if (g_intClickedFileManager > 1) ; 2 DirectoryOpus or 3 TotalCommander
 {
 	blnActiveFileManangerOK := StrLen(f_strFileManagerPath)
 	if (blnActiveFileManangerOK)
-		blnActiveFileManangerOK := FileExist(PathCombine(A_WorkingDir, EnvVars(f_strFileManagerPath)))
+	{
+		strTempLocation := f_strFileManagerPath ; avoid change in f_strFileManagerPath by FileExistInPath
+		blnActiveFileManangerOK := FileExistInPath(strTempLocation) ; return strTempLocation with expanded relative path and envvars, and absolute location if in PATH
+	}
 }
 ; ###_V(A_ThisLabel, g_intClickedFileManager, f_drpQAPconnectFileManager, blnActiveFileManangerOK, g_strQAPconnectFileManager, g_strQAPconnectCompanionPath)
 if (g_intClickedFileManager > 1 and !blnActiveFileManangerOK)
@@ -3568,7 +3577,7 @@ if (g_intClickedFileManager > 1 and !blnActiveFileManangerOK)
 		Oops(lOptionsThirdPartyFileNotFound, f_drpQAPconnectFileManager, g_strQAPconnectAppPath)
 	else ; 2 DirectoryOpus or 3 TotalCommander
 		if StrLen(f_strFileManagerPath)
-			Oops(lOptionsThirdPartyFileNotFound, strActiveFileManagerDisplayName, PathCombine(A_WorkingDir, EnvVars(f_strFileManagerPath)))
+			Oops(lOptionsThirdPartyFileNotFound, strActiveFileManagerDisplayName, f_strFileManagerPath)
 		else
 			Oops(lOptionsThirdPartySelectFile, strActiveFileManagerDisplayName)
 
@@ -3743,6 +3752,7 @@ strActiveFileManagerSystemName := ""
 strActiveFileManagerDisplayName := ""
 blnActiveFileManangerOK := ""
 strExclusionCleanup := ""
+strTempLocation := ""
 
 return
 ;------------------------------------------------------------
@@ -4990,7 +5000,7 @@ if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and !StrLen(f
 ; Source: http://ahkscript.org/boards/viewtopic.php?f=5&t=5108#p29970
 VarSetCapacity(strThisIconFile, 1024) ; must be placed before strNewIconFile is initialized because VarSetCapacity erase its content
 ParseIconResource(g_strNewFavoriteIconResource, strThisIconFile, intThisIconIndex)
-strThisIconFile := PathCombine(A_WorkingDir, strThisIconFile)
+blnFileExist := FileExistInPath(strThisIconFile)
 
 WinGet, hWnd, ID, A
 if (intThisIconIndex >= 0) ; adjust index for positive index only (not for negative index)
@@ -5006,6 +5016,7 @@ Gosub, GuiFavoriteIconDisplay
 
 strThisIconFile := ""
 intThisIconIndex := ""
+blnFileExist := ""
 
 return
 ;------------------------------------------------------------
@@ -7408,15 +7419,19 @@ if (g_objThisFavorite.FavoriteType = "Group") and !(g_blnPowerMenu)
 	return
 }
 
+strTempLocation := g_objThisFavorite.FavoriteLocation ; to avoid modification by ByRef in FileExistInPath
+
 if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for these favorites, file/folder must exist
 	and (g_strPowerMenu <> lMenuPowerEditFavorite) ; except if we edit the favorite
 	and !LocationIsHTTP(g_objThisFavorite.FavoriteLocation) ; except if the folder location is on a server (WebDAV)
-	if !FileExist(PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLocation)))
-	; ##### if !(g_objThisFavorite.FavoriteType = "Application") and !InStr(g_objThisFavorite.FavoriteLocation, "\") ; except if application has no folder, then use PATH
+	
+	if !FileExistInPath(strTempLocation) ; return strTempLocation with expanded relative path and envvars, also search in PATH
+	; was if !FileExist(PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLocation)))
 	{
 		Gui, 1:+OwnDialogs
 		MsgBox, 0, % L(lDialogFavoriteDoesNotExistTitle, g_strAppNameText)
-			, % L(lDialogFavoriteDoesNotExistPrompt, PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLocation)))
+			, % L(lDialogFavoriteDoesNotExistPrompt, g_objThisFavorite.FavoriteLocation
+				, (StrLen(strTempLocation) and strTempLocation <> g_objThisFavorite.FavoriteLocation ? " (" . strTempLocation . ")" : ""))
 		gosub, OpenFavoriteCleanup
 		return
 	}
@@ -7578,6 +7593,7 @@ strFavoriteWindowPosition := ""
 g_arrFavoriteWindowPosition := ""
 g_blnPowerMenu := ""
 g_strPowerMenu := ""
+strTempLocation := ""
 
 return
 ;------------------------------------------------------------
@@ -7779,15 +7795,17 @@ else
 		and !LocationIsHTTP(g_objThisFavorite.FavoriteLocation) ; except if the folder location is on a server (like WebDAV)
 		; expand system variables
 		; make the location absolute based on the current working directory
-		g_strFullLocation := PathCombine(A_WorkingDir, EnvVars(g_strFullLocation))
+		blnFileExist := FileExistInPath(g_strFullLocation) ; return g_strFullLocation with expanded relative path and envvars, and absolute location if in PATH
+		; was g_strFullLocation := PathCombine(A_WorkingDir, EnvVars(g_strFullLocation))
 	else if (g_objThisFavorite.FavoriteType = "Special")
 		g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_strTargetAppName, g_objThisFavorite) ; can change values of g_strHokeyTypeDetected and g_strTargetAppName
 	; else URL or QAP (no need to expand or make absolute), keep g_strFullLocation as in g_objThisFavorite.FavoriteLocation
 
 if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; always empty for Application favorites
 {
-	strFullLaunchWith := PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLaunchWith))
-	if !FileExist(strFullLaunchWith) and (g_strPowerMenu <> lMenuPowerEditFavorite)
+	strFullLaunchWith := g_objThisFavorite.FavoriteLaunchWith
+	blnFileExist := FileExistInPath(strFullLaunchWith) ; return strFullLaunchWith expanded and searched in PATH
+	if !(blnFileExist) and (g_strPowerMenu <> lMenuPowerEditFavorite)
 		Oops(lOopsLaunchWithNotFound, strFullLaunchWith) ; leave g_strFullLocation as-is
 	else
 		g_strFullLocation := strFullLaunchWith . " """ . g_strFullLocation . """" ; enclose document path in double-quotes
@@ -7806,6 +7824,7 @@ strOutDrive := ""
 strLoginName := ""
 strPassword := ""
 strFullLaunchWith := ""
+blnFileExist := ""
 
 return
 ;------------------------------------------------------------
@@ -8985,11 +9004,25 @@ strFileManagerSystemName := g_arrActiveFileManagerSystemNames%intFileManager%
 
 strFileManagerDisplayName := g_arrActiveFileManagerDisplayNames%intFileManager%
 if (intFileManager = 2) ; DirectoryOpus
+{
 	strCheckPath := A_ProgramFiles . "\GPSoftware\Directory Opus\dopus.exe"
+	strCheckPathShort := "dopus.exe"
+}
 else ; 3 TotalCommander
+{
 	strCheckPath := GetTotalCommanderPath()
+	strCheckPathShort := ""
+}
 
-if FileExist(strCheckPath)
+blnFileExist := FileExist(strCheckPath)
+if !(blnFileExist) and StrLen(strCheckPathShort)
+	if FileExistInPath(strCheckPathShort) ; return strCheckPathShort expanded and searched in PATH
+	{
+		blnFileExist := true
+		strCheckPath := strCheckPathShort ; expanded
+	}
+	
+if (blnFileExist)
 {
 	MsgBox, 52, %g_strAppNameText%, % L(lDialogThirdPartyDetected, g_strAppNameText, strFileManagerDisplayName)
 	IfMsgBox, Yes
@@ -9013,6 +9046,8 @@ if FileExist(strCheckPath)
 strFileManagerSystemName := ""
 strFileManagerDisplayName := ""
 strCheckPath := ""
+strCheckPathShort := ""
+blnFileExist := ""
 
 return
 ;------------------------------------------------------------
@@ -9050,15 +9085,17 @@ CompanionPath=EFCWT.EXE
 */
 
 IniRead, g_strQAPconnectAppPath, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, AppPath, %A_Space% ; empty by default
-g_strQAPconnectAppPath := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectAppPath))
+blnFileExist := FileExistInPath(g_strQAPconnectAppPath) ; return g_strQAPconnectAppPath expanded and searched in PATH
 IniRead, g_strQAPconnectCommandLine, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, CommandLine, %A_Space% ; empty by default
 IniRead, g_strQAPconnectNewTabSwitch, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, NewTabSwitch, %A_Space% ; empty by default
 IniRead, g_strQAPconnectCompanionPath, %g_strQAPconnectIniPath%, %g_strQAPconnectFileManager%, CompanionPath, %A_Space% ; empty by default
 if StrLen(g_strQAPconnectCompanionPath)
-	g_strQAPconnectCompanionPath := PathCombine(A_WorkingDir, EnvVars(g_strQAPconnectCompanionPath))
+	blnFileExist := FileExistInPath(g_strQAPconnectCompanionPath) ; return g_strQAPconnectCompanionPath expanded and searched in PATH
 SplitPath, g_strQAPconnectCompanionPath, g_strQAPconnectCompanionFilename
 
 ; ###_V(A_ThisLabel, g_strQAPconnectAppPath, g_strQAPconnectCommandLine, g_strQAPconnectNewTabSwitch, g_strQAPconnectCompanionPath)
+
+blnFileExist := ""
 
 return
 ;------------------------------------------------------------
@@ -9104,7 +9141,7 @@ RunDOpusRt(strCommand, strLocation := "", strParam := "")
 {
 	global g_strDirectoryOpusRtPath
 	
-	if FileExist(g_strDirectoryOpusRtPath)
+	if FileExist(g_strDirectoryOpusRtPath) ; for safety only
 		Run, % """" . g_strDirectoryOpusRtPath . """ " . strCommand . " """ . strLocation . """" . strParam
 }
 ;------------------------------------------------------------
