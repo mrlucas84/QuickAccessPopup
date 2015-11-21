@@ -20,14 +20,20 @@ BUGS
 - username/password in FTP favoritews lost
 
 TO-DO
-- add QAP feature "Add window title or class to exclusion list"
-- add QAP feature Add this folder Express (see this item in wishlist)
+- run application favorites using PATH locations for application when apps location does not include foloder location (has no "\")
+- add QAP feature "Add this folder Express" (see this item in wishlist)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 
 
 HISTORY
 =======
+
+Version: 6.2.3 beta (2015-11-??)
+- more explicit error message if user try to copy submenu, group, separator or column break in settings
+- add QAP feature "Get window title and class" and copy info to clipboard
+- add button to launch this feature from the Exclusions list in Options
+- add help line in favorite advanced settings about double-quotes for parameters
 
 Version: 6.2.2 beta (2015-11-12)
 - fix bug minimal value for top/left window position can be 0, not 1
@@ -201,7 +207,7 @@ Options
 Convert all FP options
 Add two exclusion lists to disable hotkeys in the selected type of window (basic user interface to be improved):
 1) One exclusion list for mouse triggers (mouse QAP hotley and mouse Power hotkey)
-2) One exclusion list for keyboard triggers (keyboard QAP hotley and keyboard Power hotkey)
+(* removed *) 2) One exclusion list for keyboard triggers (keyboard QAP hotley and keyboard Power hotkey)
 Option to display or not the favorite shortcuts reminders in popup menu (full name or abbreviated name)
 
 Menus
@@ -301,7 +307,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.2.2 beta
+;@Ahk2Exe-SetVersion 6.2.3 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -345,7 +351,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.2.2" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.2.3" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -496,7 +502,7 @@ OnMessage(0x404, "AHK_NOTIFYICON")
 
 ; Respond to SendMessage sent by ImportFPsettings to signal that QAP is running
 ; No specific reason for 0x2224, except that is is > 0x1000 (http://ahkscript.org/docs/commands/OnMessage.htm)
-OnMessage(0x2224, "ReplyQAPisRunning")
+OnMessage(0x2224, "REPLY_QAPISRUNNING")
 
 ; Create a mutex to allow Inno Setup to detect if FP is running before uninstall or update
 DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex")
@@ -845,14 +851,14 @@ Loop, Parse, strIconsMenus, |
 
 ; ----------------------
 ; FAVORITE TYPES
-strFavoriteTypes := "Folder|Document|Application|Special|URL|FTP|QAP|Menu|Group"
+strFavoriteTypes := "Folder|Document|Application|Special|URL|FTP|QAP|Menu|Group|X|K|B"
 StringSplit, g_arrFavoriteTypes, strFavoriteTypes, |
 StringSplit, arrFavoriteTypesLabels, lDialogFavoriteTypesLabels, |
 g_objFavoriteTypesLabels := Object()
 StringSplit, arrFavoriteTypesLocationLabels, lDialogFavoriteTypesLocationLabels, |
 g_objFavoriteTypesLocationLabels := Object()
 ; StringSplit, arrFavoriteTypesHelp, lDialogFavoriteTypesHelp, |
-Loop, 9
+Loop, 9 ; excluding X, K and B
 	arrFavoriteTypesHelp%A_Index% := lDialogFavoriteTypesHelp%A_Index%
 g_objFavoriteTypesHelp := Object()
 StringSplit, arrFavoriteTypesShortNames, lDialogFavoriteTypesShortNames, |
@@ -1395,25 +1401,26 @@ InitQAPFeatures:
 ; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strDefaultHotkey)
 
 ; Submenus features
-InitQAPFeatureObject("Clipboard", lMenuClipboard . "...", "g_menuClipboard", "ClipboardMenuShortcut", 0, "iconClipboard", "+^C")
-InitQAPFeatureObject("Current Folders", lMenuCurrentFolders . "...", "g_menuCurrentFolders", "CurrentFoldersMenuShortcut", 0, "iconCurrentFolders", "+^F")
+InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", "+^C")
+InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuCurrentFolders",	"CurrentFoldersMenuShortcut",	0, "iconCurrentFolders", "+^F")
 
 ; Command features
-InitQAPFeatureObject("About", lGuiAbout . "...", "", "GuiAbout", 0, "iconAbout")
-InitQAPFeatureObject("Add Favorite", lMenuAddFavorite . "...", "", "AddThisFolder", 0, "iconLaunch")
-InitQAPFeatureObject("Add This Folder", lMenuAddThisFolder . "...", "", "AddThisFolder", 0, "iconAddThisFolder", "+^A")
-InitQAPFeatureObject("Exit", L(lMenuExitApp, g_strAppNameText), "", "ExitApp", 0, "iconExit")
-InitQAPFeatureObject("Help", lGuiHelp . "...", "", "GuiHelp", 0, "iconHelp")
-InitQAPFeatureObject("Hotkeys", lDialogHotkeys . "...", "", "GuiHotkeysManageFromQAPFeature", 0, "iconHotkeys")
-InitQAPFeatureObject("Options", lGuiOptions . "...", "", "GuiOptionsFromQAPFeature", 0, "iconOptions")
-InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", 0, "iconRecentFolders", "+^R")
-InitQAPFeatureObject("Settings", lMenuSettings . "...", "", "SettingsHotkey", 0, "iconSettings", "+^S")
-InitQAPFeatureObject("Support", lGuiDonate . "...", "", "GuiDonate", 0, "iconDonate")
+InitQAPFeatureObject("About",			lGuiAbout . "...",					"", "GuiAbout",							0, "iconAbout")
+InitQAPFeatureObject("Add Favorite",	lMenuAddFavorite . "...",			"", "AddThisFolder",					0, "iconLaunch")
+InitQAPFeatureObject("Add This Folder",	lMenuAddThisFolder . "...",			"", "AddThisFolder",					0, "iconAddThisFolder", "+^A")
+InitQAPFeatureObject("Exit",			L(lMenuExitApp, g_strAppNameText),	"", "ExitApp",							0, "iconExit")
+InitQAPFeatureObject("Help",			lGuiHelp . "...",					"", "GuiHelp",							0, "iconHelp")
+InitQAPFeatureObject("Hotkeys",			lDialogHotkeys . "...",				"", "GuiHotkeysManageFromQAPFeature",	0, "iconHotkeys")
+InitQAPFeatureObject("Options",			lGuiOptions . "...",				"", "GuiOptionsFromQAPFeature",			0, "iconOptions")
+InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"", "RecentFoldersMenuShortcut",		0, "iconRecentFolders", "+^R")
+InitQAPFeatureObject("Settings",		lMenuSettings . "...",				"", "SettingsHotkey",					0, "iconSettings", "+^S")
+InitQAPFeatureObject("Support",			lGuiDonate . "...",					"", "GuiDonate",						0, "iconDonate")
+InitQAPFeatureObject("GetWinInfo",		lMenuGetWinInfo . "...",			"", "GetWinInfo",						0, "iconAbout")
 
 ; Power Menu features
-InitQAPFeatureObject("Open in New Window", lMenuPowerNewWindow, "", "", 1, "iconFolder")
-InitQAPFeatureObject("Edit Favorite", lMenuPowerEditFavorite, "", "", 3, "iconEditFavorite")
-InitQAPFeatureObject("Copy Favorite Location", lMenuCopyLocation, "", "", 5, "iconClipboard", "+^V")
+InitQAPFeatureObject("Open in New Window",		lMenuPowerNewWindow,	"", "", 1, "iconFolder")
+InitQAPFeatureObject("Edit Favorite",			lMenuPowerEditFavorite,	"", "", 3, "iconEditFavorite")
+InitQAPFeatureObject("Copy Favorite Location",	lMenuCopyLocation,		"", "", 5, "iconClipboard", "+^V")
 
 ;--------------------------------
 ; Build folders list for dropdown
@@ -2994,7 +3001,7 @@ AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue, blnEnabl
 
 ;------------------------------------------------------------
 InsertColumnBreaks:
-; Based on Lexikos
+; Based on Rexx Folder Menu (http://foldermenu.sourceforge.net/) and Lexikos code
 ; http://www.autohotkey.com/board/topic/69553-menu-with-columns-problem-with-adding-column-separator/#entry440866
 ;------------------------------------------------------------
 
@@ -3219,10 +3226,11 @@ Gui, 2:Font
 
 Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsExclusionTitle, Hotkey2Text(g_arrPopupHotkeys1))
 Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionMouseList, % ReplaceAllInString(Trim(g_strExclusionMouseList), "|", "`n")
-Gui, 2:Add, Link, x10 y+10 w595, % L(lOptionsExclusionDetail, Hotkey2Text(g_arrPopupHotkeys1), "http://www.quickaccesspopup.com/can-i-block-the-qap-menu-hotkeys-if-they-interfere-with-one-of-my-other-apps/")
+Gui, 2:Add, Link, x10 y+10 w595, % L(lOptionsExclusionDetail1, Hotkey2Text(g_arrPopupHotkeys1))
+Gui, 2:Add, Link, x10 y+10 w595, % L(lOptionsExclusionDetail2, Hotkey2Text(g_arrPopupHotkeys1), "http://www.quickaccesspopup.com/can-i-block-the-qap-menu-hotkeys-if-they-interfere-with-one-of-my-other-apps/")
+Gui, 2:Add, Button, x10 y+10 vf_btnGetWinInfo gGetWinInfo, %lMenuGetWinInfo%
 
-; Gui, 2:Add, Text, x10 y+20 w595, Exclusions list for Keyboard hotkey
-; Gui, 2:Add, Edit, x10 y+5 w600 r10 vf_strExclusionKeyboardList, % ReplaceAllInString(Trim(g_strExclusionKeyboardList), "|", "`n")
+GuiCenterButtons(L(lOptionsGuiTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnGetWinInfo")
 
 ;---------------------------------------
 ; Tab 5: File Managers
@@ -4047,12 +4055,13 @@ Gui, 2:Add, Text, x10 y+20, %lDialogAdd%:
 Gui, 2:Add, Text, x+10 yp section
 
 loop, %g_arrFavoriteTypes0%
-	Gui, 2:Add, Radio, % (A_Index = 1 ? " vf_intRadioFavoriteType yp " : (A_Index = 7 or A_Index = 8? "y+15 " : "")) . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
+	if StrLen(g_arrFavoriteTypes%A_Index%) > 1 ; to exclude types "X" and "K"
+		Gui, 2:Add, Radio, % (A_Index = 1 ? " vf_intRadioFavoriteType yp " : (A_Index = 7 or A_Index = 8? "y+15 " : "")) . "xs gFavoriteSelectTypeRadioButtonsChanged", % g_objFavoriteTypesLabels[g_arrFavoriteTypes%A_Index%]
 
 Gui, 2:Add, Button, x+20 y+20 vf_btnAddFavoriteSelectTypeContinue gGuiAddFavoriteSelectTypeContinue default, %lDialogContinue%
 Gui, 2:Add, Button, yp vf_btnAddFavoriteSelectTypeCancel gGuiEditFavoriteCancel, %lGuiCancel%
 Gui, Add, Text
-Gui, 2:Add, Text, % "xs+120 ys vf_lblAddFavoriteTypeHelp w250 h" . g_arrFavoriteTypes0 * 20, % L(lDialogFavoriteSelectType, lDialogContinue)
+Gui, 2:Add, Text, xs+120 ys vf_lblAddFavoriteTypeHelp w250 h200, % L(lDialogFavoriteSelectType, lDialogContinue)
 
 GuiCenterButtons(L(lDialogAddFavoriteSelectTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnAddFavoriteSelectTypeContinue", "f_btnAddFavoriteSelectTypeCancel")
 Gui, 2:Show, AutoSize Center
@@ -4419,7 +4428,10 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite") or (strGuiFavoriteLabel = "GuiC
 		g_blnAbordEdit := true
 	
 	if (g_blnAbordEdit = true)
+	{
+		Oops(lOopsCannotCopyFavorite, g_objFavoriteTypesShortNames[g_objEditedFavorite.FavoriteType])
 		return
+	}
 
 	g_strNewFavoriteIconResource := g_objEditedFavorite.FavoriteIconResource
 	g_strNewFavoriteWindowPosition := g_objEditedFavorite.FavoriteWindowPosition
@@ -4705,6 +4717,7 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 	{
 		Gui, 2:Add, Text, y+20 x20 w300 vf_AdvancedSettingsLabel5, %lDialogArgumentsLabel%
 		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments gFavoriteArgumentChanged, % g_objEditedFavorite.FavoriteArguments
+		Gui, 2:Add, Text, x20 y+5 w400 vf_AdvancedSettingsLabel7, %lDialogArgumentsLabelHelp%
 		Gui, 2:Add, Text, x20 y+5 w400 vf_AdvancedSettingsLabel6, %lDialogArgumentsPlaceholders%
 		
 		Gui, 2:Add, Text, x20 y+10 w400 vf_PlaceholdersCheckLabel, %lDialogArgumentsPlaceholdersCheckLabel%
@@ -6900,6 +6913,12 @@ LaunchFromPowerMenu:
 if !(g_blnMenuReady)
 	return
 
+if (g_blnGetWinInfo)
+{
+	gosub, GetWinInfo2Clippoard
+	return
+}
+	
 Gosub, SetMenuPosition
 
 g_blnPowerMenu := (A_ThisLabel = "LaunchFromPowerMenu")
@@ -6908,7 +6927,7 @@ if !(g_blnPowerMenu)
 
 if (A_ThisLabel = "LaunchFromTrayIcon")
 {
-	SetTargetClassWinIdAndControl(false)
+	SetTargetWinInfo(false)
 	g_strHokeyTypeDetected := "Launch"
 }
 else if (A_ThisLabel = "LaunchFromPowerMenu")
@@ -6991,7 +7010,7 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 	global ; sets g_strTargetWinId, g_strTargetControl, g_strTargetClass
 
 	; Mouse hotkey (g_arrPopupHotkeys1 is NavigateOrLaunchHotkeyMouse value in ini file)
-	SetTargetClassWinIdAndControl(strMouseOrKeyboard = g_arrPopupHotkeys1)
+	SetTargetWinInfo(strMouseOrKeyboard = g_arrPopupHotkeys1)
 
 	; ###_V("CanNavigate", g_intActiveFileManager, g_strTargetWinId, WindowIsQAPconnect(g_strTargetWinId))
 	blnCanNavigate := WindowIsExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
@@ -7013,7 +7032,7 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 	global
 
 	; g_arrPopupHotkeys1 is mouse hotkey
-	SetTargetClassWinIdAndControl(strMouseOrKeyboard = g_arrPopupHotkeys1)
+	SetTargetWinInfo(strMouseOrKeyboard = g_arrPopupHotkeys1)
 	; ###_V("CanLaunch", strExclusionList, g_strTargetClass, g_strTargetWinTitle)
 
 	; strExclusionList := (strMouseOrKeyboard = g_arrPopupHotkeys1 ? g_strExclusionMouseList : g_strExclusionKeyboardList)
@@ -7393,6 +7412,7 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for th
 	and (g_strPowerMenu <> lMenuPowerEditFavorite) ; except if we edit the favorite
 	and !LocationIsHTTP(g_objThisFavorite.FavoriteLocation) ; except if the folder location is on a server (WebDAV)
 	if !FileExist(PathCombine(A_WorkingDir, EnvVars(g_objThisFavorite.FavoriteLocation)))
+	; ##### if !(g_objThisFavorite.FavoriteType = "Application") and !InStr(g_objThisFavorite.FavoriteLocation, "\") ; except if application has no folder, then use PATH
 	{
 		Gui, 1:+OwnDialogs
 		MsgBox, 0, % L(lDialogFavoriteDoesNotExistTitle, g_strAppNameText)
@@ -7753,6 +7773,9 @@ if (g_objThisFavorite.FavoriteType = "FTP")
 }
 else
 	if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
+	; ##### if (g_objThisFavorite.FavoriteType = "Application") and !InStr(g_objThisFavorite.FavoriteLocation, "\") ; if application has no folder, then use PATH - do not PathCombine
+	;	g_strFullLocation := EnvVars(g_strFullLocation)
+	; else if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
 		and !LocationIsHTTP(g_objThisFavorite.FavoriteLocation) ; except if the folder location is on a server (like WebDAV)
 		; expand system variables
 		; make the location absolute based on the current working directory
@@ -7867,6 +7890,34 @@ NumberOfColumnBreaksBeforeThisItem(objMenu, strThisMenuItemPos)
 	
 	return intNumberOfColumnBreaks
 }
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetWinInfo:
+;------------------------------------------------------------
+
+g_blnGetWinInfo := true
+
+MsgBox, % 64 + 4096, %g_strAppNameFile% - %lMenuGetWinInfo%, % L(lDialogGetWInInfo, Hotkey2Text(g_arrPopupHotkeys1))
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetWinInfo2Clippoard:
+;------------------------------------------------------------
+
+g_blnGetWinInfo := ""
+WinClose, %g_strAppNameFile% - %lMenuGetWinInfo%
+
+MsgBox, 4, %g_strAppNameFile% - %lMenuGetWinInfo%, % L(lDialogGetWInInfo2Clippoard, g_strTargetWinTitle, g_strTargetClass)
+
+IfMsgBox, Yes
+	Clipboard := g_strTargetWinTitle . "`r`n" . g_strTargetClass
+
+return
 ;------------------------------------------------------------
 
 
@@ -8328,7 +8379,7 @@ else ; normal folder
 	; g_strTotalCommanderNewTabOrWindow in ini file should contain "/O /T" to open in an new tab of the existing file list (default), or "/N" to open in a new file list
 	; was Run, %g_strTotalCommanderPath% %strTabParameter% /S "/%strSideParameter%=%g_strFullLocation%"
 	Run, %g_strTotalCommanderPath% %strTabParameter% "/%strSideParameter%=%g_strFullLocation%"
-	; strClipboard .= "`n" . g_strTotalCommanderPath . " " . strTabParameter . " ""/" . strSideParameter . "=" . g_strFullLocation . """" ; #####
+
 	WinWaitActive, ahk_class TTOTAL_CMD, , 10
 }
 g_strNewWindowId := "ahk_class TTOTAL_CMD"
@@ -9287,24 +9338,6 @@ GetFirstNotModifier(strHotkey)
 ;------------------------------------------------------------
 
 
-;------------------------------------------------------------
-EnvVars(str)
-; from Lexikos http://www.autohotkey.com/board/topic/40115-func-envvars-replace-environment-variables-in-text/#entry310601
-;------------------------------------------------------------
-{
-    if sz:=DllCall("ExpandEnvironmentStrings", "uint", &str
-                    , "uint", 0, "uint", 0)
-    {
-        VarSetCapacity(dst, A_IsUnicode ? sz*2:sz)
-        if DllCall("ExpandEnvironmentStrings", "uint", &str
-                    , "str", dst, "uint", sz)
-            return dst
-    }
-    return src
-}
-;------------------------------------------------------------
-
-
 ;------------------------------------------------
 Diag(strName, strData)
 ;------------------------------------------------
@@ -9498,6 +9531,61 @@ GetDeepestMenuPath(strPath)
 
 
 ;------------------------------------------------------------
+AdjustColumnsWidth:
+;------------------------------------------------------------
+
+Loop, % LV_GetCount("Column")
+	LV_ModifyCol(A_Index, "AutoHdr") ; adjust column width
+
+/*
+FOLLOWING NOT REQUIRED ANYMORE
+when using option AutoHdr ("If applied to the last column, it will be made at least as wide as all the remaining space in the ListView.")
+
+; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
+Loop, %intNbColAuto%
+{
+	intColZeroBased := A_Index - 1 ; column index, zero-based
+	SendMessage, 0x1000+29, %intColZeroBased%, 0, SysListView321, ahk_id %g_strAppHwnd%
+	intColSum += ErrorLevel ; column width
+}
+
+LV_ModifyCol(intNbColAuto + 1, g_intListW - intColSum - 21) ; adjust column width (-21 is for vertical scroll bar width)
+
+intColSum := ""
+*/
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+NextMenuShortcut(ByRef intShortcut)
+;------------------------------------------------------------
+{
+	if (intShortcut < 10)
+		strShortcut := intShortcut ; 0 .. 9
+	else
+		strShortcut := Chr(intShortcut + 55) ; Chr(10 + 55) = "A" .. Chr(35 + 55) = "Z"
+	
+	intShortcut := intShortcut + 1
+	return strShortcut
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+IsInteger(str)
+;------------------------------------------------------------
+{
+	if str is integer
+		return true
+	else
+		return false
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 CollectRunningApplications(strDefaultPath)
 ;------------------------------------------------------------
 {
@@ -9590,6 +9678,48 @@ UriDecode(str)
 
 
 ;------------------------------------------------------------
+UriEncode(str)
+; from GoogleTranslate by Mikhail Kuropyatnikov
+; http://www.autohotkey.net/~sumon/GoogleTranslate.ahk
+; edited to encode also "@" see http://stackoverflow.com/questions/32341476/valid-url-for-an-ftp-site-with-username-containing/
+;------------------------------------------------------------
+{ 
+   b_Format := A_FormatInteger 
+   data := "" 
+   SetFormat,Integer,H 
+   SizeInBytes := StrPutVar(str,var,"utf-8")
+   Loop, %SizeInBytes%
+   {
+   ch := NumGet(var,A_Index-1,"UChar")
+   If (ch=0)
+      Break
+   if ((ch>0x7f) || (ch<0x30) || (ch=0x3d) || (ch=0x40))
+      s .= "%" . ((StrLen(c:=SubStr(ch,3))<2) ? "0" . c : c)
+   Else
+      s .= Chr(ch)
+   }   
+   SetFormat,Integer,%b_format% 
+   return s 
+} 
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+StrPutVar(string, ByRef var, encoding)
+;------------------------------------------------------------
+{
+    ; Ensure capacity.
+    SizeInBytes := VarSetCapacity( var, StrPut(string, encoding)
+        ; StrPut returns char count, but VarSetCapacity needs bytes.
+        * ((encoding="utf-16"||encoding="cp1200") ? 2 : 1) )
+    ; Copy or convert the string.
+    StrPut(string, &var, encoding)
+   Return SizeInBytes 
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 ComUnHTML(html)
 ; convert HTML entities to text (like "&apos;") - author unknown
 ; http://www.autohotkey.com/board/topic/47356-unhtm-remove-html-formatting-from-a-string-updated/page-2#entry467499
@@ -9623,8 +9753,8 @@ ExpandPlaceholders(strArguments, strLocation)
 
 
 ;------------------------------------------------------------
-SetTargetClassWinIdAndControl(blnMouseElseKeyboard)
-; set g_strTargetClass, g_strTargetWinId and g_strTargetControl
+SetTargetWinInfo(blnMouseElseKeyboard)
+; set g_strTargetClass, g_strTargetWinId, g_strTargetControl and g_strTargetWinTitle
 ;------------------------------------------------------------
 {
 	global
@@ -9653,6 +9783,95 @@ LocationIsHTTP(strLocation)
 ;------------------------------------------------------------
 {
 	return SubStr(strLocation, 1, 7) = "http://" or SubStr(strLocation, 1, 8) = "https://"
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+FileExistInPath(ByRef strFile)
+;------------------------------------------------------------
+{
+	strFile := EnvVars(strFile) ; expand environment variables like %APPDATA% or %USERPROFILE%
+	
+	if !InStr(strFile, "\") ; if no path in filename
+		strFile := WhereIs(strFile) ; search if file exists in path env variable or registry app paths
+	else
+		strFile := PathCombine(A_WorkingDir, strFile) ; make relative path absolute
+
+	return, FileExist(strFile) ; returns the file's attributes if file exists or empty (false) is not
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+WhereIs(strThisFile)
+; based on work from Skan in https://autohotkey.com/board/topic/20807-fileexist-in-path-environment/
+;------------------------------------------------------------
+{
+	SplitPath, strThisFile, , , strThisExtension
+	if !StrLen(strThisExtension) ; if file has no extension
+	{
+		; prepare executable extensions list from PATHEXT env variable
+		EnvGet, strExeExtensions, PathExt
+
+		; re-enter WhereIs with each extension until one returns an existing file
+		Loop, Parse, strExeExtensions, `;
+		{
+			strFoundFile := WhereIs(strThisFile . A_LoopField) ; recurse into WhereIs with a complete filename
+		} until StrLen(strFoundFile)
+		
+		return %strFoundFile% ; exit if we find an existing file, or return empty if not
+	}
+	; from here, we have a filename with an extension
+	
+	; prepare locations list
+	SplitPath, A_AhkPath, , strAhkDir
+	EnvGet, strDosPath, Path
+	strPaths := A_WorkingDir . ";" . A_ScriptDir . ";" . strAhkDir . ";" . strAhkDir . "\Lib;" . A_MyDocuments . "\AutoHotkey\Lib" . ";" . strDosPath
+	
+	; search in each location
+	Loop, Parse, strPaths, `;
+		If StrLen(A_LoopField)
+			If FileExist(A_LoopField . "\" . strThisFile)
+				Return, RegExReplace(A_LoopField . "\" . strThisFile,  "\\\\", "") ; RegExReplace to prevent results like C:\\Directory
+	
+	; if not found, check in registry paths for this filename
+	RegRead, strAppPath, HKLM, SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\%strThisFile%
+	If FileExist(strAppPath)
+		Return, strAppPath
+	
+	; else return empty
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+PathCombine(strAbsolutePath, strRelativePath)
+; see http://www.autohotkey.com/board/topic/17922-func-relativepath-absolutepath/page-3#entry117355
+; and http://stackoverflow.com/questions/29783202/combine-absolute-path-with-a-relative-path-with-ahk/
+;------------------------------------------------------------
+{
+    VarSetCapacity(strCombined, (A_IsUnicode ? 2 : 1) * 260, 1) ; MAX_PATH
+    DllCall("Shlwapi.dll\PathCombine", "UInt", &strCombined, "UInt", &strAbsolutePath, "UInt", &strRelativePath)
+    Return, strCombined
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+EnvVars(str)
+; from Lexikos http://www.autohotkey.com/board/topic/40115-func-envvars-replace-environment-variables-in-text/#entry310601
+;------------------------------------------------------------
+{
+    if sz:=DllCall("ExpandEnvironmentStrings", "uint", &str
+                    , "uint", 0, "uint", 0)
+    {
+        VarSetCapacity(dst, A_IsUnicode ? sz*2:sz)
+        if DllCall("ExpandEnvironmentStrings", "uint", &str
+                    , "str", dst, "uint", sz)
+            return dst
+    }
+    return src
 }
 ;------------------------------------------------------------
 
@@ -9741,121 +9960,11 @@ AHK_NOTIFYICON(wParam, lParam)
 
 
 ;------------------------------------------------------------
-ReplyQAPisRunning(wParam, lParam) 
+REPLY_QAPISRUNNING(wParam, lParam) 
 ;------------------------------------------------------------
 {
 	return true
 } 
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-AdjustColumnsWidth:
-;------------------------------------------------------------
-
-Loop, % LV_GetCount("Column")
-	LV_ModifyCol(A_Index, "AutoHdr") ; adjust column width
-
-/*
-FOLLOWING NOT REQUIRED ANYMORE
-when using option AutoHdr ("If applied to the last column, it will be made at least as wide as all the remaining space in the ListView.")
-
-; See http://www.autohotkey.com/board/topic/6073-get-listview-column-width-with-sendmessage/
-Loop, %intNbColAuto%
-{
-	intColZeroBased := A_Index - 1 ; column index, zero-based
-	SendMessage, 0x1000+29, %intColZeroBased%, 0, SysListView321, ahk_id %g_strAppHwnd%
-	intColSum += ErrorLevel ; column width
-}
-
-LV_ModifyCol(intNbColAuto + 1, g_intListW - intColSum - 21) ; adjust column width (-21 is for vertical scroll bar width)
-
-intColSum := ""
-*/
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-NextMenuShortcut(ByRef intShortcut)
-;------------------------------------------------------------
-{
-	if (intShortcut < 10)
-		strShortcut := intShortcut ; 0 .. 9
-	else
-		strShortcut := Chr(intShortcut + 55) ; Chr(10 + 55) = "A" .. Chr(35 + 55) = "Z"
-	
-	intShortcut := intShortcut + 1
-	return strShortcut
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-IsInteger(str)
-;------------------------------------------------------------
-{
-	if str is integer
-		return true
-	else
-		return false
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-PathCombine(strAbsolutePath, strRelativePath)
-; see http://www.autohotkey.com/board/topic/17922-func-relativepath-absolutepath/page-3#entry117355
-; and http://stackoverflow.com/questions/29783202/combine-absolute-path-with-a-relative-path-with-ahk/
-;------------------------------------------------------------
-{
-    VarSetCapacity(strCombined, (A_IsUnicode ? 2 : 1) * 260, 1) ; MAX_PATH
-    DllCall("Shlwapi.dll\PathCombine", "UInt", &strCombined, "UInt", &strAbsolutePath, "UInt", &strRelativePath)
-    Return, strCombined
-}
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-UriEncode(str)
-; from GoogleTranslate by Mikhail Kuropyatnikov
-; http://www.autohotkey.net/~sumon/GoogleTranslate.ahk
-; edited to encode also "@" see http://stackoverflow.com/questions/32341476/valid-url-for-an-ftp-site-with-username-containing/
-;------------------------------------------------------------
-{ 
-   b_Format := A_FormatInteger 
-   data := "" 
-   SetFormat,Integer,H 
-   SizeInBytes := StrPutVar(str,var,"utf-8")
-   Loop, %SizeInBytes%
-   {
-   ch := NumGet(var,A_Index-1,"UChar")
-   If (ch=0)
-      Break
-   if ((ch>0x7f) || (ch<0x30) || (ch=0x3d) || (ch=0x40))
-      s .= "%" . ((StrLen(c:=SubStr(ch,3))<2) ? "0" . c : c)
-   Else
-      s .= Chr(ch)
-   }   
-   SetFormat,Integer,%b_format% 
-   return s 
-} 
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-StrPutVar(string, ByRef var, encoding)
-;------------------------------------------------------------
-{
-    ; Ensure capacity.
-    SizeInBytes := VarSetCapacity( var, StrPut(string, encoding)
-        ; StrPut returns char count, but VarSetCapacity needs bytes.
-        * ((encoding="utf-16"||encoding="cp1200") ? 2 : 1) )
-    ; Copy or convert the string.
-    StrPut(string, &var, encoding)
-   Return SizeInBytes 
-}
 ;------------------------------------------------------------
 
 
