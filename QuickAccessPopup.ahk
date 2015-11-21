@@ -29,17 +29,19 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.2.3 beta (2015-11-??)
+Version: 6.2.3 beta (2015-11-21)
 - more explicit error message if user try to copy submenu, group, separator or column break in settings
 - add QAP feature "Get window title and class" and copy info to clipboard
 - add button to launch this feature from the Exclusions list in Options
 - add help line in favorite advanced settings about double-quotes for parameters
 - support favorite locations with relative path, envvars and anywhere in PATH environment variables directories
 - Clipboard feature supports relative path, envvars and files in PATH
-- icons files support relative path, envvars and files in PATH (need to modify GUI to allow text input or icon files path)
+- icons files support relative path, envvars and files in PATH
 - favorite advanced setting "launch with" supports relative path, envvars and files in PATH
 - external file managers configuration support relative path, envvars and apps in PATH
 - detect Dopus at launch if dopus.exe in PATH or registry App Path key
+- allow to edit favorite icon resource in input box (in format "iconfile,index")
+- fix bug ghost variable values when add favorite is cancelled
 
 
 Version: 6.2.2 beta (2015-11-12)
