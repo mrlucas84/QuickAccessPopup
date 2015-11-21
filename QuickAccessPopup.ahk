@@ -460,6 +460,9 @@ if (g_blnDiagMode)
 if (g_blnUseColors)
 	Gosub, LoadThemeGlobal
 
+; not sure it is required to have a physical file with .html extension - but keep it as is by safety
+GetIcon4Location(g_strTempDir . "\default_browser_icon.html", g_strURLIconFile, g_intUrlIconIndex)
+
 ; build even if not used because they could become used - will be updated at each call to popup menu
 Gosub, BuildCurrentFoldersMenuInit 
 Gosub, BuildClipboardMenuInit
@@ -2649,9 +2652,6 @@ RefreshClipboardMenu:
 intShortcutClipboardMenu := 0
 strContentsInClipboard := ""
 
-GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strURLIconFile, intUrlIconIndex)
-; not sure it is required to have a physical file with .html extension - but keep it as is by safety
-
 ; Parse Clipboard for folder, document or application filenames (filenames alone on one line)
 Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 {
@@ -2703,8 +2703,6 @@ intShortcutClipboardMenu := ""
 strContentsInClipboard := ""
 strClipboardLineExpanded := ""
 strURLSearchString := ""
-strURLIconFile := ""
-intUrlIconIndex := ""
 
 return
 ;------------------------------------------------------------
@@ -2765,7 +2763,7 @@ StringTrimLeft, strURLSearchString, strURLSearchString, %intCharactersToOmit%
 
 Gosub, GetURLsInClipboardLine ; Recursive call to self (end of loop)
 
-strContentsInClipboard .= "`n" . strURLCleansed . "`t" . strURLIconFile . "," . intUrlIconIndex
+strContentsInClipboard .= "`n" . strURLCleansed . "`t" . g_strURLIconFile . "," . g_intUrlIconIndex
 
 return
 ;------------------------------------------------------------
@@ -4641,6 +4639,7 @@ if !(blnIsGroupMember)
 	Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
 	Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
 	Gui, 2:Add, Link, x20 ys+57 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
+	Gui, 2:Add, Link, x20 ys+74 gGuiEditIconDialog, <a>%lDialogEditIcon%</a>
 
 	Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
 	Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
@@ -4987,6 +4986,7 @@ return
 
 ;------------------------------------------------------------
 GuiPickIconDialog:
+GuiEditIconDialog:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 Gui, 2:+OwnDialogs
@@ -4997,20 +4997,26 @@ if InStr("Document|Application", g_objEditedFavorite.FavoriteType) and !StrLen(f
 	return
 }
 
-; Source: http://ahkscript.org/boards/viewtopic.php?f=5&t=5108#p29970
-VarSetCapacity(strThisIconFile, 1024) ; must be placed before strNewIconFile is initialized because VarSetCapacity erase its content
-ParseIconResource(g_strNewFavoriteIconResource, strThisIconFile, intThisIconIndex)
-blnFileExist := FileExistInPath(strThisIconFile)
+if (A_ThisLabel = "GuiEditIconDialog")
+	; InputBox, g_strNewFavoriteIconResource, title, prompt, hide, width, height, x, y, font, timeout, %g_strNewFavoriteIconResource%
+	InputBox, g_strNewFavoriteIconResource, %g_strAppNameFile% - %lDialogEditIcon%, %lDialogEditIconPrompt%, , 400, 160, , , , , %g_strNewFavoriteIconResource%
+else
+{
+	; Source: http://ahkscript.org/boards/viewtopic.php?f=5&t=5108#p29970
+	VarSetCapacity(strThisIconFile, 1024) ; must be placed before strNewIconFile is initialized because VarSetCapacity erase its content
+	ParseIconResource(g_strNewFavoriteIconResource, strThisIconFile, intThisIconIndex)
+	blnFileExist := FileExistInPath(strThisIconFile)
 
-WinGet, hWnd, ID, A
-if (intThisIconIndex >= 0) ; adjust index for positive index only (not for negative index)
-	intThisIconIndex := intThisIconIndex - 1
-DllCall("shell32\PickIconDlg", "Uint", hWnd, "str", strThisIconFile, "Uint", 260, "intP", intThisIconIndex)
-if (intThisIconIndex >= 0) ; adjust index for positive index only (not for negative index)
-	intThisIconIndex := intThisIconIndex + 1
+	WinGet, hWnd, ID, A
+	if (intThisIconIndex >= 0) ; adjust index for positive index only (not for negative index)
+		intThisIconIndex := intThisIconIndex - 1
+	DllCall("shell32\PickIconDlg", "Uint", hWnd, "str", strThisIconFile, "Uint", 260, "intP", intThisIconIndex)
+	if (intThisIconIndex >= 0) ; adjust index for positive index only (not for negative index)
+		intThisIconIndex := intThisIconIndex + 1
 
-if StrLen(strThisIconFile)
-	g_strNewFavoriteIconResource := strThisIconFile . "," . intThisIconIndex
+	if StrLen(strThisIconFile)
+		g_strNewFavoriteIconResource := strThisIconFile . "," . intThisIconIndex
+}
 
 Gosub, GuiFavoriteIconDisplay
 
@@ -5226,6 +5232,7 @@ GuiAddFavoriteCancel:
 GuiEditFavoriteCancel:
 ;------------------------------------------------------------
 
+Gosub, GuiAddFavoriteFlush
 Gosub, 2GuiClose
 
 return
@@ -5626,33 +5633,44 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave") ; do not execute at each favorite 
 	objThisMenu := ""
 
 	; make sure all gui variables are flushed before next fav add or edit
-	f_blnRadioGroupAdd := ""
-	f_blnRadioGroupReplace := ""
-	f_blnRadioGroupRestoreWithExplorer := ""
-	f_blnRadioGroupRestoreWithOther := ""
-	f_blnUseDefaultSettings := ""
-	f_chkUseDefaultWindowPosition := ""
-	f_drpParentMenu := ""
-	f_drpParentMenuItems := ""
-	f_drpQAP := ""
-	f_drpRunningApplication := ""
-	f_drpSpecial := ""
-	f_intGroupExplorerDelay := ""
-	f_intGroupRestoreDelay := ""
-	f_intWindowPositionH := ""
-	f_intWindowPositionW := ""
-	f_intWindowPositionX := ""
-	f_intWindowPositionY := ""
-	f_picIcon := ""
-	f_strFavoriteAppWorkingDir := ""
-	f_strFavoriteArguments := ""
-	f_strFavoriteLaunchWith := ""
-	f_strFavoriteLocation := ""
-	f_strFavoriteLoginName := ""
-	f_strFavoritePassword := ""
-	f_strFavoriteShortName := ""
-	f_strHotkeyText := ""
+	Gosub, GuiAddFavoriteFlush
 }
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GuiAddFavoriteFlush:
+;------------------------------------------------------------
+
+; make sure all gui variables are flushed before next fav add or edit
+f_blnRadioGroupAdd := ""
+f_blnRadioGroupReplace := ""
+f_blnRadioGroupRestoreWithExplorer := ""
+f_blnRadioGroupRestoreWithOther := ""
+f_blnUseDefaultSettings := ""
+f_chkUseDefaultWindowPosition := ""
+f_drpParentMenu := ""
+f_drpParentMenuItems := ""
+f_drpQAP := ""
+f_drpRunningApplication := ""
+f_drpSpecial := ""
+f_intGroupExplorerDelay := ""
+f_intGroupRestoreDelay := ""
+f_intWindowPositionH := ""
+f_intWindowPositionW := ""
+f_intWindowPositionX := ""
+f_intWindowPositionY := ""
+f_picIcon := ""
+f_strFavoriteAppWorkingDir := ""
+f_strFavoriteArguments := ""
+f_strFavoriteLaunchWith := ""
+f_strFavoriteLocation := ""
+f_strFavoriteLoginName := ""
+f_strFavoritePassword := ""
+f_strFavoriteShortName := ""
+f_strHotkeyText := ""
 
 return
 ;------------------------------------------------------------
@@ -9433,6 +9451,8 @@ GetIcon4Location(strLocation, ByRef strDefaultIcon, ByRef intDefaultIcon, blnRad
 	global g_objIconsFile
 	global g_objIconsIndex
 	
+	blnFileExist := FileExistInPath(strLocation) ; expand strLocation and search in PATH
+
 	if !StrLen(strLocation)
 	{
 		if (blnRadioApplication)
