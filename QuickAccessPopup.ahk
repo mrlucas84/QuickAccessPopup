@@ -20,6 +20,10 @@ BUGS
 - username/password in FTP favoritews lost
 
 TO-DO
+- complete convert http to \\ (line 4917/8270)
+- rename Current Folders in website
+- rename Power menu to Alternative menu in website
+- show shortcuts in Alternative menu
 - run application favorites using PATH locations for application when apps location does not include foloder location (has no "\")
 - add QAP feature "Add this folder Express" (see this item in wishlist)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -28,6 +32,11 @@ TO-DO
 
 HISTORY
 =======
+
+Version: 6.2.4 beta (2015-11-??)
+- fix bug unable to create folder, document or application favorite on read-only support
+- French language translation and adjustments to original English language while translating to French
+- rename "Power" menu/hotkey/features to "Alternative" menu/hotkey/features
 
 Version: 6.2.3 beta (2015-11-21)
 - more explicit error message if user try to copy submenu, group, separator or column break in settings
@@ -214,9 +223,7 @@ Implement Group favorite with configurable delay when opening group (restoring g
 Options
 -------
 Convert all FP options
-Add two exclusion lists to disable hotkeys in the selected type of window (basic user interface to be improved):
-1) One exclusion list for mouse triggers (mouse QAP hotley and mouse Power hotkey)
-(* removed *) 2) One exclusion list for keyboard triggers (keyboard QAP hotley and keyboard Power hotkey)
+Add an exclusion list to disable QAP mouse popup menu hotkey in the selected type of windows
 Option to display or not the favorite shortcuts reminders in popup menu (full name or abbreviated name)
 
 Menus
@@ -237,7 +244,7 @@ Popup menu Hotkeys
 ------------------
 New hotkey approach with two triggers:
  1) QAP hotkey (mouse and keyboard), available in all windows, opens the popup menu to choose the favoriteto launch; if the favorite is a folder and the target app supports it (Explorer, dialog box or other file managers), the window is changed (navigate) to this folder
- 2) Power hotkey available in all windows, showing a menu of special features before showing the favorites menu (see "Power menu features" below)
+ 2) Alternative hotkey available in all windows, showing a menu of special features before showing the favorites menu (see "Alternative menu features" below)
 Replace default keyboard FP hotkey Windows+A (#A) to Windows+W(#W) because #A is now a reserved shortcut in Windows 10
 
 Actions
@@ -254,8 +261,8 @@ Open FTP favorite with login name and password in Explorer, Directory Opus and T
 Resize and move window to remembered position when opening folder in a new window (working with Explorer, DOpus, TC, not working with FPconnect yet)
 Resize and move window to remembered position when launching application, document or URL (working with some apps, not all, not fully tested)
 
-Power menu features
--------------------
+Alternative menu features
+-------------------------
 Open folder in a new window (even if the target window could navigate to this folder)
 (more to be implemented)
 
@@ -316,7 +323,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.2.3 beta
+;@Ahk2Exe-SetVersion 6.2.4 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -360,7 +367,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.2.3" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.2.4" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -398,7 +405,7 @@ g_strSpecialFoldersList := ""
 g_objQAPFeatures := Object()
 g_objQAPFeaturesCodeByDefaultName := Object()
 g_objQAPFeaturesDefaultNameByCode := Object()
-g_objQAPFeaturesPowerCodeByOrder := Object()
+g_objQAPFeaturesAlternativeCodeByOrder := Object()
 g_strQAPFeaturesList := ""
 
 g_objHotkeysByLocation := Object() ; Hotkeys by Location
@@ -471,7 +478,7 @@ Gosub, BuildClipboardMenuInit
 ; no need to build Recent folders menu at startup because this menu is refreshed/recreated on demand
 
 Gosub, BuildMainMenu
-Gosub, BuildPowerMenu
+Gosub, BuildAlternativeMenu
 Gosub, LoadFavoriteHotkeys
 Gosub, BuildGui
 Gosub, BuildTrayMenu
@@ -488,12 +495,12 @@ IfExist, %A_Startup%\%g_strAppNameFile%.lnk ; update the shortcut in case the ex
 
 if (g_blnDisplayTrayTip)
 {
-; 1 NavigateOrLaunchHotkeyMouse, 2 NavigateOrLaunchHotkeyKeyboard, 3 PowerHotkeyMouse, 4 PowerHotkeyKeyboard
+; 1 NavigateOrLaunchHotkeyMouse, 2 NavigateOrLaunchHotkeyKeyboard
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText)
 		, % L(lTrayTipInstalledDetail
 			, HotkeySections2Text(strModifiers1, strMouseButton1, strOptionsKey1)
 			, HotkeySections2Text(strModifiers2, strMouseButton2, strOptionsKey2))
-		, , 17 ; 1 info icon + 16 no sound)
+		, , 17 ; 1 info icon + 16 no sound
 	Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 }
 
@@ -731,7 +738,9 @@ FileCreateDir, %g_strTempDir%
 
 /*
 FileInstall, FileInstall\QuickAccessPopup_LANG_DE.txt, %g_strTempDir%\QuickAccessPopup_LANG_DE.txt, 1
+*/
 FileInstall, FileInstall\QuickAccessPopup_LANG_FR.txt, %g_strTempDir%\QuickAccessPopup_LANG_FR.txt, 1
+/*
 FileInstall, FileInstall\QuickAccessPopup_LANG_NL.txt, %g_strTempDir%\QuickAccessPopup_LANG_NL.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_KO.txt, %g_strTempDir%\QuickAccessPopup_LANG_KO.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_SV.txt, %g_strTempDir%\QuickAccessPopup_LANG_SV.txt, 1
@@ -784,7 +793,7 @@ InitSystemArrays:
 
 ; ----------------------
 ; Hotkeys: ini names, hotkey variables name, default values, gosub label and Gui hotkey titles
-strPopupHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard"
+strPopupHotkeyNames := "NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|AlternativeHotkeyMouse|AlternativeHotkeyKeyboard"
 StringSplit, g_arrPopupHotkeyNames, strPopupHotkeyNames, |
 strPopupHotkeyDefaults := "MButton|#W|+MButton|+#W"
 StringSplit, g_arrPopupHotkeyDefaults, strPopupHotkeyDefaults, |
@@ -933,6 +942,7 @@ else
 
 strLanguageFile := g_strTempDir . "\" . g_strAppNameFile . "_LANG_" . g_strLanguageCode . ".txt"
 strReplacementForSemicolon := "!r4nd0mt3xt!" ; for non-comment semi-colons ";" escaped as ";;"
+; ###_V("", strLanguageFile)
 
 if FileExist(strLanguageFile)
 {
@@ -981,6 +991,7 @@ loop, %g_arrOptionsLanguageCodes0%
 			g_strLanguageLabel := g_arrOptionsLanguageLabels%A_Index%
 			break
 		}
+; ###_V("", g_arrOptionsLanguageCodes%A_Index%, g_strLanguageCode, g_strLanguageLabel)
 
 lDialogMouseButtonsText := lDialogNone . "|" . lDialogMouseButtonsText ; use lDialogNone because this is displayed
 StringSplit, g_arrMouseButtonsText, lDialogMouseButtonsText, |
@@ -1410,7 +1421,7 @@ TranslateMUI(resDll, resID)
 InitQAPFeatures:
 ;------------------------------------------------------------
 
-; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strDefaultHotkey)
+; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeatureAlternativeOrder, strThisDefaultIcon, strDefaultHotkey)
 
 ; Submenus features
 InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", "+^C")
@@ -1429,9 +1440,9 @@ InitQAPFeatureObject("Settings",		lMenuSettings . "...",				"", "SettingsHotkey"
 InitQAPFeatureObject("Support",			lGuiDonate . "...",					"", "GuiDonate",						0, "iconDonate")
 InitQAPFeatureObject("GetWinInfo",		lMenuGetWinInfo . "...",			"", "GetWinInfo",						0, "iconAbout")
 
-; Power Menu features
-InitQAPFeatureObject("Open in New Window",		lMenuPowerNewWindow,	"", "", 1, "iconFolder")
-InitQAPFeatureObject("Edit Favorite",			lMenuPowerEditFavorite,	"", "", 3, "iconEditFavorite")
+; Alernative Menu features
+InitQAPFeatureObject("Open in New Window",		lMenuAlternativeNewWindow,	"", "", 1, "iconFolder")
+InitQAPFeatureObject("Edit Favorite",			lMenuAlternativeEditFavorite,	"", "", 3, "iconEditFavorite")
 InitQAPFeatureObject("Copy Favorite Location",	lMenuCopyLocation,		"", "", 5, "iconClipboard", "+^V")
 
 ;--------------------------------
@@ -1439,21 +1450,20 @@ InitQAPFeatureObject("Copy Favorite Location",	lMenuCopyLocation,		"", "", 5, "i
 
 g_strQAPFeaturesList := ""
 for strQAPFeatureName, strThisQAPFeatureCode in g_objQAPFeaturesCodeByDefaultName
-	if !(g_objQAPFeatures[strThisQAPFeatureCode].QAPFeaturePowerOrder) ; exclude Power menu features
+	if !(g_objQAPFeatures[strThisQAPFeatureCode].QAPFeatureAlternativeOrder) ; exclude Alternative menu features
 		g_strQAPFeaturesList .= strQAPFeatureName . "|"
 StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1
 
 strQAPFeatureName := ""
 strThisQAPFeatureCode := ""
-strQAPFeaturePowerOrder := ""
-strQAPFeaturePowerCode := ""
+strQAPFeatureAlternativeOrder := ""
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeaturePowerOrder, strThisDefaultIcon, strDefaultHotkey := "")
+InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeatureAlternativeOrder, strThisDefaultIcon, strDefaultHotkey := "")
 
 ; QAP Feature Objects (g_objQAPFeatures) definition:
 ;		Key: strQAPFeatureInternalName
@@ -1463,7 +1473,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 ;		LocalizedName: QAP Feature localized label
 ;		QAPFeatureMenuName: menu to be added to the menu (excluding the starting ":"), empty if no submenu associated to this QAP feature
 ;		QAPFeatureCommand: command to be executed when this favorite is selected (excluding the ending ":")
-;		QAPFeaturePowerOrder: order of feature in the Power Menu displayed before user choose the target favorite (0 if not Power menu feature)
+;		QAPFeatureAlternativeOrder: order of feature in the Alternative Menu displayed before user choose the target favorite (0 if not Alternative menu feature)
 ;		DefaultIcon: default icon (in the "file,index" format)
 ;		DefaultHotkey: default feature hotkey (string like "+^s")
 
@@ -1474,7 +1484,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	global g_objQAPFeatures
 	global g_objQAPFeaturesCodeByDefaultName
 	global g_objQAPFeaturesDefaultNameByCode
-	global g_objQAPFeaturesPowerCodeByOrder
+	global g_objQAPFeaturesAlternativeCodeByOrder
 	
 	objOneQAPFeature := Object()
 	
@@ -1482,15 +1492,15 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	objOneQAPFeature.DefaultIcon := g_objIconsFile[strThisDefaultIcon] . "," . g_objIconsIndex[strThisDefaultIcon]
 	objOneQAPFeature.QAPFeatureMenuName := strQAPFeatureMenuName
 	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
-	objOneQAPFeature.QAPFeaturePowerOrder := intQAPFeaturePowerOrder
+	objOneQAPFeature.QAPFeatureAlternativeOrder := intQAPFeatureAlternativeOrder
 	objOneQAPFeature.DefaultHotkey := strDefaultHotkey
 	; ###_O("objOneQAPFeature", objOneQAPFeature)
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisLocalizedName, "{" . strQAPFeatureCode . "}")
 	g_objQAPFeaturesDefaultNameByCode.Insert("{" . strQAPFeatureCode . "}", strThisLocalizedName)
-	if (intQAPFeaturePowerOrder)
-		g_objQAPFeaturesPowerCodeByOrder.Insert(intQAPFeaturePowerOrder, "{" . strQAPFeatureCode . "}")
+	if (intQAPFeatureAlternativeOrder)
+		g_objQAPFeaturesAlternativeCodeByOrder.Insert(intQAPFeatureAlternativeOrder, "{" . strQAPFeatureCode . "}")
 }
 ;------------------------------------------------------------
 
@@ -1599,8 +1609,8 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 {
 	strNavigateOrLaunchHotkeyMouseDefault := g_arrPopupHotkeyDefaults1 ; "MButton"
 	strNavigateOrLaunchHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults2 ; "W"
-	strPowerHotkeyMouseDefault := g_arrPopupHotkeyDefaults3 ; "+MButton"
-	strPowerHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults4 ; "+#W"
+	strAlternativeHotkeyMouseDefault := g_arrPopupHotkeyDefaults3 ; "+MButton"
+	strAlternativeHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults4 ; "+#W"
 	
 	g_intIconSize := 32
 
@@ -1609,8 +1619,8 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 			[Global]
 			NavigateOrLaunchHotkeyMouse=%strNavigateOrLaunchHotkeyMouseDefault%
 			NavigateOrLaunchHotkeyKeyboard=%strNavigateOrLaunchHotkeyKeyboardDefault%
-			PowerHotkeyMouseDefault=%strPowerHotkeyMouseDefault%
-			PowerHotkeyKeyboardDefault=%strPowerHotkeyKeyboardDefault%
+			AlternativeHotkeyMouseDefault=%strAlternativeHotkeyMouseDefault%
+			AlternativeHotkeyKeyboardDefault=%strAlternativeHotkeyKeyboardDefault%
 			DisplayTrayTip=1
 			DisplayIcons=1
 			RecentFolders=10
@@ -1706,7 +1716,7 @@ IniRead, g_strAvailableThemes, %g_strIniFile%, Global, AvailableThemes
 g_blnUseColors := (g_strTheme <> "Windows")
 	
 ; ---------------------
-; Load Options Tab 3 Power Menu
+; Load Options Tab 3 Alternative Menu
 
 ; ---------------------
 ; Options Tab 4 Exclusion List
@@ -1786,8 +1796,8 @@ strIniBackupFile := ""
 arrMainMenu := ""
 strNavigateOrLaunchHotkeyMouseDefault := ""
 strNavigateOrLaunchHotkeyKeyboard := ""
-strPowerHotkeyMouseDefault := ""
-strPowerHotkeyKeyboardDefault := ""
+strAlternativeHotkeyMouseDefault := ""
+strAlternativeHotkeyKeyboardDefault := ""
 strPopupFixPosition := ""
 blnDefaultMenuBuilt := ""
 blnMyQAPFeaturesBuilt := ""
@@ -2024,7 +2034,7 @@ LoadIniPopupHotkeys:
 
 ; Read the values and set hotkey shortcuts
 loop, % g_arrPopupHotkeyNames%0%
-; NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|PowerHotkeyMouse|PowerHotkeyKeyboard
+; NavigateOrLaunchHotkeyMouse|NavigateOrLaunchHotkeyKeyboard|AlternativeHotkeyMouse|AlternativeHotkeyKeyboard
 {
 	; Prepare global arrays used by SplitHotkey function
 	IniRead, g_arrPopupHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index%, % g_arrPopupHotkeyDefaults%A_Index%
@@ -2063,17 +2073,17 @@ Hotkey, If, CanLaunch(A_ThisHotkey)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
-; Then, if QAP hotkey cannot be activated, open the Power menu with the Power hotkeys (3 PowerHotkeyMouse and 4 PowerHotkeyKeyboard)
+; Then, if QAP hotkey cannot be activated, open the Alternative menu with the Alternative hotkeys (3 AlternativeHotkeyMouse and 4 AlternativeHotkeyKeyboard)
 if HasHotkey(g_arrPopupHotkeysPrevious3)
 	Hotkey, % g_arrPopupHotkeysPrevious3, , Off
 if HasHotkey(g_arrPopupHotkeys3)
-	Hotkey, % g_arrPopupHotkeys3, PowerHotkeyMouse, On UseErrorLevel
+	Hotkey, % g_arrPopupHotkeys3, AlternativeHotkeyMouse, On UseErrorLevel
 if (ErrorLevel)
 	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys3, g_arrOptionsTitles3)
 if HasHotkey(g_arrPopupHotkeysPrevious4)
 	Hotkey, % g_arrPopupHotkeysPrevious4, , Off
 if HasHotkey(g_arrPopupHotkeys4)
-	Hotkey, % g_arrPopupHotkeys4, PowerHotkeyKeyboard, On UseErrorLevel
+	Hotkey, % g_arrPopupHotkeys4, AlternativeHotkeyKeyboard, On UseErrorLevel
 if (ErrorLevel)
 	Oops(lDialogInvalidHotkey, g_arrPopupHotkeys4, g_arrOptionsTitles4)
 
@@ -2087,18 +2097,18 @@ Loop
 	g_objHotkeysByLocation.Insert(arrLocationHotkey1, arrLocationHotkey2)
 }
 
-; Turn off previous QAP Power Menu features hotkeys
+; Turn off previous QAP Alternative Menu features hotkeys
 for strCode, objThisQAPFeature in g_objQAPFeatures
 	if HasHotkey(objThisQAPFeature.CurrentHotkey)
 		Hotkey, % objThisQAPFeature.CurrentHotkey, , Off
 	
-; Load QAP Power Menu hotkeys
-for intOrder, strCode in g_objQAPFeaturesPowerCodeByOrder
+; Load QAP Alternative Menu hotkeys
+for intOrder, strCode in g_objQAPFeaturesAlternativeCodeByOrder
 {
-	IniRead, strHotkey,  %g_strIniFile%, PowerMenuHotkeys, %strCode%
+	IniRead, strHotkey,  %g_strIniFile%, AlternativeMenuHotkeys, %strCode%
 	if (strHotkey <> "ERROR")
 	{
-		Hotkey, %strHotkey%, OpenPowerMenuHotkey, On UseErrorLevel
+		Hotkey, %strHotkey%, OpenAlternativeMenuHotkey, On UseErrorLevel
 		g_objQAPFeatures[strCode].CurrentHotkey := strHotkey
 	}
 	if (ErrorLevel)
@@ -2241,7 +2251,6 @@ Menu, Tray, Standard
 Menu, Tray, Add
 ; / End of code for developement phase only - won't be compiled
 ;@Ahk2Exe-IgnoreEnd
-; Menu, Tray, Add, % L(lMenuFPMenu, g_strAppNameText, lMenuMenu), :%lMainMenuName% ; REMOVED seems to cause a BUG in submenu display (first display only) - unexplained...
 Menu, Tray, Add, % lMenuSettings . "...", GuiShow
 Menu, Tray, Add, % L(lMenuEditIniFile, g_strAppNameFile . ".ini"), ShowSettingsIniFile
 Menu, Tray, Add, % L(lMenuEditIniFile, "QAPconnect.ini"), ShowQAPconnectIniFile
@@ -2772,19 +2781,19 @@ return
 
 
 ;------------------------------------------------------------
-BuildPowerMenu:
+BuildAlternativeMenu:
 ;------------------------------------------------------------
 
-Menu, g_menuPower, Add
-Menu, g_menuPower, DeleteAll
+Menu, g_menuAlternative, Add
+Menu, g_menuAlternative, DeleteAll
 
 Loop
-	if g_objQAPFeaturesPowerCodeByOrder.Haskey(A_Index)
-		AddMenuIcon("g_menuPower", g_objQAPFeatures[g_objQAPFeaturesPowerCodeByOrder[A_Index]].LocalizedName
-			, "OpenPowerMenu", g_objQAPFeatures[g_objQAPFeaturesPowerCodeByOrder[A_Index]].DefaultIcon)
+	if g_objQAPFeaturesAlternativeCodeByOrder.Haskey(A_Index)
+		AddMenuIcon("g_menuAlternative", g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].LocalizedName
+			, "OpenAlternativeMenu", g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].DefaultIcon)
 	else
-		if g_objQAPFeaturesPowerCodeByOrder.Haskey(A_Index + 1) ; there is another menu item, add a menu separator
-			Menu, g_menuPower, Add
+		if g_objQAPFeaturesAlternativeCodeByOrder.Haskey(A_Index + 1) ; there is another menu item, add a menu separator
+			Menu, g_menuAlternative, Add
 		else
 			break ; menu finished
 
@@ -2800,7 +2809,7 @@ BuildMainMenuWithStatus:
 if (A_ThisLabel = "BuildMainMenuWithStatus")
 {
 	TrayTip, % L(lTrayTipWorkingTitle, g_strAppNameText)
-		, %lTrayTipWorkingDetail%, , 17
+		, %lTrayTipWorkingDetail%, , 17 ; 1 info icon + 16 no sound
 	Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 }
 
@@ -2824,7 +2833,7 @@ if !(g_blnDonor)
 if (A_ThisLabel = "BuildMainMenuWithStatus")
 {
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText)
-		, %lTrayTipWorkingDetailFinished%, , 17
+		, %lTrayTipWorkingDetailFinished%, , 17 ; 1 info icon + 16 no sound
 	Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 }
 
@@ -3087,11 +3096,11 @@ loop, 4
 	g_arrPopupHotkeysPrevious%A_Index% := g_arrPopupHotkeys%A_Index% ; allow to turn off changed hotkeys and to revert g_arrPopupHotkeys if cancel
 
 g_objQAPFeaturesNewHotkeys := Object() ; re-init
-for intOrder, strPowerCode in g_objQAPFeaturesPowerCodeByOrder
-	if HasHotkey(g_objQAPFeatures[strPowerCode].CurrentHotkey)
-		; ###_V("strPowerCode", strPowerCode, g_objQAPFeatures[strPowerCode].LocalizedName, g_objQAPFeatures[strPowerCode].Hotkey)
+for intOrder, strAlternativeCode in g_objQAPFeaturesAlternativeCodeByOrder
+	if HasHotkey(g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
+		; ###_V("strAlternativeCode", strAlternativeCode, g_objQAPFeatures[strAlternativeCode].LocalizedName, g_objQAPFeatures[strAlternativeCode].Hotkey)
 		; g_objQAPFeaturesNewHotkeys will be saved to ini file and g_objQAPFeatures will be used to turn off previous hotkeys
-		g_objQAPFeaturesNewHotkeys.Insert(strPowerCode, g_objQAPFeatures[strPowerCode].CurrentHotkey)
+		g_objQAPFeaturesNewHotkeys.Insert(strAlternativeCode, g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
 
 StringSplit, g_arrOptionsTitlesSub, lOptionsPopupHotkeyTitlesSub, |
 
@@ -3106,7 +3115,7 @@ Gui, 2:Font, s10 w700, Verdana
 Gui, 2:Add, Text, x10 y10 w595 center, % L(lOptionsGuiTitle, g_strAppNameText)
 
 Gui, 2:Font, s8 w600, Verdana
-Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsPowerMenuFeatures% | %lOptionsExclusionList% | %lOptionsThirdParty%%A_Space%
+Gui, 2:Add, Tab2, vf_intOptionsTab w620 h400 AltSubmit, %A_Space%%lOptionsOtherOptions% | %lOptionsMouseAndKeyboard% | %lOptionsAlternativeMenuFeatures% | %lOptionsExclusionList% | %lOptionsThirdParty%%A_Space%
 
 ;---------------------------------------
 ; Tab 1: General options
@@ -3203,24 +3212,24 @@ loop, % g_arrPopupHotkeyNames%0%
 }
 
 ;---------------------------------------
-; Tab 3: Power Menu Features
+; Tab 3: Alternative Menu Features
 
 Gui, 2:Tab, 3
 
 Gui, 2:Font
-Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsPowerMenuFeaturesIntro, Hotkey2Text(g_arrPopupHotkeys3), Hotkey2Text(g_arrPopupHotkeys4))
+Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsAlternativeMenuFeaturesIntro, Hotkey2Text(g_arrPopupHotkeys3), Hotkey2Text(g_arrPopupHotkeys4))
 
-for intOrder, strPowerCode in g_objQAPFeaturesPowerCodeByOrder
+for intOrder, strAlternativeCode in g_objQAPFeaturesAlternativeCodeByOrder
 {
-	; ###_V("g_objQAPFeaturesPowerCodeByOrder", intOrder, strPowerCode, g_objQAPFeatures[strPowerCode].CurrentHotkey)
-	; ###_V("strPowerCode", strPowerCode, g_objQAPFeatures[strPowerCode].LocalizedName, g_objQAPFeatures[strPowerCode].CurrentHotkey)
+	; ###_V("g_objQAPFeaturesAlternativeCodeByOrder", intOrder, strAlternativeCode, g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
+	; ###_V("strAlternativeCode", strAlternativeCode, g_objQAPFeatures[strAlternativeCode].LocalizedName, g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
 	Gui, 2:Font, s8 w700
-	Gui, 2:Add, Link, x15 y+10 w240, % g_objQAPFeatures[strPowerCode].LocalizedName . " <A id=""" . strPowerCode . """>?</A>" ; ### link to help
+	Gui, 2:Add, Link, x15 y+10 w240, % g_objQAPFeatures[strAlternativeCode].LocalizedName . " <A id=""" . strAlternativeCode . """>?</A>" ; ### link to help
 	Gui, 2:Font, s9 w500, Courier New
-	Gui, 2:Add, Text, Section x260 yp w280 h20 center 0x1000 vf_lblPowerHotkeyText%intOrder% gButtonOptionsChangePowerHotkey
-		, % Hotkey2Text(g_objQAPFeatures[strPowerCode].CurrentHotkey)
+	Gui, 2:Add, Text, Section x260 yp w280 h20 center 0x1000 vf_lblAlternativeHotkeyText%intOrder% gButtonOptionsChangeAlternativeHotkey
+		, % Hotkey2Text(g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
 	Gui, 2:Font
-	Gui, 2:Add, Button, yp x555 vf_btnChangePowerHotkey%intOrder% gButtonOptionsChangePowerHotkey, %lOptionsChangeHotkey%
+	Gui, 2:Add, Button, yp x555 vf_btnChangeAlternativeHotkey%intOrder% gButtonOptionsChangeAlternativeHotkey, %lOptionsChangeHotkey%
 }
 
 ;---------------------------------------
@@ -3247,29 +3256,13 @@ Gui, 2:Add, Text, x10 y+10 w595 center, %lOptionsTabFileManagersIntro%
 loop, %g_arrActiveFileManagerSystemNames0%
 	Gui, 2:Add, Radio, % "y+10 x15 gActiveFileManagerClicked vf_radActiveFileManager" . A_Index . (g_intActiveFileManager = A_Index ? " checked" : ""), % g_arrActiveFileManagerDisplayNames%A_Index%
 	
-/*
-Gui, 2:Add, Radio, % "y+10 x15 gActiveFileManagerClicked vf_radActiveFileManager1" . (g_strActiveFileManager = "Windows Explorer" ? " checked" : ""), Windows Explorer ; 1
-Gui, 2:Add, Radio, % "y+10 x15 gActiveFileManagerClicked vf_radActiveFileManager2" . (g_strActiveFileManager = "Directory Opus" ? " checked" : ""), Directory Opus ; 2
-Gui, 2:Add, Radio, % "y+10 x15 gActiveFileManagerClicked vf_radActiveFileManager3" . (g_strActiveFileManager = "Total Commander" ? " checked" : ""), Total Commander ; 3
-Gui, 2:Add, Radio, % "y+10 x15 gActiveFileManagerClicked vf_radActiveFileManager4" . (g_strActiveFileManager = "QAPconnect" ? " checked" : ""), % "QAPconnect (" . L(lOptionsThirdPartyQAPconnectRadio, "QAPconnect.ini") . ")" ; 4
-*/
-
 Gui, 2:Font, s8 w700
 Gui, 2:Add, Link, y+25 x32 w500 vf_lnkFileManagerHelp hidden
 Gui, 2:Font
 Gui, 2:Add, Text, y+10 x32 w500 vf_lblFileManagerDetail hidden
 Gui, 2:Add, Text, y+10 x32 vf_lblFileManagerPrompt hidden, %lDialogApplicationLabel%:
 Gui, 2:Add, Edit, yp x+10 w300 h20 vf_strFileManagerPath hidden
-IniRead, strQAPconnectFileManagersList, %g_strQAPconnectIniPath%, , , %A_Space% ; list of QAPconnect.ini applications, empty by default
-
-if StrLen(strQAPconnectFileManagersList)
-{
-	strQAPconnectFileManagersList .= "|"
-	StringReplace, strQAPconnectFileManagersList, strQAPconnectFileManagersList, `n, |, All
-	if StrLen(g_strQAPconnectFileManager)
-		StringReplace, strQAPconnectFileManagersList, strQAPconnectFileManagersList, %g_strQAPconnectFileManager%|, %g_strQAPconnectFileManager%||
-}
-Gui, 2:Add, DropDownList, xp yp w300 vf_drpQAPconnectFileManager hidden Sort, %strQAPconnectFileManagersList%
+Gui, 2:Add, DropDownList, xp yp w300 vf_drpQAPconnectFileManager hidden Sort
 if StrLen(g_strQAPconnectFileManager)
 	GuiControl, ChooseString, f_drpQAPconnectFileManager, %g_strQAPconnectFileManager%
 Gui, 2:Add, Button, x+10 yp vf_btnFileManagerPath gButtonSelectFileManagerPath hidden, %lDialogBrowseButton%
@@ -3296,8 +3289,6 @@ GuiControl, Focus, f_btnOptionsSave
 Gui, 2:Show, AutoSize Center
 Gui, 1:+Disabled
 
-strQAPconnectFileManagersList := ""
-
 return
 ;------------------------------------------------------------
 
@@ -3319,17 +3310,17 @@ GuiControl, % (f_radActiveFileManager1 or f_radActiveFileManager4 ? "Hide" : "Sh
 if (f_radActiveFileManager2) ; DirectoryOpus
 {
 	g_intClickedFileManager := 2
-	strHelpUrl := "http://code.jeanlalonde.ca/using-folderspopup-with-directory-opus/"
+	strHelpUrl := "http://www.quickaccesspopup.com/how-to-i-enable-directory-opus-support-in-quick-access-popup/"
 }
 else if (f_radActiveFileManager3) ; TotalCommander
 {
 	g_intClickedFileManager := 3
-	strHelpUrl := "http://code.jeanlalonde.ca/using-folderspopup-with-total-commander/"
+	strHelpUrl := "http://www.quickaccesspopup.com/how-do-i-enable-total-commander-support-in-quick-access-popup/"
 }
 else if (f_radActiveFileManager4) ; QAPconnect
 {
 	g_intClickedFileManager := 4
-	strHelpUrl := "###"
+	strHelpUrl := "http://www.quickaccesspopup.com/what-file-managers-are-supported-in-addition-to-windows-explorer/"
 }
 else ; f_radActiveFileManager1
 	g_intClickedFileManager := 1
@@ -3344,7 +3335,19 @@ if !(f_radActiveFileManager1) ; DirectoryOpus, TotalCommander or QAPconnect
 	GuiControl, , f_lnkFileManagerHelp, % L(lOptionsThirdPartySelectedHelp, g_arrActiveFileManagerDisplayNames%g_intClickedFileManager%, strHelpUrl, lGuiHelp)
 	GuiControl, , f_lblFileManagerDetail, % (f_radActiveFileManager4 ? L(lOptionsThirdPartyDetailQAPconnect, "QAPconnect.ini") : L(lOptionsThirdPartyDetail, g_arrActiveFileManagerDisplayNames%g_intClickedFileManager%))
 	GuiControl, , f_strFileManagerPath, % g_str%strClickedFileManagerSystemNames%Path
-	if !(f_radActiveFileManager4) ; DirectoryOpus or TotalCommander
+	if (f_radActiveFileManager4) ; QAPconnect
+	{
+		IniRead, strQAPconnectFileManagersList, %g_strQAPconnectIniPath%, , , %A_Space% ; list of QAPconnect.ini applications, empty by default
+		if StrLen(strQAPconnectFileManagersList)
+		{
+			strQAPconnectFileManagersList .= "|"
+			StringReplace, strQAPconnectFileManagersList, strQAPconnectFileManagersList, `n, |, All
+			if StrLen(g_strQAPconnectFileManager)
+				StringReplace, strQAPconnectFileManagersList, strQAPconnectFileManagersList, %g_strQAPconnectFileManager%|, %g_strQAPconnectFileManager%||
+		}
+		GuiControl, , f_drpQAPconnectFileManager, |%strQAPconnectFileManagersList%
+	}
+	else ; DirectoryOpus or TotalCommander
 	{
 		if !StrLen(g_bln%strClickedFileManagerSystemNames%UseTabs)
 			IniRead, g_bln%strClickedFileManagerSystemNames%UseTabs, %g_strIniFile%, Global, %strClickedFileManagerSystemNames%UseTabs, %A_Space% ; empty if error
@@ -3354,6 +3357,7 @@ if !(f_radActiveFileManager1) ; DirectoryOpus, TotalCommander or QAPconnect
 
 strClickedFileManagerSystemNames := ""
 strHelpUrl := ""
+strQAPconnectFileManagersList := ""
 
 return
 ;------------------------------------------------------------
@@ -3390,7 +3394,7 @@ OptionsTitlesSubClicked:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-GuiControl, Choose, f_intOptionsTab, 3
+GuiControl, Choose, f_intOptionsTab, 4
 
 return
 ;------------------------------------------------------------
@@ -3426,27 +3430,27 @@ return
 
 
 ;------------------------------------------------------------
-ButtonOptionsChangePowerHotkey:
+ButtonOptionsChangeAlternativeHotkey:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-intPowerOrder := A_GuiControl
-StringReplace, intPowerOrder, intPowerOrder, f_lblPowerHotkeyText
-StringReplace, intPowerOrder, intPowerOrder, f_btnChangePowerHotkey
-; ###_V(intPowerOrder, g_objQAPFeaturesPowerCodeByOrder[intPowerOrder], g_objQAPFeatures[g_objQAPFeaturesPowerCodeByOrder[intPowerOrder]].Hotkey)
+intAlternativeOrder := A_GuiControl
+StringReplace, intAlternativeOrder, intAlternativeOrder, f_lblAlternativeHotkeyText
+StringReplace, intAlternativeOrder, intAlternativeOrder, f_btnChangeAlternativeHotkey
+; ###_V(intAlternativeOrder, g_objQAPFeaturesAlternativeCodeByOrder[intAlternativeOrder], g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[intAlternativeOrder]].Hotkey)
 
-strThisPowerCode := g_objQAPFeaturesPowerCodeByOrder[intPowerOrder]
-objThisPower := g_objQAPFeatures[strThisPowerCode]
-g_objQAPFeaturesNewHotkeys[strThisPowerCode] := SelectHotkey(objThisPower.CurrentHotkey, objThisPower.LocalizedName, lDialogHotkeysManagePower
-	, "", 3, objThisPower.DefaultHotkey)
-; ###_D(Hotkey2Text(g_objQAPFeaturesNewHotkeys[strThisPowerCode]))
+strThisAlternativeCode := g_objQAPFeaturesAlternativeCodeByOrder[intAlternativeOrder]
+objThisAlternative := g_objQAPFeatures[strThisAlternativeCode]
+g_objQAPFeaturesNewHotkeys[strThisAlternativeCode] := SelectHotkey(objThisAlternative.CurrentHotkey, objThisAlternative.LocalizedName, lDialogHotkeysManageAlternative
+	, "", 3, objThisAlternative.DefaultHotkey)
+; ###_D(Hotkey2Text(g_objQAPFeaturesNewHotkeys[strThisAlternativeCode]))
 
-if StrLen(g_objQAPFeaturesNewHotkeys[strThisPowerCode])
-	GuiControl, 2:, f_lblPowerHotkeyText%intPowerOrder%, % Hotkey2Text(g_objQAPFeaturesNewHotkeys[strThisPowerCode])
+if StrLen(g_objQAPFeaturesNewHotkeys[strThisAlternativeCode])
+	GuiControl, 2:, f_lblAlternativeHotkeyText%intAlternativeOrder%, % Hotkey2Text(g_objQAPFeaturesNewHotkeys[strThisAlternativeCode])
 	
 ; strPopupHotkeysBackup := ""
-intPowerOrder := ""
-strThisPowerCode := ""
+intAlternativeOrder := ""
+strThisAlternativeCode := ""
 
 return
 ;------------------------------------------------------------
@@ -3664,10 +3668,10 @@ loop, % g_arrPopupHotkeyNames%0%
 ;---------------------------------------
 ; Save Tab 3: Popup menu hotkeys
 
-IniDelete, %g_strIniFile%, PowerMenuHotkeys
-for strThisPowerCode, strNewHotkey in g_objQAPFeaturesNewHotkeys
+IniDelete, %g_strIniFile%, AlternativeMenuHotkeys
+for strThisAlternativeCode, strNewHotkey in g_objQAPFeaturesNewHotkeys
 	if HasHotkey(strNewHotkey)
-		IniWrite, %strNewHotkey%, %g_strIniFile%, PowerMenuHotkeys, %strThisPowerCode%
+		IniWrite, %strNewHotkey%, %g_strIniFile%, AlternativeMenuHotkeys, %strThisAlternativeCode%
 
 Gosub, LoadIniPopupHotkeys ; reload ini variables and reset hotkeys
 
@@ -3682,9 +3686,6 @@ Loop, Parse, strExclusionCleanup, |
 StringTrimRight, g_strExclusionMouseList, g_strExclusionMouseList, 1 ; remove last |
 ; ###_V(A_ThisLabel, f_strExclusionMouseList, strExclusionCleanup, g_strExclusionMouseList)
 IniWrite, %g_strExclusionMouseList%, %g_strIniFile%, Global, ExclusionMouseList
-
-; g_strExclusionKeyboardList := ReplaceAllInString(Trim(f_strExclusionKeyboardList, " `t`n"), "`n", "|")
-; IniWrite, %g_strExclusionKeyboardList%, %g_strIniFile%, Global, ExclusionKeyboardList
 
 ;---------------------------------------
 ; Save Tab 5: File Managers
@@ -3879,7 +3880,7 @@ return
 
 ;------------------------------------------------------------
 LoadMenuInGui:
-LoadMenuInGuiFromPower:
+LoadMenuInGuiFromAlternative:
 ;------------------------------------------------------------
 
 Gui, 1:ListView, f_lvFavoritesList
@@ -3904,7 +3905,7 @@ Loop, % g_objMenuInGui.MaxIndex()
 	else ; this is a folder, document, URL or application
 		LV_Add(, g_objMenuInGui[A_Index].FavoriteName, g_objFavoriteTypesShortNames[g_objMenuInGui[A_Index].FavoriteType], g_objMenuInGui[A_Index].FavoriteLocation)
 
-LV_Modify((A_ThisLabel = "LoadMenuInGuiFromPower" ? g_intOriginalMenuPosition : 1 + (g_objMenuInGui[1].FavoriteType = "B" ? 1 : 0)), "Select Focus") 
+LV_Modify((A_ThisLabel = "LoadMenuInGuiFromAlternative" ? g_intOriginalMenuPosition : 1 + (g_objMenuInGui[1].FavoriteType = "B" ? 1 : 0)), "Select Focus") 
 
 Gosub, AdjustColumnsWidth
 
@@ -4269,7 +4270,7 @@ GuiAddFavorite:
 GuiAddThisFolder:
 GuiAddFromDropFiles:
 GuiEditFavorite:
-GuiEditFavoriteFromPower:
+GuiEditFavoriteFromAlternative:
 GuiCopyFavorite:
 ;------------------------------------------------------------
 
@@ -4533,7 +4534,7 @@ if (g_objEditedFavorite.FavoriteType = "QAP")
 	Gui, 2:Add, Edit, x20 y+0 vf_strFavoriteShortName hidden, % g_objEditedFavorite.FavoriteName ; not allow to change favorite short name for QAP feature favorites
 else
 {
-	Gui, 2:Add, Text, x20 y+20, % L(lDialogFavoriteShortNameLabel, g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]) . " *"
+	Gui, 2:Add, Text, x20 y+20, %lDialogFavoriteShortNameLabel% *
 
 	Gui, 2:Add, Edit
 		, % "x20 y+10 Limit250 vf_strFavoriteShortName w" . 300 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
@@ -4913,6 +4914,20 @@ if InStr("Document|Application", g_objEditedFavorite.FavoriteType)
 if !StrLen(f_strFavoriteShortName)
 	GuiControl, 2:, f_strFavoriteShortName, % GetDeepestFolderName(f_strFavoriteLocation)
 
+; if (g_objEditedFavorite.FavoriteType = "Folder")
+; {
+	; ###_V("Transform http to \\") ; #####
+	/*
+	See: http://stackoverflow.com/questions/1344910/get-the-content-of-a-sharepoint-folder-with-excel-vba
+	http://moi.synergitic.org/personnel/jlalonde/Documents
+	\\moi.synergitic.org\personnel\jlalonde\Documents
+	myFilePath = replace(myFilePath, "/", "\")
+	myFilePath = replace(myFilePath, "http:", "")
+	myFilePath = replace(myFilePath, "https:", "")
+	myFilePath = replace(myFilePath, " ", "%20")
+	*/
+; }
+
 return
 ;------------------------------------------------------------
 
@@ -4958,7 +4973,8 @@ else ; ButtonSelectLaunchWith
 if (strType = "Folder")
 	FileSelectFolder, strNewLocation, *%strDefault%, 3, %lDialogAddFolderSelect%
 else ; File
-	FileSelectFile, strNewLocation, S3, %strDefault%, %lDialogAddFileSelect%
+	; do not use optioon "S" because it gives an error message on read-only supports
+	FileSelectFile, strNewLocation, 3, %strDefault%, %lDialogAddFileSelect%
 
 if !(StrLen(strNewLocation))
 {
@@ -5243,7 +5259,7 @@ return
 
 ;------------------------------------------------------------
 GuiShow:
-GuiShowFromPower:
+GuiShowFromAlternative:
 SettingsHotkey:
 ;------------------------------------------------------------
 
@@ -5255,15 +5271,15 @@ if (blnSaveEnabled)
 	return
 }
 
-if (A_ThisLabel <> "GuiShowFromPower") ; menu object already set if from Power hotey
+if (A_ThisLabel <> "GuiShowFromAlternative") ; menu object already set if from Alternative hotkey
 	g_objMenuInGui := g_objMainMenu
 
 Gosub, BackupMenusObjects
 
 g_objHotkeysToDisableWhenSave := Object() ; to track hotkeys to turn off when saving favorites with hotkey changed
 
-if (A_ThisLabel = "GuiShowFromPower")
-	Gosub, LoadMenuInGuiFromPower
+if (A_ThisLabel = "GuiShowFromAlternative")
+	Gosub, LoadMenuInGuiFromAlternative
 else
 	Gosub, LoadMenuInGui
 Gui, 1:Show
@@ -5351,7 +5367,7 @@ if (!g_intNewItemPos) ; if in GuiMoveOneFavoriteSave g_intNewItemPos may be alre
 ; validation to avoid unauthorized favorite types in groups
 if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|Group", g_objEditedFavorite.FavoriteType))
 {
-	Oops(lDialogFavoriteNameNotAllowed, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""), lDialogFavoriteParentMenu)
+	Oops(lDialogFavoriteNameNotAllowed, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""))
 	if (strThisLabel = "GuiMoveOneFavoriteSave")
 		g_intOriginalMenuPosition++
 	gosub, GuiAddFavoriteSaveCleanup
@@ -6044,9 +6060,9 @@ if (A_GuiEvent = "DoubleClick")
 			GuiControl, Choose, f_intOptionsTab, 2
 		}
 	}
-	else if (strHotkeyType = lDialogHotkeysManagePower) ; this is Power menu feature, ### go to Options, Menu hotkeys
+	else if (strHotkeyType = lDialogHotkeysManageAlternative) ; this is Alternative menu feature, ### go to Options, Menu hotkeys
 	{
-		MsgBox, 35, %g_strAppNameText%!, % L(lDialogChangeHotkeyPopup, lOptionsPowerMenuFeatures, lGuiOptions)
+		MsgBox, 35, %g_strAppNameText%!, % L(lDialogChangeHotkeyAlternative, lOptionsAlternativeMenuFeatures, lGuiOptions)
 		IfMsgBox, Yes
 		{
 			Gosub, GuiOptions
@@ -6113,9 +6129,9 @@ loop, 4
 
 for strQAPFeatureCode in g_objQAPFeaturesDefaultNameByCode
 {
-	if (g_objQAPFeatures[strQAPFeatureCode].QAPFeaturePowerOrder)
+	if (g_objQAPFeatures[strQAPFeatureCode].QAPFeatureAlternativeOrder)
 		if HasHotkey(g_objQAPFeatures[strQAPFeatureCode].CurrentHotkey) or f_blnSeeAllFavorites
-			LV_Add(, , lDialogHotkeysManagePowerMenu, g_objQAPFeatures[strQAPFeatureCode].LocalizedName, lDialogHotkeysManagePower
+			LV_Add(, , lDialogHotkeysManageAlternativeMenu, g_objQAPFeatures[strQAPFeatureCode].LocalizedName, lDialogHotkeysManageAlternative
 				, Hotkey2Text(g_objQAPFeatures[strQAPFeatureCode].CurrentHotkey), strQAPFeatureCode)
 }
 
@@ -6622,7 +6638,7 @@ HotkeyIfAvailable(strHotkey, strLocation)
 			break
 		}
 	
-	; check QAP Features Power menu hotkeys
+	; check QAP Features Alternative menu hotkeys
 	for strCode, objThisQAPFeature in g_objQAPFeatures
 		if (objThisQAPFeature.CurrentHotkey = strHotkey)
 		{
@@ -6938,7 +6954,7 @@ NavigateHotkeyKeyboard:
 LaunchHotkeyMouse:
 LaunchHotkeyKeyboard:
 LaunchFromTrayIcon:
-LaunchFromPowerMenu:
+LaunchFromAlternativeMenu:
 ;------------------------------------------------------------
 
 if !(g_blnMenuReady)
@@ -6952,17 +6968,17 @@ if (g_blnGetWinInfo)
 	
 Gosub, SetMenuPosition
 
-g_blnPowerMenu := (A_ThisLabel = "LaunchFromPowerMenu")
-if !(g_blnPowerMenu)
-	g_strPowerMenu := "" ; delete from previous call to Power key, else keep what was set in OpenPowerMenu
+g_blnAlternativeMenu := (A_ThisLabel = "LaunchFromAlternativeMenu")
+if !(g_blnAlternativeMenu)
+	g_strAlternativeMenu := "" ; delete from previous call to Alternative key, else keep what was set in OpenAlternativeMenu
 
 if (A_ThisLabel = "LaunchFromTrayIcon")
 {
 	SetTargetWinInfo(false)
 	g_strHokeyTypeDetected := "Launch"
 }
-else if (A_ThisLabel = "LaunchFromPowerMenu")
-	g_strHokeyTypeDetected := "Power"
+else if (A_ThisLabel = "LaunchFromAlternativeMenu")
+	g_strHokeyTypeDetected := "Alternative"
 else
 	g_strHokeyTypeDetected := SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1) ; "Navigate" or "Launch"
 
@@ -6990,14 +7006,14 @@ return
 
 
 ;------------------------------------------------------------
-PowerHotkeyMouse:
-PowerHotkeyKeyboard:
+AlternativeHotkeyMouse:
+AlternativeHotkeyKeyboard:
 ;------------------------------------------------------------
 
-g_blnPowerMenu := true
-g_strHokeyTypeDetected := "Power"
+g_blnAlternativeMenu := true
+g_strHokeyTypeDetected := "Alternative"
 
-Menu, g_menuPower, Show
+Menu, g_menuAlternative, Show
 
 return
 ;------------------------------------------------------------
@@ -7163,7 +7179,7 @@ WindowIsTreeview(strWinId)
 	blnIsTreeView := InStr(strControlsList, "SysTreeView321") and InStr(strControlsList, "SHBrowseForFolder")
 	if (blnIsTreeView)
 	{
-		TrayTip, %lWindowIsTreeviewTitle%, %lWindowIsTreeviewText%, , 18
+		TrayTip, %lWindowIsTreeviewTitle%, %lWindowIsTreeviewText%, , 18 ; 2 warning icon + 16 no sound
 		Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 	}
 	
@@ -7239,41 +7255,41 @@ WindowIsQuickAccessPopup(strClass)
 ;========================================================================================================================
 
 ;------------------------------------------------------------
-OpenPowerMenu:
-; remember the power menu item to execute and open the popup menu to choose on what favorite execute this action
+OpenAlternativeMenu:
+; remember the Alternative menu item to execute and open the popup menu to choose on what favorite execute this action
 ;------------------------------------------------------------
 
-g_strPowerMenu := A_ThisMenuItem
+g_strAlternativeMenu := A_ThisMenuItem
 
-gosub, OpenPowerMenuTrayTip
-gosub, LaunchFromPowerMenu
+gosub, OpenAlternativeMenuTrayTip
+gosub, LaunchFromAlternativeMenu
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-OpenPowerMenuHotkey:
+OpenAlternativeMenuHotkey:
 ;------------------------------------------------------------
 
-; search power menu code in g_objQAPFeatures to set g_strPowerMenu with localized name and gosub LaunchFromPowerMenu
-g_strPowerMenu := ""
-for intOrder, strCode in g_objQAPFeaturesPowerCodeByOrder
+; search Alternative menu code in g_objQAPFeatures to set g_strAlternativeMenu with localized name and gosub LaunchFromAlternativeMenu
+g_strAlternativeMenu := ""
+for intOrder, strCode in g_objQAPFeaturesAlternativeCodeByOrder
 	if (g_objQAPFeatures[strCode].CurrentHotkey = A_ThisHotkey)
 	{
-		g_strPowerMenu := g_objQAPFeatures[strCode].LocalizedName
+		g_strAlternativeMenu := g_objQAPFeatures[strCode].LocalizedName
 		break
 	}
 
-if StrLen(g_strPowerMenu)
+if StrLen(g_strAlternativeMenu)
 {
-	gosub, OpenPowerMenuTrayTip
-	gosub, LaunchFromPowerMenu
+	gosub, OpenAlternativeMenuTrayTip
+	gosub, LaunchFromAlternativeMenu
 }
 else
 	Oops("QAP feature could not be found...")
 
-OpenPowerMenuHotkeyCleanup:
+OpenAlternativeMenuHotkeyCleanup:
 intOrder := ""
 strCode := ""
 
@@ -7282,19 +7298,19 @@ return
 
 
 ;------------------------------------------------------------
-OpenPowerMenuTrayTip:
+OpenAlternativeMenuTrayTip:
 ;------------------------------------------------------------
 
-if (g_strPowerMenu = lMenuCopyLocation)
-	strMessage := lPowerMenuTrayTipCopyLocation
-else if (g_strPowerMenu = lMenuPowerNewWindow)
-	strMessage := lPowerMenuTrayTipNewWindow
-else if (g_strPowerMenu = lMenuPowerEditFavorite)
-	strMessage := lPowerMenuTrayTipEditFavorite
+if (g_strAlternativeMenu = lMenuCopyLocation)
+	strMessage := lAlternativeMenuTrayTipCopyLocation
+else if (g_strAlternativeMenu = lMenuAlternativeNewWindow)
+	strMessage := lAlternativeMenuTrayTipNewWindow
+else if (g_strAlternativeMenu = lMenuAlternativeEditFavorite)
+	strMessage := lAlternativeMenuTrayTipEditFavorite
 else
 	strMessage := ""
 
-TrayTip, %g_strAppNameText%, %strMessage%, , 17
+TrayTip, %g_strAppNameText%, %strMessage%, , 17 ; 1 info icon + 16 no sound
 Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 
 strMessage := ""
@@ -7416,7 +7432,7 @@ OpenClipboard:
 
 ; if (A_ThisLabel = "OpenFavoriteFromGroup")
 ;	###_O("objThisGroupFavoritesList", objThisGroupFavoritesList)
-; ###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strPowerMenu, g_blnPowerMenu, g_strHokeyTypeDetected)
+; ###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strAlternativeMenu, g_blnAlternativeMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
 
@@ -7431,7 +7447,7 @@ if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
 	return
 }
 
-if (g_objThisFavorite.FavoriteType = "Group") and !(g_blnPowerMenu)
+if (g_objThisFavorite.FavoriteType = "Group") and !(g_blnAlternativeMenu)
 {
 	gosub, OpenGroupOfFavorites
 	
@@ -7442,7 +7458,7 @@ if (g_objThisFavorite.FavoriteType = "Group") and !(g_blnPowerMenu)
 strTempLocation := g_objThisFavorite.FavoriteLocation ; to avoid modification by ByRef in FileExistInPath
 
 if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for these favorites, file/folder must exist
-	and (g_strPowerMenu <> lMenuPowerEditFavorite) ; except if we edit the favorite
+	and (g_strAlternativeMenu <> lMenuAlternativeEditFavorite) ; except if we edit the favorite
 	and !LocationIsHTTP(g_objThisFavorite.FavoriteLocation) ; except if the folder location is on a server (WebDAV)
 	
 	if !FileExistInPath(strTempLocation) ; return strTempLocation with expanded relative path and envvars, also search in PATH
@@ -7456,8 +7472,8 @@ if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; for th
 		return
 	}
 
-; preparation for power menu features before setting the full location
-if (g_blnPowerMenu) and (g_strPowerMenu = lMenuPowerNewWindow)
+; preparation for Alternative menu features before setting the full location
+if (g_blnAlternativeMenu) and (g_strAlternativeMenu = lMenuAlternativeNewWindow)
 	g_strHokeyTypeDetected := "Launch"
 
 gosub, SetTargetName ; sets g_strTargetAppName, can change g_strHokeyTypeDetected to "Launch"
@@ -7483,35 +7499,35 @@ StringSplit, g_arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
 
 ; === ACTIONS ===
 
-; --- Power Menu actions ---
+; --- Alternative Menu actions ---
 
-if (g_blnPowerMenu)
+if (g_blnAlternativeMenu)
 {
-	if (g_strPowerMenu = lMenuPowerEditFavorite)
+	if (g_strAlternativeMenu = lMenuAlternativeEditFavorite)
 	{
 		g_objMenuInGui := g_objMenusIndex[A_ThisMenu]
 		g_intOriginalMenuPosition := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
 			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
 		g_objEditedFavorite := g_objMenuInGui[g_intOriginalMenuPosition]
-		gosub, GuiShowFromPower
-		gosub, GuiEditFavoriteFromPower
+		gosub, GuiShowFromAlternative
+		gosub, GuiEditFavoriteFromAlternative
 		gosub, OpenFavoriteCleanup
 		return
 	}
 	
-	if (g_strPowerMenu = lMenuCopyLocation) ; EnvVars expanded
+	if (g_strAlternativeMenu = lMenuCopyLocation) ; EnvVars expanded
 	{
 		if !InStr("Group|QAP", g_objThisFavorite.FavoriteType) ; for these types, there is no path to copy
 		{
 			Clipboard := g_strFullLocation
-			TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, , 17
+			TrayTip, %g_strAppNameText%, %lCopyLocationCopiedToClipboard%, , 17 ; 1 info icon + 16 no sound
 			Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 		}		
 		gosub, OpenFavoriteCleanup
 		return
 	}
 	
-	if (g_strPowerMenu = lMenuPowerNewWindow) and (g_objThisFavorite.FavoriteType = "Group")
+	if (g_strAlternativeMenu = lMenuAlternativeNewWindow) and (g_objThisFavorite.FavoriteType = "Group")
 	; cannot open group in new window
 	{
 		gosub, OpenFavoriteCleanup
@@ -7611,8 +7627,8 @@ OpenFavoriteCleanup:
 g_objThisFavorite := ""
 strFavoriteWindowPosition := ""
 g_arrFavoriteWindowPosition := ""
-g_blnPowerMenu := ""
-g_strPowerMenu := ""
+g_blnAlternativeMenu := ""
+g_strAlternativeMenu := ""
 strTempLocation := ""
 
 return
@@ -7825,7 +7841,7 @@ if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; always empty for Application f
 {
 	strFullLaunchWith := g_objThisFavorite.FavoriteLaunchWith
 	blnFileExist := FileExistInPath(strFullLaunchWith) ; return strFullLaunchWith expanded and searched in PATH
-	if !(blnFileExist) and (g_strPowerMenu <> lMenuPowerEditFavorite)
+	if !(blnFileExist) and (g_strAlternativeMenu <> lMenuAlternativeEditFavorite)
 		Oops(lOopsLaunchWithNotFound, strFullLaunchWith) ; leave g_strFullLocation as-is
 	else
 		g_strFullLocation := strFullLaunchWith . " """ . g_strFullLocation . """" ; enclose document path in double-quotes
@@ -7938,7 +7954,7 @@ GetWinInfo:
 
 g_blnGetWinInfo := true
 
-MsgBox, % 64 + 4096, %g_strAppNameFile% - %lMenuGetWinInfo%, % L(lDialogGetWInInfo, Hotkey2Text(g_arrPopupHotkeys1))
+MsgBox, % 64 + 4096, %g_strAppNameFile% - %lMenuGetWinInfo%, % L(lDialogGetWinInfo, Hotkey2Text(g_arrPopupHotkeys1))
 
 return
 ;------------------------------------------------------------
@@ -7951,7 +7967,7 @@ GetWinInfo2Clippoard:
 g_blnGetWinInfo := ""
 WinClose, %g_strAppNameFile% - %lMenuGetWinInfo%
 
-MsgBox, 4, %g_strAppNameFile% - %lMenuGetWinInfo%, % L(lDialogGetWInInfo2Clippoard, g_strTargetWinTitle, g_strTargetClass)
+MsgBox, 4, %g_strAppNameFile% - %lMenuGetWinInfo%, % L(lDialogGetWinInfo2Clippoard, g_strTargetWinTitle, g_strTargetClass)
 
 IfMsgBox, Yes
 	Clipboard := g_strTargetWinTitle . "`r`n" . g_strTargetClass
@@ -8252,6 +8268,7 @@ if (g_arrFavoriteWindowPosition1)
 	strExplorerIDsBefore := g_strExplorerIDs ;  save the list before launching this new Explorer
 }
 
+; ###_V(A_ThisLabel, strTempLocation, g_strTargetAppName, g_strFullLocation, g_strTargetClass)
 Run, % "Explorer """ . g_strFullLocation . """" ; there was a bug prior to v3.3.1 because the lack of double-quotes
 
 if (g_arrFavoriteWindowPosition1)
@@ -8261,7 +8278,7 @@ if (g_arrFavoriteWindowPosition1)
 	{
 		if (A_Index > 25)
 		{
-			TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText), % L(lDialogErrorMoving, g_strFullLocation), , 2 ; with sound
+			TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText), % L(lDialogErrorMoving, g_strFullLocation), , 2 ; warning icon with sound
 			Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 			Break
 		}
