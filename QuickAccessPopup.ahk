@@ -16,15 +16,12 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- open WebDAV folder (http://...) works in dialog box but not in Explorer
-- username/password in FTP favoritews lost
+- (added 2015-11-12 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
-- complete convert http to \\ (line 4917/8270)
 - rename Current Folders in website
 - rename Power menu to Alternative menu in website
 - show shortcuts in Alternative menu
-- run application favorites using PATH locations for application when apps location does not include foloder location (has no "\")
 - add QAP feature "Add this folder Express" (see this item in wishlist)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
@@ -37,6 +34,7 @@ Version: 6.2.4 beta (2015-11-??)
 - fix bug unable to create folder, document or application favorite on read-only support
 - French language translation and adjustments to original English language while translating to French
 - rename "Power" menu/hotkey/features to "Alternative" menu/hotkey/features
+- when adding favorite transform HTTP (WebDAV) folder and document location to network path (UNC format) for compatibility with Windows Explorer
 
 Version: 6.2.3 beta (2015-11-21)
 - more explicit error message if user try to copy submenu, group, separator or column break in settings
@@ -4914,20 +4912,6 @@ if InStr("Document|Application", g_objEditedFavorite.FavoriteType)
 if !StrLen(f_strFavoriteShortName)
 	GuiControl, 2:, f_strFavoriteShortName, % GetDeepestFolderName(f_strFavoriteLocation)
 
-; if (g_objEditedFavorite.FavoriteType = "Folder")
-; {
-	; ###_V("Transform http to \\") ; #####
-	/*
-	See: http://stackoverflow.com/questions/1344910/get-the-content-of-a-sharepoint-folder-with-excel-vba
-	http://moi.synergitic.org/personnel/jlalonde/Documents
-	\\moi.synergitic.org\personnel\jlalonde\Documents
-	myFilePath = replace(myFilePath, "/", "\")
-	myFilePath = replace(myFilePath, "http:", "")
-	myFilePath = replace(myFilePath, "https:", "")
-	myFilePath = replace(myFilePath, " ", "%20")
-	*/
-; }
-
 return
 ;------------------------------------------------------------
 
@@ -5445,6 +5429,23 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 			return
 		}
 	}
+	
+	if InStr("Folder|Document", g_objEditedFavorite.FavoriteType)
+		and (SubStr(f_strFavoriteLocation, 1, 5) = "http:" or SubStr(f_strFavoriteLocation, 1, 6) = "https:")
+	{
+		; Transform from "http:" to "\\", example:
+		; From: http://abc.server.com/folder/subfolder/My Name.doc
+		; to:   \\abc.server.com\folder\subfolder\My%20Name.doc
+		; See: http://stackoverflow.com/questions/1344910/get-the-content-of-a-sharepoint-folder-with-excel-vba
+		
+		StringReplace, strHttpLocationTransformed, f_strFavoriteLocation, /, \, All
+		StringReplace, strHttpLocationTransformed, strHttpLocationTransformed, http:
+		StringReplace, strHttpLocationTransformed, strHttpLocationTransformed, https:
+		; not required? StringReplace, f_strFavoriteLocation, f_strFavoriteLocation, %A_Space%, `%20, All
+		
+		Oops(lOopsHttpLocationTransformed, f_strFavoriteLocation, strHttpLocationTransformed)
+		f_strFavoriteLocation := strHttpLocationTransformed
+	}
 }
 
 if !FolderNameIsNew((strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : f_strFavoriteShortName), g_objMenusIndex[strDestinationMenu])
@@ -5649,6 +5650,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave") ; do not execute at each favorite 
 	strIndexToRemove := ""
 	strThisMenuIndexPath := ""
 	objThisMenu := ""
+	strHttpLocationTransformed := ""
 
 	; make sure all gui variables are flushed before next fav add or edit
 	Gosub, GuiAddFavoriteFlush
