@@ -105,11 +105,13 @@ global lDialogOK := "OK" ; new
 global lDialogOpenThisMenu := "Open this menu"
 global lDialogOr := "or" ; new (lowercase)
 global lDialogRemoveMultipleFavorites := "Do you realy want to remove ~1~ favorites or submenus?"
+global lDialogRemoveWindowsFolderIcon := "Remove Windows folder icon" ; new
 global lDialogSelectIcon := "Select icon"
 global lDialogSelectItemToAdd := "Select the item to add" ; new
 global lDialogSelectItemToEdit := "Please, select the item to edit."
 global lDialogSelectItemToMove := "Please, select the item to move." ; new
 global lDialogSelectItemToRemove := "Please, select the item to remove."
+global lDialogSetWindowsFolderIcon := "Set Windows folder icon" ; new
 global lDialogShift := "Shift" ; renamed
 global lDialogShortcut := "Shortcut"
 global lDialogSpacebarTab := "choose <a id=""Space"">space bar</a> or <a id=""Tab"">tab</a>" ; do NOT translate ID="xxx"

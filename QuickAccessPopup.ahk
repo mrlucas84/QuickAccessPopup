@@ -16,6 +16,8 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- add fav tab labels not in localized
+- add fav help ot localized
 - (added 2015-11-12 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
@@ -4498,6 +4500,12 @@ else
 	
 	if (g_strAddFavoriteType = "FTP")
 		g_blnNewFavoriteFtpEncoding := (g_intActiveFileManager = 3 ? false : true) ; if TotalCommander URL should not be encoded (as hardcoded in OpenFavorite)
+
+	if (g_objEditedFavorite.FavoriteType = "Folder")
+	{
+		g_strNewFavoriteIconResource := GetFolderIcon(g_objEditedFavorite.FavoriteLocation)
+		g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
+	}
 }
 
 Gosub, GuiFavoriteIconDefault
@@ -4639,8 +4647,9 @@ if !(blnIsGroupMember)
 	Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog section, %lDialogIcon%
 	Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
 	Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
-	Gui, 2:Add, Link, x20 ys+57 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
-	Gui, 2:Add, Link, x20 ys+74 gGuiEditIconDialog, <a>%lDialogEditIcon%</a>
+	Gui, 2:Add, Link, x20 ys+57 w200 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
+	Gui, 2:Add, Link, x210 yp w200 vf_lblSetWindowsFolderIcon gSetWindowsFolderIcon, <a>%lDialogSetWindowsFolderIcon%</a>
+	Gui, 2:Add, Link, x20 ys+74 w200 gGuiEditIconDialog, <a>%lDialogEditIcon%</a>
 
 	Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
 	Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
@@ -4802,6 +4811,9 @@ if (f_intAddFavoriteTab = 1) ; if last tab was 1 we need to update the icon
 {
 	Gui, 2:Submit, NoHide
 
+	if !StrLen(g_strNewFavoriteIconResource)
+		g_strNewFavoriteIconResource := GetFolderIcon(f_strFavoriteLocation)
+	
 	Gosub, GuiFavoriteIconDefault
 	Gosub, GuiFavoriteIconDisplay
 }
@@ -4906,11 +4918,11 @@ EditFavoriteLocationChanged:
 ;------------------------------------------------------------
 Gui, 2:Submit, NoHide
 
-if InStr("Document|Application", g_objEditedFavorite.FavoriteType)
-	g_strNewFavoriteIconResource := ""
-
 if !StrLen(f_strFavoriteShortName)
 	GuiControl, 2:, f_strFavoriteShortName, % GetDeepestFolderName(f_strFavoriteLocation)
+
+if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
+	g_strNewFavoriteIconResource := ""
 
 return
 ;------------------------------------------------------------
@@ -5093,10 +5105,17 @@ return
 GuiFavoriteIconDisplay:
 ;------------------------------------------------------------
 
-strExpandedRessourceIcon := EnvVars(g_strNewFavoriteIconResource)
-ParseIconResource(strExpandedRessourceIcon, strThisIconFile, intThisIconIndex)
+strExpandedIconRessource := EnvVars(g_strNewFavoriteIconResource)
+ParseIconResource(strExpandedIconRessource, strThisIconFile, intThisIconIndex)
 GuiControl, , f_picIcon, *icon%intThisIconIndex% %strThisIconFile%
 GuiControl, % (strExpandedRessourceIcon <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), f_lblRemoveIcon
+
+GuiControl, % (g_objEditedFavorite.FavoriteType = "Folder" and strExpandedIconRessource <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), f_lblSetWindowsFolderIcon
+strCurrentDesktopIcon := GetFolderIcon(f_strFavoriteLocation)
+; compare g_strNewFavoriteIconResource expanded and not expanded because if could be expanded or not in desktop.ini
+GuiControl, , f_lblSetWindowsFolderIcon
+	, % "<a>" . (strCurrentDesktopIcon = g_strNewFavoriteIconResource or strCurrentDesktopIcon = EnvVars(g_strNewFavoriteIconResource) 
+	? lDialogRemoveWindowsFolderIcon : lDialogSetWindowsFolderIcon) . "</a>"
 
 strExpandedRessourceIcon := ""
 strThisIconFile := ""
@@ -5270,6 +5289,64 @@ Gui, 1:Show
 
 GuiShowCleanup:
 blnSaveEnabled := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+GetFolderIcon(strFolderLocation)
+;------------------------------------------------------------
+{
+	strFolderDesktopIni := PathCombine(A_WorkingDir, EnvVars(strFolderLocation)) . "\desktop.ini"
+	IniRead, strDesktopIconFile, %strFolderDesktopIni%, .ShellClassInfo, IconFile, %A_Space%
+	IniRead, intDesktopIconIndex, %strFolderDesktopIni%, .ShellClassInfo, IconIndex, 0
+
+	if StrLen(strDesktopIconFile)
+		strDesktopIconFileIndex := strDesktopIconFile . ","
+			. intDesktopIconIndex + (intDesktopIconIndex >= 0 ? 1 : 0) ; adjust index for positive index only (not for negative index)
+	; ###_V(A_ThisLabel, strFolderLocation, strDesktopIconFileIndex)
+
+	return strDesktopIconFileIndex
+}
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SetWindowsFolderIcon:
+;------------------------------------------------------------
+; #####
+/*
+get label for f_lblSetWindowsFolderIcon
+
+if label lDialogSetWindowsFolderIcon
+	create desktop.ini if not exist
+	update icon in desktop.ini
+else ; lDialogRemoveWindowsFolderIcon
+	remove icon
+	ask if remove desktop.ini
+*/
+
+; Code from Lexikos (https://autohotkey.com/board/topic/58084-change-folder-icons/#entry364982)
+
+; if FileExist()
+/*
+folder=New Folder
+FileCreateDir %folder% ; (optional: create a new folder)
+
+FileSetAttrib +S, %folder%, 2
+ini=%folder%\desktop.ini
+IniWrite %A_AhkPath%, %ini%, .ShellClassInfo, IconFile
+IniWrite 0          , %ini%, .ShellClassInfo, IconIndex
+IniWrite 0          , %ini%, .ShellClassInfo, ConfirmFileOp
+; This uses the icon of AutoHotkey itself. I tested on Windows 7 Pro x64. You can hide the desktop.ini file by setting its +SH (system, hidden) attributes.
+
+if desktop.ini created, make it hidden and system
+
+From: https://msdn.microsoft.com/en-us/library/cc144102.aspx
+ConfirmFileOp=0 -> Set this entry to 0 to avoid a "You Are Deleting a System Folder" warning when deleting or moving the folder.
+InfoTip	=> Set this entry to an informational text string. It is displayed as an infotip when the cursor hovers over the folder. If the user clicks the folder, the information text is displayed in the folder's information block, below the standard information.
+*/
 
 return
 ;------------------------------------------------------------
@@ -7827,9 +7904,6 @@ if (g_objThisFavorite.FavoriteType = "FTP")
 }
 else
 	if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
-	; ##### if (g_objThisFavorite.FavoriteType = "Application") and !InStr(g_objThisFavorite.FavoriteLocation, "\") ; if application has no folder, then use PATH - do not PathCombine
-	;	g_strFullLocation := EnvVars(g_strFullLocation)
-	; else if InStr("Folder|Document|Application", g_objThisFavorite.FavoriteType) ; not for URL, Special Folder and others
 		and !LocationIsHTTP(g_objThisFavorite.FavoriteLocation) ; except if the folder location is on a server (like WebDAV)
 		; expand system variables
 		; make the location absolute based on the current working directory
