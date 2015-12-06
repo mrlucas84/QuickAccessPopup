@@ -32,11 +32,14 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.2.4 beta (2015-11-??)
+Version: 6.2.4 beta (2015-12-??)
 - fix bug unable to create folder, document or application favorite on read-only support
 - French language translation and adjustments to original English language while translating to French
 - rename "Power" menu/hotkey/features to "Alternative" menu/hotkey/features
 - when adding favorite transform HTTP (WebDAV) folder and document location to network path (UNC format) for compatibility with Windows Explorer
+- get current Windows folder icon (from desktop.ini file) and assign it as default for new folder favorites
+- add link to Menu options tab of Add favorite window to set Windows folder icon to the icon currently selected for the favorite
+- add link to Menu options tab of Add favorite window to remove Windows folder icon
 
 Version: 6.2.3 beta (2015-11-21)
 - more explicit error message if user try to copy submenu, group, separator or column break in settings
@@ -871,32 +874,6 @@ Loop, Parse, strIconsMenus, |
 ; example: g_objIconsFile["iconPictures"] and g_objIconsIndex["iconPictures"]
 
 ; ----------------------
-; FAVORITE TYPES
-strFavoriteTypes := "Folder|Document|Application|Special|URL|FTP|QAP|Menu|Group|X|K|B"
-StringSplit, g_arrFavoriteTypes, strFavoriteTypes, |
-StringSplit, arrFavoriteTypesLabels, lDialogFavoriteTypesLabels, |
-g_objFavoriteTypesLabels := Object()
-StringSplit, arrFavoriteTypesLocationLabels, lDialogFavoriteTypesLocationLabels, |
-g_objFavoriteTypesLocationLabels := Object()
-; StringSplit, arrFavoriteTypesHelp, lDialogFavoriteTypesHelp, |
-Loop, 9 ; excluding X, K and B
-	arrFavoriteTypesHelp%A_Index% := lDialogFavoriteTypesHelp%A_Index%
-g_objFavoriteTypesHelp := Object()
-StringSplit, arrFavoriteTypesShortNames, lDialogFavoriteTypesShortNames, |
-g_objFavoriteTypesShortNames := Object()
-Loop, %g_arrFavoriteTypes0%
-{
-	; example to display favorite type label: g_objFavoriteTypesLabels["Folder"], g_objFavoriteTypesLabels["Document"]
-	g_objFavoriteTypesLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLabels%A_Index%)
-	g_objFavoriteTypesLocationLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLocationLabels%A_Index%)
-	g_objFavoriteTypesHelp.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesHelp%A_Index%)
-	g_objFavoriteTypesShortNames.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesShortNames%A_Index%)
-}
-
-; 1 Basic Settings, 2 Menu Options, 3 Window Options, 4 Advanced Settings
-StringSplit, g_arrFavoriteGuiTabs, lDialogAddFavoriteTabs, |
-
-; ----------------------
 ; ACTIVE FILE MANAGER
 ; g_arrActiveFileManagerSystemNames: array system names (1-4)
 ; g_arrActiveFileManagerDisplayNames: array system names (1-4)
@@ -917,11 +894,6 @@ strIconsFile := ""
 strIconsIndex := ""
 arrIconsFile := ""
 arrIconsIndex := ""
-strFavoriteTypes := ""
-arrFavoriteTypesLabels := ""
-arrFavoriteTypesLocationLabels := ""
-arrFavoriteTypesHelp := ""
-arrFavoriteTypesShortNames := ""
 strActiveFileManagerSystemNames := ""
 strActiveFileManagerNames := ""
 arrActiveFileManagerNames := ""
@@ -980,6 +952,9 @@ return
 ;------------------------------------------------------------
 InitLanguageArrays:
 ;------------------------------------------------------------
+
+; ----------------------
+; OPTIONS
 StringSplit, g_arrOptionsPopupHotkeyTitles, lOptionsPopupHotkeyTitles, |
 strOptionsLanguageCodes := "EN|FR|DE|NL|KO|SV|IT|ES|PT-BR"
 StringSplit, g_arrOptionsLanguageCodes, strOptionsLanguageCodes, |
@@ -996,7 +971,39 @@ loop, %g_arrOptionsLanguageCodes0%
 lDialogMouseButtonsText := lDialogNone . "|" . lDialogMouseButtonsText ; use lDialogNone because this is displayed
 StringSplit, g_arrMouseButtonsText, lDialogMouseButtonsText, |
 
+; 1 Basic Settings, 2 Menu Options, 3 Window Options, 4 Advanced Settings
+StringSplit, g_arrFavoriteGuiTabs, lDialogAddFavoriteTabs, |
+
+; ----------------------
+; FAVORITE TYPES
+strFavoriteTypes := "Folder|Document|Application|Special|URL|FTP|QAP|Menu|Group|X|K|B"
+StringSplit, g_arrFavoriteTypes, strFavoriteTypes, |
+StringSplit, arrFavoriteTypesLabels, lDialogFavoriteTypesLabels, |
+g_objFavoriteTypesLabels := Object()
+StringSplit, arrFavoriteTypesLocationLabels, lDialogFavoriteTypesLocationLabels, |
+g_objFavoriteTypesLocationLabels := Object()
+; StringSplit, arrFavoriteTypesHelp, lDialogFavoriteTypesHelp, |
+Loop, 9 ; excluding X, K and B
+	arrFavoriteTypesHelp%A_Index% := lDialogFavoriteTypesHelp%A_Index%
+g_objFavoriteTypesHelp := Object()
+StringSplit, arrFavoriteTypesShortNames, lDialogFavoriteTypesShortNames, |
+g_objFavoriteTypesShortNames := Object()
+Loop, %g_arrFavoriteTypes0%
+{
+	; example to display favorite type label: g_objFavoriteTypesLabels["Folder"], g_objFavoriteTypesLabels["Document"]
+	g_objFavoriteTypesLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLabels%A_Index%)
+	g_objFavoriteTypesLocationLabels.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesLocationLabels%A_Index%)
+	g_objFavoriteTypesHelp.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesHelp%A_Index%)
+	g_objFavoriteTypesShortNames.Insert(g_arrFavoriteTypes%A_Index%, arrFavoriteTypesShortNames%A_Index%)
+}
+
 strOptionsLanguageCodes := ""
+strFavoriteTypes := ""
+arrFavoriteTypesLabels := ""
+arrFavoriteTypesLocationLabels := ""
+arrFavoriteTypesHelp := ""
+arrFavoriteTypesShortNames := ""
+
 
 return
 ;------------------------------------------------------------
@@ -4299,7 +4306,7 @@ if (g_blnUseColors)
 g_strTypesForTabWindowOptions := "Folder|Document|Application|Special|Link|FTP"
 g_strTypesForTabAdvancedOptions := "Folder|Document|Application|Special|URL|FTP|Group"
 
-Gui, 2:Add, Tab2, vf_intAddFavoriteTab w420 h380 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
+Gui, 2:Add, Tab2, vf_intAddFavoriteTab w520 h380 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
 intTabNumber := 0
 
 blnIsGroupMember := InStr(g_objMenuInGui.MenuPath, g_strGroupIndicatorPrefix)
@@ -4528,13 +4535,13 @@ GuiFavoriteTabBasic:
 Gui, 2:Tab, % ++intTabNumber
 
 Gui, 2:Font, w700
-Gui, 2:Add, Text, x20 y40 w400, % lDialogFavoriteType . ": " . g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]
+Gui, 2:Add, Text, x20 y40 w500, % lDialogFavoriteType . ": " . g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType]
 Gui, 2:Font
 
 if (g_objEditedFavorite.FavoriteType = "QAP")
-	Gui, 2:Add, Text, x20 y+10 w400, % ReplaceAllInString(L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, lMenuSettings, lGuiOptions), "`n`n", "`n")
+	Gui, 2:Add, Text, x20 y+10 w500, % ReplaceAllInString(L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, lMenuSettings, lGuiOptions), "`n`n", "`n")
 else
-	Gui, 2:Add, Text, x20 y+10 w400, % "> " . ReplaceAllInString(g_objFavoriteTypesHelp[g_objEditedFavorite.FavoriteType], "`n`n", "`n> ")
+	Gui, 2:Add, Text, x20 y+10 w500, % "> " . ReplaceAllInString(g_objFavoriteTypesHelp[g_objEditedFavorite.FavoriteType], "`n`n", "`n> ")
 
 if (g_objEditedFavorite.FavoriteType = "QAP")
 	Gui, 2:Add, Edit, x20 y+0 vf_strFavoriteShortName hidden, % g_objEditedFavorite.FavoriteName ; not allow to change favorite short name for QAP feature favorites
@@ -4543,7 +4550,7 @@ else
 	Gui, 2:Add, Text, x20 y+20, %lDialogFavoriteShortNameLabel% *
 
 	Gui, 2:Add, Edit
-		, % "x20 y+10 Limit250 vf_strFavoriteShortName w" . 300 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
+		, % "x20 y+10 Limit250 vf_strFavoriteShortName w" . 400 - (g_objEditedFavorite.FavoriteType = "Menu" ? 50 : 0)
 		, % g_objEditedFavorite.FavoriteName
 }
 
@@ -4555,7 +4562,7 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 	if !InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
 	{
 		Gui, 2:Add, Text, x20 y+10, % g_objFavoriteTypesLocationLabels[g_objEditedFavorite.FavoriteType] . " *"
-		Gui, 2:Add, Edit, x20 y+10 w300 h20 vf_strFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
+		Gui, 2:Add, Edit, x20 y+10 w400 h20 vf_strFavoriteLocation gEditFavoriteLocationChanged, % g_objEditedFavorite.FavoriteLocation
 		if InStr("Folder|Document|Application", g_objEditedFavorite.FavoriteType)
 			Gui, 2:Add, Button, x+10 yp gButtonSelectFavoriteLocation vf_btnSelectFolderLocation, %lDialogBrowseButton%
 		
@@ -4566,7 +4573,7 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 	if (g_objEditedFavorite.FavoriteType = "Application")
 	{
 		Gui, 2:Add, Text, x20 y+20 vf_lblSelectRunningApplication, %lDialogBrowseOrSelectApplication%
-		Gui, 2:Add, DropDownList, x20 y+5 w400 vf_drpRunningApplication gDropdownRunningApplicationChanged
+		Gui, 2:Add, DropDownList, x20 y+5 w500 vf_drpRunningApplication gDropdownRunningApplicationChanged
 			, % CollectRunningApplications(g_objEditedFavorite.FavoriteLocation)
 	}
 }
@@ -4576,7 +4583,7 @@ else ; "Special" or "QAP"
 	Gui, 2:Add, Text, xs ys, % g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType] . " *"
 
 	Gui, 2:Add, DropDownList
-		, % "x20 y+10 w300 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
+		, % "x20 y+10 w400 vf_drp" . g_objEditedFavorite.FavoriteType . " gDropdown" . g_objEditedFavorite.FavoriteType . "Changed"
 		, % lDialogSelectItemToAdd . "...||" . (g_objEditedFavorite.FavoriteType = "Special" ? g_strSpecialFoldersList : g_strQAPFeaturesList)
 	if InStr("GuiEditFavorite|GuiCopyFavorite", strGuiFavoriteLabel) or StrLen(g_strNewLocationSpecialName)
 		if (g_objEditedFavorite.FavoriteType = "Special")
@@ -4590,8 +4597,8 @@ if (g_objEditedFavorite.FavoriteType = "FTP")
 	Gui, 2:Add, Text, x20 y+5, %lGuiLoginName%
 	Gui, 2:Add, Text, x180 yp, %lGuiPassword%
 	
-	Gui, 2:Add, Edit, x20 y+5 w140 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
-	Gui, 2:Add, Edit, x180 yp w140 h20 Password vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
+	Gui, 2:Add, Edit, x20 y+5 w190 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
+	Gui, 2:Add, Edit, x230 yp w190 h20 Password vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
 	Gui, 2:Add, Text, x20 y+5, %lGuiPasswordNotEncripted%
 }
 
@@ -4636,23 +4643,23 @@ Gui, 2:Tab, % ++intTabNumber
 
 Gui, 2:Add, Text, x20 y40 vf_lblFavoriteParentMenu
 	, % (g_objEditedFavorite.FavoriteType = "Menu" ? lDialogSubmenuParentMenu : lDialogFavoriteParentMenu)
-Gui, 2:Add, DropDownList, x20 y+5 w300 vf_drpParentMenu gDropdownParentMenuChanged
+Gui, 2:Add, DropDownList, x20 y+5 w400 vf_drpParentMenu gDropdownParentMenuChanged
 	, % RecursiveBuildMenuTreeDropDown(g_objMainMenu, g_objMenuInGui.MenuPath, (g_objEditedFavorite.FavoriteType = "Menu" ? lMainMenuName . " " . g_objEditedFavorite.FavoriteLocation : "")) . "|"
 
 Gui, 2:Add, Text, x20 y+10 vf_lblFavoriteParentMenuPosition, %lDialogFavoriteMenuPosition%
-Gui, 2:Add, DropDownList, x20 y+5 w290 vf_drpParentMenuItems AltSubmit
+Gui, 2:Add, DropDownList, x20 y+5 w390 vf_drpParentMenuItems AltSubmit
 
 if !(blnIsGroupMember)
 {
 	Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog section, %lDialogIcon%
 	Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
 	Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
-	Gui, 2:Add, Link, x20 ys+57 w200 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
-	Gui, 2:Add, Link, x210 yp w200 vf_lblSetWindowsFolderIcon gSetWindowsFolderIcon, <a>%lDialogSetWindowsFolderIcon%</a>
-	Gui, 2:Add, Link, x20 ys+74 w200 gGuiEditIconDialog, <a>%lDialogEditIcon%</a>
+	Gui, 2:Add, Link, x20 ys+57 w250 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
+	Gui, 2:Add, Link, x260 yp w250 vf_lblSetWindowsFolderIcon gSetWindowsFolderIcon, <a>%lDialogSetWindowsFolderIcon%</a>
+	Gui, 2:Add, Link, x20 ys+74 w250 gGuiEditIconDialog, <a>%lDialogEditIcon%</a>
 
 	Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
-	Gui, 2:Add, Text, x20 y+5 w280 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
+	Gui, 2:Add, Text, x20 y+5 w300 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
 	Gui, 2:Add, Button, yp x+10 gButtonChangeFavoriteHotkey, %lOptionsChangeHotkey%
 }
 
@@ -4715,8 +4722,8 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 
 	if (g_objEditedFavorite.FavoriteType = "Application")
 	{
-		Gui, 2:Add, Text, x20 y+20 w300 vf_AdvancedSettingsLabel1, %lDialogWorkingDirLabel%
-		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteAppWorkingDir, % g_objEditedFavorite.FavoriteAppWorkingDir
+		Gui, 2:Add, Text, x20 y+20 w400 vf_AdvancedSettingsLabel1, %lDialogWorkingDirLabel%
+		Gui, 2:Add, Edit, x20 y+5 w400 Limit250 vf_strFavoriteAppWorkingDir, % g_objEditedFavorite.FavoriteAppWorkingDir
 		Gui, 2:Add, Button, x+10 yp vf_AdvancedSettingsButton1 gButtonSelectWorkingDir, %lDialogBrowseButton%
 	}
 	else if (g_objEditedFavorite.FavoriteType = "Group")
@@ -4727,20 +4734,20 @@ if InStr(g_strTypesForTabAdvancedOptions, g_objEditedFavorite.FavoriteType)
 	}
 	else
 	{
-		Gui, 2:Add, Text, x20 y+20 w300 vf_AdvancedSettingsLabel4, %lDialogLaunchWith%
-		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteLaunchWith, % g_objEditedFavorite.FavoriteLaunchWith
+		Gui, 2:Add, Text, x20 y+20 w400 vf_AdvancedSettingsLabel4, %lDialogLaunchWith%
+		Gui, 2:Add, Edit, x20 y+5 w400 Limit250 vf_strFavoriteLaunchWith, % g_objEditedFavorite.FavoriteLaunchWith
 		Gui, 2:Add, Button, x+10 yp vf_AdvancedSettingsButton2 gButtonSelectLaunchWith, %lDialogBrowseButton%
 	}
 
 	if (g_objEditedFavorite.FavoriteType <> "Group")
 	{
-		Gui, 2:Add, Text, y+20 x20 w300 vf_AdvancedSettingsLabel5, %lDialogArgumentsLabel%
-		Gui, 2:Add, Edit, x20 y+5 w300 Limit250 vf_strFavoriteArguments gFavoriteArgumentChanged, % g_objEditedFavorite.FavoriteArguments
-		Gui, 2:Add, Text, x20 y+5 w400 vf_AdvancedSettingsLabel7, %lDialogArgumentsLabelHelp%
-		Gui, 2:Add, Text, x20 y+5 w400 vf_AdvancedSettingsLabel6, %lDialogArgumentsPlaceholders%
+		Gui, 2:Add, Text, y+20 x20 w400 vf_AdvancedSettingsLabel5, %lDialogArgumentsLabel%
+		Gui, 2:Add, Edit, x20 y+5 w400 Limit250 vf_strFavoriteArguments gFavoriteArgumentChanged, % g_objEditedFavorite.FavoriteArguments
+		Gui, 2:Add, Text, x20 y+5 w500 vf_AdvancedSettingsLabel7, %lDialogArgumentsLabelHelp%
+		Gui, 2:Add, Text, x20 y+5 w500 vf_AdvancedSettingsLabel6, %lDialogArgumentsPlaceholders%
 		
-		Gui, 2:Add, Text, x20 y+10 w400 vf_PlaceholdersCheckLabel, %lDialogArgumentsPlaceholdersCheckLabel%
-		Gui, 2:Add, Edit, x20 y+5 w400 vf_strPlaceholdersCheck ReadOnly
+		Gui, 2:Add, Text, x20 y+10 w500 vf_PlaceholdersCheckLabel, %lDialogArgumentsPlaceholdersCheckLabel%
+		Gui, 2:Add, Edit, x20 y+5 w500 vf_strPlaceholdersCheck ReadOnly
 		
 		gosub, FavoriteArgumentChanged
 	}
