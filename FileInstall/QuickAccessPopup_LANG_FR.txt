@@ -105,11 +105,13 @@ lDialogOK	OK
 lDialogOpenThisMenu	Ouvrir ce menu
 lDialogOr	ou
 lDialogRemoveMultipleFavorites	Voulez-vous vraiement supprimer ~1~ favoris ou sous-menus?
+lDialogRemoveWindowsFolderIcon	Reriter l'icône de dossier dans Windows
 lDialogSelectIcon	Sélectionnez l'icône
 lDialogSelectItemToAdd	Sélectionnez l'item à ajouter
 lDialogSelectItemToEdit	Veuillez sélectionner l'item à modifier.
 lDialogSelectItemToMove	Veuillez sélectionner l'item à déplacer.
 lDialogSelectItemToRemove	Veuillez sélectionner l'item à supprimer.
+lDialogSetWindowsFolderIcon	Changer l'icône de dossier dans Windows
 lDialogShift	Maj
 lDialogShortcut	Raccourci
 lDialogSpacebarTab	choisissez <a id="Space">Espace</a> ou <a id="Tab">tab</a>
@@ -200,7 +202,7 @@ lHelpText32	- Choisissez le menu "Dossiers récents..." pour afficher une liste d
 lHelpText33	PERSONNALISEZ VOTRE MENU DES FONCTIONS QAP`n`nVous pouvez déplacer les rubriques du menu "Mes fonctions QAP" vers le menu principal ou d'autres sous-menus. `n`n1) Sélectionnez le menu "Réglages" (ou appuyez sur [~1~]).`n2) Dans la liste déroulante "Menu ou groupe à modifier:", sélectionnez "Principal > Mes Fonctions QAP".`n3) Sélectionnez la fonction QAP à déplacer et cliquez "Modifier".`n4) Dans l'onglet "Options de menu", sélectionnez "Insérer le nouveau favori dans ce menu".`n5) Enregistrez vos changements.
 lHelpText41	- Utilisez l'icône de Quick Access Popup dans la zone de Notification (en bas à droite de l'écran de Windows) de l'une des trois façons suivantes:`n1) Cliquez l'icône avec le bouton de gauche pour afficher le menu popup de QAP.`n2) Cliquez avec le bouton de droite pour ouvrir le menu système de QAP.`n3) Double-cliquez l'icône pour afficher la fenêtre "Réglages".
 lHelpText42	- Dans la zone de Notifications, cliquez sur l'icône de Quick Access Popup avec le bouton de droite et sélectionnez "Exécuter au démarrage" pour lancer QAP au démarrage de Windows.
-lHelpText43	- Configurez les déclencheurs du menu popup de Quick Access Popup: choisissez votre bouton de souris préféré ou votre raccourci clavier dans les "Réglages, Options, Déclencheurs du menu".
+lHelpText43	- Configurez les déclencheurs du menu popup de Quick Access Popup: choisissez votre bouton de souris préféré ou votre raccourci clavier dans les "Réglages, Options, Déclencheurs".
 lHelpText44	- Aussi dans les "Options": choisissez votre langue d'utilisation, la taille des icônes de menu, les couleurs des fenêtres. Décidez du nombre des "Emplacements récents" à afficher, de l'affiche des raccourcis clavier numériques ou des rappels des raccourcis de favoris. Fixez le menu popup à une position de votre choix ou mémorisez la position de la fenêtre des "Réglages".
 lHelpText45	- Utilisateurs de Directory Opus, consultez <a href="http://www.quickaccesspopup.com/how-to-i-enable-directory-opus-support-in-quick-access-popup/">cette page</a> (en anglais) pour des renseignements additionnels.`n-Utilisateurs de Total Commander, consultez <a href="">cette page</a> (en anglais) pour plus de renseignements. Utilisateurs d'autres gestionnaires de fichiers, consultez <a href="http://www.quickaccesspopup.com/what-file-managers-are-supported-in-addition-to-windows-explorer/">cette page</a> pour des renseignements sur QAPconnect.
 lHelpTextLead	Avec Quick Access Popup, navigez en un clin d'oeil parmi vos dossiers, pages web et documents favoris!
@@ -276,7 +278,7 @@ lOopsWriteProtectedError	Il semble que ~1~ a été lancé depuis un dossier en ÉCRI
 lOopsWrongThirdPartyPath	Chemin ou nom de fichier incorrect pour ~1~:`n~2~.`n`nVérifiez le fichier .exe sélectionné pour ~1~ dans les "Options", onglet "~3~".
 lOopsWrongThirdPartyPathQAPconnect	Fichier de l'application invalide dans QAPconnect`n~1~:`n~2~.`n`nVérifiez les valeurs pour [~1~] dans ~3~. Utilisez le bouton "~4~" dans "Options", onglet "~5~".
 lOopsZipFileError	Il semble que ~1~ a été lancé directement depuis un fichier compressé (ZIP).`n`nVous devez extraire le fichier .EXE de ~1~ du fichier ZIP dans un dossier de votre choix, puis exécuter l'application à nouveau depuis ce dossier.`n`n~1~ va être fermé.
-lOptionsAlternativeMenuFeatures	Raccourcis du menu Alternatif
+lOptionsAlternativeMenuFeatures	Menu Alternatif
 lOptionsAlternativeMenuFeaturesIntro	Choisisez les raccourcis des fonctionnalités du menu Alternatif.
 lOptionsChangeFolderInDialog	Changer de dossier dans les boîtes de dialogue`navec les raccourcis QAP
 lOptionsChangeFolderInDialogCheckbox	Cliquez cette case à cocher pour confirmer que vous comprenez les conséquences d'essayer de changer de dossier dans une boîte de dialogue inappropriée.
@@ -287,7 +289,7 @@ lOptionsDisplayIcons	Afficher les icônes des menus
 lOptionsDisplayMenuShortcuts	Afficher les raccourcis numériques
 lOptionsExclusionDetail1	Pour bloquer le bouton de souris [~1~] du menu QAP dans une application, tapez n'importe quelle partie du titre de la fenêtre de l'application . Vous pouvez entrer plusieurs exclusions, une par ligne. Par exemple, pour exclure Chrome et Word, entrez ces deux lignes dans la liste d'exclusion:`n`nGoogle Chrome`nMicrosoft Word
 lOptionsExclusionDetail2	Le bouton de souris du menu QAP sera inactif dans ces applications et le clic sur [~1~] sera traité par l'application visée comme si QAP ne roulait pas. Vous pouvez aussi exclure des fenêtres par leur nom de classe. Vous trouvez de l'aide et du soutien sur cette fonction <a href="~2~">sur le site web de QAP</a>.
-lOptionsExclusionList	Liste d'exclusions
+lOptionsExclusionList	Exclusions
 lOptionsExclusionTitle	Liste d'exclusions pour le bouton de souris [~1~]
 lOptionsFtpEncoding	Encoder le code d'utilisateur et le mot de passe FTP (recommandé)
 lOptionsFtpEncodingTC	Encoder le code d'utilisateur et le mot de passe FTP (déconseillé aux utilisateurs de Total Commander)
@@ -303,7 +305,7 @@ lOptionsMenuActiveWindow	Dans la fenêtre active
 lOptionsMenuFixPosition	À une position fixe
 lOptionsMenuNearMouse	Près du pointeur de la souris
 lOptionsMenuPositionPrompt	Afficher le menu popup:
-lOptionsMouseAndKeyboard	Déclencheurs du menu
+lOptionsMouseAndKeyboard	Déclencheurs
 lOptionsOpenMenuOnTaskbar	Ouvrir le menu sur la barre des tâches
 lOptionsOtherOptions	Général
 lOptionsPopupFixPositionX	Position X:

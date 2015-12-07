@@ -16,11 +16,12 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- add fav tab labels not in localized
-- add fav help ot localized
 - (added 2015-11-12 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
+- reset Menu Options lables after set windows icon
+- allow to remov windows icon after X to remove custom fav icon
+
 - rename Current Folders in website
 - rename Power menu to Alternative menu in website
 - show shortcuts in Alternative menu
@@ -5323,37 +5324,96 @@ GetFolderIcon(strFolderLocation)
 SetWindowsFolderIcon:
 ;------------------------------------------------------------
 ; #####
-/*
-get label for f_lblSetWindowsFolderIcon
+Gui, 2:Submit, NoHide
 
-if label lDialogSetWindowsFolderIcon
-	create desktop.ini if not exist
-	update icon in desktop.ini
-else ; lDialogRemoveWindowsFolderIcon
-	remove icon
-	ask if remove desktop.ini
-*/
+GuiControlGet, strSetWindowsFolderIconLabel, , f_lblSetWindowsFolderIcon
+blnSet := (strSetWindowsFolderIconLabel = "<a>" . lDialogSetWindowsFolderIcon . "</a>") ; else lDialogRemoveWindowsFolderIcon
 
-; Code from Lexikos (https://autohotkey.com/board/topic/58084-change-folder-icons/#entry364982)
+strFolder := PathCombine(A_WorkingDir, EnvVars(f_strFavoriteLocation))
+strFolderDesktopIni := strFolder . "\desktop.ini" 
+strDesktopIniAttrib := FileExist(strFolderDesktopIni)
+blnDesktopIniExist := StrLen(strDesktopIniAttrib)
+SplitPath, strFolderDesktopIni, , strDir, , , strDrive
+blnFolderIsRoot := (strDir = strDrive . "\")
 
-; if FileExist()
-/*
-folder=New Folder
-FileCreateDir %folder% ; (optional: create a new folder)
+; ###_V(A_ThisLabel, (blnSet ? "Set" : "Remove"), strFolderDesktopIni, strDesktopIniAttrib, (blnDesktopIniExist ? "Exist" : "Not found"), (blnFolderIsRoot ? "Folder ir root" : "Folder is OK"), g_strNewFavoriteIconResource)
 
-FileSetAttrib +S, %folder%, 2
-ini=%folder%\desktop.ini
-IniWrite %A_AhkPath%, %ini%, .ShellClassInfo, IconFile
-IniWrite 0          , %ini%, .ShellClassInfo, IconIndex
-IniWrite 0          , %ini%, .ShellClassInfo, ConfirmFileOp
-; This uses the icon of AutoHotkey itself. I tested on Windows 7 Pro x64. You can hide the desktop.ini file by setting its +SH (system, hidden) attributes.
+if (blnSet)
+{
+	if (blnFolderIsRoot)
+	{
+		Oops("The Windows folder icon cannot be set in drive's root directory (~1~).") ; ### language
+		Gosub, SetWindowsFolderIconCleanup
+		return
+	}
+	
+	strVerb := (blnDesktopIniExist ? "update" : "create")
+	strMessage := L("This command will ~1~ the system file:`n~2~`n`nThe Windows folder's icon will be set to the icon currently selected for this favorite. Do you want to continue?"
+		, strVerb, strFolderDesktopIni)
+	MsgBox, 4, %g_strAppNameFile%, %strMessage%
+}
+else ; remove
+{
+	strMessage := L("The folder's icon will be reset to its default image. `n`nDo you want to continue?")
+	strMessageRemove := L("This command can also REMOVE the system file:`n~1~`n`nDo you want to restore this folder to its normal state?", strFolderDesktopIni)
+	MsgBox, 4, %g_strAppNameFile%, %strMessage%
+}
 
-if desktop.ini created, make it hidden and system
+IfMsgBox, No
+{
+	Gosub, SetWindowsFolderIconCleanup
+	return
+}
 
-From: https://msdn.microsoft.com/en-us/library/cc144102.aspx
-ConfirmFileOp=0 -> Set this entry to 0 to avoid a "You Are Deleting a System Folder" warning when deleting or moving the folder.
-InfoTip	=> Set this entry to an informational text string. It is displayed as an infotip when the cursor hovers over the folder. If the user clicks the folder, the information text is displayed in the folder's information block, below the standard information.
-*/
+if (g_strCurrentBranch <> "prod")
+{
+	FileCopy, %strFolderDesktopIni%, %strFolderDesktopIni%-BK, 1 ; overwrite
+	FileSetAttrib, -S-H, %strFolderDesktopIni%-BK ; make it normal file
+}
+
+if (blnSet)
+{
+	FileSetAttrib, +S, %strFolder%, 2 ; make sure folder is system
+ 
+	; From: https://msdn.microsoft.com/en-us/library/cc144102.aspx
+	ParseIconResource(g_strNewFavoriteIconResource, strIconFile, intIconIndex)
+	IniWrite %strIconFile%, %strFolderDesktopIni%, .ShellClassInfo, IconFile
+	IniWrite % (intIconIndex >= 0 ? intIconIndex - 1 : intIconIndex), %strFolderDesktopIni%, .ShellClassInfo, IconIndex ; adjust index for positive index only (not for negative index)
+	; ConfirmFileOp -> Set this entry to 0 to avoid a "You Are Deleting a System Folder" warning when deleting or moving the folder.
+	IniWrite 0, %strFolderDesktopIni%, .ShellClassInfo, ConfirmFileOp
+
+	if !(blnDesktopIniExist)
+		FileSetAttrib, +H+S, %strFolderDesktopIni% ; make it system and hidden
+	x := FileExist(strFolderDesktopIni)
+}
+else ; remove
+{
+	IniDelete, %strFolderDesktopIni%, .ShellClassInfo, IconFile
+	IniDelete, %strFolderDesktopIni%, .ShellClassInfo, IconIndex
+
+	MsgBox, 4, %g_strAppNameFile%, % L(strMessageRemove, strFolderDesktopIni)
+	IfMsgBox, Yes
+	{
+		FileSetAttrib, -S, %strFolder%, 2 ; remove system attribute from folder
+		FileDelete, %strFolderDesktopIni%
+	}
+}
+
+SetWindowsFolderIconCleanup:
+blnSet := ""
+strSetWindowsFolderIconLabel := ""
+strFolder := ""
+strFolderDesktopIni := ""
+strDesktopIniAttrib := ""
+blnDesktopIniExist := ""
+strDir := ""
+strDrive := ""
+blnFolderIsRoot := ""
+strMessage := ""
+strVerb := ""
+strMessageRemove := ""
+strIconFile := ""
+intIconIndex := ""
 
 return
 ;------------------------------------------------------------
