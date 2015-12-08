@@ -38,6 +38,7 @@ Version: 6.2.4 beta (2015-12-07)
 - get current Windows folder icon (from desktop.ini file) and assign it as default for new folder favorites
 - add link to Menu options tab of Add favorite window to set Windows folder icon to the icon currently selected for the favorite
 - add link to Menu options tab of Add favorite window to remove Windows folder icon
+- limit notification duration to 3 seconds for the message menu has been updated
 
 Version: 6.2.3 beta (2015-11-21)
 - more explicit error message if user try to copy submenu, group, separator or column break in settings
