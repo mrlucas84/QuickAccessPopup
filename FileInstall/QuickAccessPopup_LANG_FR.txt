@@ -105,13 +105,11 @@ lDialogOK	OK
 lDialogOpenThisMenu	Ouvrir ce menu
 lDialogOr	ou
 lDialogRemoveMultipleFavorites	Voulez-vous vraiement supprimer ~1~ favoris ou sous-menus?
-lDialogRemoveWindowsFolderIcon	Reriter l'icône de dossier dans Windows
 lDialogSelectIcon	Sélectionnez l'icône
 lDialogSelectItemToAdd	Sélectionnez l'item à ajouter
 lDialogSelectItemToEdit	Veuillez sélectionner l'item à modifier.
 lDialogSelectItemToMove	Veuillez sélectionner l'item à déplacer.
 lDialogSelectItemToRemove	Veuillez sélectionner l'item à supprimer.
-lDialogSetWindowsFolderIcon	Changer l'icône de dossier dans Windows
 lDialogShift	Maj
 lDialogShortcut	Raccourci
 lDialogSpacebarTab	choisissez <a id="Space">Espace</a> ou <a id="Tab">tab</a>
@@ -132,6 +130,14 @@ lDialogWindowPositionRight	Droite
 lDialogWindowPositionW	Largeur
 lDialogWindowPositionX	Gauche
 lDialogWindowPositionY	Haut
+lDialogWindowsFolderIconCreate	créer
+lDialogWindowsFolderIconNoRoot	Il n'est pas permis de changer l'icône de dossier de Windows dans le dossier racine d'un disque (~1~).
+lDialogWindowsFolderIconPrompt	Cette commande va ~1~ le fichier système:`n~2~`n`nL'icône de dossier de Windows sera celui actuellement sélectionné pour ce favoris. Voulez-vous continuer?
+lDialogWindowsFolderIconRemove	Retirer l'icône de dossier de Windows
+lDialogWindowsFolderIconRemoveFile	Cette commande peut aussi SUPPRIMER le fichier système:`n~1~`n`nVoulez-vous redonner à ce dossier son état normal?
+lDialogWindowsFolderIconReset	L'icône de dossier de Windows par défaut sera restauré. `n`nVoulez-vous continuer?
+lDialogWindowsFolderIconSet	Changer l'icône de dossier de Windows
+lDialogWindowsFolderIconUpdate	mettre à jour
 lDialogWinShort	Win
 lDialogWorkingDirLabel	Démarrer dans
 lDonateButton	Soutenez ce gratuiciel!
