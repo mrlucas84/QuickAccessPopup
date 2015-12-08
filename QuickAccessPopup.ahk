@@ -19,9 +19,6 @@ BUGS
 - (added 2015-11-12 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
-- reset Menu Options lables after set windows icon
-- allow to remov windows icon after X to remove custom fav icon
-
 - rename Current Folders in website
 - rename Power menu to Alternative menu in website
 - show shortcuts in Alternative menu
@@ -33,7 +30,7 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.2.4 beta (2015-12-??)
+Version: 6.2.4 beta (2015-12-07)
 - fix bug unable to create folder, document or application favorite on read-only support
 - French language translation and adjustments to original English language while translating to French
 - rename "Power" menu/hotkey/features to "Alternative" menu/hotkey/features
@@ -2841,7 +2838,7 @@ if !(g_blnDonor)
 if (A_ThisLabel = "BuildMainMenuWithStatus")
 {
 	TrayTip, % L(lTrayTipInstalledTitle, g_strAppNameText)
-		, %lTrayTipWorkingDetailFinished%, , 17 ; 1 info icon + 16 no sound
+		, %lTrayTipWorkingDetailFinished%, 3, 17 ; tentative for 3 seconds for Win 10 (in Win 7: minimum 10 secs), 1 info icon + 16 no sound
 	Sleep, 20 ; tip from Lexikos for Windows 10 "Just sleep for any amount of time after each call to TrayTip" (http://ahkscript.org/boards/viewtopic.php?p=50389&sid=29b33964c05f6a937794f88b6ac924c0#p50389)
 }
 
@@ -4656,7 +4653,7 @@ if !(blnIsGroupMember)
 	Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
 	Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
 	Gui, 2:Add, Link, x20 ys+57 w250 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
-	Gui, 2:Add, Link, x260 yp w250 vf_lblSetWindowsFolderIcon gSetWindowsFolderIcon, <a>%lDialogSetWindowsFolderIcon%</a>
+	Gui, 2:Add, Link, x260 yp w250 vf_lblSetWindowsFolderIcon gSetWindowsFolderIcon, <a>%lDialogWindowsFolderIconSet%</a>
 	Gui, 2:Add, Link, x20 ys+74 w250 gGuiEditIconDialog, <a>%lDialogEditIcon%</a>
 
 	Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
@@ -5118,16 +5115,36 @@ ParseIconResource(strExpandedIconRessource, strThisIconFile, intThisIconIndex)
 GuiControl, , f_picIcon, *icon%intThisIconIndex% %strThisIconFile%
 GuiControl, % (strExpandedRessourceIcon <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), f_lblRemoveIcon
 
+strThisFolder := PathCombine(A_WorkingDir, EnvVars(f_strFavoriteLocation))
+blnThisDesktopIniExist := FileExist(strThisFolder . "\desktop.ini")
+strCurrentDesktopIcon := GetFolderIcon(strThisFolder)
+
+GuiControl, % (g_objEditedFavorite.FavoriteType = "Folder" and strExpandedIconRessource <> EnvVars(g_strDefaultIconResource)
+	or (blnThisDesktopIniExist) ? "Show" : "Hide"), f_lblSetWindowsFolderIcon
+
+; compare g_strNewFavoriteIconResource expanded and not expanded because if could be expanded or not in desktop.ini
+GuiControl, , f_lblSetWindowsFolderIcon
+	, % "<a>"
+	. (strCurrentDesktopIcon = g_strNewFavoriteIconResource or strCurrentDesktopIcon = EnvVars(g_strNewFavoriteIconResource)
+		or (blnThisDesktopIniExist and g_strNewFavoriteIconResource = g_strDefaultIconResource)
+	? lDialogWindowsFolderIconRemove : lDialogWindowsFolderIconSet)
+	. "</a>"
+
+/* BK
 GuiControl, % (g_objEditedFavorite.FavoriteType = "Folder" and strExpandedIconRessource <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), f_lblSetWindowsFolderIcon
 strCurrentDesktopIcon := GetFolderIcon(f_strFavoriteLocation)
 ; compare g_strNewFavoriteIconResource expanded and not expanded because if could be expanded or not in desktop.ini
 GuiControl, , f_lblSetWindowsFolderIcon
 	, % "<a>" . (strCurrentDesktopIcon = g_strNewFavoriteIconResource or strCurrentDesktopIcon = EnvVars(g_strNewFavoriteIconResource) 
-	? lDialogRemoveWindowsFolderIcon : lDialogSetWindowsFolderIcon) . "</a>"
+	? lDialogWindowsFolderIconRemove : lDialogWindowsFolderIconSet) . "</a>"
+*/
 
 strExpandedRessourceIcon := ""
 strThisIconFile := ""
 intThisIconIndex := ""
+strThisFolder := ""
+blnThisDesktopIniExist := ""
+strCurrentDesktopIcon := ""
 
 return
 ;------------------------------------------------------------
@@ -5323,11 +5340,10 @@ GetFolderIcon(strFolderLocation)
 ;------------------------------------------------------------
 SetWindowsFolderIcon:
 ;------------------------------------------------------------
-; #####
 Gui, 2:Submit, NoHide
 
 GuiControlGet, strSetWindowsFolderIconLabel, , f_lblSetWindowsFolderIcon
-blnSet := (strSetWindowsFolderIconLabel = "<a>" . lDialogSetWindowsFolderIcon . "</a>") ; else lDialogRemoveWindowsFolderIcon
+blnSet := (strSetWindowsFolderIconLabel = "<a>" . lDialogWindowsFolderIconSet . "</a>") ; else lDialogWindowsFolderIconRemove
 
 strFolder := PathCombine(A_WorkingDir, EnvVars(f_strFavoriteLocation))
 strFolderDesktopIni := strFolder . "\desktop.ini" 
@@ -5342,20 +5358,19 @@ if (blnSet)
 {
 	if (blnFolderIsRoot)
 	{
-		Oops("The Windows folder icon cannot be set in drive's root directory (~1~).") ; ### language
+		Oops(lDialogWindowsFolderIconNoRoot)
 		Gosub, SetWindowsFolderIconCleanup
 		return
 	}
 	
-	strVerb := (blnDesktopIniExist ? "update" : "create")
-	strMessage := L("This command will ~1~ the system file:`n~2~`n`nThe Windows folder's icon will be set to the icon currently selected for this favorite. Do you want to continue?"
-		, strVerb, strFolderDesktopIni)
+	strVerb := (blnDesktopIniExist ? lDialogWindowsFolderIconUpdate : lDialogWindowsFolderIconCreate)
+	strMessage := L(lDialogWindowsFolderIconPrompt, strVerb, strFolderDesktopIni)
 	MsgBox, 4, %g_strAppNameFile%, %strMessage%
 }
 else ; remove
 {
-	strMessage := L("The folder's icon will be reset to its default image. `n`nDo you want to continue?")
-	strMessageRemove := L("This command can also REMOVE the system file:`n~1~`n`nDo you want to restore this folder to its normal state?", strFolderDesktopIni)
+	strMessage := L(lDialogWindowsFolderIconReset)
+	strMessageRemove := L(lDialogWindowsFolderIconRemoveFile, strFolderDesktopIni)
 	MsgBox, 4, %g_strAppNameFile%, %strMessage%
 }
 
@@ -5398,6 +5413,8 @@ else ; remove
 		FileDelete, %strFolderDesktopIni%
 	}
 }
+
+gosub, GuiFavoriteIconDisplay
 
 SetWindowsFolderIconCleanup:
 blnSet := ""
