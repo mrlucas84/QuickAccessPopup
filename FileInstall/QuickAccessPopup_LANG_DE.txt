@@ -3,83 +3,142 @@ lAboutText2	~1~ wird entwickelt von Jean Lalonde unter`nVerwendung der <a href="
 lAboutText3	~1~ Jean Lalonde 2013-2014. Freeware.
 lAboutText4	Support unter <a href="http://www.quickaccesspopup.com">www.quickaccesspopup.com</a>
 lAboutTitle	Über - ~1~ ~2~
-lAppTagline	Eine schnelle Möglichkeit des Wechsels zwischen Dokumenten und Verzeichnissen!
+lAlternativeMenuTrayTipCopyLocation	Select the favorite to copy
+lAlternativeMenuTrayTipEditFavorite	Select the favorite to edit
+lAlternativeMenuTrayTipNewWindow	Select the folder to open in a new window
+lAppTagline	<a href="http://www.quickaccesspopup.com/what-should-i-know-about-quick-access-popup-before-starting/">Quick Start</a> • <a href="http://www.quickaccesspopup.com/frequently-asked-questions/">Frequently asked questions</a> • <a href="http://www.quickaccesspopup.com">Support</a>
+lCopyLocationCopiedToClipboard	Path or URL copied to the Clipboard
 lDiagModeCaution	~1~ läuft im Diagnose-Modus.`n`nInformationen über die Anwendungsausführung werden in der Datei:`n~2~`n gesammelt`nEs wird nichts ohne Ihr Einverständnis versendet.`n`nWollen Sie den Diagnose-Modus beibehalten?
 lDiagModeExit	~1~ gesammelte Diagnose-Informationen in Datei ~2~.
 lDiagModeIntro	Schicken Sie diese Datei an ahk@jeanlalonde.ca mit einer Beschreibung der Situation, welche die Diagnose ausgelöst hat.
 lDiagModeSee	Wollen Sie die Diagnosedatei sehen?
 lDialogAdd	Hinzufügen
-lDialogAddEditFavoriteTitle	~1~ Favoriten - ~2~ ~3~
+lDialogAddEditFavoriteTitle	~1~ Favorite: ~4~ - ~2~ ~3~ ; CHANGED - WAS: ~1~ Favoriten - ~2~ ~3~
+lDialogAddFavoriteSelectTitle	Add Favorite - ~1~ ~2~
+lDialogAddFavoriteTabs	Basic Settings|Menu Options|Window Options|Advanced Settings
 lDialogAddFileSelect	Neue Datei wählen:
-lDialogAddFolderManuallyPrompt	Entschuldigung, der aktuelle Ordner kann in diesem Fenstertyp nicht ermittelt werden.`n`nWollen Sie es jetzt von Hand hinzufügen?
+lDialogAddFolderManuallyPrompt	Sorry, we can't detect the current folder in this type of window.`n`nDo you want to add a favorite folder manually now? ; CHANGED - WAS: Entschuldigung, der aktuelle Ordner kann in diesem Fenstertyp nicht ermittelt werden.`n`nWollen Sie es jetzt von Hand hinzufügen?
 lDialogAddFolderManuallyTitle	Diesen Dokumente hinzufügen - ~1~ ~2~
 lDialogAddFolderSelect	Auswählen oder Erstellen des neuen Ordners:
+lDialogAlt	Alt
 lDialogApplicationLabel	Anwendung
-lDialogApplicationShortName	Anwendungsname (für Menü)
 lDialogArgumentsLabel	Parameter
+lDialogArgumentsLabelHelp	(enclose each parameter in double-quotes if required)
+lDialogArgumentsPlaceholders	You can insert the location of this favorite or part of it in the parameters using these placeholders: {LOC} (full location), {NAME} (file name), {DIR} (directory), {EXT} (extension), {NOEXT} (file name without extension) or {DRIVE} (drive)
+lDialogArgumentsPlaceholdersCheckLabel	Current parameters with expanded placeholders
 lDialogBrowseButton	Durchsuchen
+lDialogBrowseOrSelectApplication	Browse for an executable file or`nselect a running application in this list
 lDialogCancelButton	Abbrechen
 lDialogCancelPrompt	Änderungen verwerfen?
 lDialogCancelTitle	Abbrechen - ~1~ ~2~
+lDialogChangeHotkeyAlternative	This is an Alternative menu hotkey.`n`nDo you want to manage "~1~" in "~2~"?
+lDialogChangeHotkeyNote	Note: The location "~1~" will be linked to the new hotkey in all menus.
+lDialogChangeHotkeyPopup	This is a popup menu hotkey.`n`nDo you want to manage "~1~" in "~2~"?
+lDialogChangeHotkeyTitle	Change hotkey - ~1~ ~2~
+lDialogContinue	Continue
+lDialogCopy	Copy
+lDialogCtrl	Control
+lDialogCtrlShort	Ctrl
 lDialogEdit	Bearbeiten
+lDialogEditIcon	Edit icon resource
+lDialogEditIconPrompt	Edit icon resource in the format "iconfile,index" (for example, "shell32.dll,2"):
 lDialogEndOfMenu	Ende des Menüs
-lDialogFavoriteDoesNotExistPrompt	Der Favorit "~1~" existiert nicht oder ist nicht verfügbar.`n`nSollte sich dieser Favorit auf einem Netzlaufwerk befinden, versuchen Sie es nach erfolgter Authentifizierung nochmals.`n`nSollte dieser Favorit ein Link auf eine Webseite sein, wählen Sie die Option "Link (URL)" wenn Sie den Favoriten hinzufügen.
+lDialogErrorMoving	Unable to resize for favorite:`n"~1~"
+lDialogFavoriteDoesNotExistPrompt	The favorite "~1~"~2~ does not exist or is not available.`n`nIf this favorite is on a network drive, please try again after network authentification. ; CHANGED - WAS: Der Favorit "~1~" existiert nicht oder ist nicht verfügbar.`n`nSollte sich dieser Favorit auf einem Netzlaufwerk befinden, versuchen Sie es nach erfolgter Authentifizierung nochmals.`n`nSollte dieser Favorit ein Link auf eine Webseite sein, wählen Sie die Option "Link (URL)" wenn Sie den Favoriten hinzufügen.
 lDialogFavoriteDoesNotExistTitle	Favorit existiert nicht - ~1~
+lDialogFavoriteDropdownEmpty	Please choose an item in the ~1~ drop-down list.
 lDialogFavoriteLocationEmpty	Dieser Ort ist leer. Bitte wählen Sie einen Ort.
 lDialogFavoriteMenuPosition	neuen Favoriten vor diesem Element einfügen
 lDialogFavoriteNameEmpty	Der Name des Favorite ist leer. Bitte wählen Sie einen kurzen Namen.
-lDialogFavoriteNameNoColumnBreak	Der Menüname kann die reservierten Zeichen "~1~" nicht als Spaltentrennzeichen verwenden.
-lDialogFavoriteNameNoPipe	Der Favorit oder Menüname darf das reservierte Zeichen "|" (vertikale Linie) nicht enthalten.
-lDialogFavoriteNameNoSeparator	Das Untermenü darf das reservierte Zeichen "~1~" nicht enthalten.
+lDialogFavoriteNameNoSeparator	This item name cannot include the reserved character "~1~". ; CHANGED - WAS: Das Untermenü darf das reservierte Zeichen "~1~" nicht enthalten.
+lDialogFavoriteNameNotAllowed	Favorites of type "~1~" are not allowed in groups. Please, select another parent menu in the "Menu Options" tab.
 lDialogFavoriteNameNotNew	Der Name ~1~ wird bereits in diesem Menü verwendet. Bitte wählen Sie einen anderen Namen.
+lDialogFavoriteNameNotNewQAPfeature	The name "~1~" is already used in this menu. Please, rename the existing favorite and try again.
 lDialogFavoriteParentMenu	Favorite Hauptmenü
 lDialogFavoriteRemovePrompt	Entfernen des Untermenü "~1~"`nund ALL seines Inhalts (Ordner und Untermenüs)?
 lDialogFavoriteRemoveTitle	Entfernen des Favorite - ~1~
+lDialogFavoriteSelectType	Select the type of favorite to add.`n`nIn the next window, you will give your favorite:`n- a name`n- a content (depending on the type)`n- various settings (icon, shortcut, etc.)`n`nChoose the new favorite's type and click "~1~".
+lDialogFavoriteShortNameLabel	Short name for menu
 lDialogFavoritesParentMenuMove	Verschiebe ~1~ Favoriten in dieses Menü
+lDialogFavoriteType	Favorite Type
+lDialogFavoriteTypesHelp1	Create a shortcut to a frequently used "Folder".`n`nSet the favorite's menu name, path and various menu options.`n`nAdvanced settings allow to set the window position and file manager options.
+lDialogFavoriteTypesHelp2	Create a shortcut to a "Document".`n`nSet the favorite's menu name, path and various menu options.`n`nAdvanced settings allow to choose a specific application to launch the document, add optional parameters and set the window position.
+lDialogFavoriteTypesHelp3	Create a shortcut to an "Application" (program, batch or script).`n`nBrowse for the executable file or select one of the currently running programs. Set various menu options.`n`nAdvanced settings allow to select a "Start In" directory, add parameters and set the window position.
+lDialogFavoriteTypesHelp4	Create a shortcut to one of the 50 pre-defined Windows "Special Folders" suchs as: Libraries, My Pictures, Recycle Bin, Downloads, etc.`n`nSet various menu options. Advanced settings allow to set the window position and file manager options.
+lDialogFavoriteTypesHelp5	Create a "Link" to a web page.`n`nSet menu name, web page's address (URL) and various menu options.`n`nAdvanced settings allow to select a specific browser to launch the link, add optional parameters and set the window position.
+lDialogFavoriteTypesHelp6	Create a shortcut to an "FTP Site".`n`nSet menu name, FTP site's address (URL), login name, password and various menu options.`n`nAdvanced settings allow to select a specific FTP program to access this site, add optional parameters, set the window position and encode login name and password.`n`nNote: the password is NOT encrypted when sent on Internet.
+lDialogFavoriteTypesHelp7	Insert anywhere in your menu "Quick Access Popup Features" such as:`n`n- ~1~`n- ~2~`n- ~3~`n- ~4~`n- ~5~`n- etc.
+lDialogFavoriteTypesHelp8	Gather related favorites in a "Submenu".`n`nGive your submenu a name and select menu options.`n`nAdd favorites to your submenu or move them from other submenus or groups using the "Edit" button.
+lDialogFavoriteTypesHelp9	Launch a "Group" of favorites, all in one shortcut!`n`nGive your group a name and set various options for your group.`n`nAdd favorites to your group or move them from other submenus or groups using the "Edit" button.`n`nAdvanced settings allow to control restoring speed by inserting a delay between each favorite to restore.
+lDialogFavoriteTypesLabels	&Folder|&Document|&Application|&Special Folder|&Link|F&TP Site|&QAP Feature|Sub&menu|&Group
+lDialogFavoriteTypesLocationLabels	Folder (path)|Document (path and file name)|Application (path and file name)||Link (URL)|FTP Site (URL)||||||
+lDialogFavoriteTypesShortNames	Folder|Doc|App|Special|Link|FTP|QAP|Menu|Group|Separator|Column Break|..
 lDialogFileLabel	Dokumente
-lDialogFileShortName	Dokument-Kurzname (für Menü)
 lDialogFolderLabel	Ordner
-lDialogFolderShortName	Kurzname des Ordners für das Menü
-lDialogGroupDelete	Löschen
-lDialogGroupDeleteError	löschen
-lDialogGroupDeletePrompt	Löschen der Gruppe "~1~"?
-lDialogGroupEdit	Bearbeiten
-lDialogGroupEditError	bearbeiten
-lDialogGroupLoad	Laden
-lDialogGroupLoadError	laden
-lDialogGroupManageAbout	Über Gruppen
-lDialogGroupManageCannotSave	Warnung: Es gibt kein offenes Fenster zum Speichern in einer neuen Gruppe. Öffnen Sie zumindest ein Explorer oder Directory Opus Fenster und versuchen Sie erneut eine neue Gruppe zu speichern.
-lDialogGroupManageCreatingPrompt	Um eine Gruppe zu erstellen, klicken Sie die Schaltfläche "~1~" oder wählen Sie jederzeit das "~2~" Menü.
-lDialogGroupManageCreatingTitle	Gruppe erstellen
-lDialogGroupManageGroupsTitle	Gruppen - ~1~ ~2~ verwalten
-lDialogGroupManageIntro	Mittels "Gruppen" können Sie Ihre Arbeitsumgebung speichern und wieder laden, um effektiv zwischen Ihren Arbeitssitzungen hin- und herzuschalten. "Gruppen" speichern die Ordner, Größe, Position und Status (normal, minimiert oder maximiert) von Windows Explorer und Directory Opus Fenstern (Total Commander noch nicht unterstützt).
-lDialogGroupManageManagingTitle	Gruppen verwalten
-lDialogGroupNew	Neue Gruppe speichern
-lDialogGroupDeleteTitle	Gruppe - ~1~ löschen
-lDialogGroups	Gruppen
-lDialogGroupSelect	Gruppe auswählen
-lDialogGroupSelectError	Bitte die Gruppe zum ~1~ auswählen.
-lDialogIcon	Symbol
+lDialogGetWinInfo	To identify the window of which you want to get the title and class, click in the target window with the QAP menu hotkey [~1~].
+lDialogGetWInInfo2Clippoard	Window title:`n"~1~"`n`nClass:`n"~2~"`n`nCopy this info to your Clipboard?
+lDialogHotkeys	Hotkeys
+lDialogHotkeysManageAbout	Shortcuts currently active in ~1~
+lDialogHotkeysManageAlternative	Alternative
+lDialogHotkeysManageAlternativeMenu	Alternative Menu
+lDialogHotkeysManageIntro	Double-click on a favorite line to change its shortcut.
+lDialogHotkeysManageListHeader	Menu|Favorite Name|Type|Hotkey|Favorite Location
+lDialogHotkeysManageListSeeAllFavorites	See all favorites
+lDialogHotkeysManageListSeeShortHotkeyNames	See abbreviated hotkey names
+lDialogHotkeysManagePopup	Popup
+lDialogHotkeysManageTitle	Manage Hotkeys - ~1~ ~2~
+lDialogIcon	Favorite Icon ; CHANGED - WAS: Symbol
 lDialogInvalidHotkey	Mit dem derzeitigen Tastaturlayout kann das Tastenkürzel "~1~" nicht verwendet werden, um das Popup-Menü aufzurufen (kein gültiger Tasten Name).`n`nBitte öffnen Sie das "~2~ Einstellungen" aus dem Tray-Menü und klicken Sie auf "Optionen". Wählen Sie in diesem Dialog ein anderes Tastenkürzel für "~3~".
+lDialogInvalidHotkeyFavorite	With your current system keyboard layout, the hotkey "~1~" could not be used as a trigger for the location "~2~" (not a valid key name error).`n`nPlease, choose another shortcut for location "~2~".
+lDialogKeyboard	Keyboard
+lDialogLaunchWith	Launch with this application
 lDialogMaximized	Maximiert
 lDialogMenuNotMoveUnderItself	Menü "~1~" kann nicht in sich selbst verschoben werden
 lDialogMinimized	Minimiert
+lDialogMouse	Mouse
+lDialogMouseButtonsText	Left Mouse Button|Middle Mouse Button|Right Mouse Button|Special Mouse Button 1|Special Mouse Button 2|Wheel Up|Wheel Down|Wheel Left|Wheel Right|
+lDialogMouseCheckLButton	You can't assign the "Left Mouse Button" without a modifier`n(like ~1~, ~2~, ~3~ or ~4~ keys).
 lDialogMoveFavoritesTitle	Favoriten verschieben - ~1~ ~2~
+lDialogNone	None
 lDialogNormal	Normal
+lDialogOK	OK
 lDialogOpenThisMenu	Dieses Menü öffnen
+lDialogOr	or
 lDialogRemoveMultipleFavorites	Wollen Sie wirklich ~1~ entfernen?
-lDialogSave	Speichern
+lDialogSelectIcon	Select icon
+lDialogSelectItemToAdd	Select the item to add
 lDialogSelectItemToEdit	Bitte wählen Sie das zu bearbeitende Element.
+lDialogSelectItemToMove	Please, select the item to move.
 lDialogSelectItemToRemove	Bitte wählen Sie das zu entfernende Element.
-lDialogSpecialLabel	Special Folder
-lDialogSubmenuLabel	Untermenü
+lDialogShift	Shift
+lDialogShortcut	Shortcut
+lDialogSpacebarTab	choose <a id="Space">space bar</a> or <a id="Tab">tab</a>
+lDialogState	Window State:
 lDialogSubmenuNameEmpty	Kein Name für das Untermenü angegeben. Bitte Namen vergeben.
 lDialogSubmenuParentMenu	Untermenü Elternmenü
-lDialogSubmenuShortName	Kurzname des Untermenüs
 lDialogTabNext	Nächste
 lDialogThirdPartyDetected	~1~ hat festgestellt, daÃŸ ~2~ auf diesem System installiert ist.`n`nWollen Sie die ~2~ Integration einschalten?
-lDialogURLLabel	URL
-lDialogURLShortName	Link short name (for menu)
+lDialogTriggerFor	Trigger for:
+lDialogUseDefaultWindowPosition	Use default window position
+lDialogWin	Windows
+lDialogWindowPosition	Window position:
+lDialogWindowPositionDelay	Delay
+lDialogWindowPositionH	Height
+lDialogWindowPositionLeft	Left
+lDialogWindowPositionMayFail	Note: for various reasons QAP may fail to move or resize some windows.
+lDialogWindowPositionRight	Right
+lDialogWindowPositionW	Width
+lDialogWindowPositionX	Left
+lDialogWindowPositionY	Top
+lDialogWindowsFolderIconCreate	create
+lDialogWindowsFolderIconNoRoot	The Windows folder icon cannot be set in drive's root directory (~1~).
+lDialogWindowsFolderIconPrompt	This command will ~1~ the system file:`n~2~`n`nThe Windows folder's icon will be set to the icon currently selected for this favorite. Do you want to continue?
+lDialogWindowsFolderIconRemove	Remove Windows folder icon
+lDialogWindowsFolderIconRemoveFile	This command can also DELETE the system file:`n~1~`n`nDo you want to restore this folder to its normal state?
+lDialogWindowsFolderIconReset	The folder's icon will be reset to its default image. `n`nDo you want to continue?
+lDialogWindowsFolderIconSet	Set Windows folder icon
+lDialogWindowsFolderIconUpdate	update
+lDialogWinShort	Win
 lDialogWorkingDirLabel	Starte in
 lDonateButton	Unterstützen Sie Freeware!
 lDonateCheckPrompt	Sind Sie zufrieden mit ~1~?`n`n~1~ ist nicht nur kostenlos, sondern enthält auch keine Werbung, bei der Sie nie wissen, ob diese Spyware oder Schadsoftware enthält.`n`n~2~ mal bisher, hat Ihnen ~1~ bei der täglichen Arbeit geholfen. Wie wär's jetzt mit ein wenig Unterstützung für Freeware?
@@ -111,48 +170,55 @@ lGuiDonate	Unterstützen
 lGuiDropFilesHelp	Drag & Drop Hilfe
 lGuiDropFilesIncentive	Sie können folgende Favoritentypen per Ziehen und Ablegen`nin das ~1~ Fenster verschieben:`n`n- ~2~`n- ~3~`n- ~4~
 lGuiEditFavorite	Bearbeiten
-lGuiGroupClosing	Schliesse Fenster
-lGuiGroupOf	von
+lGuiGroupClosing	Closing Explorer windows ; CHANGED - WAS: Schliesse Fenster
+lGuiGroupRestoreDelay	Delay between favorites to restore:
+lGuiGroupRestoreDelayMilliseconds	milliseconds
+lGuiGroupRestoreSide	Display on which side of ~1~?
 lGuiGroupSaveAddWindowsLabel	Zu bestehendem Fenster hinzufügen
-lGuiGroupSaved	Gruppe "~1~" gespeichert.`n`nKlicken Sie im Menü "~2~" um diese Gruppe zu laden.
-lGuiGroupSaveDeselectAll	Alles abwählen
-lGuiGroupSaveEditPrompt	~1~ diese Gruppe
-lGuiGroupSaveEditTitle	~1~ eine Gruppe von Fenstern - ~2~ ~3~
-lGuiGroupSaveLvHeader	Pfad|Anwendung|Fensterstatus|Links|Oben|Breite|Höhe|Seite
-lGuiGroupSaveNameEmpty	Der Gruppenname ist leer. Bitte wählen Sie einen Gruppennamen.
-lGuiGroupSaveNewGroup	Neue Gruppe
-lGuiGroupSaveReplaceGroup	Gruppe "~1~" besteht bereits. Ersetzen?
-lGuiGroupSaveReplaceWindowsLabel	Ersetzen bestehender Fenster
+lGuiGroupSaveReplaceWindowsLabel	Replace existing windows ; CHANGED - WAS: Ersetzen bestehender Fenster
 lGuiGroupSaveRestoreOption	Wenn diese Gruppe wiederhergestellt wird:
-lGuiGroupSaveSelect	Wählen Sie die in dieser Gruppe zu speichernden Ordner
-lGuiGroupSaveSelectAll	Alles auswählen
-lGuiGroupSaveSelectExisting	oder wählen Sie eine bestehende Gruppe zum Überschreiben:
-lGuiGroupSaveShortName	Kurzname der Gruppe (für das Menü)
+lGuiGroupSaveRestoreWith	Restore folders with:
 lGuiHelp	Hilfe
 lGuiHotkeysHelp	Favoriten Shortcuts Hilfe
 lGuiHotkeysHelpText	Runter: Nächster Favorit`nRauf: Vorhergehender Favorit`nStrg-N: Neuen Favoriten hinzufügen`nEnter: Favorit bearbeiten`n`nShift-Rauf/Runter: Zusammenhängende Favoriten auswählen`nStrg-Click: Unzusammenhängende Favoriten auswählen`nStrg-A: Alle Favoriten auswählen`n`nStrg-Runter: Favorit(en) nach unten verschieben`nStrg-Hoch: Favorit(en) nach Oben verschieben`nEntf: Favorit(en) entfernen`n`nStrg-Rechts: Untermenü öffnen`nStrg-Links: Elternmenü öffnen
-lGuiLvFavoritesHeader	Name|Ort
+lGuiLoginName	Login name
+lGuiLvFavoritesHeader	Name|Type|Location ; CHANGED - WAS: Name|Ort
 lGuiMove	Verschieben
 lGuiOptions	Optionen
+lGuiPassword	Password
+lGuiPasswordNotEncripted	Note: the password will NOT be encrypted when sent on Internet.
 lGuiRemoveFavorite	Entfernen
 lGuiResetDefault	Zurücksetzen des Standard-Hotkeys
 lGuiSave	&Speichern
-lGuiSubmenuDropdownLabel	Zu bearbeitendes Menü:
+lGuiSubmenuDropdownLabel	Menu or group to edit: ; CHANGED - WAS: Zu bearbeitendes Menü:
 lGuiTitle	Einstellungen - ~1~ ~2~
-lHelpTabAddingFavorite	Favorit hinzufügen
+lHelpTabAddingFavorite	Adding Favorites ; CHANGED - WAS: Favorit hinzufügen
 lHelpTabGettingStarted	Anfangen
-lHelpTabTitlesTipsAndTricks	Tips und Tricks
-lHelpText1	Beim Start fügt Quick Access Popup ein Symbol im System Tray ein und erwartet Anweisungen. Wenn Sie im Explorer oder einer Dateiauswahlbox das Verzeichnis wechseln müssen, klicken Sie einfach [~1~] oder drücken [~2~] und wählen im Popup-Menü den gewünschten Ordner. Quick Access Popup führt Sie so schnell dorthin! Oder verwenden Sie es zum Öffnen favorisierter Dokumente oder Webseiten.
-lHelpText2	Wählen Sie "Einstellungen" um das Einstellungsfenster zu öffnen, wo Sie favorisierte ORDNER, DOKUMENTE oder WEBSEITEN zum Menü hinzufügen können. Sie können diese verschieben, umbenennen oder löschen. Sie können ebenfalls UNTERMENÜS hinzufügen, verschieben oder löschen. Wählen Sie hierzu "Zu bearbeitendes Menü:" in der Dropdown-Auswahl. Klicken Sie auf "Speichern" um die Änderungen zu sichern.
-lHelpText3	Um schnell einen neuen ORDNER zum Popup-Menü HINZUZUFÜGEN:`n1) Wechseln Sie in einen oft benötigten Ordner.`n2) Klicken Sie mit der Maus [~1~] (oder drücken [~2~]) und wählen "Diesen Ordner hinzufügen".`n3) Vergeben Sie einen kurzen Namen, klicken Sie "Hinzufügen", danach "Speichern" im Einstellungsdialog.
-lHelpText4	Um dem Popup-Menü ein neues DOKUMENT oder eine WEBSEITE hinzuzufügen:`n1) Öffnen Sie das Quick Access Popup Menü und wählen "Einstellungen" (oder drücken [~1~]).`n2) Klicken Sie auf "Hinzufügen" und wählen die Option "Dokument" oder "Link (URL)".`n3) Vergeben Sie einen kurzen Namen, wechseln Sie zum Dokument oder geben Sie die URL ein, klicken "Hinzufügen", danach "Speichern" im Einstellungsdialog.
-lHelpText5	- Klicken Sie im Traymenü mit der rechten Maustaste auf das Symbol und aktivieren Sie "Beim Start ausführen" um Quick Access Popup automatisch zu starten.`n- Benötigen Sie ein neues Explorerfenster während Sie in einer Anwendung arbeiten? Klicken Sie aus jedem Fenster heraus mit [~1~] (oder drücken [~2~]), oder klicken Sie einfach auf das Quick Access Popup Symbol im Systembereich und wählen Sie das gewünschte Verzeichnis.`n- Wählen Sie das "Kürzliche Ordner..." Menü (oder drücken [~3~]) um eine aktualisierte Liste der kürzlich verwendeten Ordner anzuzeigen.`n- Verwenden Sie das "Kürzlich verwendete Ordner" Menü (oder drücken [~4~]) um ein bereits geöffnetes Verzeichnis oder das "Ordnergruppen" Menü (oder drücken [~5~]) um Verzeichnisgruppen wiederherzustellen oder zu speichern.`n- Erreichen Sie Ordner, Dateien oder URLs in der Zwischenablage aus dem "Zwischenablage" Menü (oder drücken [~6~]) oder übertragen Sie die Position beliebiger Favoriten in die Zwischenablage mittels des "Position des Favoriten einfügen" Menüs (oder [~7~]).`n- Stellen Sie die Kurztasten des Popup-Menüs ein: Wählen Sie Ihre bevorzugten Maustasten oder Tastaturkürzel in "Einstellungen, Optionen".`n- Auch unter "Optionen": Wählen Sie die bevorzugte Sprache, Symbolgröße in den Menüs, Fensterfarben. Wählen Sie die Optionen für die Darstellung der Ordner, fügen Sie Tastaturkürzel auf dem numerischen Tastenfeld hinzu oder heften Sie das Popup Menü an eine bestimmte Stelle.`n-Nutzer von Directory Opus, siehe <a href="http://code.jeanlalonde.ca/using-folderspopup-with-directory-opus/">diese Webseite</a> für weitere Informationen.`n-Nutzer von Total Commander, siehe <a href="http://code.jeanlalonde.ca/using-folderspopup-with-total-commander/">diese Webseite</a> für weitere Informationen.
-lHelpText6	Support für Quick Access Popup gibt es auf`n<a href="http://www.quickaccesspopup.com">www.quickaccesspopup.com</a>.
+lHelpTabQAPFeatures	QAP Features
+lHelpTabTipsAndTricks	Tips and Tricks
+lHelpText11	At its launch, Quick Access Popup adds an icon in the System Tray and awaits your orders. When you want to launch one of your preferred FOLDERS, DOCUMENTS, APPLICATIONS, WEB LINKS or FTP SITE, just hit the QAP hotkey [~1~] or [~2~] and, in the popup menu, select the desired favorite.
+lHelpText12	When you select a favorite FOLDER in Windows Explorer or a file dialog box*, Quick Access Popup  instantly "navigate" the current window to this folder! * This feature must be enabled in Options.
+lHelpText13	To force opening the folder in a new window, hit the Alternative hotkeys [~1~] or [~2~]. In the Alternative menu, select "Open in new window", then select the desired folder. The Alternative menu offers several other functionalities.
+lHelpText14	Choose "Settings" to customize your Quick Access Popup menu. You can add favorites to your menu. You can move, rename or delete them. You can also add SUBMENUS or GROUPS. Choose the "Menu or group to edit:" in the  drop-down list. Click "Save" to keep your changes.
+lHelpText21	To add favorites, in the "Settings" window, click the "Add" button. Select the type of the new favorite and see the tips on the right side of the widow. Click "Continue" to open the "Add Favorite" dialog box.
+lHelpText22	In the four tabs of the "Add favorite" dialog box, enter the "Basic Settings", "Menu Options", "Window Options" and "Advanced Settings". Click "Add" to insert the favorite in your menu and "Save" in the Settings window.
+lHelpText23	ADD THIS FOLDER`n`nTo quickly ADD a new favorite FOLDER to the popup menu:`n1) Go to a frequently used folder.`n2) Click the QAP hotkey [~1~] or [~2~], choose the "My QAP Essentials" menu and click "Add This Folder".`n3) Give the folder a short name, click "Add", then "Save" in the Settings window.
+lHelpText31	In the "My QAP Essentials" menu:
+lHelpText32	- Choose the "Recent folders..." menu to show an updated list of the Windows recent folders.`n- Use the "Reuse an Open Folder" menu to reopen one of the folders already open in an Explorer window (very useful in file dialog boxes).`n- Access the files or URLs in your Clipboard with the "Clipboard" menu.
+lHelpText33	CUSTOMIZE YOUR QAP FEATURES MENU`n`nYou can move the "My QAP Essentials" menu items to the main menu or to other submenus as you wish.`n`n1) Select the "Settings" menu (or hit [~1~]).`n2) In the "Menu or group to edit:" drop-down list, select "Main > My QAP Essentials".`n3) Select the QAP feature to move and click "Edit".`n4) In the "Menu Options" tab, select the new "Favorite Parent menu".`n5) Save your changes.
+lHelpText41	- Use the Quick Access Popup icon in the Tray menu (lower right of Windows screen) in one of these three ways:`n1) Left-click the icon to open the QAP popup menu`n2) Right-click the icon to open the QAP system menu.`n3) Double-click the icon to open the "Settings" dialog box.
+lHelpText42	- In the Tray menu, right-click on the Quick Access Popup icon and check the "Run at Startup" option to launch Quick Access Popup automatically at start-up.
+lHelpText43	- Configure your Quick Access Popup menu triggers: choose your preferred mouse buttons or keyboard shortcuts in "Settings, Options, Menu hotkeys".
+lHelpText44	- Also in "Options": choose your preferred language, menu icons size, windows colors. Select the number of recent folders to display, add numeric keyboard shortcuts to the folders menu or shortcut reminders. Pin the popup menu at a fix position or remember the Settings window position.
+lHelpText45	- Directory Opus users, see <a href="http://www.quickaccesspopup.com/how-to-i-enable-directory-opus-support-in-quick-access-popup/">this page</a> for additional information.`n- Total Commander users, see <a href="http://www.quickaccesspopup.com/how-do-i-enable-total-commander-support-in-quick-access-popup/">this page</a> for additional information.`n- Other file managers users, see <a href="http://www.quickaccesspopup.com/what-file-managers-are-supported-in-addition-to-windows-explorer/">this page</a> for additional information on QAPconnect.
 lHelpTextLead	Quick Access Popup ermöglicht es Ihnen, schnell zwischen häufig benutzten Ordnern, Dokumenten und Webseiten zu wechseln!
 lHelpTitle	Hilfe - ~1~ ~2~
 lMainMenuName	Haupt
 lMenuAbout	Ü&ber
+lMenuAddFavorite	Add Favorite
 lMenuAddThisFolder	Diesen Ordner hinzufügen
+lMenuAlternativeEditFavorite	Edit a Favorite
+lMenuAlternativeNewWindow	Open in new window
 lMenuAppData	Anwendungsdaten
 lMenuCache	Cache
 lMenuClipboard	&Zwischenablage
@@ -161,28 +227,25 @@ lMenuCommonAppData	Common Application Data
 lMenuCommonDesktop	Common Desktop
 lMenuCommonStartMenu	Common Startmenü
 lMenuCommonStartupMenu	Common Startup Menu
-lMenuControlPanel	&Systemsteuerung
 lMenuCookies	Cookies
+lMenuCopyLocation	Copy a Favorite's Path or URL
+lMenuCurrentFolders	&Ordner im Explorer
 lMenuDesktop	Desktop
-lMenuDocuments	Dokumente
 lMenuDownloads	Downloads
+lMenuEditIniFile	Edit ~1~
 lMenuExitApp	Beenden ~1~
 lMenuFavoritesInternet	Favoriten (Internet)
-lMenuCurrentFolders	&Ordner im Explorer ; lMenuFoldersInExplorer renamed
 lMenuFonts	Fonts
-lMenuFPMenu	~1~ ~2~
-lMenuGroup	Ordner Gruppen
-lMenuGroupAdd	hinzufügen
-lMenuGroupReplace	ersetzen
-lMenuGroupSave	Aktuelle Ordner als Gruppe speichern
+lMenuGetWinInfo	Get window Title and Class
 lMenuHelp	Hilfe
 lMenuHistory	History
 lMenuMenu	Menü
-lMenuMyComputer	&Mein Computer
 lMenuMyMusic	Eigene Musik
-lMenuMySystemMenu	Meine Systemordner
+lMenuMyQAPMenu	My QAP Esssentials
+lMenuMySpecialMenu	My Special Folders
 lMenuMyVideo	Eigene Videos
-lMenuNetworkNeighborhood	&Netzwerkumgebung
+lMenuNoClipboard	Clipboard contains no path or URL...
+lMenuNoCurrentFolder	No currently open folders...
 lMenuPictures	Bilder
 lMenuProgramFiles	Programme
 lMenuProgramsFolderStartMenu	Programme (Startmenü)
@@ -190,11 +253,9 @@ lMenuPublicLibraries	Public Libraries
 lMenuQuickLaunch	Schnellstart
 lMenuRecentFolders	Kürzlich verwendete Ordner
 lMenuRecentItems	Zuletzt verwendet
-lMenuRecycleBin	&Papierkorb
 lMenuRefreshRecent	Menü der kürzlich verwendeten Ordner wird aktualisiert
 lMenuRunAtStartup	&Beim Start von Windows ausführen
-lMenuSettings	~1~ Einstellungen
-lMenuSpecialFolders	Spezielle Ordner
+lMenuSettings	Settings ; CHANGED - WAS: ~1~ Einstellungen
 lMenuStartMenu	Startmenü
 lMenuStartup	Startup
 lMenuSuspendHotkeys	Suspend Hotkeys
@@ -206,96 +267,85 @@ lMenuUserFolder	User Folder
 lMenuUserPinned	User Pinned
 lNavigateFileError	Beim Öffnen des Ordners `n~1~ trat ein Fehler auf.
 lNavigateSpecialError	Beim Öffnen des Speziellen Ordners #~1~ trat ein Fehler auf.
+lOopsCannotCopyFavorite	Favorites of type "~1~" cannot be copied.
 lOopsCouldNotOpenSpecialFolder	~1~ konnte den Systemordner nicht öffnen: "~2~".
-lOopsDialogBox	Die Dialogbox
+lOopsFtpLocationProtocol	FTP location must start with "ftp://".
+lOopsGroup	group
+lOopsHotkeyAlreadyUsed	The hotkey "~1~" is already used for ~2~.`n`nPlease, choose another hotkey for ~3~.
+lOopsHotkeyNotInMenus	Error: location "~1~" for hotkey "~1~" not found in menus.
+lOopsHttpLocationTransformed	The http location (URL format) has been transformed to a network path (UNC format) for compatibility with Windows Explorer:`n`n~1~`n~2~
+lOopsInvalidWindowPosition	Invalid window position value(s)
+lOopsLaunchWithNotFound	"Launch with this application" file not found:`n`n~1~`n`nCheck the favorite's advanced settings.
+lOopsLocation	location
+lOopsOSVerrsionError	~1~ requires Window 7 or a more recent operating system. Windows Vista and XP users are invited to use Folders Popup that is compatible with these versions.`n`nDo you want to visit Folders Popup website?
+lOopsQAPfeature	QAP feature
 lOopsTitle	~1~ (~2~)
 lOopsWriteProtectedError	Es scheint, daß ~1~ aus einem SCHREIBGESCHÜTZTEN ORDNER heraus ausgeführt wird, in dem die Konfigurationsdatei "~1~.ini" nicht erstellt werden kann.`n`nVerschieben Sie die ~1~ .EXE Datei in einen STANDARD Ordner Ihrer Wahl und führen Sie es daraus nochmals aus.`n`n~1~ wird beendet.
-lOopsWrongFPconnectAppPathFilename	Falscher Pfad oder Dateiname für Parameter "AppPath" in der FPconnect Konfiguration:`n~1~.`n`nPrüfen Sie den .exe Dateipfad auf "AppPath" in der Datei FCConnect ini:`n~2~
 lOopsWrongThirdPartyPath	Falscher Pfad oder Dateiname für ~1~:`n~2~.`n`nPrüfen Sie die ausgewählte .exe Datei auf ~1~ unter "Optionen", tab "~3~".
+lOopsWrongThirdPartyPathQAPconnect	Wrong path or file name for QAPconnect application`n~1~:`n~2~.`n`nCheck values for [~1~] in ~3~. Use the "~4~" button in "Options", tab "~5~".
 lOopsZipFileError	Es scheint, daß ~1~ direkt aus einer .ZIP Datei ausgeführt wird.`n`nSie müssen zuerst die Datei ~1~ .EXE aus dem Archiv in ein Verzeichnis Ihrer Wahl entpacken und dann ausführen.`n`n~1~ wird beendet.
-lOptionsAlt	Alt
-lOptionsArrDescriptions1	Wählen Sie die MAUStaste und die Kombitasten, welche das FoldersPopup Menü im Windows Explorer oder Dateidialogboxen aufruft. Standardmäßig ist dies die mittlere Maustaste ohne zusätzliche Kombitaste.
-lOptionsArrDescriptions2	Wählen Sie die MAUStaste und die Kombitasten, welche das FoldersPopup Menü in JEDEM Fenster öffnet und zum gewählten Ordner in einem NEUEN Explorer-Fenster navigiert. Standardmäßig ist dies die mittlere Maustaste mit gedrückter Shift-Taste.
-lOptionsArrDescriptions3	Wählen Sie die TASTENkombination, welche das popup menü im Windows Explorer oder Dateidialogboxen aufruft. Standardmäßig ist dies Windows+A (Taste A, während die Windows-Taste gdrückt wird).
-lOptionsArrDescriptions4	Wählen Sie die TASTENkombination, welche das popup menu Menü in JEDEM Fenster öffnet und zum gewählten Ordner in einem NEUEN Explorer-Fenster navigiert. Standardmäßig ist dies Shift+Windows+A (Tasten Shift und "A", während die Windows-Taste gedrückt wird).
-lOptionsArrDescriptions5	Wählen Sie die Tastenkombination oder Maustasten-Kombination, welche den FoldersPopup Einstellungsdialog aufruft. Standardmäßig ist dies Shift+Control+S.
-lOptionsArrDescriptions6	Wählen Sie die Schnelltaste oder Maustastenkombination, welche das FoldersPopup Menü "Ordner im Explorer" öffnet. Standardmäßig ist dies Shift+Control+F.
-lOptionsArrDescriptions7	Wählen Sie die Schnelltaste oder Maustastenkombination, welche das FoldersPopup Menü "Gruppen" öffnet. Standardmäßig ist dies Shift+Control+G.
-lOptionsArrDescriptions8	Wählen Sie die Schnelltaste oder Maustastenkombination, welche das FoldersPopup Menü "Kürzlich verwendete Ordner" öffnet. Standardmäßig ist dies Shift+Control+R.
-lOptionsArrDescriptions9	Wählen Sie die Schnelltaste oder Maustastenkombination, welche das FoldersPopup Menü "Zwischenablage" öffnet. Standardmäßig ist dies Shift+Control+C.
-lOptionsArrDescriptions10	Wählen Sie die Schnelltaste oder Maustastenkombination, welche das FoldersPopup Menü "Copy a Favorite's Path or URL" öffnet. Standardmäßig ist dies Shift+Control+V.
+lOptionsAlternativeMenuFeatures	Alternative Menu Hotkeys
+lOptionsAlternativeMenuFeaturesIntro	Manage the shortcuts that will trigger the Alternative menu features.
+lOptionsChangeFolderInDialog	Change folders in dialog box with main QAP hotkeys
+lOptionsChangeFolderInDialogCheckbox	Click this checkbox to confirm that you understand the possible consequence of misusing the change folder feature in "non-file" dialog boxes.
+lOptionsChangeFolderInDialogText	Turn this option ON to enable folder navigation in dialog boxes (Open, Save As, etc.) but, please, read the following warning.`n`nYou must use this feature ONLY in "file" dialog boxes. If you use it in other types of dialog box, for example in an "Options" dialog box, trying to change folder could modify and save values in the dialog box without any notification.
 lOptionsChangeHotkey	Ändern
-lOptionsChangeHotkeyTitle	Tastenkürzel ändern - ~1~ ~2~
 lOptionsCheck4Update	Nach Update suchen
-lOptionsCtrl	Steuerung
-lOptionsCtrlShort	Strg
-lOptionsDirectoryOpusUseTabs	Verwende Registerkarten
-lOptionsDisplayClipboardMenu	Zwischenablage
-lOptionsDisplayFoldersInExplorerMenu	Ordner im Explorer
-lOptionsDisplayGroupMenu	Gruppe der Ordnermenüs
 lOptionsDisplayIcons	Zeige Icons im Menü
-lOptionsDisplayMenus	Anzuzeigende Menüs:
 lOptionsDisplayMenuShortcuts	Zeige &numerische Menü-Tastenkürzel
-lOptionsDisplayRecentFolders	Kürzlich verwendete Ordner
-lOptionsDisplaySpecialFolders	S&pezielle Ordner
-lOptionsDisplaySpecialMenusShortcuts	Zeige diese Kurztasten im Hauptmenü
+lOptionsExclusionDetail1	To block the QAP mouse menu button [~1~] in an application, enter any part of the application's window title. You can enter multiple exclusions, one per line. For example, to exclude Chrome and Word, enter the following two lines in the exclusion list:`n`nGoogle Chrome`nMicrosoft Word
+lOptionsExclusionDetail2	The QAP hotkey will be disabled in these apps and the [~1~] click will be sent to the target window as if QAP was not running. You can also exclude windows by their class name. You can find help and support on this feature <a href="~2~">on the QAP website</a>.
+lOptionsExclusionList	Exclusions list
+lOptionsExclusionTitle	Exclusions list for Mouse trigger [~1~]
+lOptionsFtpEncoding	Encode FTP username and password (recommended)
+lOptionsFtpEncodingTC	Encode FTP username and password (not recommended for Total Commander)
 lOptionsGuiTitle	Optionen - ~1~ ~2~
-lOptionsHotkeys	Andere Hotkeys
+lOptionsHotkeyRemindersFull	Display full names
+lOptionsHotkeyRemindersNo	Do not display
+lOptionsHotkeyRemindersPrompt	Hotkey reminders in menu:
+lOptionsHotkeyRemindersShort	Display abbreviated names
 lOptionsIconSize	Symbolgröße im Menü
-lOptionsKeyboard	Tastatur
 lOptionsLanguage	Sprache
 lOptionsLanguageLabels	Englisch|Französisch|Deutsch|Holländisch|Koreanisch|Schwedisch|Italienisch|Spanisch|Brazilian Portuguese
 lOptionsMenuActiveWindow	Im aktiven Fenster
 lOptionsMenuFixPosition	An fester Position
 lOptionsMenuNearMouse	Nahe des Mauszeigers
 lOptionsMenuPositionPrompt	Menü aufpoppen:
-lOptionsMouse	Maus
 lOptionsMouseAndKeyboard	Menü Hotkeys
-lOptionsMouseButtonsText	Linke Maustaste|Mittlere Maustaste|Rechte Maustaste|Spezielle Maustaste 1|Spezielle Maustaste 2|Mausrad hoch|Mausrad runter|Wheel Left|Wheel Right|
-lOptionsMouseCheckLButton	Die linke Maustaste kann nicht ohne Zusatztaste definiert werden.
-lOptionsMouseNone	Keine
 lOptionsOpenMenuOnTaskbar	Menü in der Taskleiste öffnen
 lOptionsOtherOptions	Allgemein
 lOptionsPopupFixPositionX	Position X:
 lOptionsPopupFixPositionY	Y:
-lOptionsRecentFolders	Zuletzt verwendete Ordner
+lOptionsPopupHotkeyTitles	Quick Access Popup Mouse button|Quick Access Popup Keyboard shortcut|Alternative Menu Mouse button|Alternative Menu Keyboard shortcut
+lOptionsPopupHotkeyTitlesSub	This mouse button pops the menu anywhere (except over <a>excluded applications</a>) and launch your favorite or navigate to your folder.|This hotkey the menu anywhere and launch your favorite or navigate to your folder.|This mouse pops an alternate menu offering various features. This menu can pop anywhere (without exception).|This hotkey pops an alternate menu offering various features. This menu can pop anywhere.
+lOptionsRecentFolders	Number of folders in menu ; CHANGED - WAS: Zuletzt verwendete Ordner
+lOptionsRecentFoldersPrompt	Recent Folders:
 lOptionsRememberSettingsPosition	Fensterposition merken
 lOptionsRunAtStartup	Beim Sta&rt ausführen
-lOptionsShift	Shift
-lOptionsSpacebar	verwende Leertaste
-lOptionsTabFileManagersIntro	Für Nutzer von Dateimanagern von Drittanbietern
-lOptionsTabHotkeysIntro	Legen Sie die Maustasten oder Tastaturkürzel fest, welche dieses Fenster oder Menü ansprechen.
-lOptionsTabMouseAndKeyboardIntro	Legen Sie die Maustasten und Tastaturkürzel fest, welche das ~1~ (FP) Hauptmenü ansprechen.
+lOptionsTabFileManagersIntro	Select the file manager to use to open folders in a new window. ; CHANGED - WAS: Für Nutzer von Dateimanagern von Drittanbietern
+lOptionsTabMouseAndKeyboardIntro	Define the mouse buttons and keyboard hotkeys that will trigger the ~1~ main menu. ; CHANGED - WAS: Legen Sie die Maustasten und Tastaturkürzel fest, welche das ~1~ (FP) Hauptmenü ansprechen.
 lOptionsTabOtherOptionsIntro	Lassen Sie ~1~ funktionieren, wie Sie es wollen!
 lOptionsTheme	Thema
 lOptionsThirdParty	Unterstützung anderer Dateimananger
 lOptionsThirdPartyDetail	WÃ¤hlen Sie die ~1~ Programmdatei (.exe) um die ~1~ Integration einzuschalten.
-lOptionsThirdPartyDetailFPconnect	Wählen Sie die ausführbare Datei von FPconnect (.exe) für die Integration anderer Dateimanager.
-lOptionsThirdPartyPrompt	Programmdatei:
-lOptionsThirdPartyTitle	~1~ Benutzer
-lOptionsThirdPartyTitleFPconnect	Andere Benutzer weiterer Dateimanager, die FPconnect verwenden
-lOptionsTitles	Maustaste für FP Menü um Ordner in aktuellem Explorerfenster oder Dialogbox zu öffnen|Maustaste für FP Menü um Ordner in einem neuen Explorerfenster zu öffnen|Tastaturkürzel für FP Menü um Ordner in aktuellem Explorerfenster oder Dialogbox zu öffnen|Tastaturkürzel für FP Menü um Ordner in einem neuen Explorerfenster zu öffnen|Einstellungsfenster|Aktueller Ordner Menü|Gruppen-Menü|Kürzliche Ordner Menü|Zwischenablage-Menü|Position einfügen
-lOptionsTitlesSub	Diese Maustaste kann das Menü über Windows Explorer, unterstützte Dateimanager von Drittanbietern und Dialogboxen anzeigen.|Diese Maustaste zeigt das Menü überall anzeigen.|Diese Kurztaste zeigt das Menü im Windows Explorer, unterstützten Dateimanagern von Drittanbietern und Dialogboxen an.|Dieses Tastenkürzel zeigt das Menü jederzeit.|(Menü-Einstellungen und Optionen)|(Liste der aktuell im Explorer geöffneten Ordner)|(Liste der Ordnergruppen)|(Liste der Windows häufigen Orte)|(Liste der Pfade und URLs in der Zwischenablage)|(Pfad oder URL des Fovoriten an Tastatur oder Zwischenablage einfügen)
-lOptionsTotalCommanderUseTabs	Verwende Registerkarten
+lOptionsThirdPartyDetailQAPconnect	Select your file manager (or edit ~1~ to add it - see help).
+lOptionsThirdPartyFileNotFound	~1~ application file "~2~" not found.
+lOptionsThirdPartySelectedHelp	Selected File Manager: ~1~ (<a href="~2~">~3~</a>)
+lOptionsThirdPartySelectFile	Please, select the ~1~ application file using the "Browse" button
+lOptionsThirdPartyUseTabs	Use tabs instead of opening in a new window
 lOptionsTrayTip	Beim Start &Tray-Tip anzeigen
-lOptionsTriggerFor	Auslöser für:
-lOptionsWin	Windows
-lOptionsWinShort	Win
 lPickIconNoLocation	Bitte zuerst einen Favoriten auswählen, bevor ein Icon gewählt wird.
 lReloadPrompt	~1~  wurde in ~2~ geändert. Wollen Sie jetzt ~3~ in ~2~ neu laden? Ungespeicherte Änderungen am Ordnermenü gehen verloren.
-lReloadPromptDefaultHotkey	Schnelltaste auf Standard zurückgesetzt. Diese Änderung tritt erst durch erneutes Laden von ~1~ in Kraft.`n`nWollen Sie ~1~ jetzt neu laden? Ungespeicherte Änderungen am Ordnermenü gehen verloren.
-lTrayTipInstalledDetail	Zur Anzeige des ~1~ Menüs`nim Windows Explorer oder einer Dialogbox`n~2~ oder ~3~ drücken.`n`n~4~ oder ~5~`num ein neues Explorer-Fenster zu öffnen.
-lTrayTipinstalledTitle	~1~ ~2~ bereit!
-lTrayTipNoClipboardMenuDetail	Es gibt zur Zeit keine Ordner, Dokumente, Anwendungen oder URLs im Zwischenablage-Menü
-lTrayTipNoClipboardMenuTitle	~1~ - Zwischenablage-Menü
-lTrayTipNoFoldersInExplorerMenuDetail	Es gibt zur Zeit keinen anzeigbaren Ordner im aktuellen Folders-Menü
-lTrayTipNoFoldersInExplorerMenuTitle	Aktuelle Ordner
+lTrayTipInstalledDetail	~1~ or ~2~ to launch favorites ; CHANGED - WAS: Zur Anzeige des ~1~ Menüs`nim Windows Explorer oder einer Dialogbox`n~2~ oder ~3~ drücken.`n`n~4~ oder ~5~`num ein neues Explorer-Fenster zu öffnen.
+lTrayTipInstalledTitle	~1~ ~2~ bereit!
 lTrayTipWorkingDetail	Erzeuge Menüs
 lTrayTipWorkingDetailFinished	Das Menü wurde aktualisiert.
 lTrayTipWorkingTitle	~1~ ~2~ arbeite...
 lUpdateButtonRemind	Erinnere mich
 lUpdateError	Beim Zugriff auf die letzte Versionsnummer trat ein Fehler auf. Prüfe auf unterbrochene Updates.
 lUpdatePrompt	Update ~1~ von v~2~ auf v~3~?
+lUpdatePromptAlpha	There is a new ~1~ ALPHA version.`n`nUpdate ~1~ from v~2~ to v~3~?
+lUpdatePromptAlphaContinue	Do you still want to to be informed of future alpha versions?
 lUpdatePromptBeta	Es gibt eine neue ~1~ BETA-Version.`n`nUpdate ~1~ von v~2~ auf v~3~?
 lUpdatePromptBetaContinue	Wollen Sie weiterhin über zukünftige Beta-Versionen informiert werden?
 lUpdateTitle	Update ~1~?

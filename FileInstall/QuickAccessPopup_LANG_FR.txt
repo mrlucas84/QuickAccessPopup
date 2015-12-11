@@ -6,7 +6,7 @@ lAboutTitle	À propos - ~1~ ~2~
 lAlternativeMenuTrayTipCopyLocation	Choisissez le favori à copier
 lAlternativeMenuTrayTipEditFavorite	Choisissez le favori à modifier
 lAlternativeMenuTrayTipNewWindow	Choisissez le dossier à ouvrir dans une nouvelle fenêtre
-lAppTagline	"La plus grande amélioration de productivité depuis un bon moment" - Techlaw
+lAppTagline	<a href="http://www.quickaccesspopup.com/what-should-i-know-about-quick-access-popup-before-starting/">Initiation rapide</a> • <a href="http://www.quickaccesspopup.com/frequently-asked-questions/">Foire aux questions</a> • <a href="http://www.quickaccesspopup.com">Soutien en ligne</a> (anglais)
 lCopyLocationCopiedToClipboard	Emplacement copié dans le Presse-papiers
 lDiagModeCaution	~1~ roule en mode de diagnostique.`n`nDes renseignements à propos de l'exécution de cette application seront colligées dans le fichier:`n~2~`n`nAucune information ne sera transmise sans votre consentement.`n`nVoulez-vous rester en mode diagnostique?
 lDiagModeExit	~1~ a colligé des renseignements à des fins de diagnostique dans le fichier ~2~.
