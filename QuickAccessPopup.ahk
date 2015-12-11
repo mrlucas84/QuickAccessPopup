@@ -30,7 +30,10 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.2.5 beta (2015-12-??)
+Version: 6.2.5 beta (2015-12-10)
+- language files prepared for translators
+- implement language debugging tool for translators
+- change Settings header to include links to website help pages
 
 Version: 6.2.4 beta (2015-12-07)
 - fix bug unable to create folder, document or application favorite on read-only support
@@ -903,7 +906,7 @@ return
 InitLanguages:
 ;------------------------------------------------------------
 
-strDebugLanguageFile := A_WorkingDir . "\" . g_strAppNameFile . "_LANG_XX.txt"
+strDebugLanguageFile := A_WorkingDir . "\" . g_strAppNameFile . "_LANG_ZZ.txt"
 if (g_strBranch <> "prod") and FileExist(strDebugLanguageFile)
 {
 	strLanguageFile := strDebugLanguageFile
