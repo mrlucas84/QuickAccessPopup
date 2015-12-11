@@ -30,6 +30,8 @@ TO-DO
 HISTORY
 =======
 
+Version: 6.2.5 beta (2015-12-??)
+
 Version: 6.2.4 beta (2015-12-07)
 - fix bug unable to create folder, document or application favorite on read-only support
 - French language translation and adjustments to original English language while translating to French
@@ -325,7 +327,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.2.4 beta
+;@Ahk2Exe-SetVersion 6.2.5 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -369,7 +371,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.2.4" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.2.5" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -738,18 +740,14 @@ InitFileInstall:
 g_strTempDir := A_WorkingDir . "\_temp"
 FileCreateDir, %g_strTempDir%
 
-/*
 FileInstall, FileInstall\QuickAccessPopup_LANG_DE.txt, %g_strTempDir%\QuickAccessPopup_LANG_DE.txt, 1
-*/
 FileInstall, FileInstall\QuickAccessPopup_LANG_FR.txt, %g_strTempDir%\QuickAccessPopup_LANG_FR.txt, 1
-/*
 FileInstall, FileInstall\QuickAccessPopup_LANG_NL.txt, %g_strTempDir%\QuickAccessPopup_LANG_NL.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_KO.txt, %g_strTempDir%\QuickAccessPopup_LANG_KO.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_SV.txt, %g_strTempDir%\QuickAccessPopup_LANG_SV.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_IT.txt, %g_strTempDir%\QuickAccessPopup_LANG_IT.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_ES.txt, %g_strTempDir%\QuickAccessPopup_LANG_ES.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_PT-BR.txt, %g_strTempDir%\QuickAccessPopup_LANG_PT-BR.txt, 1
-*/
 
 FileInstall, FileInstall\default_browser_icon.html, %g_strTempDir%\default_browser_icon.html, 1
 
@@ -905,13 +903,23 @@ return
 InitLanguages:
 ;------------------------------------------------------------
 
-IfNotExist, %g_strIniFile%
-	; read language code from ini file created by the Inno Setup script in the user data folder
-	IniRead, g_strLanguageCode, % A_WorkingDir . "\" . g_strAppNameFile . "-setup.ini", Global , LanguageCode, EN
+strDebugLanguageFile := A_WorkingDir . "\" . g_strAppNameFile . "_LANG_XX.txt"
+if (g_strBranch <> "prod") and FileExist(strDebugLanguageFile)
+{
+	strLanguageFile := strDebugLanguageFile
+	g_strLanguageCode := "EN"
+}
 else
-	IniRead, g_strLanguageCode, %g_strIniFile%, Global, LanguageCode, EN
+{
+	IfNotExist, %g_strIniFile%
+		; read language code from ini file created by the Inno Setup script in the user data folder
+		IniRead, g_strLanguageCode, % A_WorkingDir . "\" . g_strAppNameFile . "-setup.ini", Global , LanguageCode, EN
+	else
+		IniRead, g_strLanguageCode, %g_strIniFile%, Global, LanguageCode, EN
 
-strLanguageFile := g_strTempDir . "\" . g_strAppNameFile . "_LANG_" . g_strLanguageCode . ".txt"
+	strLanguageFile := g_strTempDir . "\" . g_strAppNameFile . "_LANG_" . g_strLanguageCode . ".txt"
+}
+	
 strReplacementForSemicolon := "!r4nd0mt3xt!" ; for non-comment semi-colons ";" escaped as ";;"
 ; ###_V("", strLanguageFile)
 
@@ -3810,7 +3818,7 @@ if (g_blnUseColors)
 Gui, 1:Font, % "s12 w700 " . (g_blnUseColors ? "c" . strTextColor : ""), Verdana
 Gui, 1:Add, Text, vf_lblAppName x0 y0, %g_strAppNameText% %g_strAppVersion%
 Gui, 1:Font, s9 w400, Verdana
-Gui, 1:Add, Text, vf_lblAppTagLine, %lAppTagline%
+Gui, 1:Add, Link, vf_lblAppTagLine, %lAppTagline%
 
 Gui, 1:Add, Picture, vf_picGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static3
 Gui, 1:Add, Picture, vf_picGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
