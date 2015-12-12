@@ -16,11 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- options, alternative menu, assign hotkey by default to one item, in next item change hotkey but cancel: the previous hotkley is assigned
 - (added 2015-11-12 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
-- rename Current Folders in website
-- rename Power menu to Alternative menu in website
 - show shortcuts in Alternative menu
 - add QAP feature "Add this folder Express" (see this item in wishlist)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -29,6 +28,13 @@ TO-DO
 
 HISTORY
 =======
+
+Version: 6.3.1 beta (2015-12-??)
+- reading Windows folder icon in desktop.ini supporting IconResource (Vista+) and IconFile,IconIndex format (deprecated after XP)
+- save Windows folder icon in desktop.ini using IconResource (Vista+), removing IconFile,IconIndex values deprecated after XP
+- set folder to R attribute instead of S to show the custom icon in desktop.ini
+- display numeric shortcuts and hotkey reminders in Alternative menu
+- remove unused help links in Alternative menu tab in Options
 
 Version: 6.2.5 beta (2015-12-10)
 - language files prepared for translators
@@ -330,7 +336,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.2.5 beta
+;@Ahk2Exe-SetVersion 6.3.1 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -2804,15 +2810,27 @@ BuildAlternativeMenu:
 Menu, g_menuAlternative, Add
 Menu, g_menuAlternative, DeleteAll
 
+intShortcut := 0
+
 Loop
 	if g_objQAPFeaturesAlternativeCodeByOrder.Haskey(A_Index)
-		AddMenuIcon("g_menuAlternative", g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].LocalizedName
-			, "OpenAlternativeMenu", g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].DefaultIcon)
+	{
+		strThisHotkey := g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].CurrentHotkey
+		
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].LocalizedName
+		if (g_intHotkeyReminders > 1) and StrLen(strThisHotkey)
+			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? strThisHotkey : Hotkey2Text(strThisHotkey)) . ")"
+		
+		AddMenuIcon("g_menuAlternative", strMenuName, "OpenAlternativeMenu", g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].DefaultIcon)
+	}
 	else
 		if g_objQAPFeaturesAlternativeCodeByOrder.Haskey(A_Index + 1) ; there is another menu item, add a menu separator
 			Menu, g_menuAlternative, Add
 		else
 			break ; menu finished
+
+strMenuName := ""
+strThisHotkey := ""
 
 return
 ;------------------------------------------------------------
@@ -3241,7 +3259,7 @@ for intOrder, strAlternativeCode in g_objQAPFeaturesAlternativeCodeByOrder
 	; ###_V("g_objQAPFeaturesAlternativeCodeByOrder", intOrder, strAlternativeCode, g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
 	; ###_V("strAlternativeCode", strAlternativeCode, g_objQAPFeatures[strAlternativeCode].LocalizedName, g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
 	Gui, 2:Font, s8 w700
-	Gui, 2:Add, Link, x15 y+10 w240, % g_objQAPFeatures[strAlternativeCode].LocalizedName . " <A id=""" . strAlternativeCode . """>?</A>" ; ### link to help
+	Gui, 2:Add, Text, x15 y+10 w240, % g_objQAPFeatures[strAlternativeCode].LocalizedName
 	Gui, 2:Font, s9 w500, Courier New
 	Gui, 2:Add, Text, Section x260 yp w280 h20 center 0x1000 vf_lblAlternativeHotkeyText%intOrder% gButtonOptionsChangeAlternativeHotkey
 		, % Hotkey2Text(g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
@@ -5336,13 +5354,26 @@ GetFolderIcon(strFolderLocation)
 ;------------------------------------------------------------
 {
 	strFolderDesktopIni := PathCombine(A_WorkingDir, EnvVars(strFolderLocation)) . "\desktop.ini"
-	IniRead, strDesktopIconFile, %strFolderDesktopIni%, .ShellClassInfo, IconFile, %A_Space%
-	IniRead, intDesktopIconIndex, %strFolderDesktopIni%, .ShellClassInfo, IconIndex, 0
-
-	if StrLen(strDesktopIconFile)
+	
+	IniRead, strDesktopIconFileIndex, %strFolderDesktopIni%, .ShellClassInfo, IconResource, %A_Space%
+	
+	if StrLen(strDesktopIconFileIndex)
+	{
+		strDesktopIconFile := SubStr(strDesktopIconFileIndex, 1, InStr(strDesktopIconFileIndex, ",") - 1)
+		intDesktopIconIndex := SubStr(strDesktopIconFileIndex, InStr(strDesktopIconFileIndex, ",") + 1)
 		strDesktopIconFileIndex := strDesktopIconFile . ","
 			. intDesktopIconIndex + (intDesktopIconIndex >= 0 ? 1 : 0) ; adjust index for positive index only (not for negative index)
-	; ###_V(A_ThisLabel, strFolderLocation, strDesktopIconFileIndex)
+	}
+	else
+	{
+		; IconFile and IconIndex are deprecated since Vista but still supported
+		IniRead, strDesktopIconFile, %strFolderDesktopIni%, .ShellClassInfo, IconFile, %A_Space%
+		IniRead, intDesktopIconIndex, %strFolderDesktopIni%, .ShellClassInfo, IconIndex, 0
+		
+		if StrLen(strDesktopIconFile)
+			strDesktopIconFileIndex := strDesktopIconFile . ","
+				. intDesktopIconIndex + (intDesktopIconIndex >= 0 ? 1 : 0) ; adjust index for positive index only (not for negative index)
+	}
 
 	return strDesktopIconFileIndex
 }
@@ -5398,30 +5429,32 @@ if (g_strCurrentBranch <> "prod")
 	FileSetAttrib, -S-H, %strFolderDesktopIni%-BK ; make it normal file
 }
 
+; In any case, if they exist, remove deprecated values IconFile and IconIndex (deprecated after XP)
+IniDelete, %strFolderDesktopIni%, .ShellClassInfo, IconFile
+IniDelete, %strFolderDesktopIni%, .ShellClassInfo, IconIndex
+
 if (blnSet)
 {
-	FileSetAttrib, +S, %strFolder%, 2 ; make sure folder is system
+	FileSetAttrib, +R, %strFolder%, 2 ; make sure folder is read-only to display icon (was system in previous doc)
  
 	; From: https://msdn.microsoft.com/en-us/library/cc144102.aspx
 	ParseIconResource(g_strNewFavoriteIconResource, strIconFile, intIconIndex)
-	IniWrite %strIconFile%, %strFolderDesktopIni%, .ShellClassInfo, IconFile
-	IniWrite % (intIconIndex >= 0 ? intIconIndex - 1 : intIconIndex), %strFolderDesktopIni%, .ShellClassInfo, IconIndex ; adjust index for positive index only (not for negative index)
+	intIconIndex := (intIconIndex >= 0 ? intIconIndex - 1 : intIconIndex) ; adjust index for positive index only (not for negative index)
+	IniWrite %strIconFile%`,%intIconIndex%, %strFolderDesktopIni%, .ShellClassInfo, IconResource
 	; ConfirmFileOp -> Set this entry to 0 to avoid a "You Are Deleting a System Folder" warning when deleting or moving the folder.
 	IniWrite 0, %strFolderDesktopIni%, .ShellClassInfo, ConfirmFileOp
 
 	if !(blnDesktopIniExist)
 		FileSetAttrib, +H+S, %strFolderDesktopIni% ; make it system and hidden
-	x := FileExist(strFolderDesktopIni)
 }
 else ; remove
 {
-	IniDelete, %strFolderDesktopIni%, .ShellClassInfo, IconFile
-	IniDelete, %strFolderDesktopIni%, .ShellClassInfo, IconIndex
+	IniDelete, %strFolderDesktopIni%, .ShellClassInfo, IconResource
 
 	MsgBox, 4, %g_strAppNameFile%, % L(strMessageRemove, strFolderDesktopIni)
 	IfMsgBox, Yes
 	{
-		FileSetAttrib, -S, %strFolder%, 2 ; remove system attribute from folder
+		FileSetAttrib, -R, %strFolder%, 2 ; remove read-only (was system) attribute from folder
 		FileDelete, %strFolderDesktopIni%
 	}
 }
