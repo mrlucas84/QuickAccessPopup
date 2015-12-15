@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- options, alternative menu, assign hotkey by default to one item, in next item change hotkey but cancel: the previous hotkley is assigned
 - (added 2015-11-12 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
@@ -29,12 +28,17 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.3.1 beta (2015-12-??)
+Version: 6.3.1 beta (2015-12-14)
 - reading Windows folder icon in desktop.ini supporting IconResource (Vista+) and IconFile,IconIndex format (deprecated after XP)
 - save Windows folder icon in desktop.ini using IconResource (Vista+), removing IconFile,IconIndex values deprecated after XP
 - set folder to R attribute instead of S to show the custom icon in desktop.ini
 - display numeric shortcuts and hotkey reminders in Alternative menu
 - remove unused help links in Alternative menu tab in Options
+- fix bug when reusing an open folder on a network drive
+- does not show icon options in add/edit favorite if running on server OS (actually, icons are supported only on workstations)
+- fix bug set Windows folder icon now detect if location is empty
+- fix bug when cancelling assign hotkey, the previous hotkey was assigned
+- fix bug Add Favorite QAP must show Settings window before Add favorite dialog box to set default destination menu and position
 
 Version: 6.2.5 beta (2015-12-10)
 - language files prepared for translators
@@ -1452,7 +1456,7 @@ InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuCur
 
 ; Command features
 InitQAPFeatureObject("About",			lGuiAbout . "...",					"", "GuiAbout",							0, "iconAbout")
-InitQAPFeatureObject("Add Favorite",	lMenuAddFavorite . "...",			"", "AddThisFolder",					0, "iconLaunch")
+InitQAPFeatureObject("Add Favorite",	lMenuAddFavorite . "...",			"", "GuiAddFavoriteFromQAP",			0, "iconLaunch")
 InitQAPFeatureObject("Add This Folder",	lMenuAddThisFolder . "...",			"", "AddThisFolder",					0, "iconAddThisFolder", "+^A")
 InitQAPFeatureObject("Exit",			L(lMenuExitApp, g_strAppNameText),	"", "ExitApp",							0, "iconExit")
 InitQAPFeatureObject("Help",			lGuiHelp . "...",					"", "GuiHelp",							0, "iconHelp")
@@ -2542,6 +2546,7 @@ CollectExplorers(pExplorers)
 				objExplorer.LocationURL := pExplorer.LocationURL
 				strLocationName :=  UriDecode(pExplorer.LocationURL)
 				StringReplace, strLocationName, strLocationName, file:///
+				StringReplace, strLocationName, strLocationName, file: ; for network drives starting with file:\\, keep only \\
 				StringReplace, strLocationName, strLocationName, /, \, A
 				objExplorer.LocationName := strLocationName
 			}
@@ -4085,7 +4090,11 @@ return
 
 ;------------------------------------------------------------
 GuiAddFavoriteSelectType:
+GuiAddFavoriteFromQAP:
 ;------------------------------------------------------------
+
+if (A_ThisLabel = "GuiAddFavoriteFromQAP")
+	gosub, GuiShow
 
 g_intGui1WinID := WinExist("A")
 Gui, 1:Submit, NoHide
@@ -4497,7 +4506,7 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite") or (strGuiFavoriteLabel = "GuiC
 		StringSplit, g_arrGroupSettingsGui, strGroupSettings, `,
 	}
 }
-else
+else ; add favorite
 {
 	if (strGuiFavoriteLabel = "GuiAddThisFolder") and !WindowIsDialog(g_strTargetClass, g_strTargetWinId)
 	{
@@ -4536,7 +4545,7 @@ else
 	if (g_strAddFavoriteType = "FTP")
 		g_blnNewFavoriteFtpEncoding := (g_intActiveFileManager = 3 ? false : true) ; if TotalCommander URL should not be encoded (as hardcoded in OpenFavorite)
 
-	if (g_objEditedFavorite.FavoriteType = "Folder")
+	if (g_objEditedFavorite.FavoriteType = "Folder") and StrLen(g_objEditedFavorite.FavoriteLocation)
 	{
 		g_strNewFavoriteIconResource := GetFolderIcon(g_objEditedFavorite.FavoriteLocation)
 		g_objEditedFavorite.FavoriteIconResource := g_strNewFavoriteIconResource
@@ -4679,12 +4688,15 @@ Gui, 2:Add, DropDownList, x20 y+5 w390 vf_drpParentMenuItems AltSubmit
 
 if !(blnIsGroupMember)
 {
-	Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog section, %lDialogIcon%
-	Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
-	Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
-	Gui, 2:Add, Link, x20 ys+57 w250 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
-	Gui, 2:Add, Link, x260 yp w250 vf_lblSetWindowsFolderIcon gSetWindowsFolderIcon, <a>%lDialogWindowsFolderIconSet%</a>
-	Gui, 2:Add, Link, x20 ys+74 w250 gGuiEditIconDialog, <a>%lDialogEditIcon%</a>
+	if OSVersionIsWorkstation()
+	{
+		Gui, 2:Add, Text, x20 y+20 gGuiPickIconDialog section, %lDialogIcon%
+		Gui, 2:Add, Picture, x20 y+5 w32 h32 vf_picIcon gGuiPickIconDialog
+		Gui, 2:Add, Text, x+5 yp vf_lblRemoveIcon gGuiRemoveIcon, X
+		Gui, 2:Add, Link, x20 ys+57 w240 gGuiPickIconDialog, <a>%lDialogSelectIcon%</a>
+		Gui, 2:Add, Link, x270 yp w240 vf_lblSetWindowsFolderIcon gSetWindowsFolderIcon, <a>%lDialogWindowsFolderIconSet%</a>
+		Gui, 2:Add, Link, x20 ys+74 w240 gGuiEditIconDialog, <a>%lDialogEditIcon%</a>
+	}
 
 	Gui, 2:Add, Text, x20 y+20, %lDialogShortcut%
 	Gui, 2:Add, Text, x20 y+5 w300 h23 0x1000 vf_strHotkeyText gButtonChangeFavoriteHotkey, % Hotkey2Text(g_strNewFavoriteHotkey)
@@ -4846,7 +4858,7 @@ if (f_intAddFavoriteTab = 1) ; if last tab was 1 we need to update the icon
 {
 	Gui, 2:Submit, NoHide
 
-	if !StrLen(g_strNewFavoriteIconResource)
+	if !StrLen(g_strNewFavoriteIconResource) and StrLen(f_strFavoriteLocation)
 		g_strNewFavoriteIconResource := GetFolderIcon(f_strFavoriteLocation)
 	
 	Gosub, GuiFavoriteIconDefault
@@ -5145,9 +5157,9 @@ ParseIconResource(strExpandedIconRessource, strThisIconFile, intThisIconIndex)
 GuiControl, , f_picIcon, *icon%intThisIconIndex% %strThisIconFile%
 GuiControl, % (strExpandedRessourceIcon <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), f_lblRemoveIcon
 
-strThisFolder := PathCombine(A_WorkingDir, EnvVars(f_strFavoriteLocation))
-blnThisDesktopIniExist := FileExist(strThisFolder . "\desktop.ini")
-strCurrentDesktopIcon := GetFolderIcon(strThisFolder)
+strThisFolder := (StrLen(f_strFavoriteLocation)? PathCombine(A_WorkingDir, EnvVars(f_strFavoriteLocation)) : "")
+blnThisDesktopIniExist := (StrLen(strThisFolder) ? FileExist(strThisFolder . "\desktop.ini") : false)
+strCurrentDesktopIcon := (StrLen(strThisFolder) ? GetFolderIcon(strThisFolder) : "")
 
 GuiControl, % (g_objEditedFavorite.FavoriteType = "Folder" and strExpandedIconRessource <> EnvVars(g_strDefaultIconResource)
 	or (blnThisDesktopIniExist) ? "Show" : "Hide"), f_lblSetWindowsFolderIcon
@@ -6787,7 +6799,7 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	ButtonChangeHotkeyCancel:
 	;------------------------------------------------------------
 	
-	strHotkey := ""
+	strNewHotkey := ""
 
 	Gosub, 3GuiClose
   
