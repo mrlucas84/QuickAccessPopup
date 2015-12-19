@@ -232,7 +232,7 @@ lMenuCopyLocation	Copiar Ruta o dirección URL favorita
 lMenuCurrentFolders	Carpetas en el explorador
 lMenuDesktop	Oficina
 lMenuDownloads	Descarga
-lMenuEditIniFile	Edit ~1~ ; new
+lMenuEditIniFile	Editar ~1~
 lMenuExitApp	Cerrar ~1~
 lMenuFavoritesInternet	Favoritos (Internet)
 lMenuFonts	Fuentes
@@ -267,7 +267,7 @@ lMenuUserFolder	Carpeta de Usuario
 lMenuUserPinned	Adherido al Usuario
 lNavigateFileError	Se produjo un error al abrir la carpeta:`n~1~.
 lNavigateSpecialError	Se produjo un error al abrir la carpeta especial #~1~.
-lOopsCannotCopyFavorite	Favorites of type "~1~" cannot be copied. ; new
+lOopsCannotCopyFavorite	Tipos de favoritos "~1~" cannot be copied.
 lOopsCouldNotOpenSpecialFolder	~1~ no se puede abrir la carpeta especial: "~2~".
 lOopsFtpLocationProtocol	Ubicación FTP debe comenzar con "ftp://".
 lOopsGroup	grupo
@@ -336,7 +336,7 @@ lOptionsThirdPartyUseTabs	Utilice las pestañas en lugar de abrir una nueva venta
 lOptionsTrayTip	Mostrar notificación al inicio
 lPickIconNoLocation	Por favor, primero elegir un favorito antes de seleccionar un icono.
 lReloadPrompt	Cambio ~1~ guardado: ~2~. Desea reiniciar ~3~ en ~2~ ahora? Se perderán los cambios no guardados en el menú de carpetas.
-lTrayTipInstalledDetail	~1~ or ~2~ to launch favorites ; CHANGED - WAS: Para marcar el menú de ~1~, clicar sobre:`n`n~2~ / ~3~`nen un explorador de archivos o en una caja de diálogo`n`n~4~ / ~5~`npara abrir un nuevo Explorador
+lTrayTipInstalledDetail	~1~ or ~2~ para lanzar favoritos
 lTrayTipInstalledTitle	~1~ ~2~ Listo!
 lTrayTipWorkingDetail	Preparación de los menús
 lTrayTipWorkingDetailFinished	El menú ha sido actualizado.
