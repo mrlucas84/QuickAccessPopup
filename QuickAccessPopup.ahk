@@ -16,10 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- (added 2015-11-12 but could not reproduce: username/password in FTP favoritews lost)
+- (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
-- show shortcuts in Alternative menu
+- check Recent folders with network drives
 - add QAP feature "Add this folder Express" (see this item in wishlist)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
@@ -27,6 +27,14 @@ TO-DO
 
 HISTORY
 =======
+
+Version: 6.3.2 beta (2015-12-??)
+- fix FTP password label alignement in Add/Edit favorite dialog box
+- addition of Spanish, Brazilian Portuguese and Swedish translations
+- stop showing hidden apps in the running apps dropdown in Add/Edit application favorite
+- fix misaligned label in FTP favorite
+- add an option in Add/Edit application favorite to flag if we activate an exsiting instance instead of launching a new instance of the application
+- add QAP feature Switch to an open folder supporting Explorer and DOpus
 
 Version: 6.3.1 beta (2015-12-14)
 - reading Windows folder icon in desktop.ini supporting IconResource (Vista+) and IconFile,IconIndex format (deprecated after XP)
@@ -340,7 +348,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.3.1 beta
+;@Ahk2Exe-SetVersion 6.3.2 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -384,7 +392,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.2.5" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.3.2" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -490,7 +498,7 @@ if (g_blnUseColors)
 GetIcon4Location(g_strTempDir . "\default_browser_icon.html", g_strURLIconFile, g_intUrlIconIndex)
 
 ; build even if not used because they could become used - will be updated at each call to popup menu
-Gosub, BuildCurrentFoldersMenuInit 
+Gosub, BuildSwitchFolderOrAppMenuInit 
 Gosub, BuildClipboardMenuInit
 ; no need to build Recent folders menu at startup because this menu is refreshed/recreated on demand
 
@@ -828,7 +836,7 @@ strIconsMenus := "iconControlPanel|iconNetwork|iconRecycleBin|iconPictures|iconC
 	. "|iconEditFavorite|iconFavorites|iconGroup|iconFTP|iconNoContent"
 	. "|iconTemporary|iconHotkeys|iconUnknown|iconLaunch|iconExit"
 	. "|iconAbout|iconHistory|iconClipboard|iconGroupSave|iconSubmenu"
-	. "|iconOptions|iconApplication|iconWinver"
+	. "|iconOptions|iconApplication|iconWinver|iconSwitch"
 
 if (GetOsVersion() = "WIN_10")
 {
@@ -840,7 +848,7 @@ if (GetOsVersion() = "WIN_10")
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
-		. "|shell32|shell32|winver"
+		. "|shell32|shell32|winver|shell32"
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
@@ -849,7 +857,7 @@ if (GetOsVersion() = "WIN_10")
 		. "|68|87|99|104|110"
 		. "|153|174|176|215|216"
 		. "|222|240|261|299|300"
-		. "|319|324|1"
+		. "|319|324|1|325"
 }
 else
 {
@@ -861,7 +869,7 @@ else
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
-		. "|shell32|shell32|winver"
+		. "|shell32|shell32|winver|shell32"
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
@@ -870,7 +878,7 @@ else
 		. "|68|87|99|104|110"
 		. "|153|174|176|215|216"
 		. "|222|240|261|297|298"
-		. "|301|304|1"
+		. "|301|304|1|305"
 }
 
 StringSplit, arrIconsFile, strIconsFile, |
@@ -1453,6 +1461,7 @@ InitQAPFeatures:
 ; Submenus features
 InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", "+^C")
 InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuCurrentFolders",	"CurrentFoldersMenuShortcut",	0, "iconCurrentFolders", "+^F")
+InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch", "+^W")
 
 ; Command features
 InitQAPFeatureObject("About",			lGuiAbout . "...",					"", "GuiAbout",							0, "iconAbout")
@@ -1650,7 +1659,7 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 			AlternativeHotkeyKeyboardDefault=%strAlternativeHotkeyKeyboardDefault%
 			DisplayTrayTip=1
 			DisplayIcons=1
-			RecentFolders=10
+			RecentFoldersMax=10
 			DisplayMenuShortcuts=0
 			PopupMenuPosition=1
 			PopupFixPosition=20,20
@@ -1867,7 +1876,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		if (strLoadIniLine = "ERROR")
 			Return, "EOF" ; end of file - should not happen if main menu ends with a "Z" type favorite as expected
 		
-		strLoadIniLine := strLoadIniLine . "||||||||" ; additional "|" to make sure we have all empty items
+		strLoadIniLine := strLoadIniLine . "||||||||||||" ; additional "|" to make sure we have all empty items
 		; 1 FavoriteType, 2 FavoriteName, 3 FavoriteLocation, 4 FavoriteIconResource, 5 FavoriteArguments, 6 FavoriteAppWorkingDir,
 		; 7 FavoriteWindowPosition, (X FavoriteHotkey), 8 FavoriteLaunchWith, 9 FavoriteLoginName, 10 FavoritePassword,
 		; 11 FavoriteGroupSettings, 12 FavoriteFtpEncoding
@@ -1970,6 +1979,7 @@ AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefault
 AddToIniOneDefaultMenu("{Add This Folder}", lMenuAddThisFolder . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu("{Current Folders}", lMenuCurrentFolders . "...", "QAP")
+AddToIniOneDefaultMenu("{Switch Folder or App}", lMenuSwitchFolderOrApp . "...", "QAP")
 AddToIniOneDefaultMenu("{Recent Folders}", lMenuRecentFolders . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu("{Clipboard}", lMenuClipboard . "...", "QAP")
@@ -2306,10 +2316,25 @@ CurrentFoldersMenuShortcut:
 
 Gosub, SetMenuPosition
 
-Gosub, BuildCurrentFoldersMenu
+Gosub, BuildSwitchFolderOrAppMenu
 
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SwitchFolderOrAppMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+
+Gosub, BuildSwitchFolderOrAppMenu
+
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+Menu, g_menuSwitchFolderOrApp, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2334,13 +2359,14 @@ return
 
 
 ;------------------------------------------------------------
-BuildCurrentFoldersMenuInit:
-BuildCurrentFoldersMenu:
+BuildSwitchFolderOrAppMenuInit:
+BuildSwitchFolderOrAppMenu:
 ;------------------------------------------------------------
 
 Menu, g_menuCurrentFolders, Add ; create the menu
+Menu, g_menuSwitchFolderOrApp, Add ; create the menu
 
-if (A_ThisLabel = "BuildCurrentFoldersMenuInit")
+if (A_ThisLabel = "BuildSwitchFolderOrAppMenuInit")
 	return
 
 if (g_intActiveFileManager = 2) ; DirectoryOpus
@@ -2413,21 +2439,35 @@ for intIndex, objFolder in objExplorersWindows
 
 Menu, g_menuCurrentFolders, Add
 Menu, g_menuCurrentFolders, DeleteAll
+Menu, g_menuSwitchFolderOrApp, Add
+Menu, g_menuSwitchFolderOrApp, DeleteAll
 if (g_blnUseColors)
+{
 	Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
+	Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
+}
 
 intShortcutCurrentFolders := 0
 g_objCurrentFoldersLocationUrlByName := Object()
+g_objCurrentWindowsIdByName := Object()
 
 if (intExplorersIndex)
 	for intIndex, objCurrentFolder in objCurrentFoldersList
 	{
 		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
 		g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
+		g_objCurrentWindowsIdByName.Insert(strMenuName, objCurrentFolder.WindowType . "|" . objCurrentFolder.WindowId)
 		AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
+		AddMenuIcon("g_menuSwitchFolderOrApp", strMenuName, "OpenSwitchFolderOrApp", (objCurrentFolder.WindowType = "EX" ? "iconChangeFolder" : g_strDirectoryOpusRtPath . ",1"))
 	}
 else
+{
 	AddMenuIcon("g_menuCurrentFolders", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
+	AddMenuIcon("g_menuSwitchFolderOrApp", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
+}
+Menu, g_menuSwitchFolderOrApp, Add
+
+; ##### add apps here
 
 objDOpusListers := ""
 objExplorersWindows := ""
@@ -3772,7 +3812,7 @@ if (strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
 }	
 
 ; else rebuild Explorers folder
-Gosub, BuildCurrentFoldersMenu
+Gosub, BuildSwitchFolderOrAppMenu
 
 ; and rebuild Folders menus w/ or w/o optional folders and shortcuts
 for strMenuName, arrMenu in g_objMenusIndex
@@ -4612,6 +4652,8 @@ if !InStr("Special|QAP", g_objEditedFavorite.FavoriteType)
 		Gui, 2:Add, Text, x20 y+20 vf_lblSelectRunningApplication, %lDialogBrowseOrSelectApplication%
 		Gui, 2:Add, DropDownList, x20 y+5 w500 vf_drpRunningApplication gDropdownRunningApplicationChanged
 			, % CollectRunningApplications(g_objEditedFavorite.FavoriteLocation)
+		Gui, 2:Add, Checkbox, x20 y+20 w400 vf_strFavoriteLaunchWith, %lDialogActivateAlreadyRunning%
+		GuiControl, , f_strFavoriteLaunchWith, % (g_objEditedFavorite.FavoriteLaunchWith = 1)
 	}
 }
 else ; "Special" or "QAP"
@@ -4632,7 +4674,7 @@ else ; "Special" or "QAP"
 if (g_objEditedFavorite.FavoriteType = "FTP")
 {
 	Gui, 2:Add, Text, x20 y+5, %lGuiLoginName%
-	Gui, 2:Add, Text, x180 yp, %lGuiPassword%
+	Gui, 2:Add, Text, x230 yp, %lGuiPassword%
 	
 	Gui, 2:Add, Edit, x20 y+5 w190 h20 vf_strFavoriteLoginName, % g_objEditedFavorite.FavoriteLoginName
 	Gui, 2:Add, Edit, x230 yp w190 h20 Password vf_strFavoritePassword, % g_objEditedFavorite.FavoritePassword
@@ -7020,7 +7062,7 @@ if (blnSaveEnabled)
 		Gosub, RestoreBackupMenusObjects
 
 		; restore popup menu
-		Gosub, BuildCurrentFoldersMenu
+		Gosub, BuildSwitchFolderOrAppMenu
 		Gosub, BuildMainMenu ; rebuild menus but not hotkeys
 		
 		GuiControl, Disable, f_btnGuiSaveFavorites
@@ -7211,8 +7253,8 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 	Sleep, 20
 }
 
-if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") ; we have this QAP feature in at least one menu
-	Gosub, BuildCurrentFoldersMenu
+if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") or g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have one of these QAP features in at least one menu
+	Gosub, BuildSwitchFolderOrAppMenu
 
 if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
 	Gosub, RefreshClipboardMenu
@@ -7641,6 +7683,32 @@ return
 
 
 ;------------------------------------------------------------
+OpenSwitchFolderOrApp:
+;------------------------------------------------------------
+
+if (g_blnDisplayNumericShortcuts)
+	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
+else
+	strThisMenuItem :=  A_ThisMenuItem
+
+strWindowId := g_objCurrentWindowsIdByName[strThisMenuItem]
+StringSplit, arrFolderWindowId, strWindowId, |
+
+if (arrFolderWindowId1 = "EX") ; Explorer
+	WinActivate, % "ahk_id " . arrFolderWindowId2
+else if (arrFolderWindowId1 = "DO") ; Directory Opus
+	; double % for DOpusRT (http://resource.dopus.com/viewtopic.php?f=3&t=23013#p124395)
+	; StringReplace, strThisMenuItem, strThisMenuItem, % "%", % "%%", A
+	; remove because does not seem to be required anymore?
+	RunDOpusRt("/acmd Go ", strThisMenuItem, " EXISTINGLISTER") ; activate an existing lister listing this path
+else
+	###_D("Not ready for applications")
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 OpenFavorite:
 OpenFavoriteGroup:
 OpenFavoriteFromGroup:
@@ -7707,6 +7775,20 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 }
 
 blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not take into account if keyboard shortcut
+
+if (g_objThisFavorite.FavoriteType = "Application") and (g_objThisFavorite.FavoriteLaunchWith = 1) ; 1 activate existing if running
+	and AppIsRunning(g_strFullLocation, strAppID) ; g_strFullLocation includes optional parameter
+{
+	; If an app is installed in more one location, it will be activated only if the one running is from the same location as the favorite.
+	; If the favorite has "Parameters" in "Advanced Settings", it will be launched anyway, regardless of an existing running instance.
+	; If the favorite has "Start in" option or "Window Options", they will be ignored if we activate the existing instance of the app.
+	
+	; WinShow, ahk_id %strAppID% ; not required because WinGet in AppIsRunning lists only non-hidden windows
+	WinActivate, ahk_id %strAppID%
+	
+	gosub, OpenFavoriteCleanup
+	return
+}
 
 ; if (A_ThisLabel = "OpenFavoriteFromGroup")
 ; ###_V(A_ThisLabel . "-2", g_strHokeyTypeDetected, g_strTargetAppName, g_strTargetWinId, g_strTargetControl, g_strTargetClass, g_strFullLocation)
@@ -8054,7 +8136,7 @@ else
 		g_strFullLocation := GetSpecialFolderLocation(g_strHokeyTypeDetected, g_strTargetAppName, g_objThisFavorite) ; can change values of g_strHokeyTypeDetected and g_strTargetAppName
 	; else URL or QAP (no need to expand or make absolute), keep g_strFullLocation as in g_objThisFavorite.FavoriteLocation
 
-if StrLen(g_objThisFavorite.FavoriteLaunchWith) ; always empty for Application favorites
+if StrLen(g_objThisFavorite.FavoriteLaunchWith) and (g_objThisFavorite.FavoriteType <> "Application") ; ignore for Application favorites
 {
 	strFullLaunchWith := g_objThisFavorite.FavoriteLaunchWith
 	blnFileExist := FileExistInPath(strFullLaunchWith) ; return strFullLaunchWith expanded and searched in PATH
@@ -9884,7 +9966,10 @@ CollectRunningApplications(strDefaultPath)
 {
 	objApps := Object()
 
+	strDetectHiddenWindows := A_DetectHiddenWindows
+	DetectHiddenWindows, Off
 	Winget, strIDs, list
+	DetectHiddenWindows, %strDetectHiddenWindows%
 	
 	Loop, %strIDs%
 	{
@@ -9892,10 +9977,10 @@ CollectRunningApplications(strDefaultPath)
 		if !objApps.HasKey(strPath)
 			objApps.Insert(strPath, "")
 	}
-	for strPath in objApps
+	for strThisPath in objApps
 	{
-		strPaths .= strPath . "|"
-		if (strPath = strDefaultPath)
+		strPaths .= strThisPath . "|"
+		if (strThisPath = strDefaultPath)
 			strPaths .= "|"
 	}
 
@@ -10169,6 +10254,26 @@ EnvVars(str)
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+AppIsRunning(strAppPath, ByRef strAppID)
+; Based on Drugoy (https://github.com/Drugoy/Autohotkey-scripts-.ahk/blob/master/DevTools/showPerWindowInfoOfAllWindows.ahk)
+;------------------------------------------------------------
+{
+	WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
+	Loop, %strWinIDs%
+	{
+		WinGet, strProcessPath, ProcessPath, % "ahk_id " strWinIDs%A_Index%
+		if (strProcessPath = strAppPath)
+		{
+			strAppID := strWinIDs%A_Index%
+			return true
+		}
+	}
+	return false
+}
+;------------------------------------------------------------
+
+
 
 ;========================================================================================================================
 ; END OF VARIOUS_FUNCTIONS
@@ -10259,5 +10364,6 @@ REPLY_QAPISRUNNING(wParam, lParam)
 	return true
 } 
 ;------------------------------------------------------------
+
 
 
