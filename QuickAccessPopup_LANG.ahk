@@ -6,13 +6,13 @@ global lAboutTitle := "About - ~1~ ~2~"
 global lAlternativeMenuTrayTipCopyLocation := "Select the favorite to copy" ; new
 global lAlternativeMenuTrayTipEditFavorite := "Select the favorite to edit" ; new
 global lAlternativeMenuTrayTipNewWindow := "Select the folder to open in a new window" ; new
-global lAppTagline :=  "<a href=""http://www.quickaccesspopup.com/what-should-i-know-about-quick-access-popup-before-starting/"">Quick Start</a> • <a href=""http://www.quickaccesspopup.com/frequently-asked-questions/"">Frequently asked questions</a> • <a href=""http://www.quickaccesspopup.com"">Support</a>" (English) ; new
+global lAppTagline :=  "<a href=""http://www.quickaccesspopup.com/what-should-i-know-about-quick-access-popup-before-starting/"">Quick Start</a> • <a href=""http://www.quickaccesspopup.com/frequently-asked-questions/"">Frequently asked questions</a> • <a href=""http://www.quickaccesspopup.com"">Support</a>" ; new
 global lCopyLocationCopiedToClipboard := "Path or URL copied to the Clipboard" ; new
 global lDiagModeCaution := "~1~ is running in diagnostic mode.`n`nInformation about the app's execution will be collected in the file:`n~2~`n`nNothing will be sent without your consent.`n`nDo you want to keep diagnostic mode ON?"
 global lDiagModeExit := "~1~ colleted diagnostic information in the file ~2~."
 global lDiagModeIntro := "Send this file to ahk@jeanlalonde.ca with a description of the situation requiring diagnostic."
 global lDiagModeSee := "Do you want to see the diagnostic file?"
-global lDialogActivateAlreadyRunning := "If the application is already running, activate it instead of launching`n(application must be of the exactly same location)"
+global lDialogActivateAlreadyRunning := "If the application is already running, activate it instead of launching`n(application must be of the exactly same location)" ; new
 global lDialogAdd := "Add"
 global lDialogAddEditFavoriteTitle := "~1~ Favorite: ~4~ - ~2~ ~3~" ; changed
 global lDialogAddFavoriteSelectTitle := "Add Favorite - ~1~ ~2~" ; new
@@ -260,6 +260,7 @@ global lMenuSettings := "Settings" ; changed
 global lMenuStartMenu := "Start Menu"
 global lMenuStartup := "Startup"
 global lMenuSuspendHotkeys := "Suspend Hotkeys"
+global lMenuSwitchFoldersOrApp := "Switch to an Open Folder or Application"
 global lMenuSystemCertificates := "System Certificates"
 global lMenuTemplates := "Templates"
 global lMenuTemporaryFiles := "Temporary Files"
