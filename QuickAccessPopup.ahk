@@ -360,7 +360,7 @@ f_typNameOfVariable
 #SingleInstance force
 #KeyHistory 0
 ListLines, Off
-DetectHiddenWindows, On
+DetectHiddenWindows, On ; On required for button centering function GuiCenterButtons
 StringCaseSense, Off
 ComObjError(False) ; we will do our own error handling
 
@@ -2447,14 +2447,14 @@ if (g_blnUseColors)
 	Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
 }
 
-intShortcutCurrentFolders := 0
+intShortcut := 0
 g_objCurrentFoldersLocationUrlByName := Object()
 g_objCurrentWindowsIdByName := Object()
 
 if (intExplorersIndex)
 	for intIndex, objCurrentFolder in objCurrentFoldersList
 	{
-		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutCurrentFolders) . " " : "") . objCurrentFolder.Name
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentFolder.Name
 		g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
 		g_objCurrentWindowsIdByName.Insert(strMenuName, objCurrentFolder.WindowType . "|" . objCurrentFolder.WindowId)
 		AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
@@ -2467,7 +2467,23 @@ else
 }
 Menu, g_menuSwitchFolderOrApp, Add
 
-; ##### add apps here
+DetectHiddenWindows, Off
+WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
+DetectHiddenWindows, On ; revert to app default
+Loop, %strWinIDs%
+{
+	WinGet, strProcessPath, ProcessPath, % "ahk_id " . strWinIDs%A_Index%
+	WinGetTitle, strWindowTitle, % "ahk_id " strWinIDs%A_Index%
+	WinGetClass, strWindowClass, % "ahk_id " strWinIDs%A_Index%
+	
+	WinGetPos, intX, intY, intW, intH, % "ahk_id " strWinIDs%A_Index%
+	if !StrLen(strProcessPath) or !(intW * intH) or (strProcessPath = A_WinDir . "\explorer.exe") or (strWindowClass = "SideBar_HTMLHostWindow")
+		continue
+	
+	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . (StrLen(strWindowTitle) ? strWindowTitle : strProcessPath)
+	g_objCurrentWindowsIdByName.Insert(strMenuName, "APP|" . strWinIDs%A_Index%)
+	AddMenuIcon("g_menuSwitchFolderOrApp", strMenuName, "OpenSwitchFolderOrApp", strProcessPath . ",1")
+}
 
 objDOpusListers := ""
 objExplorersWindows := ""
@@ -2476,9 +2492,13 @@ objCurrentFoldersList := ""
 intIndex := ""
 objLister := ""
 objFolder := ""
-intShortcutCurrentFolders := ""
+intShortcut := ""
 strMenuName := ""
 intExplorersIndex := ""
+strWinIDs := ""
+strProcessPath := ""
+strWindowTitle := ""
+strWindowClass := ""
 
 return
 ;------------------------------------------------------------
@@ -7686,13 +7706,13 @@ return
 OpenSwitchFolderOrApp:
 ;------------------------------------------------------------
 
-if (g_blnDisplayNumericShortcuts)
-	StringTrimLeft, strThisMenuItem, A_ThisMenuItem, 3 ; remove "&1 " from menu item
-else
-	strThisMenuItem :=  A_ThisMenuItem
-
+strThisMenuItem :=  A_ThisMenuItem
 strWindowId := g_objCurrentWindowsIdByName[strThisMenuItem]
 StringSplit, arrFolderWindowId, strWindowId, |
+; ###_V(A_ThisLabel, strThisMenuItem, strWindowId, arrFolderWindowId2)
+
+if (g_blnDisplayNumericShortcuts)
+	StringTrimLeft, strThisMenuItem, strThisMenuItem, 3 ; remove "&1 " from menu item
 
 if (arrFolderWindowId1 = "EX") ; Explorer
 	WinActivate, % "ahk_id " . arrFolderWindowId2
@@ -7701,8 +7721,8 @@ else if (arrFolderWindowId1 = "DO") ; Directory Opus
 	; StringReplace, strThisMenuItem, strThisMenuItem, % "%", % "%%", A
 	; remove because does not seem to be required anymore?
 	RunDOpusRt("/acmd Go ", strThisMenuItem, " EXISTINGLISTER") ; activate an existing lister listing this path
-else
-	###_D("Not ready for applications")
+else ; APP
+	WinActivate, % "ahk_id " . arrFolderWindowId2
 
 return
 ;------------------------------------------------------------
@@ -9966,10 +9986,9 @@ CollectRunningApplications(strDefaultPath)
 {
 	objApps := Object()
 
-	strDetectHiddenWindows := A_DetectHiddenWindows
 	DetectHiddenWindows, Off
 	Winget, strIDs, list
-	DetectHiddenWindows, %strDetectHiddenWindows%
+	DetectHiddenWindows, On ; revert to app default
 	
 	Loop, %strIDs%
 	{
@@ -10262,7 +10281,7 @@ AppIsRunning(strAppPath, ByRef strAppID)
 	WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
 	Loop, %strWinIDs%
 	{
-		WinGet, strProcessPath, ProcessPath, % "ahk_id " strWinIDs%A_Index%
+		WinGet, strProcessPath, ProcessPath, % "ahk_id " . strWinIDs%A_Index%
 		if (strProcessPath = strAppPath)
 		{
 			strAppID := strWinIDs%A_Index%
