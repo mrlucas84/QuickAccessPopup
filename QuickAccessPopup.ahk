@@ -34,7 +34,8 @@ Version: 6.3.2 beta (2015-12-??)
 - stop showing hidden apps in the running apps dropdown in Add/Edit application favorite
 - fix misaligned label in FTP favorite
 - add an option in Add/Edit application favorite to flag if we activate an exsiting instance instead of launching a new instance of the application
-- add QAP feature Switch to an open folder supporting Explorer and DOpus
+- add QAP feature Switch to an open folder (supporting Explorer and DOpus) or application
+- reorder in main menu My QAP Essentials first before My Special Folders and reorder items insite My QAP Essentials menu
 
 Version: 6.3.1 beta (2015-12-14)
 - reading Windows folder icon in desktop.ini supporting IconResource (Vista+) and IconFile,IconIndex format (deprecated after XP)
@@ -1954,9 +1955,22 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 AddToIniDefaultMenu:
 ;------------------------------------------------------------
 
-strThisMenuName := lMenuMySpecialMenu
+strThisMenuName := lMenuMyQAPMenu
 Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if Special menu name exists
 g_intNextFavoriteNumber -= 1 ; minus one to overwrite the existing end of main menu marker
+
+AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
+AddToIniOneDefaultMenu("{Switch Folder or App}", lMenuSwitchFolderOrApp . "...", "QAP")
+AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu("{Current Folders}", lMenuCurrentFolders . "...", "QAP")
+AddToIniOneDefaultMenu("{Recent Folders}", lMenuRecentFolders . "...", "QAP")
+AddToIniOneDefaultMenu("{Clipboard}", lMenuClipboard . "...", "QAP")
+AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu("{Add This Folder}", lMenuAddThisFolder . "...", "QAP")
+AddToIniOneDefaultMenu("", "", "Z") ; close QAP menu
+
+strThisMenuName := lMenuMySpecialMenu
+Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
 
 AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
@@ -1971,19 +1985,6 @@ AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu("{21EC2020-3AEA-1069-A2DD-08002B30309D}", "", "Special") ; Control Panel
 AddToIniOneDefaultMenu("{645FF040-5081-101B-9F08-00AA002F954E}", "", "Special") ; Recycle Bin
 AddToIniOneDefaultMenu("", "", "Z") ; close special menu
-
-strThisMenuName := lMenuMyQAPMenu
-Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
-
-AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
-AddToIniOneDefaultMenu("{Add This Folder}", lMenuAddThisFolder . "...", "QAP")
-AddToIniOneDefaultMenu("", "", "X")
-AddToIniOneDefaultMenu("{Current Folders}", lMenuCurrentFolders . "...", "QAP")
-AddToIniOneDefaultMenu("{Switch Folder or App}", lMenuSwitchFolderOrApp . "...", "QAP")
-AddToIniOneDefaultMenu("{Recent Folders}", lMenuRecentFolders . "...", "QAP")
-AddToIniOneDefaultMenu("", "", "X")
-AddToIniOneDefaultMenu("{Clipboard}", lMenuClipboard . "...", "QAP")
-AddToIniOneDefaultMenu("", "", "Z") ; close QAP menu
 
 strThisMenuName := lMenuSettings . "..."
 Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
@@ -2470,15 +2471,31 @@ Menu, g_menuSwitchFolderOrApp, Add
 DetectHiddenWindows, Off
 WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
 DetectHiddenWindows, On ; revert to app default
+
+if (g_strCurrentBranch <> "prod")
+{
+	strDiagFile := A_WorkingDir . "\" . g_strAppNameFile . "-SWITCH_DIAG.txt"
+	FileDelete, %strDiagFile%
+}
 Loop, %strWinIDs%
 {
 	WinGet, strProcessPath, ProcessPath, % "ahk_id " . strWinIDs%A_Index%
 	WinGetTitle, strWindowTitle, % "ahk_id " strWinIDs%A_Index%
 	WinGetClass, strWindowClass, % "ahk_id " strWinIDs%A_Index%
-	
 	WinGetPos, intX, intY, intW, intH, % "ahk_id " strWinIDs%A_Index%
-	if !StrLen(strProcessPath) or !(intW * intH) or (strProcessPath = A_WinDir . "\explorer.exe") or (strWindowClass = "SideBar_HTMLHostWindow")
+	
+	if !StrLen(strProcessPath) or !(intW * intH)
+		or (strProcessPath = A_WinDir . "\explorer.exe")
+		or (strProcessPath = g_strDirectoryOpusPath) and (g_intActiveFileManager = 2)
+		or (strProcessPath = A_ProgramFiles . "\Windows Sidebar\sidebar.exe")
+	{
+		if (g_strCurrentBranch <> "prod")
+			FileAppend, NO`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
 		continue
+	}
+	else
+		if (g_strCurrentBranch <> "prod")
+			FileAppend, YES`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
 	
 	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . (StrLen(strWindowTitle) ? strWindowTitle : strProcessPath)
 	g_objCurrentWindowsIdByName.Insert(strMenuName, "APP|" . strWinIDs%A_Index%)
@@ -2499,6 +2516,7 @@ strWinIDs := ""
 strProcessPath := ""
 strWindowTitle := ""
 strWindowClass := ""
+strDiagFile := ""
 
 return
 ;------------------------------------------------------------
