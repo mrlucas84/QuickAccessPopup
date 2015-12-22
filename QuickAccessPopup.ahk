@@ -19,6 +19,7 @@ BUGS
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
+- update startup instructions in website
 - check Recent folders with network drives
 - add QAP feature "Add this folder Express" (see this item in wishlist)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -28,7 +29,9 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.3.2 beta (2015-12-??)
+Version: 6.3.3 beta (2015-12-??)
+
+Version: 6.3.2 beta (2015-12-21)
 - fix FTP password label alignement in Add/Edit favorite dialog box
 - addition of Spanish, Brazilian Portuguese and Swedish translations
 - stop showing hidden apps in the running apps dropdown in Add/Edit application favorite
@@ -349,7 +352,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.3.2 beta
+;@Ahk2Exe-SetVersion 6.3.3 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -393,7 +396,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.3.2" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.3.3" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -512,8 +515,10 @@ Gosub, BuildTrayMenu
 if (g_blnCheck4Update)
 	Gosub, Check4Update
 
-IfExist, %A_Startup%\%g_strAppNameFile%.lnk ; update the shortcut in case the exe filename changed
+; the startup shortcut was created at first execution of LoadIniFile (if ini file did not exist)
+IfExist, %A_Startup%\%g_strAppNameFile%.lnk
 {
+	; if the startup shortcut exists, update it at each execution in case the exe filename changed
 	FileDelete, %A_Startup%\%g_strAppNameFile%.lnk
 	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
 	Menu, Tray, Check, %lMenuRunAtStartup%
@@ -1644,6 +1649,9 @@ g_objMainMenu.MenuType := "Menu" ; main menu is not a group
 
 IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2QAP.ahk during install
 {
+	; create the startup shortcut at first execution of LoadIniFile (if ini file does not exist)
+	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
+	
 	strNavigateOrLaunchHotkeyMouseDefault := g_arrPopupHotkeyDefaults1 ; "MButton"
 	strNavigateOrLaunchHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults2 ; "W"
 	strAlternativeHotkeyMouseDefault := g_arrPopupHotkeyDefaults3 ; "+MButton"
@@ -1686,6 +1694,7 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 			Hotkey2={Current Folders}|+^F
 			Hotkey3={Recent Folders}|+^R
 			Hotkey4={Clipboard}|+^C
+			Hotkey4={Switch Folder or App}|+^W
 			[Gui-Grey]
 			WindowColor=E0E0E0
 			TextColor=000000
@@ -1959,6 +1968,7 @@ strThisMenuName := lMenuMyQAPMenu
 Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if Special menu name exists
 g_intNextFavoriteNumber -= 1 ; minus one to overwrite the existing end of main menu marker
 
+AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
 AddToIniOneDefaultMenu("{Switch Folder or App}", lMenuSwitchFolderOrApp . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "X")
@@ -1972,7 +1982,6 @@ AddToIniOneDefaultMenu("", "", "Z") ; close QAP menu
 strThisMenuName := lMenuMySpecialMenu
 Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
 
-AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
 AddToIniOneDefaultMenu(A_Desktop, lMenuDesktop, "Special") ; Desktop
 AddToIniOneDefaultMenu("{450D8FBA-AD25-11D0-98A8-0800361B1103}", "", "Special") ; Documents
@@ -1990,8 +1999,10 @@ strThisMenuName := lMenuSettings . "..."
 Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
 if (strThisMenuName = lMenuSettings . "...") ; if equal, it means that this menu is not already there
 	; (we cannot have this menu twice with "+" because QAP features always have the same menu name)
+{
+	AddToIniOneDefaultMenu("", "", "X")
 	AddToIniOneDefaultMenu("{Settings}", lMenuSettings . "...", "QAP") ; back in main menu
-
+}
 AddToIniOneDefaultMenu("", "", "Z") ; restore end of main menu marker
 
 IniWrite, 1, %g_strIniFile%, Global, DefaultMenuBuilt
