@@ -30,6 +30,7 @@ HISTORY
 =======
 
 Version: 6.3.3 beta (2015-12-??)
+- new QAP feature to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
 
 Version: 6.3.2 beta (2015-12-21)
 - fix FTP password label alignement in Add/Edit favorite dialog box
@@ -504,6 +505,7 @@ GetIcon4Location(g_strTempDir . "\default_browser_icon.html", g_strURLIconFile, 
 ; build even if not used because they could become used - will be updated at each call to popup menu
 Gosub, BuildSwitchFolderOrAppMenuInit 
 Gosub, BuildClipboardMenuInit
+Gosub, BuildDrivesMenuInit
 ; no need to build Recent folders menu at startup because this menu is refreshed/recreated on demand
 
 Gosub, BuildMainMenu
@@ -842,7 +844,8 @@ strIconsMenus := "iconControlPanel|iconNetwork|iconRecycleBin|iconPictures|iconC
 	. "|iconEditFavorite|iconFavorites|iconGroup|iconFTP|iconNoContent"
 	. "|iconTemporary|iconHotkeys|iconUnknown|iconLaunch|iconExit"
 	. "|iconAbout|iconHistory|iconClipboard|iconGroupSave|iconSubmenu"
-	. "|iconOptions|iconApplication|iconWinver|iconSwitch"
+	. "|iconOptions|iconApplication|iconWinver|iconSwitch|iconDrives"
+	. "|iconRemovable|iconNetwork|iconCDROM|iconRAMDisk"
 
 if (GetOsVersion() = "WIN_10")
 {
@@ -854,7 +857,8 @@ if (GetOsVersion() = "WIN_10")
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
-		. "|shell32|shell32|winver|shell32"
+		. "|shell32|shell32|winver|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32"
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
@@ -863,7 +867,8 @@ if (GetOsVersion() = "WIN_10")
 		. "|68|87|99|104|110"
 		. "|153|174|176|215|216"
 		. "|222|240|261|299|300"
-		. "|319|324|1|325"
+		. "|319|324|1|325|9"
+		. "|7|10|12|13"
 }
 else
 {
@@ -875,7 +880,8 @@ else
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
-		. "|shell32|shell32|winver|shell32"
+		. "|shell32|shell32|winver|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32"
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
@@ -884,7 +890,8 @@ else
 		. "|68|87|99|104|110"
 		. "|153|174|176|215|216"
 		. "|222|240|261|297|298"
-		. "|301|304|1|305"
+		. "|301|304|1|305|9"
+		. "|7|10|12|13"
 }
 
 StringSplit, arrIconsFile, strIconsFile, |
@@ -1465,9 +1472,10 @@ InitQAPFeatures:
 ; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeatureAlternativeOrder, strThisDefaultIcon, strDefaultHotkey)
 
 ; Submenus features
-InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", "+^C")
+InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", 	"+^C")
 InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuCurrentFolders",	"CurrentFoldersMenuShortcut",	0, "iconCurrentFolders", "+^F")
-InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch", "+^W")
+InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch",	"+^W")
+InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives")
 
 ; Command features
 InitQAPFeatureObject("About",			lGuiAbout . "...",					"", "GuiAbout",							0, "iconAbout")
@@ -2660,7 +2668,9 @@ RecentFoldersMenuShortcut:
 Gosub, SetMenuPosition
 
 ToolTip, %lMenuRefreshRecent%...
+intTickCountBefore := A_TickCount
 Gosub, BuildRecentFoldersMenu
+TrayTip, QAP Debug (Recent Folders menu), % "Menu refresh delay: " .  A_TickCount - intTickCountBefore . " ms"
 ToolTip
 
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
@@ -2752,6 +2762,21 @@ Gosub, RefreshClipboardMenu
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 
 Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DrivesMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+
+Gosub, RefreshDrivesMenu
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2892,6 +2917,67 @@ StringTrimLeft, strURLSearchString, strURLSearchString, %intCharactersToOmit%
 Gosub, GetURLsInClipboardLine ; Recursive call to self (end of loop)
 
 strContentsInClipboard .= "`n" . strURLCleansed . "`t" . g_strURLIconFile . "," . g_intUrlIconIndex
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+BuildDrivesMenuInit:
+;------------------------------------------------------------
+
+; create the empty menu allowing to be attached to parent menu even if never refreshed
+
+Menu, g_menuDrives, Add 
+Menu, g_menuDrives, DeleteAll
+if (g_blnUseColors)
+    Menu, g_menuDrives, Color, %g_strMenuBackgroundColor%
+AddMenuIcon("g_menuDrives", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RefreshDrivesMenu:
+;------------------------------------------------------------
+
+intShortcutDrivesMenu := 0
+
+Menu, g_menuDrives, Add
+Menu, g_menuDrives, DeleteAll
+
+DriveGet, strDrivesList, List
+
+Loop, parse, strDrivesList
+{
+	strPath := A_LoopField . ":"
+	DriveGet, intCapacity, Capacity, %strPath%
+	DriveSpaceFree, intFreeSpace,  %strPath%
+	DriveGet, strLabel, Label, %strPath%
+	DriveGet, strType, Type, %strPath% ; Unknown, Removable, Fixed, Network, CDROM, RAMDisk
+	; ###_V(A_ThisLabel, strDrivesList, strPath, intCapacity, intFreeSpace, strLabel, strType)
+	
+	strMenuName := strPath . " " . strLabel
+	if StrLen(intFreeSpace) and StrLen(intCapacity)
+		strMenuName .= " " . L(lMenuDrivesSpace, intFreeSpace // 1024, intCapacity // 1024)
+	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutDrivesMenu <= 35) ? "&" . NextMenuShortcut(intShortcutDrivesMenu) . " " : "") . strMenuName
+	if InStr("Fixed|Unknown", strType)
+		strIcon := "iconDrives"
+	else
+		strIcon := "icon" . strType
+	AddMenuIcon("g_menuDrives", strMenuName, "OpenDrives", strIcon)
+}
+
+intShortcutDrivesMenu := ""
+strDrivesList := ""
+strPath := ""
+intCapacity := ""
+intFreeSpace := ""
+strLabel := ""
+strType := ""
+strMenuName := ""
+strIcon := ""
 
 return
 ;------------------------------------------------------------
@@ -7302,11 +7388,16 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 	Sleep, 20
 }
 
+intTickCountBefore := A_TickCount
 if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") or g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have one of these QAP features in at least one menu
 	Gosub, BuildSwitchFolderOrAppMenu
 
 if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
 	Gosub, RefreshClipboardMenu
+
+if g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have this QAP feature in at least one menu
+ 	Gosub, RefreshDrivesMenu
+TrayTip, QAP Debug (main menu), % "Menu refresh delay: " .  A_TickCount - intTickCountBefore . " ms"
 
 Gosub, InsertColumnBreaks
 
@@ -7765,6 +7856,7 @@ OpenFavoriteFromHotkey:
 OpenRecentFolder:
 OpenCurrentFolder:
 OpenClipboard:
+OpenDrives:
 ;------------------------------------------------------------
 
 ; if (A_ThisLabel = "OpenFavoriteFromGroup")
@@ -7843,8 +7935,8 @@ if (g_objThisFavorite.FavoriteType = "Application") and (g_objThisFavorite.Favor
 ; ###_V(A_ThisLabel . "-2", g_strHokeyTypeDetected, g_strTargetAppName, g_strTargetWinId, g_strTargetControl, g_strTargetClass, g_strFullLocation)
 ; ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 
-; Boolean,MinMax,Left,Top,Width,Height (comma delimited)
-; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height; for example: "1,0,100,50,640,480"
+; Boolean,MinMax,Left,Top,Width,Height,Delay,RestoreSide (comma delimited) (7)
+; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay (default 200 ms), L Left / R Right; for example: "1,0,100,50,640,480,200" or "0,,,,,,,L"
 strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
 StringSplit, g_arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
 
@@ -8129,8 +8221,8 @@ else ; OpenRecentFolder or OpenClipboard
 	
 	g_objThisFavorite := Object() ; temporary favorite object
 	g_objThisFavorite.FavoriteName := strThisMenuItem
-	g_objThisFavorite.FavoriteLocation := strThisMenuItem
-	g_objThisFavorite.FavoriteType := strFavoriteType
+	g_objThisFavorite.FavoriteLocation := (g_strOpenFavoriteLabel = "OpenDrives" ? SubStr(strThisMenuItem, 1, 1) . ":\" : strThisMenuItem)
+	g_objThisFavorite.FavoriteType :=  (g_strOpenFavoriteLabel = "OpenDrives" ? "Folder" : strFavoriteType)
 }
 
 OpenFavoriteGetFavoriteObjectCleanup:
