@@ -1565,11 +1565,11 @@ InsertGuiControlPos("f_lnkGuiDropHelpClicked",		 -88, -130)
 InsertGuiControlPos("f_lnkGuiHotkeysHelpClicked",	  40, -130)
 
 InsertGuiControlPos("f_picGuiOptions",				 -44,   10, true) ; true = center
-InsertGuiControlPos("f_picGuiAddFavorite",			 -44,  120, true)
-InsertGuiControlPos("f_picGuiEditFavorite",			 -44,  190, true)
-InsertGuiControlPos("f_picGuiRemoveFavorite",		 -44,  260, true)
-InsertGuiControlPos("f_picGuiCopyFavorite",			 -44,  330, true)
-InsertGuiControlPos("f_picGuiHotkeysManage",		 -44, -140, true, true) ; true = center, true = draw
+InsertGuiControlPos("f_picGuiAddFavorite",			 -44,  120, true) ; 120
+InsertGuiControlPos("f_picGuiEditFavorite",			 -44,  195, true) ; 190 + 5
+InsertGuiControlPos("f_picGuiRemoveFavorite",		 -44,  270, true) ; 260 + 10
+InsertGuiControlPos("f_picGuiCopyFavorite",			 -44,  345, true) ; 330 + 15
+InsertGuiControlPos("f_picGuiHotkeysManage",		 -44, -130, true, true) ; -140 true = center, true = draw
 InsertGuiControlPos("f_picGuiDonate",				  50,  -62, true, true)
 InsertGuiControlPos("f_picGuiHelp",					 -44,  -62, true, true)
 InsertGuiControlPos("f_picGuiAbout",				-104,  -62, true, true)
@@ -1592,13 +1592,13 @@ InsertGuiControlPos("f_lblGuiAbout",				-104,  -20, true)
 InsertGuiControlPos("f_lblGuiHelp",					 -44,  -20, true)
 InsertGuiControlPos("f_lblAppName",					  10,   10)
 InsertGuiControlPos("f_lblAppTagLine",				  10,   42)
-InsertGuiControlPos("f_lblGuiAddFavorite",			 -44,  170, true)
-InsertGuiControlPos("f_lblGuiEditFavorite",			 -44,  240, true)
+InsertGuiControlPos("f_lblGuiAddFavorite",			 -44,  168, true) ; 170 - 2
+InsertGuiControlPos("f_lblGuiEditFavorite",			 -44,  243, true) ; 240 + 5 - 2
 InsertGuiControlPos("f_lblGuiOptions",				 -44,   45, true)
-InsertGuiControlPos("f_lblGuiRemoveFavorite",		 -44,  310, true)
-InsertGuiControlPos("f_lblGuiCopyFavorite",			 -44,  380, true)
+InsertGuiControlPos("f_lblGuiRemoveFavorite",		 -44,  318, true) ; 310 + 5
+InsertGuiControlPos("f_lblGuiCopyFavorite",			 -44,  393, true) ; 380 + 10
 InsertGuiControlPos("f_lblSubmenuDropdownLabel",	  40,   66)
-InsertGuiControlPos("f_lblGuiHotkeysManage",		 -44, -100, true)
+InsertGuiControlPos("f_lblGuiHotkeysManage",		 -44,  -88, true)
 
 InsertGuiControlPos("f_lvFavoritesList",			  40,  115)
 
