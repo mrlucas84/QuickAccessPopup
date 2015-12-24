@@ -17,6 +17,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 BUGS
 - Clipboard menu sometimes empty and no icon
+- if shortcut to submenu including Clipboard submenu submenu not refreshed
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
@@ -30,12 +31,13 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.3.3 beta (2015-12-??)
+Version: 6.4.1 beta (2015-12-??)
 - new QAP feature to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
 - add the Drives QAP ferature to My QAP Essentials
 - refactor build and refresh of Clipboard, Drives, Recent Folders, Switch to an Open Folder or Application, and Current Folders
 - make Recent Folders integrated to the main menu (not a separate menu anymore)
-- refresh indepedently each menu with different refresh rate for each menu (could be changed for one global refresh command)
+- refresh Drives and Recent Folders in a background task, each menu with different refresh rate (could be changed for one global refresh command)
+- refresh Clipboard and Switch to an Open Folder or Application (to-do) at each call to the menu
 - in default popup menu, move Add this folder QAP feature to main menu, below Settings
 - increase vertical distance between Add / Edit / Remove / Copy buttons in Settings
 
@@ -360,7 +362,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.3.3 beta
+;@Ahk2Exe-SetVersion 6.4.1 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -404,7 +406,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.3.3" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.4.1" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -2343,12 +2345,13 @@ return
 ;------------------------------------------------------------
 SetTimerRefreshDynamicMenus:
 ;------------------------------------------------------------
-
+/*
 if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
 {
  	Gosub, RefreshClipboardMenu
 	SetTimer, RefreshClipboardMenu, 15000 ; 5000
 }
+*/
 if g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have this QAP feature in at least one menu
 {
  	Gosub, RefreshDrivesMenu
@@ -2386,9 +2389,29 @@ return
 
 
 ;------------------------------------------------------------
+ClipboardMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+
+Gosub, RefreshClipboardMenu
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 RefreshClipboardMenu:
 ;------------------------------------------------------------
 intStartTickCount := A_TickCount
+
+if !g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we don't have this QAP feature in at least one menu
+	or !StrLen(Clipboard) ; clipboard is empty (or contains only binary data
+	or (StrLen(Clipboard) > 50000) ; Clipboard is too large - 50K of text with 600 file paths takes 0,3 sec to process on my dev machine
+	return
 
 intShortcutClipboardMenu := 0
 strContentsInClipboard := ""
@@ -2447,7 +2470,7 @@ strContentsInClipboard := ""
 strClipboardLineExpanded := ""
 strURLSearchString := ""
 
-; TrayTip, Clipboard menu refresh, % A_TickCount - intStartTickCount . " ms"
+TrayTip, Clipboard menu refresh, % A_TickCount - intStartTickCount . " ms"
 return
 ;------------------------------------------------------------
 
@@ -2514,20 +2537,6 @@ return
 
 
 ;------------------------------------------------------------
-ClipboardMenuShortcut:
-;------------------------------------------------------------
-
-Gosub, SetMenuPosition
-
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-
-Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 BuildDrivesMenuInit:
 ;------------------------------------------------------------
 
@@ -2538,6 +2547,19 @@ Menu, g_menuDrives, DeleteAll
 if (g_blnUseColors)
     Menu, g_menuDrives, Color, %g_strMenuBackgroundColor%
 AddMenuIcon("g_menuDrives", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DrivesMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2602,19 +2624,6 @@ return
 
 
 ;------------------------------------------------------------
-DrivesMenuShortcut:
-;------------------------------------------------------------
-
-Gosub, SetMenuPosition
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-
-Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
 BuildRecentFoldersMenuInit:
 ;------------------------------------------------------------
 
@@ -2625,6 +2634,20 @@ Menu, g_menuRecentFolders, DeleteAll
 if (g_blnUseColors)
     Menu, g_menuRecentFolders, Color, %g_strMenuBackgroundColor%
 AddMenuIcon("g_menuRecentFolders", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RecentFoldersMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2713,25 +2736,45 @@ return
 
 
 ;------------------------------------------------------------
-RecentFoldersMenuShortcut:
+BuildSwitchFolderOrAppMenuInit:
 ;------------------------------------------------------------
 
-Gosub, SetMenuPosition
+Menu, g_menuCurrentFolders, Add ; create the menu
+Menu, g_menuSwitchFolderOrApp, Add ; create the menu
 
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-
-Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+if (g_blnUseColors)
+{
+    Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
+    Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
+}
+AddMenuIcon("g_menuCurrentFolders", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+AddMenuIcon("g_menuSwitchFolderOrApp", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-BuildSwitchFolderOrAppMenuInit:
+CurrentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
-Menu, g_menuCurrentFolders, Add ; create the menu
-Menu, g_menuSwitchFolderOrApp, Add ; create the menu
+Gosub, SetMenuPosition
+
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+SwitchFolderOrAppMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+Menu, g_menuSwitchFolderOrApp, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2828,11 +2871,13 @@ DetectHiddenWindows, Off
 WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
 DetectHiddenWindows, On ; revert to app default
 
+/*
 if (g_strCurrentBranch <> "prod")
 {
 	strDiagFile := A_WorkingDir . "\" . g_strAppNameFile . "-SWITCH_DIAG.txt"
 	FileDelete, %strDiagFile%
 }
+*/
 Loop, %strWinIDs%
 {
 	WinGet, strProcessPath, ProcessPath, % "ahk_id " . strWinIDs%A_Index%
@@ -2847,13 +2892,13 @@ Loop, %strWinIDs%
 		or (strProcessPath = g_strDirectoryOpusPath) and (g_intActiveFileManager = 2)
 		or (strProcessPath = A_ProgramFiles . "\Windows Sidebar\sidebar.exe")
 	{
-		if (g_strCurrentBranch <> "prod")
-			FileAppend, NO`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
+		; if (g_strCurrentBranch <> "prod")
+		;	FileAppend, NO`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
 		continue
 	}
-	else
-		if (g_strCurrentBranch <> "prod")
-			FileAppend, YES`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
+	; else
+		; if (g_strCurrentBranch <> "prod")
+		;	FileAppend, YES`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
 
 	intExplorersIndex++
 	objCurrentFolder := Object()
@@ -3067,32 +3112,6 @@ CollectExplorers(pExplorers)
 	
 	return objExplorers
 }
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-CurrentFoldersMenuShortcut:
-;------------------------------------------------------------
-
-Gosub, SetMenuPosition
-
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-SwitchFolderOrAppMenuShortcut:
-;------------------------------------------------------------
-
-Gosub, SetMenuPosition
-
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuSwitchFolderOrApp, Show, %g_intMenuPosX%, %g_intMenuPosY%
-
-return
 ;------------------------------------------------------------
 
 
@@ -4067,7 +4086,8 @@ Gosub, BuildMainMenuWithStatus
 
 ; and rebuild dynamic menus
 Gosub, SetTimerRefreshDynamicMenus
-
+Gosub, RefreshClipboardMenu
+	
 Gosub, 2GuiClose
 
 g_blnMenuReady := true
@@ -7500,6 +7520,8 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 	Sleep, 20
 }
 
+Gosub, RefreshClipboardMenu
+	
 Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
