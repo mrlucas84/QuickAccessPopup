@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- Clipboard menu sometimes empty and no icon
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
 
 TO-DO
@@ -31,6 +32,12 @@ HISTORY
 
 Version: 6.3.3 beta (2015-12-??)
 - new QAP feature to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
+- add the Drives QAP ferature to My QAP Essentials
+- refactor build and refresh of Clipboard, Drives, Recent Folders, Switch to an Open Folder or Application, and Current Folders
+- make Recent Folders integrated to the main menu (not a separate menu anymore)
+- refresh indepedently each menu with different refresh rate for each menu (could be changed for one global refresh command)
+- in default popup menu, move Add this folder QAP feature to main menu, below Settings
+- increase vertical distance between Add / Edit / Remove / Copy buttons in Settings
 
 Version: 6.3.2 beta (2015-12-21)
 - fix FTP password label alignement in Add/Edit favorite dialog box
@@ -502,11 +509,12 @@ if (g_blnUseColors)
 ; not sure it is required to have a physical file with .html extension - but keep it as is by safety
 GetIcon4Location(g_strTempDir . "\default_browser_icon.html", g_strURLIconFile, g_intUrlIconIndex)
 
-; build even if not used because they could become used - will be updated at each call to popup menu
-Gosub, BuildSwitchFolderOrAppMenuInit 
 Gosub, BuildClipboardMenuInit
 Gosub, BuildDrivesMenuInit
-; no need to build Recent folders menu at startup because this menu is refreshed/recreated on demand
+Gosub, BuildRecentFoldersMenuInit
+Gosub, BuildSwitchFolderOrAppMenuInit
+
+Gosub, SetTimerRefreshDynamicMenus ; Clipboard, Drives, Recent Folders, Switch to an Open Folder or Application, and Current Folders
 
 Gosub, BuildMainMenu
 Gosub, BuildAlternativeMenu
@@ -1475,7 +1483,8 @@ InitQAPFeatures:
 InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", 	"+^C")
 InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuCurrentFolders",	"CurrentFoldersMenuShortcut",	0, "iconCurrentFolders", "+^F")
 InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch",	"+^W")
-InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives")
+InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
+InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
 
 ; Command features
 InitQAPFeatureObject("About",			lGuiAbout . "...",					"", "GuiAbout",							0, "iconAbout")
@@ -1485,7 +1494,6 @@ InitQAPFeatureObject("Exit",			L(lMenuExitApp, g_strAppNameText),	"", "ExitApp",
 InitQAPFeatureObject("Help",			lGuiHelp . "...",					"", "GuiHelp",							0, "iconHelp")
 InitQAPFeatureObject("Hotkeys",			lDialogHotkeys . "...",				"", "GuiHotkeysManageFromQAPFeature",	0, "iconHotkeys")
 InitQAPFeatureObject("Options",			lGuiOptions . "...",				"", "GuiOptionsFromQAPFeature",			0, "iconOptions")
-InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"", "RecentFoldersMenuShortcut",		0, "iconRecentFolders", "+^R")
 InitQAPFeatureObject("Settings",		lMenuSettings . "...",				"", "SettingsHotkey",					0, "iconSettings", "+^S")
 InitQAPFeatureObject("Support",			lGuiDonate . "...",					"", "GuiDonate",						0, "iconDonate")
 InitQAPFeatureObject("GetWinInfo",		lMenuGetWinInfo . "...",			"", "GetWinInfo",						0, "iconAbout")
@@ -1984,7 +1992,7 @@ AddToIniOneDefaultMenu("{Current Folders}", lMenuCurrentFolders . "...", "QAP")
 AddToIniOneDefaultMenu("{Recent Folders}", lMenuRecentFolders . "...", "QAP")
 AddToIniOneDefaultMenu("{Clipboard}", lMenuClipboard . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "X")
-AddToIniOneDefaultMenu("{Add This Folder}", lMenuAddThisFolder . "...", "QAP")
+AddToIniOneDefaultMenu("{Drives}", lMenuDrives . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "Z") ; close QAP menu
 
 strThisMenuName := lMenuMySpecialMenu
@@ -2011,6 +2019,8 @@ if (strThisMenuName = lMenuSettings . "...") ; if equal, it means that this menu
 	AddToIniOneDefaultMenu("", "", "X")
 	AddToIniOneDefaultMenu("{Settings}", lMenuSettings . "...", "QAP") ; back in main menu
 }
+AddToIniOneDefaultMenu("", "", "X")
+AddToIniOneDefaultMenu("{Add This Folder}", lMenuAddThisFolder . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "Z") ; restore end of main menu marker
 
 IniWrite, 1, %g_strIniFile%, Global, DefaultMenuBuilt
@@ -2331,48 +2341,386 @@ return
 
 
 ;------------------------------------------------------------
-CurrentFoldersMenuShortcut:
+SetTimerRefreshDynamicMenus:
 ;------------------------------------------------------------
 
-Gosub, SetMenuPosition
-
-Gosub, BuildSwitchFolderOrAppMenu
-
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
+{
+ 	Gosub, RefreshClipboardMenu
+	SetTimer, RefreshClipboardMenu, 15000 ; 5000
+}
+if g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have this QAP feature in at least one menu
+{
+ 	Gosub, RefreshDrivesMenu
+	SetTimer, RefreshDrivesMenu, 21000 ; 7000
+}
+if g_objQAPfeaturesInMenus.HasKey("{Recent Folders}") ; we have this QAP feature in at least one menu
+{
+ 	Gosub, RefreshRecentFoldersMenu
+	SetTimer, RefreshRecentFoldersMenu, 23000 ; 
+}
+if g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP feature in at least one menu
+{
+ 	Gosub, RefreshSwitchFolderOrAppMenu
+	SetTimer, RefreshSwitchFolderOrAppMenu, 9000 ; 3000
+}
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-SwitchFolderOrAppMenuShortcut:
+BuildClipboardMenuInit:
 ;------------------------------------------------------------
 
-Gosub, SetMenuPosition
+; create the empty menu allowing to be attached to parent menu even if never refreshed
 
-Gosub, BuildSwitchFolderOrAppMenu
-
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuSwitchFolderOrApp, Show, %g_intMenuPosX%, %g_intMenuPosY%
+Menu, g_menuClipboard, Add 
+Menu, g_menuClipboard, DeleteAll
+if (g_blnUseColors)
+    Menu, g_menuClipboard, Color, %g_strMenuBackgroundColor%
+AddMenuIcon("g_menuClipboard", lMenuNoClipboard, "GuiShow", "iconNoContent", false)	; will never be called because disabled
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-InitDOpusListText:
+RefreshClipboardMenu:
+;------------------------------------------------------------
+intStartTickCount := A_TickCount
+
+intShortcutClipboardMenu := 0
+strContentsInClipboard := ""
+
+; Parse Clipboard for folder, document or application filenames (filenames alone on one line)
+Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
+{
+	strClipboardLineExpanded := A_LoopField ; only for FileExistInPath - will not be displayed in menu
+
+	if FileExistInPath(strClipboardLineExpanded) ; rerturn strClipboardLineExpanded with expanded relative path and envvars, and search in PATH
+	{
+		strContentsInClipboard .= "`n" . A_LoopField
+		
+		if (g_blnDisplayIcons)
+		{
+			if LocationIsDocument(strClipboardLineExpanded)
+			{
+				GetIcon4Location(strClipboardLineExpanded, strThisIconFile, intThisIconIndex)
+				strContentsInClipboard .= "`t" . strThisIconFile . "," . intThisIconIndex
+			}
+			else
+				strContentsInClipboard .= "`t" . "iconFolder"
+		}
+	}
+
+	; Parse Clipboard line for URLs (anywhere on the line)
+	strURLSearchString := A_LoopField
+	Gosub, GetURLsInClipboardLine
+}
+
+if StrLen(strContentsInClipboard)
+{
+	Sort, strContentsInClipboard
+
+	Critical, On
+	Menu, g_menuClipboard, Add
+	Menu, g_menuClipboard, DeleteAll
+
+	Loop, parse, strContentsInClipboard, `n
+	{
+		if !StrLen(A_LoopField)
+			continue
+		
+		; arrContentsInClipboard1 = path or URL, arrContentsInClipboard2 = icon (file,index or icon code)
+		StringSplit, arrContentsInClipboard, A_LoopField, `t
+		
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . arrContentsInClipboard1
+		if StrLen(strMenuName) < 260 ; skip too long URLs
+			AddMenuIcon("g_menuClipboard", strMenuName, "OpenClipboard", arrContentsInClipboard2)
+	}
+	Critical, Off
+}
+
+intShortcutClipboardMenu := ""
+strContentsInClipboard := ""
+strClipboardLineExpanded := ""
+strURLSearchString := ""
+
+; TrayTip, Clipboard menu refresh, % A_TickCount - intStartTickCount . " ms"
+return
 ;------------------------------------------------------------
 
-FileDelete, %g_strDOpusTempFilePath%
-RunDOpusRt("/info", g_strDOpusTempFilePath, ",paths") ; list opened listers in a text file
-; Run, "%strDirectoryOpusRtPath%" /info "%g_strDOpusTempFilePath%"`,paths
-loop, 10
-	if FileExist(g_strDOpusTempFilePath)
-		Break
+
+;------------------------------------------------------------
+GetURLsInClipboardLine:
+;------------------------------------------------------------
+; Adapted from AHK help file: http://ahkscript.org/docs/commands/LoopReadFile.htm
+; It's done this particular way because some URLs have other URLs embedded inside them:
+StringGetPos, intURLStart1, strURLSearchString, http://
+StringGetPos, intURLStart2, strURLSearchString, https://
+StringGetPos, intURLStart3, strURLSearchString, www.
+
+; Find the left-most starting position:
+intURLStart := intURLStart1 ; Set starting default.
+Loop
+{
+	; It helps performance (at least in a script with many variables) to resolve
+	; "intURLStart%A_Index%" only once:
+	intArrayElement := intURLStart%A_Index%
+	if (intArrayElement = "") ; End of the array has been reached.
+		break
+	if (intArrayElement = -1) ; This element is disqualified.
+		continue
+	if (intURLStart = -1)
+		intURLStart := intArrayElement
+	else ; intURLStart has a valid position in it, so compare it with intArrayElement.
+	{
+		if (intArrayElement <> -1)
+			if (intArrayElement < intURLStart)
+				intURLStart := intArrayElement
+	}
+}
+
+if (intURLStart = -1) ; No URLs exist in strURLSearchString.
+	return ; (exit loop without cleaning local variables that could be re-used)
+
+; Otherwise, extract this strURL:
+StringTrimLeft, strURL, strURLSearchString, %intURLStart% ; Omit the beginning/irrelevant part.
+Loop, parse, strURL, %A_Tab%%A_Space%<> ; Find the first space, tab, or angle (if any).
+{
+	strURL := A_LoopField
+	break ; i.e. perform only one loop iteration to fetch the first "field".
+}
+; If the above loop had zero iterations because there were no ending characters found,
+; leave the contents of the strURL var untouched.
+
+; If the strURL ends in a double quote, remove it.  For now, StringReplace is used, but
+; note that it seems that double quotes can legitimately exist inside URLs, so this
+; might damage them:
+StringReplace, strURLCleansed, strURL, ",, All
+
+; See if there are any other URLs in this line:
+StringLen, intCharactersToOmit, strURL
+intCharactersToOmit += intURLStart
+StringTrimLeft, strURLSearchString, strURLSearchString, %intCharactersToOmit%
+
+Gosub, GetURLsInClipboardLine ; Recursive call to self (end of loop)
+
+strContentsInClipboard .= "`n" . strURLCleansed . "`t" . g_strURLIconFile . "," . g_intUrlIconIndex
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ClipboardMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+BuildDrivesMenuInit:
+;------------------------------------------------------------
+
+; create the empty menu allowing to be attached to parent menu even if never refreshed
+
+Menu, g_menuDrives, Add 
+Menu, g_menuDrives, DeleteAll
+if (g_blnUseColors)
+    Menu, g_menuDrives, Color, %g_strMenuBackgroundColor%
+AddMenuIcon("g_menuDrives", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RefreshDrivesMenu:
+;------------------------------------------------------------
+intStartTickCount := A_TickCount
+
+intShortcutDrivesMenu := 0
+strMenuItemsList := "" ; menu name|menu item name|label|icon
+
+DriveGet, strDrivesList, List
+
+Loop, parse, strDrivesList
+{
+	strPath := A_LoopField . ":"
+	DriveGet, intCapacity, Capacity, %strPath%
+	DriveSpaceFree, intFreeSpace,  %strPath%
+	DriveGet, strLabel, Label, %strPath%
+	DriveGet, strType, Type, %strPath% ; Unknown, Removable, Fixed, Network, CDROM, RAMDisk
+	; ###_V(A_ThisLabel, strDrivesList, strPath, intCapacity, intFreeSpace, strLabel, strType)
+	
+	strMenuItemName := strPath . " " . strLabel
+	if StrLen(intFreeSpace) and StrLen(intCapacity)
+		strMenuItemName .= " " . L(lMenuDrivesSpace, intFreeSpace // 1024, intCapacity // 1024)
+	strMenuItemName := (g_blnDisplayNumericShortcuts and (intShortcutDrivesMenu <= 35) ? "&" . NextMenuShortcut(intShortcutDrivesMenu) . " " : "") . strMenuItemName
+	if InStr("Fixed|Unknown", strType)
+		strIcon := "iconDrives"
 	else
-		Sleep, 50 ; was 10 and had some gliches with FP - is 50 enough?
-FileRead, g_strDOpusListText, %g_strDOpusTempFilePath%
+		strIcon := "icon" . strType
+	strMenuItemsList .= "g_menuDrives|" . strMenuItemName . "|OpenDrives|" . strIcon . "`n"
+}
+
+Critical, On
+Menu, g_menuDrives, Add
+Menu, g_menuDrives, DeleteAll
+Loop, Parse, strMenuItemsList, `n
+	if StrLen(A_LoopField)
+	{
+		StringSplit, arrMenuItemsList, A_LoopField, |
+		AddMenuIcon(arrMenuItemsList1, arrMenuItemsList2, arrMenuItemsList3, arrMenuItemsList4)
+	}
+Critical, Off
+
+intShortcutDrivesMenu := ""
+strMenuItemsList := ""
+strDrivesList := ""
+strPath := ""
+intCapacity := ""
+intFreeSpace := ""
+strLabel := ""
+strType := ""
+strMenuItemName := ""
+strIcon := ""
+arrMenuItemsList := ""
+
+; TrayTip, Drives menu refresh, % A_TickCount - intStartTickCount . " ms"
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DrivesMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+BuildRecentFoldersMenuInit:
+;------------------------------------------------------------
+
+; create the empty menu allowing to be attached to parent menu even if never refreshed
+
+Menu, g_menuRecentFolders, Add 
+Menu, g_menuRecentFolders, DeleteAll
+if (g_blnUseColors)
+    Menu, g_menuRecentFolders, Color, %g_strMenuBackgroundColor%
+AddMenuIcon("g_menuRecentFolders", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RefreshRecentFoldersMenu:
+;------------------------------------------------------------
+intStartTickCount := A_TickCount
+
+g_objRecentFolders := Object()
+
+g_intRecentFoldersIndex := 0 ; used in PopupMenu... to check if we disable the menu when empty
+strMenuItemsList := "" ; menu name|menu item name|label|icon
+
+RegRead, strRecentsFolder, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Recent
+
+/*
+; Alternative to collect recent files *** NOT WORKING with XP and SLOWER because all shortcuts are resolved before getting the list
+; See: post from Skan http://ahkscript.org/boards/viewtopic.php?f=5&t=4477#p25261
+; Implement for Win7+ if FileGetShortcut still produce Windows errors when external drive is not available (despite DllCall in initialization)
+
+strWinPathRecent := RegExReplace(SubStr(strRecentsFolder, 3) . "\", "\\", "\\")
+strDirList := ""
+for ObjItem in ComObjGet("winmgmts:")
+	.ExecQuery("Select * from Win32_ShortcutFile where path = '" . strWinPathRecent . "'")
+	strDirList .= ObjItem.LastModified . A_Tab . ObjItem.Extension . A_Tab . ObjItem.Target . "`n"
+*/
+
+Loop, %strRecentsFolder%\*.* ; tried to limit to number of recent but they are not sorted chronologically
+	strDirList .= A_LoopFileTimeModified . "`t" . A_LoopFileFullPath . "`n"
+
+Sort, strDirList, R
+
+intShortcut := 0
+
+Loop, parse, strDirList, `n
+{
+	if !StrLen(A_LoopField) ; last line is empty
+		continue
+
+	arrShortcutFullPath := StrSplit(A_LoopField, A_Tab)
+	strShortcutFullPath := arrShortcutFullPath[2]
+	
+	FileGetShortcut, %strShortcutFullPath%, strTargetPath
+	
+	if (errorlevel) ; hidden or system files (like desktop.ini) returns an error
+		continue
+	if !FileExist(strTargetPath) ; if folder/document was delete or on a removable drive
+		continue
+	if LocationIsDocument(strTargetPath) ; not a folder
+		continue
+
+	g_intRecentFoldersIndex++
+	g_objRecentFolders.Insert(g_intRecentFoldersIndex, strTargetPath)
+	
+	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strTargetPath
+	strMenuItemsList .= "g_menuRecentFolders|" . strMenuName . "|OpenRecentFolder|iconFolder`n"
+
+	if (g_intRecentFoldersIndex >= g_intRecentFoldersMax)
+		break
+}
+
+Critical, On
+Menu, g_menuRecentFolders, Add
+Menu, g_menuRecentFolders, DeleteAll
+Loop, Parse, strMenuItemsList, `n
+	if StrLen(A_LoopField)
+	{
+		StringSplit, arrMenuItemsList, A_LoopField, |
+		AddMenuIcon(arrMenuItemsList1, arrMenuItemsList2, arrMenuItemsList3, arrMenuItemsList4)
+	}
+Critical, Off
+
+strRecentsFolder := ""
+strDirList := ""
+intShortcut := ""
+arrShortcutFullPath := ""
+strShortcutFullPath := ""
+strTargetPath := ""
+strMenuName := ""
+
+; TrayTip, Drives menu refresh, % A_TickCount - intStartTickCount . " ms"
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RecentFoldersMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2380,14 +2728,21 @@ return
 
 ;------------------------------------------------------------
 BuildSwitchFolderOrAppMenuInit:
-BuildSwitchFolderOrAppMenu:
 ;------------------------------------------------------------
 
 Menu, g_menuCurrentFolders, Add ; create the menu
 Menu, g_menuSwitchFolderOrApp, Add ; create the menu
 
-if (A_ThisLabel = "BuildSwitchFolderOrAppMenuInit")
-	return
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RefreshSwitchFolderOrAppMenu:
+;------------------------------------------------------------
+intStartTickCount := A_TickCount
+
+; Gather Explorer and DOpus windows/listers
 
 if (g_intActiveFileManager = 2) ; DirectoryOpus
 {
@@ -2397,9 +2752,13 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 
 objExplorersWindows := CollectExplorers(ComObjCreate("Shell.Application").Windows)
 
+; Process Explorer windows, DOpus listers and applications windows and keep it in objCurrentFoldersList
+
 objCurrentFoldersList := Object()
 
-intExplorersIndex := 0 ; used in PopupMenu and SaveGroup to check if we disable menu or button when empty
+intExplorersIndex := 0
+
+; Process DOpus listers
 
 if (g_intActiveFileManager = 2) ; DirectoryOpus
 	for intIndex, objLister in objDOpusListers
@@ -2412,7 +2771,6 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 			continue
 		
 		intExplorersIndex++
-			
 		objCurrentFolder := Object()
 		objCurrentFolder.LocationURL := objLister.LocationURL
 		objCurrentFolder.Name := objLister.Name
@@ -2420,15 +2778,17 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 		; used for DOpus windows to discriminatre different listers
 		objCurrentFolder.WindowId := objLister.Lister
 		
-		; info used to create groups
-		objCurrentFolder.TabId := objLister.Tab
-		objCurrentFolder.Position := objLister.Position
-		objCurrentFolder.MinMax := objLister.MinMax
-		objCurrentFolder.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
+		; OUT info used to create groups
+		; objCurrentFolder.TabId := objLister.Tab
+		; objCurrentFolder.Position := objLister.Position
+		; objCurrentFolder.MinMax := objLister.MinMax
+		; objCurrentFolder.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
 		objCurrentFolder.WindowType := "DO"
 		
 		objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 	}
+
+; Process Explorer windows
 
 for intIndex, objFolder in objExplorersWindows
 {
@@ -2440,52 +2800,29 @@ for intIndex, objFolder in objExplorersWindows
 		continue
 	
 	intExplorersIndex++
-	
 	objCurrentFolder := Object()
 	objCurrentFolder.LocationURL := objFolder.LocationURL
 	objCurrentFolder.Name := objFolder.LocationName
-	objCurrentFolder.IsSpecialFolder := objFolder.IsSpecialFolder
+	; OUT objCurrentFolder.IsSpecialFolder := objFolder.IsSpecialFolder
 	
-	; not used for Explorer windows, but keep it
+	; not used for Explorer windows, but keep it ; USED I THINK?
 	objCurrentFolder.WindowId := objFolder.WindowId
 
-	; info used to create groups
-	objCurrentFolder.Position := objFolder.Position
-	objCurrentFolder.MinMax := objFolder.MinMax
+	; OUT info used to create groups
+	; objCurrentFolder.Position := objFolder.Position
+	; objCurrentFolder.MinMax := objFolder.MinMax
 	objCurrentFolder.WindowType := "EX"
 
 	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 }
 
-Menu, g_menuCurrentFolders, Add
-Menu, g_menuCurrentFolders, DeleteAll
-Menu, g_menuSwitchFolderOrApp, Add
-Menu, g_menuSwitchFolderOrApp, DeleteAll
-if (g_blnUseColors)
-{
-	Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
-	Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
-}
+; Insert a menu separator
 
-intShortcut := 0
-g_objCurrentFoldersLocationUrlByName := Object()
-g_objCurrentWindowsIdByName := Object()
+intExplorersIndex++
+objCurrentFolder := Object()
+objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 
-if (intExplorersIndex)
-	for intIndex, objCurrentFolder in objCurrentFoldersList
-	{
-		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentFolder.Name
-		g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; can include the numeric shortcut
-		g_objCurrentWindowsIdByName.Insert(strMenuName, objCurrentFolder.WindowType . "|" . objCurrentFolder.WindowId)
-		AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
-		AddMenuIcon("g_menuSwitchFolderOrApp", strMenuName, "OpenSwitchFolderOrApp", (objCurrentFolder.WindowType = "EX" ? "iconChangeFolder" : g_strDirectoryOpusRtPath . ",1"))
-	}
-else
-{
-	AddMenuIcon("g_menuCurrentFolders", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
-	AddMenuIcon("g_menuSwitchFolderOrApp", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
-}
-Menu, g_menuSwitchFolderOrApp, Add
+; Process applications
 
 DetectHiddenWindows, Off
 WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
@@ -2503,7 +2840,9 @@ Loop, %strWinIDs%
 	WinGetClass, strWindowClass, % "ahk_id " strWinIDs%A_Index%
 	WinGetPos, intX, intY, intW, intH, % "ahk_id " strWinIDs%A_Index%
 	
-	if !StrLen(strProcessPath) or !(intW * intH)
+	if !StrLen(strProcessPath)
+		or !(intW * intH)
+		or !StrLen(strWindowTitle)
 		or (strProcessPath = A_WinDir . "\explorer.exe")
 		or (strProcessPath = g_strDirectoryOpusPath) and (g_intActiveFileManager = 2)
 		or (strProcessPath = A_ProgramFiles . "\Windows Sidebar\sidebar.exe")
@@ -2515,11 +2854,62 @@ Loop, %strWinIDs%
 	else
 		if (g_strCurrentBranch <> "prod")
 			FileAppend, YES`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
-	
-	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . (StrLen(strWindowTitle) ? strWindowTitle : strProcessPath)
-	g_objCurrentWindowsIdByName.Insert(strMenuName, "APP|" . strWinIDs%A_Index%)
-	AddMenuIcon("g_menuSwitchFolderOrApp", strMenuName, "OpenSwitchFolderOrApp", strProcessPath . ",1")
+
+	intExplorersIndex++
+	objCurrentFolder := Object()
+	objCurrentFolder.Name := strWindowTitle
+	objCurrentFolder.LocationURL := strProcessPath
+	objCurrentFolder.WindowId := strWinIDs%A_Index%
+	objCurrentFolder.WindowType := "APP"
+
+	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 }
+
+; Build menu
+
+intShortcut := 0
+g_objCurrentFoldersLocationUrlByName := Object()
+g_objCurrentWindowsIdByName := Object()
+
+Critical, On
+Menu, g_menuCurrentFolders, Add
+Menu, g_menuCurrentFolders, DeleteAll
+Menu, g_menuSwitchFolderOrApp, Add
+Menu, g_menuSwitchFolderOrApp, DeleteAll
+if (g_blnUseColors)
+{
+	Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
+	Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
+}
+
+if (intExplorersIndex)
+	for intIndex, objCurrentFolder in objCurrentFoldersList
+	{
+		; ###_O("objCurrentFolder", objCurrentFolder)
+		if !StrLen(objCurrentFolder.Name)
+			Menu, g_menuSwitchFolderOrApp, Add
+		else
+		{
+			strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentFolder.Name
+			if (objCurrentFolder.WindowType <> "APP")
+			{
+				g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; strMenuName can include the numeric shortcut
+				AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
+			}
+			; ###_V("", strMenuName, objCurrentFolder.WindowType . "|" . objCurrentFolder.WindowId)
+			g_objCurrentWindowsIdByName.Insert(strMenuName, objCurrentFolder.WindowType . "|" . objCurrentFolder.WindowId)
+			AddMenuIcon("g_menuSwitchFolderOrApp", strMenuName, "OpenSwitchFolderOrApp"
+				, (objCurrentFolder.WindowType = "EX" ? "iconChangeFolder"
+					: (objCurrentFolder.WindowType = "DO" ?  g_strDirectoryOpusRtPath . ",1"
+					: objCurrentFolder.LocationURL . ",1")))
+		}
+	}
+else
+{
+	AddMenuIcon("g_menuCurrentFolders", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
+	AddMenuIcon("g_menuSwitchFolderOrApp", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
+}
+Critical, Off
 
 objDOpusListers := ""
 objExplorersWindows := ""
@@ -2536,6 +2926,25 @@ strProcessPath := ""
 strWindowTitle := ""
 strWindowClass := ""
 strDiagFile := ""
+
+; TrayTip, Switch menu refresh, % A_TickCount - intStartTickCount . " ms"
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+InitDOpusListText:
+;------------------------------------------------------------
+
+FileDelete, %g_strDOpusTempFilePath%
+RunDOpusRt("/info", g_strDOpusTempFilePath, ",paths") ; list opened listers in a text file
+; Run, "%strDirectoryOpusRtPath%" /info "%g_strDOpusTempFilePath%"`,paths
+loop, 10
+	if FileExist(g_strDOpusTempFilePath)
+		Break
+	else
+		Sleep, 50 ; was 10 and had some gliches with FP - is 50 enough?
+FileRead, g_strDOpusListText, %g_strDOpusTempFilePath%
 
 return
 ;------------------------------------------------------------
@@ -2662,322 +3071,26 @@ CollectExplorers(pExplorers)
 
 
 ;------------------------------------------------------------
-RecentFoldersMenuShortcut:
+CurrentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
 Gosub, SetMenuPosition
 
-ToolTip, %lMenuRefreshRecent%...
-intTickCountBefore := A_TickCount
-Gosub, BuildRecentFoldersMenu
-TrayTip, QAP Debug (Recent Folders menu), % "Menu refresh delay: " .  A_TickCount - intTickCountBefore . " ms"
-ToolTip
-
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-BuildRecentFoldersMenu:
-;------------------------------------------------------------
-
-Menu, g_menuRecentFolders, Add
-Menu, g_menuRecentFolders, DeleteAll ; had problem with DeleteAll making the Special menu to disappear 1/2 times - now OK
-if (g_blnUseColors)
-	Menu, g_menuRecentFolders, Color, %g_strMenuBackgroundColor%
-
-g_objRecentFolders := Object()
-g_intRecentFoldersIndex := 0 ; used in PopupMenu... to check if we disable the menu when empty
-
-RegRead, strRecentsFolder, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Recent
-
-/*
-; Alternative to collect recent files *** NOT WORKING with XP and SLOWER because all shortcuts are resolved before getting the list
-; See: post from Skan http://ahkscript.org/boards/viewtopic.php?f=5&t=4477#p25261
-; Implement for Win7+ if FileGetShortcut still produce Windows errors when external drive is not available (despite DllCall in initialization)
-
-strWinPathRecent := RegExReplace(SubStr(strRecentsFolder, 3) . "\", "\\", "\\")
-strDirList := ""
-for ObjItem in ComObjGet("winmgmts:")
-	.ExecQuery("Select * from Win32_ShortcutFile where path = '" . strWinPathRecent . "'")
-	strDirList .= ObjItem.LastModified . A_Tab . ObjItem.Extension . A_Tab . ObjItem.Target . "`n"
-*/
-
-Loop, %strRecentsFolder%\*.* ; tried to limit to number of recent but they are not sorted chronologically
-	strDirList .= A_LoopFileTimeModified . "`t" . A_LoopFileFullPath . "`n"
-
-Sort, strDirList, R
-
-intShortcut := 0
-
-Loop, parse, strDirList, `n
-{
-	if !StrLen(A_LoopField) ; last line is empty
-		continue
-
-	arrShortcutFullPath := StrSplit(A_LoopField, A_Tab)
-	strShortcutFullPath := arrShortcutFullPath[2]
-	
-	FileGetShortcut, %strShortcutFullPath%, strTargetPath
-	
-	if (errorlevel) ; hidden or system files (like desktop.ini) returns an error
-		continue
-	if !FileExist(strTargetPath) ; if folder/document was delete or on a removable drive
-		continue
-	if LocationIsDocument(strTargetPath) ; not a folder
-		continue
-
-	g_intRecentFoldersIndex++
-	g_objRecentFolders.Insert(g_intRecentFoldersIndex, strTargetPath)
-	
-	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . strTargetPath
-	AddMenuIcon("g_menuRecentFolders", strMenuName, "OpenRecentFolder", "iconFolder")
-
-	if (g_intRecentFoldersIndex >= g_intRecentFoldersMax)
-		break
-}
-
-strRecentsFolder := ""
-strDirList := ""
-intShortcut := ""
-arrShortcutFullPath := ""
-strShortcutFullPath := ""
-strTargetPath := ""
-strMenuName := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-ClipboardMenuShortcut:
+SwitchFolderOrAppMenuShortcut:
 ;------------------------------------------------------------
 
 Gosub, SetMenuPosition
 
-Gosub, RefreshClipboardMenu
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-
-Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-DrivesMenuShortcut:
-;------------------------------------------------------------
-
-Gosub, SetMenuPosition
-
-Gosub, RefreshDrivesMenu
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-
-Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-BuildClipboardMenuInit:
-;------------------------------------------------------------
-
-; create the empty menu allowing to be attached to parent menu even if never refreshed
-
-Menu, g_menuClipboard, Add 
-Menu, g_menuClipboard, DeleteAll
-if (g_blnUseColors)
-    Menu, g_menuClipboard, Color, %g_strMenuBackgroundColor%
-AddMenuIcon("g_menuClipboard", lMenuNoClipboard, "GuiShow", "iconNoContent", false)	; will never be called because disabled
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-RefreshClipboardMenu:
-;------------------------------------------------------------
-
-intShortcutClipboardMenu := 0
-strContentsInClipboard := ""
-
-; Parse Clipboard for folder, document or application filenames (filenames alone on one line)
-Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
-{
-	strClipboardLineExpanded := A_LoopField ; only for FileExistInPath - will not be displayed in menu
-
-	if FileExistInPath(strClipboardLineExpanded) ; rerturn strClipboardLineExpanded with expanded relative path and envvars, and search in PATH
-	{
-		strContentsInClipboard .= "`n" . A_LoopField
-		
-		if (g_blnDisplayIcons)
-		{
-			if LocationIsDocument(strClipboardLineExpanded)
-			{
-				GetIcon4Location(strClipboardLineExpanded, strThisIconFile, intThisIconIndex)
-				strContentsInClipboard .= "`t" . strThisIconFile . "," . intThisIconIndex
-			}
-			else
-				strContentsInClipboard .= "`t" . "iconFolder"
-		}
-	}
-
-	; Parse Clipboard line for URLs (anywhere on the line)
-	strURLSearchString := A_LoopField
-	Gosub, GetURLsInClipboardLine
-}
-
-if StrLen(strContentsInClipboard)
-{
-	Menu, g_menuClipboard, Add
-	Menu, g_menuClipboard, DeleteAll
-
-	Sort, strContentsInClipboard
-
-	Loop, parse, strContentsInClipboard, `n
-	{
-		if !StrLen(A_LoopField)
-			continue
-		
-		; arrContentsInClipboard1 = path or URL, arrContentsInClipboard2 = icon (file,index or icon code)
-		StringSplit, arrContentsInClipboard, A_LoopField, `t
-		
-		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . arrContentsInClipboard1
-		if StrLen(strMenuName) < 260 ; skip too long URLs
-			AddMenuIcon("g_menuClipboard", strMenuName, "OpenClipboard", arrContentsInClipboard2)
-	}
-}
-
-intShortcutClipboardMenu := ""
-strContentsInClipboard := ""
-strClipboardLineExpanded := ""
-strURLSearchString := ""
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-GetURLsInClipboardLine:
-;------------------------------------------------------------
-; Adapted from AHK help file: http://ahkscript.org/docs/commands/LoopReadFile.htm
-; It's done this particular way because some URLs have other URLs embedded inside them:
-StringGetPos, intURLStart1, strURLSearchString, http://
-StringGetPos, intURLStart2, strURLSearchString, https://
-StringGetPos, intURLStart3, strURLSearchString, www.
-
-; Find the left-most starting position:
-intURLStart := intURLStart1 ; Set starting default.
-Loop
-{
-	; It helps performance (at least in a script with many variables) to resolve
-	; "intURLStart%A_Index%" only once:
-	intArrayElement := intURLStart%A_Index%
-	if (intArrayElement = "") ; End of the array has been reached.
-		break
-	if (intArrayElement = -1) ; This element is disqualified.
-		continue
-	if (intURLStart = -1)
-		intURLStart := intArrayElement
-	else ; intURLStart has a valid position in it, so compare it with intArrayElement.
-	{
-		if (intArrayElement <> -1)
-			if (intArrayElement < intURLStart)
-				intURLStart := intArrayElement
-	}
-}
-
-if (intURLStart = -1) ; No URLs exist in strURLSearchString.
-	return ; (exit loop without cleaning local variables that could be re-used)
-
-; Otherwise, extract this strURL:
-StringTrimLeft, strURL, strURLSearchString, %intURLStart% ; Omit the beginning/irrelevant part.
-Loop, parse, strURL, %A_Tab%%A_Space%<> ; Find the first space, tab, or angle (if any).
-{
-	strURL := A_LoopField
-	break ; i.e. perform only one loop iteration to fetch the first "field".
-}
-; If the above loop had zero iterations because there were no ending characters found,
-; leave the contents of the strURL var untouched.
-
-; If the strURL ends in a double quote, remove it.  For now, StringReplace is used, but
-; note that it seems that double quotes can legitimately exist inside URLs, so this
-; might damage them:
-StringReplace, strURLCleansed, strURL, ",, All
-
-; See if there are any other URLs in this line:
-StringLen, intCharactersToOmit, strURL
-intCharactersToOmit += intURLStart
-StringTrimLeft, strURLSearchString, strURLSearchString, %intCharactersToOmit%
-
-Gosub, GetURLsInClipboardLine ; Recursive call to self (end of loop)
-
-strContentsInClipboard .= "`n" . strURLCleansed . "`t" . g_strURLIconFile . "," . g_intUrlIconIndex
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-BuildDrivesMenuInit:
-;------------------------------------------------------------
-
-; create the empty menu allowing to be attached to parent menu even if never refreshed
-
-Menu, g_menuDrives, Add 
-Menu, g_menuDrives, DeleteAll
-if (g_blnUseColors)
-    Menu, g_menuDrives, Color, %g_strMenuBackgroundColor%
-AddMenuIcon("g_menuDrives", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-RefreshDrivesMenu:
-;------------------------------------------------------------
-
-intShortcutDrivesMenu := 0
-
-Menu, g_menuDrives, Add
-Menu, g_menuDrives, DeleteAll
-
-DriveGet, strDrivesList, List
-
-Loop, parse, strDrivesList
-{
-	strPath := A_LoopField . ":"
-	DriveGet, intCapacity, Capacity, %strPath%
-	DriveSpaceFree, intFreeSpace,  %strPath%
-	DriveGet, strLabel, Label, %strPath%
-	DriveGet, strType, Type, %strPath% ; Unknown, Removable, Fixed, Network, CDROM, RAMDisk
-	; ###_V(A_ThisLabel, strDrivesList, strPath, intCapacity, intFreeSpace, strLabel, strType)
-	
-	strMenuName := strPath . " " . strLabel
-	if StrLen(intFreeSpace) and StrLen(intCapacity)
-		strMenuName .= " " . L(lMenuDrivesSpace, intFreeSpace // 1024, intCapacity // 1024)
-	strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutDrivesMenu <= 35) ? "&" . NextMenuShortcut(intShortcutDrivesMenu) . " " : "") . strMenuName
-	if InStr("Fixed|Unknown", strType)
-		strIcon := "iconDrives"
-	else
-		strIcon := "icon" . strType
-	AddMenuIcon("g_menuDrives", strMenuName, "OpenDrives", strIcon)
-}
-
-intShortcutDrivesMenu := ""
-strDrivesList := ""
-strPath := ""
-intCapacity := ""
-intFreeSpace := ""
-strLabel := ""
-strType := ""
-strMenuName := ""
-strIcon := ""
+Menu, g_menuSwitchFolderOrApp, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -3285,7 +3398,6 @@ GetMenuHandle(strMenuName)
 	return pMenu
 }
 ;------------------------------------------------------------
-
 
 
 ;========================================================================================================================
@@ -3823,8 +3935,6 @@ g_blnDisplayIcons := f_blnDisplayIcons
 IniWrite, %g_blnDisplayIcons%, %g_strIniFile%, Global, DisplayIcons
 g_intRecentFoldersMax := f_intRecentFoldersMax
 IniWrite, %g_intRecentFoldersMax%, %g_strIniFile%, Global, RecentFoldersMax
-if (g_blnDisplayNumericShortcuts <> f_blnDisplayNumericShortcuts)
-	gosub, RefreshClipboardMenu ; previous menu becomes unusable when adding/removing shortcuts
 g_blnDisplayNumericShortcuts := f_blnDisplayNumericShortcuts
 IniWrite, %g_blnDisplayNumericShortcuts%, %g_strIniFile%, Global, DisplayMenuShortcuts
 g_blnCheck4Update := f_blnCheck4Update
@@ -3946,10 +4056,7 @@ if (strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
 		Reload
 }	
 
-; else rebuild Explorers folder
-Gosub, BuildSwitchFolderOrAppMenu
-
-; and rebuild Folders menus w/ or w/o optional folders and shortcuts
+; rebuild Folders menus w/ or w/o optional folders and shortcuts
 for strMenuName, arrMenu in g_objMenusIndex
 {
 	Menu, %strMenuName%, Add
@@ -3957,6 +4064,9 @@ for strMenuName, arrMenu in g_objMenusIndex
 	arrMenu := "" ; free object's memory
 }
 Gosub, BuildMainMenuWithStatus
+
+; and rebuild dynamic menus
+Gosub, SetTimerRefreshDynamicMenus
 
 Gosub, 2GuiClose
 
@@ -6659,6 +6769,7 @@ Gosub, SaveHotkeysToIni
 	
 Gosub, LoadFavoriteHotkeys
 Gosub, ReloadIniFile
+Gosub, SetTimerRefreshDynamicMenus
 Gosub, BuildMainMenuWithStatus ; only here we load hotkeys, when user save favorites
 
 GuiControl, Disable, %lGuiSave%
@@ -7196,9 +7307,10 @@ if (blnSaveEnabled)
 		
 		Gosub, RestoreBackupMenusObjects
 
+
 		; restore popup menu
-		Gosub, BuildSwitchFolderOrAppMenu
 		Gosub, BuildMainMenu ; rebuild menus but not hotkeys
+		Gosub, SetTimerRefreshDynamicMenus
 		
 		GuiControl, Disable, f_btnGuiSaveFavorites
 		GuiControl, , f_btnGuiCancel, %lGuiClose%
@@ -7388,20 +7500,11 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 	Sleep, 20
 }
 
-intTickCountBefore := A_TickCount
-if g_objQAPfeaturesInMenus.HasKey("{Current Folders}") or g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have one of these QAP features in at least one menu
-	Gosub, BuildSwitchFolderOrAppMenu
-
-if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
-	Gosub, RefreshClipboardMenu
-
-if g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have this QAP feature in at least one menu
- 	Gosub, RefreshDrivesMenu
-TrayTip, QAP Debug (main menu), % "Menu refresh delay: " .  A_TickCount - intTickCountBefore . " ms"
-
 Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
+
+Gosub, SetTimerRefreshDynamicMenus
 
 return
 ;------------------------------------------------------------
