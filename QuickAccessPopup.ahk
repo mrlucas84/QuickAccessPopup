@@ -511,12 +511,12 @@ if (g_blnUseColors)
 ; not sure it is required to have a physical file with .html extension - but keep it as is by safety
 GetIcon4Location(g_strTempDir . "\default_browser_icon.html", g_strURLIconFile, g_intUrlIconIndex)
 
-Gosub, BuildClipboardMenuInit
-Gosub, BuildDrivesMenuInit
-Gosub, BuildRecentFoldersMenuInit
-Gosub, BuildSwitchFolderOrAppMenuInit
+Gosub, BuildSwitchFolderOrAppMenuInit ; will be refreshed at each popup menu call
+Gosub, BuildClipboardMenuInit ; will be refreshed at each popup menu call
 
-Gosub, SetTimerRefreshDynamicMenus ; Clipboard, Drives, Recent Folders, Switch to an Open Folder or Application, and Current Folders
+Gosub, BuildDrivesMenuInit ; will be refreshed by a background task and after each popup menu call
+Gosub, BuildRecentFoldersMenuInit ; will be refreshed by a background task and after each popup menu call
+Gosub, SetTimerRefreshDynamicMenus ; Drives, Recent Folders
 
 Gosub, BuildMainMenu
 Gosub, BuildAlternativeMenu
@@ -568,12 +568,6 @@ OnMessage(0x2224, "REPLY_QAPISRUNNING")
 
 ; Create a mutex to allow Inno Setup to detect if FP is running before uninstall or update
 DllCall("CreateMutex", "uint", 0, "int", false, "str", g_strAppNameFile . "Mutex")
-
-; DEBUG
-; -----
-; Gosub, GuiShow
-; Gosub, BuildClipboardMenu
-; Menu, g_menuClipboard, Show
 
 return
 
@@ -2355,17 +2349,17 @@ if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in a
 if g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have this QAP feature in at least one menu
 {
  	Gosub, RefreshDrivesMenu
-	SetTimer, RefreshDrivesMenu, 21000 ; 7000
+;	SetTimer, RefreshDrivesMenu, 21000 ; 7000
 }
 if g_objQAPfeaturesInMenus.HasKey("{Recent Folders}") ; we have this QAP feature in at least one menu
 {
  	Gosub, RefreshRecentFoldersMenu
-	SetTimer, RefreshRecentFoldersMenu, 23000 ; 
+;	SetTimer, RefreshRecentFoldersMenu, 23000 ; 
 }
 if g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP feature in at least one menu
 {
  	Gosub, RefreshSwitchFolderOrAppMenu
-	SetTimer, RefreshSwitchFolderOrAppMenu, 9000 ; 3000
+;	SetTimer, RefreshSwitchFolderOrAppMenu, 9000 ; 3000
 }
 
 return
@@ -2375,8 +2369,6 @@ return
 ;------------------------------------------------------------
 BuildClipboardMenuInit:
 ;------------------------------------------------------------
-
-; create the empty menu allowing to be attached to parent menu even if never refreshed
 
 Menu, g_menuClipboard, Add 
 Menu, g_menuClipboard, DeleteAll
@@ -2392,11 +2384,10 @@ return
 ClipboardMenuShortcut:
 ;------------------------------------------------------------
 
-Gosub, SetMenuPosition
-
 Gosub, RefreshClipboardMenu
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 
+Gosub, SetMenuPosition
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
@@ -2433,7 +2424,9 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 				strContentsInClipboard .= "`t" . strThisIconFile . "," . intThisIconIndex
 			}
 			else
+			{
 				strContentsInClipboard .= "`t" . "iconFolder"
+			}
 		}
 	}
 
@@ -2540,8 +2533,6 @@ return
 BuildDrivesMenuInit:
 ;------------------------------------------------------------
 
-; create the empty menu allowing to be attached to parent menu even if never refreshed
-
 Menu, g_menuDrives, Add 
 Menu, g_menuDrives, DeleteAll
 if (g_blnUseColors)
@@ -2558,7 +2549,6 @@ DrivesMenuShortcut:
 
 Gosub, SetMenuPosition
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-
 Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
@@ -2627,8 +2617,6 @@ return
 BuildRecentFoldersMenuInit:
 ;------------------------------------------------------------
 
-; create the empty menu allowing to be attached to parent menu even if never refreshed
-
 Menu, g_menuRecentFolders, Add 
 Menu, g_menuRecentFolders, DeleteAll
 if (g_blnUseColors)
@@ -2644,9 +2632,7 @@ RecentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
 Gosub, SetMenuPosition
-
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-
 Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
@@ -2679,7 +2665,6 @@ for ObjItem in ComObjGet("winmgmts:")
 
 Loop, %strRecentsFolder%\*.* ; tried to limit to number of recent but they are not sorted chronologically
 	strDirList .= A_LoopFileTimeModified . "`t" . A_LoopFileFullPath . "`n"
-
 Sort, strDirList, R
 
 intShortcut := 0
@@ -2696,7 +2681,7 @@ Loop, parse, strDirList, `n
 	
 	if (errorlevel) ; hidden or system files (like desktop.ini) returns an error
 		continue
-	if !FileExist(strTargetPath) ; if folder/document was delete or on a removable drive
+	if !FileExist(strTargetPath) ; if folder/document was deleted or on a removable drive
 		continue
 	if LocationIsDocument(strTargetPath) ; not a folder
 		continue
@@ -2759,7 +2744,6 @@ CurrentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
 Gosub, SetMenuPosition
-
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
@@ -2772,7 +2756,6 @@ SwitchFolderOrAppMenuShortcut:
 ;------------------------------------------------------------
 
 Gosub, SetMenuPosition
-
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuSwitchFolderOrApp, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
@@ -2806,7 +2789,7 @@ intExplorersIndex := 0
 if (g_intActiveFileManager = 2) ; DirectoryOpus
 	for intIndex, objLister in objDOpusListers
 	{
-		; if we have no path or or DOpus collection, skip it
+		; if we have no path or a DOpus collection, skip it
 		if !StrLen(objLister.LocationURL) or InStr(objLister.LocationURL, "coll://")
 			continue
 		
@@ -2817,15 +2800,7 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 		objCurrentFolder := Object()
 		objCurrentFolder.LocationURL := objLister.LocationURL
 		objCurrentFolder.Name := objLister.Name
-		
-		; used for DOpus windows to discriminatre different listers
 		objCurrentFolder.WindowId := objLister.Lister
-		
-		; OUT info used to create groups
-		; objCurrentFolder.TabId := objLister.Tab
-		; objCurrentFolder.Position := objLister.Position
-		; objCurrentFolder.MinMax := objLister.MinMax
-		; objCurrentFolder.Pane := (objLister.Pane = 0 ? 1 : objLister.Pane) ; consider pane 0 as pane 1
 		objCurrentFolder.WindowType := "DO"
 		
 		objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
@@ -2844,16 +2819,10 @@ for intIndex, objFolder in objExplorersWindows
 	
 	intExplorersIndex++
 	objCurrentFolder := Object()
+	objCurrentFolder := Object()
 	objCurrentFolder.LocationURL := objFolder.LocationURL
 	objCurrentFolder.Name := objFolder.LocationName
-	; OUT objCurrentFolder.IsSpecialFolder := objFolder.IsSpecialFolder
-	
-	; not used for Explorer windows, but keep it ; USED I THINK?
 	objCurrentFolder.WindowId := objFolder.WindowId
-
-	; OUT info used to create groups
-	; objCurrentFolder.Position := objFolder.Position
-	; objCurrentFolder.MinMax := objFolder.MinMax
 	objCurrentFolder.WindowType := "EX"
 
 	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
@@ -2865,7 +2834,7 @@ intExplorersIndex++
 objCurrentFolder := Object()
 objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 
-; Process applications
+; Process running applications
 
 DetectHiddenWindows, Off
 WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
@@ -2928,6 +2897,7 @@ if (g_blnUseColors)
 }
 
 if (intExplorersIndex)
+{
 	for intIndex, objCurrentFolder in objCurrentFoldersList
 	{
 		; ###_O("objCurrentFolder", objCurrentFolder)
@@ -2949,6 +2919,7 @@ if (intExplorersIndex)
 					: objCurrentFolder.LocationURL . ",1")))
 		}
 	}
+}
 else
 {
 	AddMenuIcon("g_menuCurrentFolders", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
@@ -3052,6 +3023,7 @@ ParseDOpusListerProperty(strSource, strProperty)
 		return ""
 	strSource := SubStr(strSource, intStartPos + StrLen(strProperty) + 3)
 	intEndPos := InStr(strSource, """")
+	
 	return SubStr(strSource, 1, intEndPos - 1)
 }
 ;------------------------------------------------------------
@@ -3346,7 +3318,6 @@ AddMenuIcon(strMenuName, ByRef strMenuItemName, strLabel, strIconValue, blnEnabl
 			strIconFile := g_objIconsFile[strIconValue]
 			intIconIndex := g_objIconsIndex[strIconValue]
 		}
-		
 		Menu, %strMenuName%, Icon, %strMenuItemName%, %strIconFile%, %intIconIndex%, %g_intIconSize%
 		if (ErrorLevel)
 			Menu, %strMenuName%, Icon, %strMenuItemName%
@@ -7520,13 +7491,13 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 	Sleep, 20
 }
 
-Gosub, RefreshClipboardMenu
-	
+Gosub, RefreshClipboardMenu ; before showing the menu
+
 Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
-Gosub, SetTimerRefreshDynamicMenus
+Gosub, SetTimerRefreshDynamicMenus ; after showing the menu
 
 return
 ;------------------------------------------------------------
