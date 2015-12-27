@@ -16,12 +16,12 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- Reopen folder not working in dialog boxes
 - if shortcut to submenu including Clipboard submenu submenu not refreshed
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
 - Clipboard menu sometimes empty and no icon: bug in the AHK/Windows interaction, known on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
 
 TO-DO
+- add Switch to help text and FAQ
 - update startup instructions in website
 - check Recent folders with network drives
 - add QAP feature "Add this folder Express" (see this item in wishlist)
@@ -33,14 +33,21 @@ HISTORY
 =======
 
 Version: 6.4.1 beta (2015-12-??)
-- new QAP feature to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
-- add the Drives QAP ferature to My QAP Essentials
-- refactor build and refresh of Clipboard, Drives, Recent Folders, Switch to an Open Folder or Application, and Current Folders
-- make Recent Folders integrated to the main menu (not a separate menu anymore)
-- refresh Drives and Recent Folders in a background task, each menu with different refresh rate (could be changed for one global refresh command)
-- refresh Clipboard and Switch to an Open Folder or Application (to-do) at each call to the menu
-- in default popup menu, move Add this folder QAP feature to main menu, below Settings
+- new QAP feature "Drives" to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
+- add the Drives QAP ferature to My QAP Essentials (for new users - old usrs must add it themselves)
+- in default popup menu (for new users), move Add this folder QAP feature to main menu, below Settings
+- refactor build and refresh of Clipboard, Drives, Recent Folders, Switch, and Reopen a Folder (aka Current Folders) submenus
+- rename "Reuse an Open Folder" menu to "Reopen a Folder"
+- rename "Switch to an open folder or application" menu to "Switch"
+- add default hotkey +^W to Switch QAP feature menu (old users must add it themselves)
+- make Recent Folders submenu integrated to the main menu (not a separate menu anymore)
+- refresh Clipboard, Reopen a Folder, and Switch menus at each call to the main menu
+- abort Clipboard menu refresh if clipboard is too big (> 50 K)
+- refresh Drives and Recent Folders in a background task and when the menu is called by its shortcut
+- add the variable "DynamicMenusRefreshRate=10000" in ini file to set the refresh background task rate in milliseconds (by default 10 seconds)
 - increase vertical distance between Add / Edit / Remove / Copy buttons in Settings
+- create Startup shortcut at first execution (previously, users had to set the "
+- removed debugging code in refresh Switch menu
 
 Version: 6.3.2 beta (2015-12-21)
 - fix FTP password label alignement in Add/Edit favorite dialog box
@@ -2465,7 +2472,7 @@ strContentsInClipboard := ""
 strClipboardLineExpanded := ""
 strURLSearchString := ""
 
-TrayTip, Clipboard menu refresh, % A_TickCount - intStartTickCount . " ms"
+; TrayTip, Clipboard menu refresh, % A_TickCount - intStartTickCount . " ms"
 return
 ;------------------------------------------------------------
 
@@ -2740,7 +2747,9 @@ BuildSwitchFolderOrAppMenuInit:
 ;------------------------------------------------------------
 
 Menu, g_menuCurrentFolders, Add ; create the menu
+Menu, g_menuCurrentFolders, DeleteAll
 Menu, g_menuSwitchFolderOrApp, Add ; create the menu
+Menu, g_menuSwitchFolderOrApp, DeleteAll
 
 if (g_blnUseColors)
 {
@@ -2806,9 +2815,10 @@ objExplorersWindows := CollectExplorers(ComObjCreate("Shell.Application").Window
 
 ; Process Explorer windows, DOpus listers and applications windows and keep it in objCurrentFoldersList
 
-objCurrentFoldersList := Object()
+objFoldersAndAppsList := Object()
 
-intExplorersIndex := 0
+intWindowsIdIndex := 0
+blnWeHaveFolders := false
 
 ; Process DOpus listers
 
@@ -2819,17 +2829,18 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 		if !StrLen(objLister.LocationURL) or InStr(objLister.LocationURL, "coll://")
 			continue
 		
-		if NameIsInObject(objLister.Name, objCurrentFoldersList)
+		if NameIsInObject(objLister.Name, objFoldersAndAppsList)
 			continue
 		
-		intExplorersIndex++
-		objCurrentFolder := Object()
-		objCurrentFolder.LocationURL := objLister.LocationURL
-		objCurrentFolder.Name := objLister.Name
-		objCurrentFolder.WindowId := objLister.Lister
-		objCurrentFolder.WindowType := "DO"
+		intWindowsIdIndex++
+		blnWeHaveFolders := true
+		objFolderOrApp := Object()
+		objFolderOrApp.LocationURL := objLister.LocationURL
+		objFolderOrApp.Name := objLister.Name
+		objFolderOrApp.WindowId := objLister.Lister
+		objFolderOrApp.WindowType := "DO"
 		
-		objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
+		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 	}
 
 ; Process Explorer windows
@@ -2840,18 +2851,19 @@ for intIndex, objFolder in objExplorersWindows
 	if !StrLen(objFolder.LocationURL)
 		continue
 		
-	if NameIsInObject(objFolder.LocationName, objCurrentFoldersList)
+	if NameIsInObject(objFolder.LocationName, objFoldersAndAppsList)
 		continue
 	
-	intExplorersIndex++
-	objCurrentFolder := Object()
-	objCurrentFolder := Object()
-	objCurrentFolder.LocationURL := objFolder.LocationURL
-	objCurrentFolder.Name := objFolder.LocationName
-	objCurrentFolder.WindowId := objFolder.WindowId
-	objCurrentFolder.WindowType := "EX"
+	intWindowsIdIndex++
+	blnWeHaveFolders := true
+	objFolderOrApp := Object()
+	objFolderOrApp := Object()
+	objFolderOrApp.LocationURL := objFolder.LocationURL
+	objFolderOrApp.Name := objFolder.LocationName
+	objFolderOrApp.WindowId := objFolder.WindowId
+	objFolderOrApp.WindowType := "EX"
 
-	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
+	objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 }
 
 if (A_ThisLabel <> "RefreshCurrentFolders")
@@ -2859,9 +2871,12 @@ if (A_ThisLabel <> "RefreshCurrentFolders")
 {
 	; Insert a menu separator
 
-	intExplorersIndex++
-	objCurrentFolder := Object()
-	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
+	if (blnWeHaveFolders)
+	{
+		intWindowsIdIndex++
+		objFolderOrApp := Object()
+		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
+	}
 
 	; Gather and process running applications
 
@@ -2898,21 +2913,21 @@ if (A_ThisLabel <> "RefreshCurrentFolders")
 			; if (g_strCurrentBranch <> "prod")
 			;	FileAppend, YES`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
 
-		intExplorersIndex++
-		objCurrentFolder := Object()
-		objCurrentFolder.Name := strWindowTitle
-		objCurrentFolder.LocationURL := strProcessPath
-		objCurrentFolder.WindowId := strWinIDs%A_Index%
-		objCurrentFolder.WindowType := "APP"
+		intWindowsIdIndex++
+		objFolderOrApp := Object()
+		objFolderOrApp.Name := strWindowTitle
+		objFolderOrApp.LocationURL := strProcessPath
+		objFolderOrApp.WindowId := strWinIDs%A_Index%
+		objFolderOrApp.WindowType := "APP"
 
-		objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
+		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 	}
 }
 
 ; Build menu
 
 intShortcut := 0
-g_objCurrentFoldersLocationUrlByName := Object()
+g_objFolderOrAppsLocationUrlByName := Object()
 
 
 Critical, On
@@ -2931,47 +2946,48 @@ Menu, g_menuCurrentFolders, DeleteAll
 if (g_blnUseColors)
 	Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
 
-if (intExplorersIndex)
+if (intWindowsIdIndex)
 {
-	for intIndex, objCurrentFolder in objCurrentFoldersList
+	for intIndex, objFolderOrApp in objFoldersAndAppsList
 	{
-		; ###_O("objCurrentFolder", objCurrentFolder)
-		if !StrLen(objCurrentFolder.Name)
+		; ###_O("objFolderOrApp", objFolderOrApp)
+		if !StrLen(objFolderOrApp.Name)
 			Menu, g_menuSwitchFolderOrApp, Add
 		else
 		{
-			strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objCurrentFolder.Name
-			if (objCurrentFolder.WindowType <> "APP")
+			strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objFolderOrApp.Name
+			if (objFolderOrApp.WindowType <> "APP")
 			{
-				g_objCurrentFoldersLocationUrlByName.Insert(strMenuName, objCurrentFolder.LocationURL) ; strMenuName can include the numeric shortcut
+				g_objFolderOrAppsLocationUrlByName.Insert(strMenuName, objFolderOrApp.LocationURL) ; strMenuName can include the numeric shortcut
 				AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
 			}
-			; ###_V("", strMenuName, objCurrentFolder.WindowType . "|" . objCurrentFolder.WindowId)
-			g_objCurrentWindowsIdByName.Insert(strMenuName, objCurrentFolder.WindowType . "|" . objCurrentFolder.WindowId)
+			; ###_V("", strMenuName, objFolderOrApp.WindowType . "|" . objFolderOrApp.WindowId)
+			g_objCurrentWindowsIdByName.Insert(strMenuName, objFolderOrApp.WindowType . "|" . objFolderOrApp.WindowId)
 			AddMenuIcon("g_menuSwitchFolderOrApp", strMenuName, "OpenSwitchFolderOrApp"
-				, (objCurrentFolder.WindowType = "EX" ? "iconChangeFolder"
-					: (objCurrentFolder.WindowType = "DO" ?  g_strDirectoryOpusRtPath . ",1"
-					: objCurrentFolder.LocationURL . ",1")))
+				, (objFolderOrApp.WindowType = "EX" ? "iconChangeFolder"
+					: (objFolderOrApp.WindowType = "DO" ?  g_strDirectoryOpusRtPath . ",1"
+					: objFolderOrApp.LocationURL . ",1")))
 		}
 	}
 }
 else
-{
-	AddMenuIcon("g_menuCurrentFolders", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 	AddMenuIcon("g_menuSwitchFolderOrApp", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
-}
+
+if !(blnWeHaveFolders)
+	AddMenuIcon("g_menuCurrentFolders", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
+
 Critical, Off
 
 objDOpusListers := ""
 objExplorersWindows := ""
-objCurrentFolder := ""
-objCurrentFoldersList := ""
+objFolderOrApp := ""
+objFoldersAndAppsList := ""
 intIndex := ""
 objLister := ""
 objFolder := ""
 intShortcut := ""
 strMenuName := ""
-intExplorersIndex := ""
+intWindowsIdIndex := ""
 strWinIDs := ""
 strProcessPath := ""
 strWindowTitle := ""
