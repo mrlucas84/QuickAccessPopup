@@ -16,9 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- Clipboard menu sometimes empty and no icon
+- Reopen folder not working in dialog boxes
 - if shortcut to submenu including Clipboard submenu submenu not refreshed
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
+- Clipboard menu sometimes empty and no icon: bug in the AHK/Windows interaction, known on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
 
 TO-DO
 - update startup instructions in website
@@ -1691,6 +1692,7 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 			DirectoryOpusPath=
 			IconSize=%g_intIconSize%
 			OpenMenuOnTaskbar=1
+			DynamicMenusRefreshRate=10000
 			AvailableThemes=Windows|Grey|Light Blue|Light Green|Light Red|Yellow
 			Theme=Windows
 			[Favorites]
@@ -1833,6 +1835,8 @@ IniRead, g_blnDonor, %g_strIniFile%, Global, Donor, 0 ; Please, be fair. Don't c
 IniRead, blnDefaultMenuBuilt, %g_strIniFile%, Global, DefaultMenuBuilt, 0 ; default false
 if !(blnDefaultMenuBuilt)
  	Gosub, AddToIniDefaultMenu ; modify the ini file Favorites section before reading it
+
+IniRead, g_intDynamicMenusRefreshRate, %g_strIniFile%, Global, DynamicMenusRefreshRate, 10000 ; default 10000 ms
 
 ; ---------------------
 ; Load favorites
@@ -2341,26 +2345,24 @@ SetTimerRefreshDynamicMenus:
 ;------------------------------------------------------------
 ; #####
 
-if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
+if g_objQAPfeaturesInMenus.HasKey("{Recent Folders}") or g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have one of these QAP features in at least one menu
 {
- 	Gosub, RefreshClipboardMenu
-;	SetTimer, RefreshClipboardMenu, 15000 ; 5000
+	Gosub, RefreshRecentFoldersMenu ; refresh now and in g_intDynamicMenusRefreshRate ms
+	Gosub, RefreshDrivesMenu ; refresh now and in g_intDynamicMenusRefreshRate ms
+	SetTimer, RefreshBackgroundDynamicMenus, %g_intDynamicMenusRefreshRate% ; 
 }
-if g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have this QAP feature in at least one menu
-{
- 	Gosub, RefreshDrivesMenu
-	SetTimer, RefreshDrivesMenu, 10000 ; 7000
-}
-if g_objQAPfeaturesInMenus.HasKey("{Recent Folders}") ; we have this QAP feature in at least one menu
-{
- 	Gosub, RefreshRecentFoldersMenu
-	SetTimer, RefreshRecentFoldersMenu, 23000 ; 
-}
-if g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP feature in at least one menu
-{
- 	Gosub, RefreshSwitchFolderOrAppMenu
-;	SetTimer, RefreshSwitchFolderOrAppMenu, 9000 ; 3000
-}
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RefreshBackgroundDynamicMenus:
+; background job started by SetTimer
+;------------------------------------------------------------
+
+Gosub, RefreshRecentFoldersMenu
+Gosub, RefreshDrivesMenu
 
 return
 ;------------------------------------------------------------
@@ -2547,6 +2549,8 @@ return
 DrivesMenuShortcut:
 ;------------------------------------------------------------
 
+Gosub, RefreshDrivesMenu ; refreshed by SetTimer but also just before when called by the shortcut
+
 Gosub, SetMenuPosition
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
@@ -2558,6 +2562,10 @@ return
 ;------------------------------------------------------------
 RefreshDrivesMenu:
 ;------------------------------------------------------------
+
+if !(g_objQAPfeaturesInMenus.HasKey("{Drives}")) ; we don't have this QAP features in at least one menu
+	return
+
 intStartTickCount := A_TickCount
 
 intShortcutDrivesMenu := 0
@@ -2632,6 +2640,8 @@ return
 RecentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
+Gosub, RefreshRecentFoldersMenu ; refreshed by SetTimer but also just before when called by the shortcut
+
 Gosub, SetMenuPosition
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
@@ -2643,6 +2653,10 @@ return
 ;------------------------------------------------------------
 RefreshRecentFoldersMenu:
 ;------------------------------------------------------------
+
+if !(g_objQAPfeaturesInMenus.HasKey("{Recent Folders}")) ; we don't have this QAP features in at least one menu
+	return
+
 intStartTickCount := A_TickCount
 
 g_objRecentFolders := Object()
@@ -2744,6 +2758,8 @@ return
 CurrentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
+Gosub, RefreshCurrentFolders
+
 Gosub, SetMenuPosition
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
@@ -2756,6 +2772,8 @@ return
 SwitchFolderOrAppMenuShortcut:
 ;------------------------------------------------------------
 
+Gosub, RefreshSwitchFolderOrAppMenu
+
 Gosub, SetMenuPosition
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuSwitchFolderOrApp, Show, %g_intMenuPosX%, %g_intMenuPosY%
@@ -2766,8 +2784,15 @@ return
 
 ;------------------------------------------------------------
 RefreshSwitchFolderOrAppMenu:
+RefreshCurrentFolders:
+; This command build two menus: "Current Folders" and "Switch Folder or App".
+; The first part of "Switch Folder or App" has the same items as "Current Folders" but with a "switch" command instead of "open".
 ;------------------------------------------------------------
 intStartTickCount := A_TickCount
+
+if !(g_objQAPfeaturesInMenus.HasKey("{Current Folders}") or g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}"))
+	; we don't have one of these QAP features in at least one menu
+	return
 
 ; Gather Explorer and DOpus windows/listers
 
@@ -2829,73 +2854,82 @@ for intIndex, objFolder in objExplorersWindows
 	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
 }
 
-; Insert a menu separator
-
-intExplorersIndex++
-objCurrentFolder := Object()
-objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
-
-; Process running applications
-
-DetectHiddenWindows, Off
-WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
-DetectHiddenWindows, On ; revert to app default
-
-/*
-if (g_strCurrentBranch <> "prod")
+if (A_ThisLabel <> "RefreshCurrentFolders")
+	and g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP features in at least one menu
 {
-	strDiagFile := A_WorkingDir . "\" . g_strAppNameFile . "-SWITCH_DIAG.txt"
-	FileDelete, %strDiagFile%
-}
-*/
-Loop, %strWinIDs%
-{
-	WinGet, strProcessPath, ProcessPath, % "ahk_id " . strWinIDs%A_Index%
-	WinGetTitle, strWindowTitle, % "ahk_id " strWinIDs%A_Index%
-	WinGetClass, strWindowClass, % "ahk_id " strWinIDs%A_Index%
-	WinGetPos, intX, intY, intW, intH, % "ahk_id " strWinIDs%A_Index%
-	
-	if !StrLen(strProcessPath)
-		or !(intW * intH)
-		or !StrLen(strWindowTitle)
-		or (strProcessPath = A_WinDir . "\explorer.exe")
-		or (strProcessPath = g_strDirectoryOpusPath) and (g_intActiveFileManager = 2)
-		or (strProcessPath = A_ProgramFiles . "\Windows Sidebar\sidebar.exe")
-	{
-		; if (g_strCurrentBranch <> "prod")
-		;	FileAppend, NO`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
-		continue
-	}
-	; else
-		; if (g_strCurrentBranch <> "prod")
-		;	FileAppend, YES`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
+	; Insert a menu separator
 
 	intExplorersIndex++
 	objCurrentFolder := Object()
-	objCurrentFolder.Name := strWindowTitle
-	objCurrentFolder.LocationURL := strProcessPath
-	objCurrentFolder.WindowId := strWinIDs%A_Index%
-	objCurrentFolder.WindowType := "APP"
-
 	objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
+
+	; Gather and process running applications
+
+	DetectHiddenWindows, Off
+	WinGet, strWinIDs, List	; Retrieve IDs of all the existing windows
+	DetectHiddenWindows, On ; revert to app default
+
+	/*
+	if (g_strCurrentBranch <> "prod")
+	{
+		strDiagFile := A_WorkingDir . "\" . g_strAppNameFile . "-SWITCH_DIAG.txt"
+		FileDelete, %strDiagFile%
+	}
+	*/
+	Loop, %strWinIDs%
+	{
+		WinGet, strProcessPath, ProcessPath, % "ahk_id " . strWinIDs%A_Index%
+		WinGetTitle, strWindowTitle, % "ahk_id " strWinIDs%A_Index%
+		WinGetClass, strWindowClass, % "ahk_id " strWinIDs%A_Index%
+		WinGetPos, intX, intY, intW, intH, % "ahk_id " strWinIDs%A_Index%
+		
+		if !StrLen(strProcessPath)
+			or !(intW * intH)
+			or !StrLen(strWindowTitle)
+			or (strProcessPath = A_WinDir . "\explorer.exe")
+			or (strProcessPath = g_strDirectoryOpusPath) and (g_intActiveFileManager = 2)
+			or (strProcessPath = A_ProgramFiles . "\Windows Sidebar\sidebar.exe")
+		{
+			; if (g_strCurrentBranch <> "prod")
+			;	FileAppend, NO`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
+			continue
+		}
+		; else
+			; if (g_strCurrentBranch <> "prod")
+			;	FileAppend, YES`t%strProcessPath%`t%strWindowTitle%`t%strWindowClass%`t%strProcessPath%`t%intW%`t%intH%`n, %strDiagFile%
+
+		intExplorersIndex++
+		objCurrentFolder := Object()
+		objCurrentFolder.Name := strWindowTitle
+		objCurrentFolder.LocationURL := strProcessPath
+		objCurrentFolder.WindowId := strWinIDs%A_Index%
+		objCurrentFolder.WindowType := "APP"
+
+		objCurrentFoldersList.Insert(intExplorersIndex, objCurrentFolder)
+	}
 }
 
 ; Build menu
 
 intShortcut := 0
 g_objCurrentFoldersLocationUrlByName := Object()
-g_objCurrentWindowsIdByName := Object()
+
 
 Critical, On
+if (A_ThisLabel <> "RefreshCurrentFolders")
+	and g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP features in at least one menu
+{
+	g_objCurrentWindowsIdByName := Object()
+	Menu, g_menuSwitchFolderOrApp, Add
+	Menu, g_menuSwitchFolderOrApp, DeleteAll
+	if (g_blnUseColors)
+		Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
+}
+
 Menu, g_menuCurrentFolders, Add
 Menu, g_menuCurrentFolders, DeleteAll
-Menu, g_menuSwitchFolderOrApp, Add
-Menu, g_menuSwitchFolderOrApp, DeleteAll
 if (g_blnUseColors)
-{
 	Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
-	Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
-}
 
 if (intExplorersIndex)
 {
@@ -4056,10 +4090,13 @@ for strMenuName, arrMenu in g_objMenusIndex
 }
 Gosub, BuildMainMenuWithStatus
 
+; #####
 ; and rebuild dynamic menus
-Gosub, SetTimerRefreshDynamicMenus
 Gosub, RefreshClipboardMenu
-	
+Gosub, RefreshDrivesMenu
+Gosub, RefreshRecentFoldersMenu
+Gosub, RefreshSwitchFolderOrAppMenu
+
 Gosub, 2GuiClose
 
 g_blnMenuReady := true
@@ -7493,7 +7530,9 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 }
 
 ; #####
-Gosub, RefreshClipboardMenu ; before showing the menu
+; refresh only these dynamic menus before showing the main menu
+Gosub, RefreshClipboardMenu
+Gosub, RefreshSwitchFolderOrAppMenu
 
 Gosub, InsertColumnBreaks
 
