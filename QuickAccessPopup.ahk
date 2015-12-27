@@ -4,7 +4,7 @@
 Quick Access Popup
 Written using AutoHotkey_L v1.1.22+ (http://ahkscript.org/)
 By Jean Lalonde (JnLlnd on AHKScript.org forum)
-	
+
 Based on FoldersPopup from the same author
 https://github.com/JnLlnd/FoldersPopup
 initialy inspired by Robert Ryan's script DirMenu v2 (rbrtryn on AutoHotkey.com forum)
@@ -2339,22 +2339,22 @@ return
 ;------------------------------------------------------------
 SetTimerRefreshDynamicMenus:
 ;------------------------------------------------------------
-/*
+; #####
+
 if g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we have this QAP feature in at least one menu
 {
  	Gosub, RefreshClipboardMenu
-	SetTimer, RefreshClipboardMenu, 15000 ; 5000
+;	SetTimer, RefreshClipboardMenu, 15000 ; 5000
 }
-*/
 if g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have this QAP feature in at least one menu
 {
  	Gosub, RefreshDrivesMenu
-;	SetTimer, RefreshDrivesMenu, 21000 ; 7000
+	SetTimer, RefreshDrivesMenu, 10000 ; 7000
 }
 if g_objQAPfeaturesInMenus.HasKey("{Recent Folders}") ; we have this QAP feature in at least one menu
 {
  	Gosub, RefreshRecentFoldersMenu
-;	SetTimer, RefreshRecentFoldersMenu, 23000 ; 
+	SetTimer, RefreshRecentFoldersMenu, 23000 ; 
 }
 if g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP feature in at least one menu
 {
@@ -2586,6 +2586,7 @@ Loop, parse, strDrivesList
 }
 
 Critical, On
+; #####
 Menu, g_menuDrives, Add
 Menu, g_menuDrives, DeleteAll
 Loop, Parse, strMenuItemsList, `n
@@ -7491,13 +7492,14 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 	Sleep, 20
 }
 
+; #####
 Gosub, RefreshClipboardMenu ; before showing the menu
 
 Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
-Gosub, SetTimerRefreshDynamicMenus ; after showing the menu
+; Gosub, SetTimerRefreshDynamicMenus ; after showing the menu THIS COMMAND BREAKS THE SUBMENU QAP ESSENTIALS !!!
 
 return
 ;------------------------------------------------------------
