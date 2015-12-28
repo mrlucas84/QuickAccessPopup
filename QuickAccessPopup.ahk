@@ -16,7 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- if shortcut to submenu including Clipboard submenu submenu not refreshed
+- Reopen an FTP site in an Explorer window not working if DOpus is the active file manager
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
 - Clipboard menu sometimes empty and no icon: bug in the AHK/Windows interaction, known on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
 
@@ -42,9 +42,11 @@ Version: 6.4.1 beta (2015-12-??)
 - add default hotkey +^W to Switch QAP feature menu (old users must add it themselves)
 - make Recent Folders submenu integrated to the main menu (not a separate menu anymore)
 - refresh Clipboard, Reopen a Folder, and Switch menus at each call to the main menu
+- when submenu called open using its shortcut, check if it contains Clipboard, Reopen a Folder or Switch submenus and, if yes, refresh them
 - abort Clipboard menu refresh if clipboard is too big (> 50 K)
 - refresh Drives and Recent Folders in a background task and when the menu is called by its shortcut
 - add the variable "DynamicMenusRefreshRate=10000" in ini file to set the refresh background task rate in milliseconds (by default 10 seconds)
+- add diag code to save refresh times in the diag ini file (set DiagMode in folderspopup.ini to DiagMode=1)
 - increase vertical distance between Add / Edit / Remove / Copy buttons in Settings
 - create Startup shortcut at first execution (previously, users had to set the "
 - removed debugging code in refresh Switch menu
@@ -519,7 +521,7 @@ if (g_blnUseColors)
 ; not sure it is required to have a physical file with .html extension - but keep it as is by safety
 GetIcon4Location(g_strTempDir . "\default_browser_icon.html", g_strURLIconFile, g_intUrlIconIndex)
 
-Gosub, BuildSwitchFolderOrAppMenuInit ; will be refreshed at each popup menu call
+Gosub, BuildSwitchAndReopenFolderMenusInit ; will be refreshed at each popup menu call
 Gosub, BuildClipboardMenuInit ; will be refreshed at each popup menu call
 
 Gosub, BuildDrivesMenuInit ; will be refreshed by a background task and after each popup menu call
@@ -1485,7 +1487,7 @@ InitQAPFeatures:
 
 ; Submenus features
 InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", 	"+^C")
-InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuCurrentFolders",	"CurrentFoldersMenuShortcut",	0, "iconCurrentFolders", "+^F")
+InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuReopenFolder",	"ReopenFolderMenuShortcut",	0,	"iconCurrentFolders",	"+^F")
 InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch",	"+^W")
 InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
 InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
@@ -2208,7 +2210,7 @@ IfMsgBox, No
 	IniWrite, 0, %g_strIniFile%, Global, DiagMode
 	return
 }
-	
+
 if !FileExist(g_strDiagFile)
 {
 	FileAppend, DateTime`tType`tData`n, %g_strDiagFile%
@@ -2231,6 +2233,11 @@ Diag("IniFile", """" . strIniFileContent . """")
 FileAppend, `n, %g_strDiagFile% ; required when the last line of the existing file ends with "
 
 strIniFileContent := ""
+
+g_intClipboardMenuTickCount := 0
+g_intDrivesMenuTickCount := 0
+g_intRecentFoldersMenuTickCount := 0
+g_intSwitchReopenMenuTickCount := 0
 
 return
 ;------------------------------------------------------------
@@ -2371,6 +2378,14 @@ RefreshBackgroundDynamicMenus:
 Gosub, RefreshRecentFoldersMenu
 Gosub, RefreshDrivesMenu
 
+if (g_blnDiagMode)
+{
+	Diag("Background: Recent/Drives", g_intRecentFoldersMenuTickCount . "`t" . g_intDrivesMenuTickCount)
+	; ToolTip,  % "QAP background refresh: " . g_intRecentFoldersMenuTickCount . " (Recent) + " . g_intDrivesMenuTickCount . " (Drives) = " . g_intRecentFoldersMenuTickCount + g_intDrivesMenuTickCount . " ms", 10, 10
+	; sleep, 5000
+	ToolTip
+}
+
 return
 ;------------------------------------------------------------
 
@@ -2406,7 +2421,7 @@ return
 ;------------------------------------------------------------
 RefreshClipboardMenu:
 ;------------------------------------------------------------
-intStartTickCount := A_TickCount
+intClipboardMenuStartTickCount := A_TickCount
 
 if !g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we don't have this QAP feature in at least one menu
 	or !StrLen(Clipboard) ; clipboard is empty (or contains only binary data
@@ -2416,7 +2431,8 @@ if !g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we don't have this QAP featu
 intShortcutClipboardMenu := 0
 strContentsInClipboard := ""
 
-; Parse Clipboard for folder, document or application filenames (filenames alone on one line)
+; gather info for menu (can be long if large Clipboard) before refreshing the menu with Critical On
+; parse Clipboard for folder, document or application filenames (filenames alone on one line)
 Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 {
 	strClipboardLineExpanded := A_LoopField ; only for FileExistInPath - will not be displayed in menu
@@ -2472,7 +2488,8 @@ strContentsInClipboard := ""
 strClipboardLineExpanded := ""
 strURLSearchString := ""
 
-; TrayTip, Clipboard menu refresh, % A_TickCount - intStartTickCount . " ms"
+g_intClipboardMenuTickCount := A_TickCount - intClipboardMenuStartTickCount
+; TrayTip, Clipboard menu refresh, % g_intClipboardMenuTickCount . " ms"
 return
 ;------------------------------------------------------------
 
@@ -2573,13 +2590,14 @@ RefreshDrivesMenu:
 if !(g_objQAPfeaturesInMenus.HasKey("{Drives}")) ; we don't have this QAP features in at least one menu
 	return
 
-intStartTickCount := A_TickCount
+intDrivesMenuStartTickCount := A_TickCount
 
 intShortcutDrivesMenu := 0
 strMenuItemsList := "" ; menu name|menu item name|label|icon
 
 DriveGet, strDrivesList, List
 
+; gather info for menu (can be long for CD/DVD drives) before refreshing the menu with Critical On
 Loop, parse, strDrivesList
 {
 	strPath := A_LoopField . ":"
@@ -2601,7 +2619,6 @@ Loop, parse, strDrivesList
 }
 
 Critical, On
-; #####
 Menu, g_menuDrives, Add
 Menu, g_menuDrives, DeleteAll
 Loop, Parse, strMenuItemsList, `n
@@ -2624,7 +2641,8 @@ strMenuItemName := ""
 strIcon := ""
 arrMenuItemsList := ""
 
-; TrayTip, Drives menu refresh, % A_TickCount - intStartTickCount . " ms"
+g_intDrivesMenuTickCount := A_TickCount - intDrivesMenuStartTickCount
+; TrayTip, Drives menu refresh, % g_intDrivesMenuTickCount . " ms"
 return
 ;------------------------------------------------------------
 
@@ -2664,7 +2682,7 @@ RefreshRecentFoldersMenu:
 if !(g_objQAPfeaturesInMenus.HasKey("{Recent Folders}")) ; we don't have this QAP features in at least one menu
 	return
 
-intStartTickCount := A_TickCount
+intRecentFoldersMenuStartTickCount := A_TickCount
 
 g_objRecentFolders := Object()
 
@@ -2684,6 +2702,8 @@ for ObjItem in ComObjGet("winmgmts:")
 	.ExecQuery("Select * from Win32_ShortcutFile where path = '" . strWinPathRecent . "'")
 	strDirList .= ObjItem.LastModified . A_Tab . ObjItem.Extension . A_Tab . ObjItem.Target . "`n"
 */
+
+; gather info for menu (can be long if many recent items) before refreshing the menu with Critical On
 
 Loop, %strRecentsFolder%\*.* ; tried to limit to number of recent but they are not sorted chronologically
 	strDirList .= A_LoopFileTimeModified . "`t" . A_LoopFileFullPath . "`n"
@@ -2737,26 +2757,27 @@ strShortcutFullPath := ""
 strTargetPath := ""
 strMenuName := ""
 
-; TrayTip, Drives menu refresh, % A_TickCount - intStartTickCount . " ms"
+g_intRecentFoldersMenuTickCount := A_TickCount - intRecentFoldersMenuStartTickCount
+; TrayTip, RecentFolders menu refresh, % g_intRecentFoldersMenuTickCount . " ms"
 return
 ;------------------------------------------------------------
 
 
 ;------------------------------------------------------------
-BuildSwitchFolderOrAppMenuInit:
+BuildSwitchAndReopenFolderMenusInit:
 ;------------------------------------------------------------
 
-Menu, g_menuCurrentFolders, Add ; create the menu
-Menu, g_menuCurrentFolders, DeleteAll
+Menu, g_menuReopenFolder, Add ; create the menu
+Menu, g_menuReopenFolder, DeleteAll
 Menu, g_menuSwitchFolderOrApp, Add ; create the menu
 Menu, g_menuSwitchFolderOrApp, DeleteAll
 
 if (g_blnUseColors)
 {
-    Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
+    Menu, g_menuReopenFolder, Color, %g_strMenuBackgroundColor%
     Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
 }
-AddMenuIcon("g_menuCurrentFolders", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+AddMenuIcon("g_menuReopenFolder", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
 AddMenuIcon("g_menuSwitchFolderOrApp", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
 
 return
@@ -2764,14 +2785,14 @@ return
 
 
 ;------------------------------------------------------------
-CurrentFoldersMenuShortcut:
+ReopenFolderMenuShortcut:
 ;------------------------------------------------------------
 
-Gosub, RefreshCurrentFolders
+Gosub, RefreshReopenFolderMenu
 
 Gosub, SetMenuPosition
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuCurrentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+Menu, g_menuReopenFolder, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
 return
 ;------------------------------------------------------------
@@ -2793,11 +2814,11 @@ return
 
 ;------------------------------------------------------------
 RefreshSwitchFolderOrAppMenu:
-RefreshCurrentFolders:
-; This command build two menus: "Current Folders" and "Switch Folder or App".
-; The first part of "Switch Folder or App" has the same items as "Current Folders" but with a "switch" command instead of "open".
+RefreshReopenFolderMenu:
+; This command build two menus: "Reopen a Folder" and "Switch".
+; The first part of "Switch" has the same items as "Reopen a Folder" but with a "switch" command instead of "open".
 ;------------------------------------------------------------
-intStartTickCount := A_TickCount
+intSwitchReopenMenuStartTickCount := A_TickCount
 
 if !(g_objQAPfeaturesInMenus.HasKey("{Current Folders}") or g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}"))
 	; we don't have one of these QAP features in at least one menu
@@ -2813,7 +2834,7 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 
 objExplorersWindows := CollectExplorers(ComObjCreate("Shell.Application").Windows)
 
-; Process Explorer windows, DOpus listers and applications windows and keep it in objCurrentFoldersList
+; Process Explorer windows, DOpus listers and applications windows and add it to objFoldersAndAppsList
 
 objFoldersAndAppsList := Object()
 
@@ -2866,7 +2887,7 @@ for intIndex, objFolder in objExplorersWindows
 	objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 }
 
-if (A_ThisLabel <> "RefreshCurrentFolders")
+if (A_ThisLabel <> "RefreshReopenFolderMenu")
 	and g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP features in at least one menu
 {
 	; Insert a menu separator
@@ -2927,24 +2948,19 @@ if (A_ThisLabel <> "RefreshCurrentFolders")
 ; Build menu
 
 intShortcut := 0
-g_objFolderOrAppsLocationUrlByName := Object()
-
+g_objReopenFolderLocationUrlByName := Object()
 
 Critical, On
-if (A_ThisLabel <> "RefreshCurrentFolders")
+if (A_ThisLabel <> "RefreshReopenFolderMenu")
 	and g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP features in at least one menu
 {
-	g_objCurrentWindowsIdByName := Object()
+	g_objSwitchWindowIdsByName := Object()
 	Menu, g_menuSwitchFolderOrApp, Add
 	Menu, g_menuSwitchFolderOrApp, DeleteAll
-	if (g_blnUseColors)
-		Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
 }
 
-Menu, g_menuCurrentFolders, Add
-Menu, g_menuCurrentFolders, DeleteAll
-if (g_blnUseColors)
-	Menu, g_menuCurrentFolders, Color, %g_strMenuBackgroundColor%
+Menu, g_menuReopenFolder, Add
+Menu, g_menuReopenFolder, DeleteAll
 
 if (intWindowsIdIndex)
 {
@@ -2955,14 +2971,15 @@ if (intWindowsIdIndex)
 			Menu, g_menuSwitchFolderOrApp, Add
 		else
 		{
+			; #####
 			strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objFolderOrApp.Name
 			if (objFolderOrApp.WindowType <> "APP")
 			{
-				g_objFolderOrAppsLocationUrlByName.Insert(strMenuName, objFolderOrApp.LocationURL) ; strMenuName can include the numeric shortcut
-				AddMenuIcon("g_menuCurrentFolders", strMenuName, "OpenCurrentFolder", "iconFolder")
+				g_objReopenFolderLocationUrlByName.Insert(strMenuName, objFolderOrApp.LocationURL) ; strMenuName can include the numeric shortcut
+				AddMenuIcon("g_menuReopenFolder", strMenuName, "OpenReopenFolder", "iconFolder")
 			}
 			; ###_V("", strMenuName, objFolderOrApp.WindowType . "|" . objFolderOrApp.WindowId)
-			g_objCurrentWindowsIdByName.Insert(strMenuName, objFolderOrApp.WindowType . "|" . objFolderOrApp.WindowId)
+			g_objSwitchWindowIdsByName.Insert(strMenuName, objFolderOrApp.WindowType . "|" . objFolderOrApp.WindowId)
 			AddMenuIcon("g_menuSwitchFolderOrApp", strMenuName, "OpenSwitchFolderOrApp"
 				, (objFolderOrApp.WindowType = "EX" ? "iconChangeFolder"
 					: (objFolderOrApp.WindowType = "DO" ?  g_strDirectoryOpusRtPath . ",1"
@@ -2974,7 +2991,7 @@ else
 	AddMenuIcon("g_menuSwitchFolderOrApp", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
 if !(blnWeHaveFolders)
-	AddMenuIcon("g_menuCurrentFolders", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
+	AddMenuIcon("g_menuReopenFolder", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
 Critical, Off
 
@@ -2994,7 +3011,8 @@ strWindowTitle := ""
 strWindowClass := ""
 strDiagFile := ""
 
-; TrayTip, Switch menu refresh, % A_TickCount - intStartTickCount . " ms"
+g_intSwitchReopenMenuTickCount := A_TickCount - intSwitchReopenMenuStartTickCount
+; TrayTip, SwitchReopen menu refresh, % g_intSwitchReopenMenuTickCount . " ms"
 return
 ;------------------------------------------------------------
 
@@ -4113,6 +4131,13 @@ Gosub, RefreshDrivesMenu
 Gosub, RefreshRecentFoldersMenu
 Gosub, RefreshSwitchFolderOrAppMenu
 
+if (g_blnDiagMode)
+{
+	Diag("Save Options: Recent/Drives/Clipboard/Switch", g_intRecentFoldersMenuTickCount . "`t" . g_intDrivesMenuTickCount . "`t" . g_intClipboardMenuTickCount . "`t" . g_intSwitchReopenMenuTickCount)
+	; TrayTip, Recent/Drives/Clipboard/Switch menus refresh, % g_intRecentFoldersMenuTickCount . " ms + " . g_intDrivesMenuTickCount . " ms + " . g_intClipboardMenuTickCount . " ms + " . g_intSwitchReopenMenuTickCount
+	;	. " = " . g_intRecentFoldersMenuTickCount + g_intDrivesMenuTickCount + g_intClipboardMenuTickCount + g_intSwitchReopenMenuTickCount . " ms"
+}
+
 Gosub, 2GuiClose
 
 g_blnMenuReady := true
@@ -4581,6 +4606,7 @@ if WindowIsExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass
 		g_strNewLocation := ClipBoard
 		Clipboard := objPrevClipboard ; Restore the original clipboard
 		
+		/*
 		if (g_blnDiagMode)
 		{
 			Diag("Menu", A_ThisLabel)
@@ -4588,6 +4614,7 @@ if WindowIsExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass
 			Diag("Tries", intTries)
 			Diag("AddedFolder", g_strNewLocation)
 		}
+		*/
 	}
 		
 }
@@ -7550,6 +7577,13 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 Gosub, RefreshClipboardMenu
 Gosub, RefreshSwitchFolderOrAppMenu
 
+if (g_blnDiagMode)
+{
+	Diag("Popup menu: Clipboard/Switch",  "`t`t" . g_intClipboardMenuTickCount . "`t" . g_intSwitchReopenMenuTickCount)
+	; TrayTip, Clipboard/Switch menus refresh, % g_intClipboardMenuTickCount . " ms + " . g_intSwitchReopenMenuTickCount
+	;	. " = " . g_intClipboardMenuTickCount + g_intSwitchReopenMenuTickCount . " ms"
+}
+
 Gosub, InsertColumnBreaks
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
@@ -7980,7 +8014,7 @@ OpenSwitchFolderOrApp:
 ;------------------------------------------------------------
 
 strThisMenuItem :=  A_ThisMenuItem
-strWindowId := g_objCurrentWindowsIdByName[strThisMenuItem]
+strWindowId := g_objSwitchWindowIdsByName[strThisMenuItem]
 StringSplit, arrFolderWindowId, strWindowId, |
 ; ###_V(A_ThisLabel, strThisMenuItem, strWindowId, arrFolderWindowId2)
 
@@ -8007,7 +8041,7 @@ OpenFavoriteGroup:
 OpenFavoriteFromGroup:
 OpenFavoriteFromHotkey:
 OpenRecentFolder:
-OpenCurrentFolder:
+OpenReopenFolder:
 OpenClipboard:
 OpenDrives:
 ;------------------------------------------------------------
@@ -8319,11 +8353,22 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 			{
 				g_objThisFavorite := objMenu[A_Index]
 				blnLocationFound := true
-				break
+				break, 2
 			}
-		if (blnLocationFound)
-			break
 	}
+	
+	if (g_objThisFavorite.FavoriteType = "Menu")
+	; if favorite is a submenu, check if some of its items are QAP features needing to be refreshed
+	{
+		objMenu := g_objMenusIndex[lMainMenuName . " " . strThisHotkeyLocation]
+		loop, % objMenu.MaxIndex()
+			if (objMenu[A_Index].FavoriteType = "QAP")
+				if (objMenu[A_Index].FavoriteLocation = "{Clipboard}")
+					Gosub, RefreshClipboardMenu
+				else if InStr("{Switch Folder or App}|{Current Folders}", objMenu[A_Index].FavoriteLocation)
+					Gosub, RefreshSwitchFolderOrAppMenu
+	}
+
 	if !(blnLocationFound) ; should not happen
 	{
 		Oops(lOopsHotkeyNotInMenus, strThisHotkeyLocation, A_ThisHotkey)
@@ -8341,15 +8386,15 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 		return ; active window is on exclusion list
 	}
 }
-else if (g_strOpenFavoriteLabel = "OpenCurrentFolder")
+else if (g_strOpenFavoriteLabel = "OpenReopenFolder")
 {
-	; ###_O(strThisMenuItem . " / " . g_objCurrentFoldersLocationUrlByName[strThisMenuItem], g_objCurrentFoldersLocationUrlByName)
-	If (InStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], "::") = 1) ; A_ThisMenuItem can include the numeric shortcut
+	; ###_O(strThisMenuItem . " / " . g_objReopenFolderLocationUrlByName[strThisMenuItem], g_objReopenFolderLocationUrlByName)
+	If (InStr(g_objReopenFolderLocationUrlByName[strThisMenuItem], "::") = 1) ; A_ThisMenuItem can include the numeric shortcut
 	{
-		strThisMenuItem := SubStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], 3) ; remove "::" from beginning
+		strThisMenuItem := SubStr(g_objReopenFolderLocationUrlByName[strThisMenuItem], 3) ; remove "::" from beginning
 		strFavoriteType := "Special"
 	}
-	else if InStr(g_objCurrentFoldersLocationUrlByName[strThisMenuItem], "ftp://") ; possible with DOpus listers
+	else if InStr(g_objReopenFolderLocationUrlByName[strThisMenuItem], "ftp://") ; possible with DOpus listers
 		strFavoriteType := "FTP"
 	else
 		strFavoriteType := "Folder"
@@ -9193,11 +9238,13 @@ IniRead, strLatestUsedBeta, %g_strIniFile%, Global, LastVersionUsedBeta, 0.0
 
 IniRead, intStartups, %g_strIniFile%, Global, Startups, 1
 
+/*
 if (g_blnDiagMode)
 {
 	Diag("Check4Update strAppLandingPage", strAppLandingPage)
 	Diag("Check4Update strBetaLandingPage", strBetaLandingPage)
 }
+*/
 
 Gui, 1:+OwnDialogs
 
@@ -9325,12 +9372,14 @@ else if (A_ThisMenuItem = lMenuUpdate)
 	MsgBox, 4, % l(lUpdateTitle, g_strAppNameText), % l(lUpdateYouHaveLatest, g_strAppVersion, g_strAppNameText)
 	IfMsgBox, Yes
 	{
+		/*
 		if (g_blnDiagMode)
 		{
 			Diag("Check4Update lMenuUpdate g_strCurrentBranch", g_strCurrentBranch)
 			Diag("Check4Update lMenuUpdate strAppLandingPage", strAppLandingPage)
 			Diag("Check4Update lMenuUpdate strBetaLandingPage", strBetaLandingPage)
 		}
+		*/
 		Run, %strAppLandingPage%
 	}
 }
@@ -10084,12 +10133,14 @@ GetIcon4Location(strLocation, ByRef strDefaultIcon, ByRef intDefaultIcon, blnRad
 	RegRead, strHKeyClassRoot, HKEY_CLASSES_ROOT, .%strExtension%
 	RegRead, strRegistryIconResource, HKEY_CLASSES_ROOT, %strHKeyClassRoot%\DefaultIcon
 	
+	/*
 	if (g_blnDiagMode)
 	{
 		Diag("BuildOneMenuIcon", strLocation)
 		Diag("strHKeyClassRoot", strHKeyClassRoot)
 		Diag("strRegistryIconResource", strRegistryIconResource)
 	}
+	*/
 	
 	if (strRegistryIconResource = "%1") ; use the file itself (for executable)
 	{
@@ -10106,11 +10157,13 @@ GetIcon4Location(strLocation, ByRef strDefaultIcon, ByRef intDefaultIcon, blnRad
 	else
 		ParseIconResource(strRegistryIconResource, strDefaultIcon, intDefaultIcon)
 
+	/*
 	if (g_blnDiagMode)
 	{
 		Diag("strDefaultIcon", strDefaultIcon)
 		Diag("intDefaultIcon", intDefaultIcon)
 	}
+	*/
 }
 ;------------------------------------------------------------
 
