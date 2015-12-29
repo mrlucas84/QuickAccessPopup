@@ -18,7 +18,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 - Reopen an FTP site in an Explorer window not working if DOpus is the active file manager
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
-- Clipboard menu sometimes empty and no icon: bug in the AHK/Windows interaction, known on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
+- Submenus sometimes empty and without icon: bug in the AHK/Windows interaction confirmed on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
 
 TO-DO
 - add Switch to help text and FAQ
@@ -32,7 +32,7 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.4.1 beta (2015-12-??)
+Version: 6.4.1 beta (2015-12-29)
 - new QAP feature "Drives" to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
 - add the Drives QAP ferature to My QAP Essentials (for new users - old usrs must add it themselves)
 - in default popup menu (for new users), move Add this folder QAP feature to main menu, below Settings
