@@ -16,9 +16,12 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- Moving a group from one submenu to another location not updated properly (see c:\temp\bug.txt)
+- Alternative menus not working if numric shorcuts or hotkey reminders are added to the menu name
+- Rebuild Alternative menu after Options changed
 - Reopen an FTP site in an Explorer window not working if DOpus is the active file manager
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
-- Submenus sometimes empty and without icon: bug in the AHK/Windows interaction confirmed on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
+- AHK issue: Submenus sometimes empty and without icon - bug in the AHK/Windows interaction confirmed on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
 
 TO-DO
 - add Switch to help text and FAQ
@@ -31,6 +34,11 @@ TO-DO
 
 HISTORY
 =======
+
+Version: 6.4.2 beta (2015-12-??)
+- add numeric shortcuts to alternative menu
+- fix bug when opening Alternative menu item having a shortcut reminder
+- refresh alternative menu after options saved
 
 Version: 6.4.1 beta (2015-12-29)
 - new QAP feature "Drives" to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
@@ -372,7 +380,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.4.1 beta
+;@Ahk2Exe-SetVersion 6.4.2 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -416,7 +424,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.4.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.4.2" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -3170,9 +3178,11 @@ Loop
 	{
 		strThisHotkey := g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].CurrentHotkey
 		
-		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].LocalizedName
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "")
+			. g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].LocalizedName
 		if (g_intHotkeyReminders > 1) and StrLen(strThisHotkey)
 			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? strThisHotkey : Hotkey2Text(strThisHotkey)) . ")"
+			; hotkey reminder " (...)" will be removed from A_ThisMenuItem in order to flag what alternative menu feature has been activated
 		
 		AddMenuIcon("g_menuAlternative", strMenuName, "OpenAlternativeMenu", g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[A_Index]].DefaultIcon)
 	}
@@ -4123,8 +4133,8 @@ for strMenuName, arrMenu in g_objMenusIndex
 	arrMenu := "" ; free object's memory
 }
 Gosub, BuildMainMenuWithStatus
+Gosub, BuildAlternativeMenu
 
-; #####
 ; and rebuild dynamic menus
 Gosub, RefreshClipboardMenu
 Gosub, RefreshDrivesMenu
@@ -7849,6 +7859,10 @@ OpenAlternativeMenu:
 ;------------------------------------------------------------
 
 g_strAlternativeMenu := A_ThisMenuItem
+if (g_blnDisplayNumericShortcuts)
+	StringTrimLeft, g_strAlternativeMenu, g_strAlternativeMenu, 3 ; remove "&1 " from menu item
+if (g_intHotkeyReminders > 1)
+	g_strAlternativeMenu := SubStr(g_strAlternativeMenu, 1, InStr(g_strAlternativeMenu, " (", -1) - 1) ; and remove hotkey reminder
 
 gosub, OpenAlternativeMenuTrayTip
 gosub, LaunchFromAlternativeMenu
