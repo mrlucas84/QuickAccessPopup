@@ -6157,12 +6157,15 @@ else ; GuiMoveOneFavoriteSave
 			. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
 		RecursiveUpdateMenuPathAndLocation(g_objEditedFavorite, strMenuLocation)
 
-		###_V("before hotkeys update", strPreviousLocation, g_objEditedFavorite.FavoriteLocation)
+		; ###_O("g_objHotkeysByLocation-1", g_objHotkeysByLocation)
+		; ###_V("before hotkeys update", strPreviousLocation, g_objEditedFavorite.FavoriteLocation, g_objHotkeysByLocation[strPreviousLocation])
 		if g_objHotkeysByLocation.HasKey(strPreviousLocation)
 		{
-			g_objHotkeysByLocation.Remove(strPreviousLocation) ; ###### bug when saving favorites
-			g_objHotkeysByLocation.Insert(strMenuLocation, g_objEditedFavorite.FavoriteLocation)
+			StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
+			g_objHotkeysByLocation.Insert(strMenuLocation, g_objHotkeysByLocation[strPreviousLocation])
+			g_objHotkeysByLocation.Remove(strPreviousLocation) ; must be after the g_objHotkeysByLocation.Insert
 		}
+		; ###_O("g_objHotkeysByLocation-2", g_objHotkeysByLocation)
 		
 		; update g_objMenusIndex
 		strIndexToRemove := ""
