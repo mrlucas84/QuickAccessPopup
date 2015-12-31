@@ -191,6 +191,7 @@ global lGuiPasswordNotEncripted := "Note: the password will NOT be encrypted whe
 global lGuiRemoveFavorite := "Remove"
 global lGuiResetDefault := "Reset default hotkey"
 global lGuiSave := "&Save"
+global lGuiSaveToUpdateBacklinks := "Save to update back links" ; new
 global lGuiSubmenuDropdownLabel := "Menu or group to edit:" ; changed
 global lGuiTitle := "Settings - ~1~ ~2~"
 global lHelpTabAddingFavorite := "Adding Favorites" ; changed

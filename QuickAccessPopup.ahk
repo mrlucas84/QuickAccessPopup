@@ -16,9 +16,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- Moving a group from one submenu to another location not updated properly (see c:\temp\bug.txt)
-- Alternative menus not working if numric shorcuts or hotkey reminders are added to the menu name
-- Rebuild Alternative menu after Options changed
+- Reset default button appear in Change Hotkey when there is no default
+- Hotkey to menu favorite show error if menu empty (does not exist)
+- Add favorite, no choice, continue: bug!
 - Reopen an FTP site in an Explorer window not working if DOpus is the active file manager
 - (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
 - AHK issue: Submenus sometimes empty and without icon - bug in the AHK/Windows interaction confirmed on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
@@ -39,6 +39,7 @@ Version: 6.4.2 beta (2015-12-??)
 - add numeric shortcuts to alternative menu
 - fix bug when opening Alternative menu item having a shortcut reminder
 - refresh alternative menu after options saved
+- fix bug when moving multiple submenus or groups from one submenu to another, location was not updated properly
 
 Version: 6.4.1 beta (2015-12-29)
 - new QAP feature "Drives" to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
@@ -6099,7 +6100,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	{
 		strMenuLocation := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
 			. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
-		RecursiveUpdateMenuPath(g_objEditedFavorite.Submenu, strMenuLocation)
+		RecursiveUpdateMenuPathAndLocation(g_objEditedFavorite, strMenuLocation)
 		
 		if (strThisLabel = "GuiEditFavoriteSave")
 		{
@@ -6121,9 +6122,6 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 						g_objMenusIndex.Remove(A_LoopField)
 					
 		}
-		
-		StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
-		g_objEditedFavorite.FavoriteLocation := strMenuLocation
 		; ###_V(A_ThisLabel, strMenuLocation, g_objMenuInGui.MenuPath, g_intOriginalMenuPosition, g_objMenuInGui[g_intOriginalMenuPosition].FavoriteLocation, g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath)
 	}
 	else
@@ -6149,6 +6147,42 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteAppWorkingDir := (f_blnUseDefaultSettings ? "" : f_strFavoriteAppWorkingDir)
 	g_objEditedFavorite.FavoriteLaunchWith := (f_blnUseDefaultSettings ? "" : f_strFavoriteLaunchWith)
 }
+else ; GuiMoveOneFavoriteSave
+	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
+	; for Menu and Group in multiple moved, update the .FavoriteLocation in favorite object and update menus and hotkeys index objects
+	{
+		strPreviousLocation := g_objEditedFavorite.FavoriteLocation ; save it to be able to remove hotkey if there is one for this location
+		
+		strMenuLocation := strDestinationMenu . " " . g_strMenuPathSeparator . " " . g_objEditedFavorite.FavoriteName
+			. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
+		RecursiveUpdateMenuPathAndLocation(g_objEditedFavorite, strMenuLocation)
+
+		###_V("before hotkeys update", strPreviousLocation, g_objEditedFavorite.FavoriteLocation)
+		if g_objHotkeysByLocation.HasKey(strPreviousLocation)
+		{
+			g_objHotkeysByLocation.Remove(strPreviousLocation) ; ###### bug when saving favorites
+			g_objHotkeysByLocation.Insert(strMenuLocation, g_objEditedFavorite.FavoriteLocation)
+		}
+		
+		; update g_objMenusIndex
+		strIndexToRemove := ""
+		for strThisMenuIndexPath, objThisMenu in g_objMenusIndex
+		{
+			if (strThisMenuIndexPath <> objThisMenu.MenuPath)
+			; because the menu (or group) name changed, update the menu path of this menu and submenus entries in g_objMenusIndex
+			{
+				; add index item objThisMenu.MenuPath containing the new path
+				g_objMenusIndex.Insert(objThisMenu.MenuPath, objThisMenu)
+				; remember to delete index entry with old path (remove only after loop because remove would break it)
+				strIndexToRemove .= strThisMenuIndexPath . "|"
+			}
+		}
+		if StrLen(strIndexToRemove)
+			Loop, Parse, strIndexToRemove, |
+				; remove index entry containing path before rename
+				if StrLen(A_LoopField) ; skip last field
+					g_objMenusIndex.Remove(A_LoopField)
+	}
 
 ; updating original and destination menu objects (these can be the same)
 
@@ -6194,7 +6228,6 @@ if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if 
 		strThisLocation := g_strMenuPathSeparator
 	else if (g_objEditedFavorite.FavoriteType = "Group")
 		strThisLocation := g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix
-
 	else
 		strThisLocation := g_objEditedFavorite.FavoriteLocation
 	
@@ -6238,6 +6271,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave") ; do not execute at each favorite 
 	strThisMenuIndexPath := ""
 	objThisMenu := ""
 	strHttpLocationTransformed := ""
+	strPreviousLocation := ""
 
 	; make sure all gui variables are flushed before next fav add or edit
 	Gosub, GuiAddFavoriteFlush
@@ -6284,25 +6318,32 @@ return
 
 
 ;------------------------------------------------------------
-RecursiveUpdateMenuPath(objEditedMenu, strMenuPath)
+RecursiveUpdateMenuPathAndLocation(objEditedFavorite, strMenuPath)
+; update submenus and their childrens and groups to the new path of the parent menu
 ;------------------------------------------------------------
 {
 	global g_strMenuPathSeparator
 	global g_strGroupIndicatorPrefix
 	global g_strGroupIndicatorSuffix
 	
-	Loop, % objEditedMenu.MaxIndex()
+	objEditedFavorite.SubMenu.MenuPath := strMenuPath
+	StringReplace, strMenuLocation, strMenuPath, %lMainMenuName%%A_Space% ; menu path without main menu localized name
+	objEditedFavorite.FavoriteLocation := strMenuLocation
+	
+	Loop, % objEditedFavorite.SubMenu.MaxIndex()
 	{
-		objEditedMenu.MenuPath := strMenuPath ; update only path regardless .MenuType "Menu" or "Group"
-		
 		; skip ".." back link to parent menu
-		if (objEditedMenu[A_Index].FavoriteType = "B")
+		if (objEditedFavorite.SubMenu[A_Index].FavoriteType = "B")
+		{
+			; known limit: back links of submenus and groups will only be updated when the favorites will be reloaded from ini file
+			objEditedFavorite.SubMenu[A_Index].FavoriteName := lGuiSaveToUpdateBacklinks
 			continue
+		}
 		
-		if InStr("Menu|Group", objEditedMenu[A_Index].FavoriteType)
-			RecursiveUpdateMenuPath(objEditedMenu[A_Index].SubMenu
-				, objEditedMenu.MenuPath . " " . g_strMenuPathSeparator . " " . objEditedMenu[A_Index].FavoriteName
-				. (objEditedMenu[A_Index].FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "") ) ; RECURSIVE
+		if InStr("Menu|Group", objEditedFavorite.SubMenu[A_Index].FavoriteType)
+			RecursiveUpdateMenuPathAndLocation(objEditedFavorite.SubMenu[A_Index]
+				, objEditedFavorite.SubMenu.MenuPath . " " . g_strMenuPathSeparator . " " . objEditedFavorite.SubMenu[A_Index].FavoriteName
+				. (objEditedFavorite.SubMenu[A_Index].FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "") ) ; RECURSIVE
 	}
 }
 ;------------------------------------------------------------
