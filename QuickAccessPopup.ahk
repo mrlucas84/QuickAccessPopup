@@ -16,15 +16,10 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- Reset default button appear in Change Hotkey when there is no default
-- Hotkey to menu favorite show error if menu empty (does not exist)
-- Add favorite, no choice, continue: bug!
-- Reopen an FTP site in an Explorer window not working if DOpus is the active file manager
-- (added 2015-11-12, seen 2015-12-14 but could not reproduce: username/password in FTP favoritews lost)
 - AHK issue: Submenus sometimes empty and without icon - bug in the AHK/Windows interaction confirmed on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
 
 TO-DO
-- add Switch to help text and FAQ
+- add Switch to FAQ
 - update startup instructions in website
 - check Recent folders with network drives
 - add QAP feature "Add this folder Express" (see this item in wishlist)
@@ -35,11 +30,14 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.4.2 beta (2015-12-??)
+Version: 6.4.2 beta (2015-12-31)
 - add numeric shortcuts to alternative menu
 - fix bug when opening Alternative menu item having a shortcut reminder
 - refresh alternative menu after options saved
 - fix bug when moving multiple submenus or groups from one submenu to another, location was not updated properly
+- fix bug hotkey to menu showing error if menu empty
+- fix bug when trying to add favorite without selecting a favorite type
+- remove support for FTP sites in Reopen menu (still supported in Switch menu)
 
 Version: 6.4.1 beta (2015-12-29)
 - new QAP feature "Drives" to show a menu listing drives on the system with label, free space, capacity and icon showing the drive type
@@ -2980,9 +2978,8 @@ if (intWindowsIdIndex)
 			Menu, g_menuSwitchFolderOrApp, Add
 		else
 		{
-			; #####
 			strMenuName := (g_blnDisplayNumericShortcuts and (intShortcut <= 35) ? "&" . NextMenuShortcut(intShortcut) . " " : "") . objFolderOrApp.Name
-			if (objFolderOrApp.WindowType <> "APP")
+			if (objFolderOrApp.WindowType <> "APP") and !InStr(strMenuName, "ftp:") ; do not support reopen for FTP sites (Explorer reports "ftp:\\" DOpus "ftp://")
 			{
 				g_objReopenFolderLocationUrlByName.Insert(strMenuName, objFolderOrApp.LocationURL) ; strMenuName can include the numeric shortcut
 				AddMenuIcon("g_menuReopenFolder", strMenuName, "OpenReopenFolder", "iconFolder")
@@ -3071,7 +3068,7 @@ CollectDOpusListersList(strList)
 			objLister.LocationURL := SubStr(strSubStr, InStr(strSubStr, ">") + 1)
 			
 			objLister.Name := ComUnHTML(objLister.LocationURL) ; convert HTML entities to text (like "&apos;")
-
+			
 			WinGetPos, intX, intY, intW, intH, % "ahk_id " . objLister.lister
 			objLister.Position := intX . "|" . intY . "|" . intW . "|" . intH
 			WinGet, intMinMax, MinMax, % "ahk_id " . objLister.lister
@@ -3082,7 +3079,7 @@ CollectDOpusListersList(strList)
 				; Swith Explorer to DOpus FTP folder not supported (see https://github.com/JnLlnd/FoldersPopup/issues/84)
 				
 			objListers.Insert(A_Index, objLister)
-				
+			
 			strList := SubStr(strList, StrLen(strSubStr))
 		}
 	} until	(!StrLen(strSubStr))
@@ -4498,7 +4495,7 @@ FavoriteSelectTypeRadioButtonsChanged:
 Gui, 2:Submit, NoHide
 
 if (g_arrFavoriteTypes%f_intRadioFavoriteType% = "QAP")
-	GuiControl, , f_lblAddFavoriteTypeHelp, % L(g_objFavoriteTypesHelp["QAP"], lMenuRecentFolders, lMenuCurrentFolders, lMenuAddThisFolder, lMenuClipboard, lMenuSettings)
+	GuiControl, , f_lblAddFavoriteTypeHelp, % L(g_objFavoriteTypesHelp["QAP"], lMenuSwitchFolderOrApp, lMenuRecentFolders, lMenuCurrentFolders, lMenuClipboard, lMenuAddThisFolder)
 else
 	GuiControl, , f_lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[g_arrFavoriteTypes%f_intRadioFavoriteType%]
 
@@ -4515,6 +4512,12 @@ GuiAddFavoriteSelectTypeContinue:
 Gui, 2:Submit, NoHide
 
 ; GuiControl, , f_lblAddFavoriteTypeHelp, % g_objFavoriteTypesHelp[] ; OUT OK?
+
+if !(f_intRadioFavoriteType)
+{
+	Oops(lDialogFavoriteSelectType, lDialogContinue)
+	return
+}
 
 g_strAddFavoriteType := g_arrFavoriteTypes%f_intRadioFavoriteType%
 
@@ -7905,7 +7908,7 @@ OpenAlternativeMenu:
 g_strAlternativeMenu := A_ThisMenuItem
 if (g_blnDisplayNumericShortcuts)
 	StringTrimLeft, g_strAlternativeMenu, g_strAlternativeMenu, 3 ; remove "&1 " from menu item
-if (g_intHotkeyReminders > 1)
+if (g_intHotkeyReminders > 1) and InStr(g_strAlternativeMenu, " (")
 	g_strAlternativeMenu := SubStr(g_strAlternativeMenu, 1, InStr(g_strAlternativeMenu, " (", -1) - 1) ; and remove hotkey reminder
 
 gosub, OpenAlternativeMenuTrayTip
@@ -8416,15 +8419,23 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 	}
 	
 	if (g_objThisFavorite.FavoriteType = "Menu")
-	; if favorite is a submenu, check if some of its items are QAP features needing to be refreshed
+	; if favorite is a submenu, check if it is empty or if some of its items are QAP features needing to be refreshed
 	{
 		objMenu := g_objMenusIndex[lMainMenuName . " " . strThisHotkeyLocation]
-		loop, % objMenu.MaxIndex()
-			if (objMenu[A_Index].FavoriteType = "QAP")
-				if (objMenu[A_Index].FavoriteLocation = "{Clipboard}")
-					Gosub, RefreshClipboardMenu
-				else if InStr("{Switch Folder or App}|{Current Folders}", objMenu[A_Index].FavoriteLocation)
-					Gosub, RefreshSwitchFolderOrAppMenu
+		if objMenu.MaxIndex() > 1 ; has more that the backlink entry
+		{
+			loop, % objMenu.MaxIndex()
+				if (objMenu[A_Index].FavoriteType = "QAP")
+					if (objMenu[A_Index].FavoriteLocation = "{Clipboard}")
+						Gosub, RefreshClipboardMenu
+					else if InStr("{Switch Folder or App}|{Current Folders}", objMenu[A_Index].FavoriteLocation)
+						Gosub, RefreshSwitchFolderOrAppMenu
+		}
+		else
+		{
+			Oops(lMenuMenu . """" . g_objThisFavorite.FavoriteName . """" . lOopsEmpty)
+			g_objThisFavorite := ""
+		}
 	}
 
 	if !(blnLocationFound) ; should not happen
@@ -9656,8 +9667,9 @@ GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f
 
 Gui, 2:Tab, 3
 Gui, 2:Add, Link, w%intWidth%, % lHelpText31
-Gui, 2:Add, Link, w%intWidth%, % lHelpText32
-Gui, 2:Add, Link, w%intWidth%, % L(lHelpText33, Hotkey2Text(g_objHotkeysByLocation["{Settings}"]))
+Gui, 2:Add, Link, w%intWidth% y+3, % lHelpText32
+Gui, 2:Add, Link, w%intWidth%, % lHelpText33
+Gui, 2:Add, Link, w%intWidth% y+3, % L(lHelpText34, Hotkey2Text(g_objHotkeysByLocation["{Settings}"]))
 Gui, 2:Add, Button, y+25 vf_btnNext3 gNextHelpButtonClicked, %lDialogTabNext%
 GuiCenterButtons(L(lHelpTitle, g_strAppNameText, g_strAppVersion), 10, 5, 20, "f_btnNext3")
 
