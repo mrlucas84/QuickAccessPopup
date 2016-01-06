@@ -12,6 +12,7 @@ lDiagModeCaution	O ~1~ está sendo executado no modo de diagnóstico.`n`nSerão col
 lDiagModeExit	O ~1~ coletou informações de diagnóstico para o arquivo ~2~.
 lDiagModeIntro	Envie este arquivo para ahk@jeanlalonde.ca com uma descrição da situação que exige diagnóstico.
 lDiagModeSee	Deseja ver o arquivo de diagnóstico?
+lDialogActivateAlreadyRunning	Se o aplicativo já está em execução, ative-o em vez de iniciá-lo`n(o aplicativo deve estar exatamente no mesmo local)
 lDialogAdd	Adicionar
 lDialogAddEditFavoriteTitle	~1~ Favorito: ~4~ - ~2~ ~3~
 lDialogAddFavoriteSelectTitle	Adicionar Favorito - ~1~ ~2~
@@ -190,6 +191,7 @@ lGuiPasswordNotEncripted	Nota: a senha NÃO será criptografada ao ser enviada pel
 lGuiRemoveFavorite	Remover
 lGuiResetDefault	Redefinir tecla de atalho padrão
 lGuiSave	&Salvar
+lGuiSaveToUpdateBacklinks	Salvar para atualizar links
 lGuiSubmenuDropdownLabel	Menu ou grupo para editar:
 lGuiTitle	Configurações - ~1~ ~2~
 lHelpTabAddingFavorite	Adicionando Favoritos
@@ -204,7 +206,7 @@ lHelpText21	Para adicionar favoritos, na janela "Configurações", clique no botão
 lHelpText22	Nas quatro abas da caixa de diálogo "Adicionar favorito", entre as "Configurações Básicas", "Opções de Menu", "Opções da Janela" e "Configurações Avançadas". Clique "Adicionar" para inserir o favorito em seu menu e "Salvar" na janela de Configurações.
 lHelpText23	ADICIONAR ESTA PASTA`n`nPara ADICIONAR rapidamente uma nova PASTA favorita ao menu popup:`n1) Vá até um a pasta usaa com frequência.`n2) Clique na tecla de atalho do QAP [~1~] ou [~2~], escolha o menu "Meus Essenciais do QAP" e clique "Adicionar Esta Pasta".`n3) Dê um nome curto para a pasta, clique "Adicionar", então "Salvar" na janela Configurações.
 lHelpText31	No menu "Meus Essenciais do QAP":
-lHelpText32	- Escolha o menu "Pastas recentes..." para exibir uma lista atualizada das pastas recentes do Windows.`n- Use o menu "Reusar uma Pasta Aberta" para reabrir uma das pastas já abertas em uma janela do Explorer (muito útil em caixas de diálogo de arquivo).`n- Acesse os arquivos ou URLs na sua Área de Transferência com o menu "Área de Transferência".
+lHelpText32	- Acesse o menu "Alterar..." para mudar para qualquer outra janela do Explorer ou aplicativo em execução.`n- Use o menu "Reabrir Pasta" para reabrir uma das pastas já abertas em uma janela do Explorer (muito útil em caixas de diálogo de arquivo).`n- Escolha o menu "Pastas recentes..." para exibir uma lista atualizada das pastas recentes do Windows.`n- Acesse os arquivos ou URLs em sua Área de Transferência pelo menu "Área de Transferência".`n- Clique no menu "Discos" para ver a lista de unidades com o espaço em disco atual.
 lHelpText33	PERSONALIZE O MENU DE RECURSOS DO QAP
 lHelpText34	Você pode mover os itens do menu "Meus Essenciais do QAP" para o menu principal ou outros submenus como desejar.`n`n1) Selecione o menu "Configurações" (ou aperte [~1~]).`n2) Na lista suspensa "Menu ou grupo para editar:", selecione "Principal > Meus Essenciais do QAP".`n3) Selecione o recurso do QAP para mover e clique "Editar".`n4) Na aba "Opções do Menu", selecione o novo "Menu Pai do Favorito".`n5) Salve suas alterações.
 lHelpText41	- Use o ícone do Quick Access Popup no menu da Área de Notificação (canto inferior direito da tela do Windows) em uma destas 3 maneiras:`n1) Clique esquerdo no ícone para abrir o menu popup do QAP`n2) Clique direito no ícone para abir o menu de sistema do QAP.`n3) Clique duplo no ícone para abrir a caixa de diálogo "Configurações".
@@ -230,9 +232,11 @@ lMenuCommonStartMenu	Menu Iniciar Comum
 lMenuCommonStartupMenu	Menu Inicializar Comum
 lMenuCookies	Cookies
 lMenuCopyLocation	Copiar Caminho ou URL do Favorite
-lMenuCurrentFolders	Pastas Atuais
+lMenuCurrentFolders	Reabrir Pasta
 lMenuDesktop	Área de Trabalho
 lMenuDownloads	Downloads
+lMenuDrives	Discos
+lMenuDrivesSpace	(~1~ GB livre(s) / ~2~ GB)
 lMenuEditIniFile	Editar ~1~
 lMenuExitApp	Sair do ~1~
 lMenuFavoritesInternet	Favoritos (Internet)
@@ -260,6 +264,7 @@ lMenuSettings	Configurações
 lMenuStartMenu	Menu Iniciar
 lMenuStartup	Inicialização
 lMenuSuspendHotkeys	Teclas de Atalho de Suspensão
+lMenuSwitchFolderOrApp	Alterar
 lMenuSystemCertificates	Certificados do Sistema
 lMenuTemplates	Modelos
 lMenuTemporaryFiles	Arquivos Temporários
@@ -270,6 +275,7 @@ lNavigateFileError	Ocorreu um erro ao abrir a pasta:`n~1~.
 lNavigateSpecialError	Ocorreu um erro ao abrir a pasta especial #~1~.
 lOopsCannotCopyFavorite	Favoritos do tipo "~1~" não podem ser copiados.
 lOopsCouldNotOpenSpecialFolder	O ~1~ não pôde abrir a pasta especial: "~2~".
+lOopsEmpty	vazio
 lOopsFtpLocationProtocol	O local FTP deve começar com "ftp://".
 lOopsGroup	grupo
 lOopsHotkeyAlreadyUsed	A tecla de atalho "~1~" já está em uso por ~2~.`n`nPor favor, escolha outra tecla para ~3~.

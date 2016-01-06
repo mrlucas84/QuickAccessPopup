@@ -12,6 +12,7 @@ lDiagModeCaution	~1~ roule en mode de diagnostique.`n`nDes renseignements à prop
 lDiagModeExit	~1~ a colligé des renseignements à des fins de diagnostique dans le fichier ~2~.
 lDiagModeIntro	Envoyez ce fichier à ahk@jeanlalonde.ca avec une description de la situation nécessitant un diasnostique.
 lDiagModeSee	Voulez-vous consulter le fichier de diagnostique?
+lDialogActivateAlreadyRunning	Si l'application est déjà lancée, l'activer au lieu de la relancer`n(l'application doit avoir exactement le même emplacement)
 lDialogAdd	Ajouter
 lDialogAddEditFavoriteTitle	~1~ un favori - ~2~ ~3~
 lDialogAddFavoriteSelectTitle	Ajouter un favori - ~1~ ~2~
@@ -190,6 +191,7 @@ lGuiPasswordNotEncripted	Note: Le mot de passe ne sera PAS encrypté lorsqu'il se
 lGuiRemoveFavorite	Supprimer
 lGuiResetDefault	Restaurer le raccourci par défaut
 lGuiSave	Enregistrer
+lGuiSaveToUpdateBacklinks	Enregistrer pour mettre à jour les liens de retour
 lGuiSubmenuDropdownLabel	Menu à modifier:
 lGuiTitle	Paramètres - ~1~ ~2~
 lHelpTabAddingFavorite	Ajouter des favoris
@@ -204,7 +206,7 @@ lHelpText21	Pour ajouter des favoris, dans la fenêtre "Réglages", cliquez sur le
 lHelpText22	Dans les quatre onglets de la boîte de dialogue "Ajouter un favori", entrez les "Réglages de base", "Options du menu", "Options de fenêtres" et "Réglages avancés". Cliquez sur "Ajouterpour insérer le favori dans votre menu et sur "Enregistrer" dans la fenêtre "Réglages".
 lHelpText23	AJOUTER CE DOSSIER`n`nPour AJOUTER rapidement un nouveau DOSSIER favori au menu:`n1) Ouvrez un dossier souvent consulté.`n2) Appuyez sur [~1~] ou [~2~], choisissez le menu "Mes Fonctions QAP" et cliquez sur "Ajouter ce dossier".`n3) Donnez au menu un nom court, cliquez sur "Ajouter", puis sur "Enregistrer" dans la fenêtre "Réglages".
 lHelpText31	Dans le menu "Mes Fonctions QAP":
-lHelpText32	- Choisissez le menu "Dossiers récents..." pour afficher une liste des dossiers récents de Windows.`n- Utilisez le menu "Réutiliser un dossier ouvert" pour rouvrir un des dossiers déjà ouvert dans l'Explorateur de fichiers (très utilie dans une boîte de dialogue de fichier).`n- Ouvrez un emplacement de fichier ou un site web dont l'adresse est dans votre Presse-Papiers avec le menu "Presse-papiers".
+lHelpText32	- Cliquez "Basculer" pour basculer vers n'importe quelle fenêtre de l'Explorateur ou d'application.`n- Utilisez le menu "Réutiliser un dossier" pour rouvrir un des dossiers déjà ouvert dans l'Explorateur de fichiers (très utilie dans une boîte de dialogue de fichier).`n- Choisissez le menu "Dossiers récents..." pour afficher une liste des dossiers récents de Windows.`n- Ouvrez un emplacement de fichier ou un site web dont l'adresse est dans votre Presse-Papiers avec le menu "Presse-papiers".`n- Cliquez sur le menu "Disques" pour voir la liste des lecteurs et leur capacité actuelle.
 lHelpText33	PERSONNALISEZ VOTRE MENU DES FONCTIONS QAP
 lHelpText34	Vous pouvez déplacer les rubriques du menu "Mes fonctions QAP" vers le menu principal ou d'autres sous-menus. `n`n1) Sélectionnez le menu "Réglages" (ou appuyez sur [~1~]).`n2) Dans la liste déroulante "Menu ou groupe à modifier:", sélectionnez "Principal > Mes Fonctions QAP".`n3) Sélectionnez la fonction QAP à déplacer et cliquez "Modifier".`n4) Dans l'onglet "Options de menu", sélectionnez "Insérer le nouveau favori dans ce menu".`n5) Enregistrez vos changements.
 lHelpText41	- Utilisez l'icône de Quick Access Popup dans la zone de Notification (en bas à droite de l'écran de Windows) de l'une des trois façons suivantes:`n1) Cliquez l'icône avec le bouton de gauche pour afficher le menu popup de QAP.`n2) Cliquez avec le bouton de droite pour ouvrir le menu système de QAP.`n3) Double-cliquez l'icône pour afficher la fenêtre "Réglages".
@@ -230,9 +232,11 @@ lMenuCommonStartMenu	Menu Démarrer (commun)
 lMenuCommonStartupMenu	Démarrage (commun)
 lMenuCookies	Cookies
 lMenuCopyLocation	Copier l'emplacement d'un favori
-lMenuCurrentFolders	Rouvrir un des dossiers actifs
+lMenuCurrentFolders	Réutiliser un dossier
 lMenuDesktop	Bureau
 lMenuDownloads	Téléchargements
+lMenuDrives	Disques
+lMenuDrivesSpace	(~1~ GB libres / ~2~ GB)
 lMenuEditIniFile	Modifier ~1~
 lMenuExitApp	Quitter ~1~
 lMenuFavoritesInternet	Favoris (Internet)
@@ -260,6 +264,7 @@ lMenuSettings	Paramètres
 lMenuStartMenu	Menu Démarrer
 lMenuStartup	Démarrage
 lMenuSuspendHotkeys	Suspendre les déclencheurs (Hotkeys)
+lMenuSwitchFolderOrApp	Basculer
 lMenuSystemCertificates	Certificats système
 lMenuTemplates	Modèles
 lMenuTemporaryFiles	Fichiers temporaires
@@ -270,6 +275,7 @@ lNavigateFileError	Une erreur s'est produite lors de l'ouverture du dossier:`n~1
 lNavigateSpecialError	Une erreur s'est produite lors de l'ouverture du dossier spécial #~1~.
 lOopsCannotCopyFavorite	Les favoris de type "~1~" ne peuvent pas être copiés.
 lOopsCouldNotOpenSpecialFolder	~1~ ne peut ouvrir le dossier spécial: "~2~".
+lOopsEmpty	vide
 lOopsFtpLocationProtocol	L'emplacement d'un site FTP doit débuter par "ftp://".
 lOopsGroup	groupe
 lOopsHotkeyAlreadyUsed	Le raccourci "~1~" est déjà utilisé pour l'emplacement ~2~.`n`nVeuillez choisis un autre raccourci pour ~3~.
