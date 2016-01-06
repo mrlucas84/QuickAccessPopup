@@ -19,8 +19,6 @@ BUGS
 - AHK issue: Submenus sometimes empty and without icon - bug in the AHK/Windows interaction confirmed on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
 
 TO-DO
-- add Switch to FAQ
-- update startup instructions in website
 - check Recent folders with network drives
 - add QAP feature "Add this folder Express" (see this item in wishlist)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
@@ -29,6 +27,12 @@ TO-DO
 
 HISTORY
 =======
+
+Version: 6.4.3 beta (2016-01-??)
+- fix bug numeric shortcuts in submenu now always begin at 0
+- fix bug icon not set properly when saving after edit favorite
+- Addition of browsers to QAPconnect.ini list: ExplorerXP (v1.07), Far Manager (v3.0.4040), IrfanView (v4.38), SpeedCommander (v15.40.7700), Tablacus Explorer (v14.12.30), WinNC (v6.5) and XnView (v2.25)
+  (thanks to Roland Toth (tpr) for his help maintaining these settings - https://github.com/rolandtoth)
 
 Version: 6.4.2 beta (2015-12-31)
 - add numeric shortcuts to alternative menu
@@ -379,7 +383,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.4.2 beta
+;@Ahk2Exe-SetVersion 6.4.3 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -423,7 +427,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.4.2" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.4.3" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -2465,6 +2469,11 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 	; Parse Clipboard line for URLs (anywhere on the line)
 	strURLSearchString := A_LoopField
 	Gosub, GetURLsInClipboardLine
+	
+	; #### DEBUGGING CODE NOT COMPILED ONLY
+	if (A_TickCount > intClipboardMenuStartTickCount + 200) and !(A_IsCompiled)
+		Oops("Error while refreshing the Clipboard menu. Check Clipboard content...")
+
 }
 
 if StrLen(strContentsInClipboard)
@@ -2869,6 +2878,10 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 		objFolderOrApp.WindowType := "DO"
 		
 		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
+		
+		; #### DEBUGGING CODE NOT COMPILED ONLY
+		if (A_TickCount > intSwitchReopenMenuStartTickCount + 200) and !(A_IsCompiled)
+			Oops("Error while refreshing the Switch menu (Process DOpus listers) . Check DOpus listers open...")
 	}
 
 ; Process Explorer windows
@@ -2892,6 +2905,10 @@ for intIndex, objFolder in objExplorersWindows
 	objFolderOrApp.WindowType := "EX"
 
 	objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
+		
+	; #### DEBUGGING CODE NOT COMPILED ONLY
+	if (A_TickCount > intSwitchReopenMenuStartTickCount + 200) and !(A_IsCompiled)
+		Oops("Error while refreshing the Switch menu (Process Explorer windows) . Check Explorer windows...")
 }
 
 if (A_ThisLabel <> "RefreshReopenFolderMenu")
@@ -2949,6 +2966,10 @@ if (A_ThisLabel <> "RefreshReopenFolderMenu")
 		objFolderOrApp.WindowType := "APP"
 
 		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
+		
+		; #### DEBUGGING CODE NOT COMPILED ONLY
+		if (A_TickCount > intSwitchReopenMenuStartTickCount + 200) and !(A_IsCompiled)
+			Oops("Error while refreshing the Switch menu (Gather and process running applications) . Check Explorer or DOpus...")
 	}
 }
 
@@ -2991,6 +3012,10 @@ if (intWindowsIdIndex)
 					: (objFolderOrApp.WindowType = "DO" ?  g_strDirectoryOpusRtPath . ",1"
 					: objFolderOrApp.LocationURL . ",1")))
 		}
+		
+		; #### DEBUGGING CODE NOT COMPILED ONLY
+		if (A_TickCount > intSwitchReopenMenuStartTickCount + 200) and !(A_IsCompiled)
+			Oops("Error while refreshing the Switch menu (Build menu) . Check Switch content...")
 	}
 }
 else
@@ -3266,6 +3291,9 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	
 	Loop, % objCurrentMenu.MaxIndex()
 	{	
+		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
+			continue
+		
 		intMenuItemsCount++ ; for objMenuColumnBreak
 		
 		if StrLen(objCurrentMenu[A_Index].FavoriteName)
@@ -3276,9 +3304,6 @@ RecursiveBuildOneMenu(objCurrentMenu)
 		
 		if (g_intHotkeyReminders > 1) and g_objHotkeysByLocation.HasKey(objCurrentMenu[A_Index].FavoriteLocation)
 			strMenuName .= " (" . (g_intHotkeyReminders = 2 ? g_objHotkeysByLocation[objCurrentMenu[A_Index].FavoriteLocation] : Hotkey2Text(g_objHotkeysByLocation[objCurrentMenu[A_Index].FavoriteLocation])) . ")"
-		
-		if (objCurrentMenu[A_Index].FavoriteType = "B") ; skip back link
-			continue
 		
 		if (objCurrentMenu[A_Index].FavoriteType = "Menu")
 		{
@@ -4723,6 +4748,8 @@ blnIsGroupMember := InStr(g_objMenuInGui.MenuPath, g_strGroupIndicatorPrefix)
 
 Gosub, GuiFavoriteTabBasic
 
+Gosub, GuiFavoriteIconDefault ; init default icon now that f_strFavoriteLocation has been set in the Basic tab
+
 Gosub, GuiFavoriteTabMenuOptions
 
 Gosub, GuiFavoriteTabWindowOptions
@@ -4923,7 +4950,7 @@ else ; add favorite
 	}
 }
 
-Gosub, GuiFavoriteIconDefault
+; Gosub, GuiFavoriteIconDefault DO NOT INIT DEFAULT ICON HERE BECAUSE WE NEED f_strFavoriteLocation TO BE SET BEFORE WHEN CREATING THE 1ST TAB
 
 intX := ""
 intY := ""
@@ -5530,7 +5557,7 @@ ParseIconResource(strExpandedIconRessource, strThisIconFile, intThisIconIndex)
 GuiControl, , f_picIcon, *icon%intThisIconIndex% %strThisIconFile%
 GuiControl, % (strExpandedRessourceIcon <> EnvVars(g_strDefaultIconResource) ? "Show" : "Hide"), f_lblRemoveIcon
 
-strThisFolder := (StrLen(f_strFavoriteLocation)? PathCombine(A_WorkingDir, EnvVars(f_strFavoriteLocation)) : "")
+strThisFolder := (g_objEditedFavorite.FavoriteType = "Folder" and StrLen(f_strFavoriteLocation) ? PathCombine(A_WorkingDir, EnvVars(f_strFavoriteLocation)) : "")
 blnThisDesktopIniExist := (StrLen(strThisFolder) ? FileExist(strThisFolder . "\desktop.ini") : false)
 strCurrentDesktopIcon := (StrLen(strThisFolder) ? GetFolderIcon(strThisFolder) : "")
 
