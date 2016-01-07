@@ -31,6 +31,7 @@ HISTORY
 Version: 6.4.3 beta (2016-01-??)
 - fix bug numeric shortcuts in submenu now always begin at 0
 - fix bug icon not set properly when saving after edit favorite
+- fix bug when setting alternative menu item hotkey to none, hotkey was not disabled before reboot of QAP
 - Addition of browsers to QAPconnect.ini list: ExplorerXP (v1.07), Far Manager (v3.0.4040), IrfanView (v4.38), SpeedCommander (v15.40.7700), Tablacus Explorer (v14.12.30), WinNC (v6.5) and XnView (v2.25)
   (thanks to Roland Toth (tpr) for his help maintaining these settings - https://github.com/rolandtoth)
 
@@ -1715,20 +1716,6 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 			DynamicMenusRefreshRate=10000
 			AvailableThemes=Windows|Grey|Light Blue|Light Green|Light Red|Yellow
 			Theme=Windows
-			[Favorites]
-			Favorite1=Folder|C:\|C:\
-			Favorite2=Folder|Windows|%A_WinDir%
-			Favorite3=Folder|Program Files|%A_ProgramFiles%
-			Favorite4=Folder|User Profile|`%USERPROFILE`%
-			Favorite5=Application|Notepad|%A_WinDir%\system32\notepad.exe
-			Favorite6=URL|%g_strAppNameText% web site|http://www.QuickAccessPopup.com
-			Favorite7=Z
-			[LocationHotkeys]
-			Hotkey1={Settings}|+^S
-			Hotkey2={Current Folders}|+^F
-			Hotkey3={Recent Folders}|+^R
-			Hotkey4={Clipboard}|+^C
-			Hotkey4={Switch Folder or App}|+^W
 			[Gui-Grey]
 			WindowColor=E0E0E0
 			TextColor=000000
@@ -1759,6 +1746,20 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 			ListviewBackground=edfdf1
 			ListviewText=000000
 			MenuBackgroundColor=edfdf1
+			[Favorites]
+			Favorite1=Folder|C:\|C:\
+			Favorite2=Folder|Windows|%A_WinDir%
+			Favorite3=Folder|Program Files|%A_ProgramFiles%
+			Favorite4=Folder|User Profile|`%USERPROFILE`%
+			Favorite5=Application|Notepad|%A_WinDir%\system32\notepad.exe
+			Favorite6=URL|%g_strAppNameText% web site|http://www.QuickAccessPopup.com
+			Favorite7=Z
+			[LocationHotkeys]
+			Hotkey1={Settings}|+^S
+			Hotkey2={Current Folders}|+^F
+			Hotkey3={Recent Folders}|+^R
+			Hotkey4={Clipboard}|+^C
+			Hotkey4={Switch Folder or App}|+^W
 
 )
 		, %g_strIniFile%
@@ -4083,12 +4084,14 @@ loop, % g_arrPopupHotkeyNames%0%
 		IniWrite, % g_arrPopupHotkeys%A_Index%, %g_strIniFile%, Global, % g_arrPopupHotkeyNames%A_Index%
 
 ;---------------------------------------
-; Save Tab 3: Popup menu hotkeys
+; Save Tab 3: Alternative menu hotkeys
 
 IniDelete, %g_strIniFile%, AlternativeMenuHotkeys
 for strThisAlternativeCode, strNewHotkey in g_objQAPFeaturesNewHotkeys
 	if HasHotkey(strNewHotkey)
 		IniWrite, %strNewHotkey%, %g_strIniFile%, AlternativeMenuHotkeys, %strThisAlternativeCode%
+	else
+		IniDelete, %g_strIniFile%, AlternativeMenuHotkeys, %strThisAlternativeCode%
 
 Gosub, LoadIniPopupHotkeys ; reload ini variables and reset hotkeys
 
