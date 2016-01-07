@@ -32,6 +32,7 @@ Version: 6.4.3 beta (2016-01-??)
 - fix bug numeric shortcuts in submenu now always begin at 0
 - fix bug icon not set properly when saving after edit favorite
 - fix bug when setting alternative menu item hotkey to none, hotkey was not disabled before reboot of QAP
+- remove unnecessary values in default ini file
 - Addition of browsers to QAPconnect.ini list: ExplorerXP (v1.07), Far Manager (v3.0.4040), IrfanView (v4.38), SpeedCommander (v15.40.7700), Tablacus Explorer (v14.12.30), WinNC (v6.5) and XnView (v2.25)
   (thanks to Roland Toth (tpr) for his help maintaining these settings - https://github.com/rolandtoth)
 
@@ -1696,23 +1697,7 @@ IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2Q
 	FileAppend,
 		(LTrim Join`r`n
 			[Global]
-			NavigateOrLaunchHotkeyMouse=%strNavigateOrLaunchHotkeyMouseDefault%
-			NavigateOrLaunchHotkeyKeyboard=%strNavigateOrLaunchHotkeyKeyboardDefault%
-			AlternativeHotkeyMouseDefault=%strAlternativeHotkeyMouseDefault%
-			AlternativeHotkeyKeyboardDefault=%strAlternativeHotkeyKeyboardDefault%
-			DisplayTrayTip=1
-			DisplayIcons=1
-			RecentFoldersMax=10
-			DisplayMenuShortcuts=0
-			PopupMenuPosition=1
-			PopupFixPosition=20,20
-			HotkeyReminders=3
-			DiagMode=0
-			Startups=1
 			LanguageCode=%g_strLanguageCode%
-			DirectoryOpusPath=
-			IconSize=%g_intIconSize%
-			OpenMenuOnTaskbar=1
 			DynamicMenusRefreshRate=10000
 			AvailableThemes=Windows|Grey|Light Blue|Light Green|Light Red|Yellow
 			Theme=Windows
