@@ -28,7 +28,9 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.4.4 beta (2016-01-??)
+Version: 6.4.4 beta (2016-01-10)
+- little changes in the code refreshing the Clipboard menu, trying to find the source of the issue causing a crash of QAP during dynamic menus refresh
+- fix bug with numeric shorcuts in Clipboard menu when there are more than 36 items in the menu
 
 Version: 6.4.3 beta (2016-01-06)
 - fix bug numeric shortcuts in submenu now always begin at 0
@@ -2423,7 +2425,7 @@ RefreshClipboardMenu:
 intClipboardMenuStartTickCount := A_TickCount
 
 if !g_objQAPfeaturesInMenus.HasKey("{Clipboard}") ; we don't have this QAP feature in at least one menu
-	or !StrLen(Clipboard) ; clipboard is empty (or contains only binary data
+	or !StrLen(Clipboard) ; clipboard is empty (or contains only binary data)
 	or (StrLen(Clipboard) > 50000) ; Clipboard is too large - 50K of text with 600 file paths takes 0,3 sec to process on my dev machine
 	return
 
@@ -2473,7 +2475,7 @@ if StrLen(strContentsInClipboard)
 {
 	Sort, strContentsInClipboard
 
-	Critical, On
+	; Critical, On
 	Menu, g_menuClipboard, Add
 	Menu, g_menuClipboard, DeleteAll
 
@@ -2485,11 +2487,11 @@ if StrLen(strContentsInClipboard)
 		; arrContentsInClipboard1 = path or URL, arrContentsInClipboard2 = icon (file,index or icon code)
 		StringSplit, arrContentsInClipboard, A_LoopField, `t
 		
-		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutCurrentFolders <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . arrContentsInClipboard1
+		strMenuName := (g_blnDisplayNumericShortcuts and (intShortcutClipboardMenu <= 35) ? "&" . NextMenuShortcut(intShortcutClipboardMenu) . " " : "") . arrContentsInClipboard1
 		if StrLen(strMenuName) < 260 ; skip too long URLs
 			AddMenuIcon("g_menuClipboard", strMenuName, "OpenClipboard", arrContentsInClipboard2)
 	}
-	Critical, Off
+	; Critical, Off
 }
 
 intShortcutClipboardMenu := ""
