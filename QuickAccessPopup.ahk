@@ -28,7 +28,9 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.4.3 beta (2016-01-??)
+Version: 6.4.4 beta (2016-01-??)
+
+Version: 6.4.3 beta (2016-01-06)
 - fix bug numeric shortcuts in submenu now always begin at 0
 - fix bug icon not set properly when saving after edit favorite
 - fix bug when setting alternative menu item hotkey to none, hotkey was not disabled before reboot of QAP
@@ -385,7 +387,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.4.3 beta
+;@Ahk2Exe-SetVersion 6.4.4 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -429,7 +431,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.4.3" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.4.4" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -2457,10 +2459,15 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 	Gosub, GetURLsInClipboardLine
 	
 	; #### DEBUGGING CODE NOT COMPILED ONLY
-	if (A_TickCount > intClipboardMenuStartTickCount + 200) and !(A_IsCompiled)
-		Oops("Error while refreshing the Clipboard menu. Check Clipboard content...")
+	if !(A_IsCompiled)
+		FileAppend, RefreshClipboardMenu`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 
 }
+
+; #### DEBUGGING CODE NOT COMPILED ONLY
+if !(A_IsCompiled)
+	if (A_TickCount > intClipboardMenuStartTickCount + 500)
+		Oops("Error while refreshing the Clipboard menu. Check Clipboard content...")
 
 if StrLen(strContentsInClipboard)
 {
@@ -2866,9 +2873,14 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 		
 		; #### DEBUGGING CODE NOT COMPILED ONLY
-		if (A_TickCount > intSwitchReopenMenuStartTickCount + 200) and !(A_IsCompiled)
-			Oops("Error while refreshing the Switch menu (Process DOpus listers) . Check DOpus listers open...")
+		if !(A_IsCompiled)
+			FileAppend, RefreshSwitchFolderOrAppMenu-DOpus`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
+
+; #### DEBUGGING CODE NOT COMPILED ONLY
+if !(A_IsCompiled)
+	if (A_TickCount > intSwitchReopenMenuStartTickCount + 500)
+		Oops("Error while refreshing the Switch menu (DOpus).")
 
 ; Process Explorer windows
 
@@ -2893,9 +2905,14 @@ for intIndex, objFolder in objExplorersWindows
 	objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 		
 	; #### DEBUGGING CODE NOT COMPILED ONLY
-	if (A_TickCount > intSwitchReopenMenuStartTickCount + 200) and !(A_IsCompiled)
-		Oops("Error while refreshing the Switch menu (Process Explorer windows) . Check Explorer windows...")
+	if !(A_IsCompiled)
+		FileAppend, RefreshSwitchFolderOrAppMenu-Explorer`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 }
+
+; #### DEBUGGING CODE NOT COMPILED ONLY
+if !(A_IsCompiled)
+	if (A_TickCount > intSwitchReopenMenuStartTickCount + 500)
+		Oops("Error while refreshing the Switch menu (Process Explorer windows).")
 
 if (A_ThisLabel <> "RefreshReopenFolderMenu")
 	and g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP features in at least one menu
@@ -2954,9 +2971,13 @@ if (A_ThisLabel <> "RefreshReopenFolderMenu")
 		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 		
 		; #### DEBUGGING CODE NOT COMPILED ONLY
-		if (A_TickCount > intSwitchReopenMenuStartTickCount + 200) and !(A_IsCompiled)
-			Oops("Error while refreshing the Switch menu (Gather and process running applications) . Check Explorer or DOpus...")
+		if !(A_IsCompiled)
+			FileAppend, RefreshSwitchFolderOrAppMenu-Applications`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
+	; #### DEBUGGING CODE NOT COMPILED ONLY
+	if !(A_IsCompiled)
+		if (A_TickCount > intSwitchReopenMenuStartTickCount + 500)
+			Oops("Error while refreshing the Switch menu (Applications).")
 }
 
 ; Build menu
@@ -3000,9 +3021,13 @@ if (intWindowsIdIndex)
 		}
 		
 		; #### DEBUGGING CODE NOT COMPILED ONLY
-		if (A_TickCount > intSwitchReopenMenuStartTickCount + 200) and !(A_IsCompiled)
-			Oops("Error while refreshing the Switch menu (Build menu) . Check Switch content...")
+		if !(A_IsCompiled)
+			FileAppend, RefreshSwitchFolderOrAppMenu-Build`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
+	; #### DEBUGGING CODE NOT COMPILED ONLY
+	if !(A_IsCompiled)
+		if (A_TickCount > intSwitchReopenMenuStartTickCount + 500)
+			Oops("Error while refreshing the Switch menu (Build).")
 }
 else
 	AddMenuIcon("g_menuSwitchFolderOrApp", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
@@ -7644,6 +7669,13 @@ if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTarge
 	Sleep, 20
 }
 
+; #### DEBUGGING CODE NOT COMPILED ONLY
+if !(A_IsCompiled)
+{
+	FileDelete, %A_WorkingDir%\debug.txt
+	FileAppend, BEGIN-Refresh-Menus`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
+}
+
 ; #####
 ; refresh only these dynamic menus before showing the main menu
 Gosub, RefreshClipboardMenu
@@ -7657,6 +7689,10 @@ if (g_blnDiagMode)
 }
 
 Gosub, InsertColumnBreaks
+
+; #### DEBUGGING CODE NOT COMPILED ONLY
+if !(A_IsCompiled)
+	FileAppend, FINISH-After-InsertColumnBreaks`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
