@@ -28,6 +28,12 @@ TO-DO
 HISTORY
 =======
 
+Version: 6.5.1 beta (2016-01-??)
+- compiled with AHK bianry of version 1.1.23.00 (fixing the broken dynamic submenus issue)
+- disabled dynamic menus refresh background task ("Recent folders" and "Drives")
+- reverted "Recent folders" menu to external menu (not integrated) until the refresh background task is fixed
+- changed the "Drives" menu to external menu (not integrated) until the refresh background task is fixed
+
 Version: 6.4.4 beta (2016-01-10)
 - little changes in the code refreshing the Clipboard menu, trying to find the source of the issue causing a crash of QAP during dynamic menus refresh
 - fix bug with numeric shorcuts in Clipboard menu when there are more than 36 items in the menu
@@ -541,8 +547,8 @@ GetIcon4Location(g_strTempDir . "\default_browser_icon.html", g_strURLIconFile, 
 Gosub, BuildSwitchAndReopenFolderMenusInit ; will be refreshed at each popup menu call
 Gosub, BuildClipboardMenuInit ; will be refreshed at each popup menu call
 
-Gosub, BuildDrivesMenuInit ; will be refreshed by a background task and after each popup menu call
-Gosub, BuildRecentFoldersMenuInit ; will be refreshed by a background task and after each popup menu call
+Gosub, BuildDrivesMenuInit ; show in separate menu until... ##### will be refreshed by a background task and after each popup menu call
+Gosub, BuildRecentFoldersMenuInit ; show in separate menu until... ##### will be refreshed by a background task and after each popup menu call
 Gosub, SetTimerRefreshDynamicMenus ; Drives, Recent Folders
 
 Gosub, BuildMainMenu
@@ -1506,8 +1512,12 @@ InitQAPFeatures:
 InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", 	"+^C")
 InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuReopenFolder",	"ReopenFolderMenuShortcut",	0,	"iconCurrentFolders",	"+^F")
 InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch",	"+^W")
-InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
-InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
+; removed ##### InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
+; removed ##### InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
+
+; Separated menus ### to remove after background task fixed
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", 0, "iconRecentFolders", "+^R")
+InitQAPFeatureObject("Drives", lMenuDrives . "...",	"", "DrivesMenuShortcut", 0, "iconDrives", "+^D")
 
 ; Command features
 InitQAPFeatureObject("About",			lGuiAbout . "...",					"", "GuiAbout",							0, "iconAbout")
@@ -2360,12 +2370,15 @@ SetTimerRefreshDynamicMenus:
 ;------------------------------------------------------------
 ; #####
 
+; Do nothing until background tasks is fixed...
+/*
 if g_objQAPfeaturesInMenus.HasKey("{Recent Folders}") or g_objQAPfeaturesInMenus.HasKey("{Drives}") ; we have one of these QAP features in at least one menu
 {
 	Gosub, RefreshRecentFoldersMenu ; refresh now and in g_intDynamicMenusRefreshRate ms
 	Gosub, RefreshDrivesMenu ; refresh now and in g_intDynamicMenusRefreshRate ms
 	SetTimer, RefreshBackgroundDynamicMenus, %g_intDynamicMenusRefreshRate% ; 
 }
+*/
 
 return
 ;------------------------------------------------------------
@@ -2584,9 +2597,22 @@ return
 DrivesMenuShortcut:
 ;------------------------------------------------------------
 
+; When background tasks will be OK...
+/*
 Gosub, RefreshDrivesMenu ; refreshed by SetTimer but also just before when called by the shortcut
 
 Gosub, SetMenuPosition
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
+*/
+
+; Until background tasks is back...
+Gosub, SetMenuPosition
+
+ToolTip, %lMenuRefreshDrives%...
+Gosub, RefreshDrivesMenu
+ToolTip
+
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
@@ -2629,7 +2655,8 @@ Loop, parse, strDrivesList
 	strMenuItemsList .= "g_menuDrives|" . strMenuItemName . "|OpenDrives|" . strIcon . "`n"
 }
 
-Critical, On
+; Until background tasks is back...
+; Critical, On
 Menu, g_menuDrives, Add
 Menu, g_menuDrives, DeleteAll
 Loop, Parse, strMenuItemsList, `n
@@ -2638,7 +2665,8 @@ Loop, Parse, strMenuItemsList, `n
 		StringSplit, arrMenuItemsList, A_LoopField, |
 		AddMenuIcon(arrMenuItemsList1, arrMenuItemsList2, arrMenuItemsList3, arrMenuItemsList4)
 	}
-Critical, Off
+; Until background tasks is back...
+; Critical, Off
 
 intShortcutDrivesMenu := ""
 strMenuItemsList := ""
@@ -2676,9 +2704,22 @@ return
 RecentFoldersMenuShortcut:
 ;------------------------------------------------------------
 
+; When background tasks will be OK...
+/*
 Gosub, RefreshRecentFoldersMenu ; refreshed by SetTimer but also just before when called by the shortcut
 
 Gosub, SetMenuPosition
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+*/
+
+; Until background tasks is back...
+Gosub, SetMenuPosition
+
+ToolTip, %lMenuRefreshRecent%...
+Gosub, RefreshRecentFoldersMenu
+ToolTip
+
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 
@@ -2749,7 +2790,8 @@ Loop, parse, strDirList, `n
 		break
 }
 
-Critical, On
+; Until background tasks is back...
+; Critical, On
 Menu, g_menuRecentFolders, Add
 Menu, g_menuRecentFolders, DeleteAll
 Loop, Parse, strMenuItemsList, `n
@@ -2758,7 +2800,8 @@ Loop, Parse, strMenuItemsList, `n
 		StringSplit, arrMenuItemsList, A_LoopField, |
 		AddMenuIcon(arrMenuItemsList1, arrMenuItemsList2, arrMenuItemsList3, arrMenuItemsList4)
 	}
-Critical, Off
+; Until background tasks is back...
+; Critical, Off
 
 strRecentsFolder := ""
 strDirList := ""
