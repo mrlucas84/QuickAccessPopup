@@ -12,6 +12,7 @@ lDiagModeCaution	~1~ función en modo diagnóstico.`n`nLa información acerca de la
 lDiagModeExit	~1~ tiene información recopilada para fines de diagnóstico en el archivo ~2~.
 lDiagModeIntro	Enviar este fichero a ahk@jeanlalonde.ca con una descripción de la situación que requiere un diagnóstico.
 lDiagModeSee	Quiere consultar el fichero de diagnóstico?
+lDialogActivateAlreadyRunning	Si la aplicación ya está en marcha, activarla en lugar de lanzar`n(aplicación debe estar exactamente en el mismo lugar) 
 lDialogAdd	Añadir
 lDialogAddEditFavoriteTitle	~1~ Favorito: ~4~ - ~2~ ~3~
 lDialogAddFavoriteSelectTitle	Añadir Favorito - ~1~ ~2~
@@ -70,7 +71,7 @@ lDialogFavoriteTypesHelp6	Crear un acceso directo a un "FTP Sitio".`n`nEstablece
 lDialogFavoriteTypesHelp7	Inserte cualquier lugar en su menú "Quick Access Popup Características" como:`n`n- ~1~`n- ~2~`n- ~3~`n- ~4~`n- ~5~`n- etc.
 lDialogFavoriteTypesHelp8	Reúna favoritos relacionados en un "Submenú".`n`nDele a su submenú un nombre y seleccione las opciones de menú.`n`nAñadir favoritos a su submenú o moverlos a otros submenús o grupos utilizando el botón "Editar".
 lDialogFavoriteTypesHelp9	Lance un "grupo" de favoritos, todo en un acceso directo!`n`nDele a su grupo un nombre y configure varias opciones para su grupo.`n`nAñadir favoritos a tu grupo o moverlos a otros submenús o grupos utilizando el botón "Editar".`n`nAjustes avanzados permiten controlar la velocidad de la restauración mediante la inserción de un retardo entre cada favorito para restaurar.
-lDialogFavoriteTypesLabels	&Carpeta|&Documento|&Aplicación|&Carpeta especial|&Link|F&TP Sitio|&QAP Característica|Sub&menú|&Grupo
+lDialogFavoriteTypesLabels	&Carpeta|&Documento|&Aplicación|&Carpeta especial|&Link|F&TP Sitio|&QAP Funciones|Sub&menú|&Grupo
 lDialogFavoriteTypesLocationLabels	Carpeta (ruta de)|Documento (ruta y nombre)|Aplicación (ruta y nombre)||Link (URL)|FTP Sitio (URL)||||||
 lDialogFavoriteTypesShortNames	Carpeta|Doc|App|Special|Link|FTP|QAP|Menú|Grupo|Separador|Salto de columna|..
 lDialogFileLabel	Documento
@@ -89,7 +90,7 @@ lDialogHotkeysManagePopup	Popup
 lDialogHotkeysManageTitle	Gestionar atajos de teclado - ~1~ ~2~
 lDialogIcon	Icono Favorito
 lDialogInvalidHotkey	Con la configuración actual de la tecla de acceso directo del teclado "~1~" no se puede utilizar como un disparador para el menú emergente.`n`nPor favor, abra la "Configuración ~2~" en el área de notificación y haga clic en "Opciones". En este cuadro de diálogo, elija otra tecla de acceso directo a"~3~".
-lDialogInvalidHotkeyFavorite	Con su diseño de teclado actual sistema, la tecla de acceso directo "~1~" no podría ser utilizado como un disparador para la ubicación "~2~" (nombre de la tecla no es válido).`n`nPor favor, elija otro acceso directo para la ubicación "~2~".
+lDialogInvalidHotkeyFavorite	Con su diseño de teclado actual sistema, la tecla de acceso directo "~ 1 ~" no podría ser utilizado como un disparador para la ubicación "~2~" (nombre de la tecla no es válido).`n`nPor favor, elija otro acceso directo para la ubicación "~2~".
 lDialogKeyboard	Teclado
 lDialogLaunchWith	Lanzar con esta aplicación
 lDialogMaximized	Maximizado
@@ -190,11 +191,12 @@ lGuiPasswordNotEncripted	Nota: La contraseña no será encriptada cuando se envía 
 lGuiRemoveFavorite	Suprimir
 lGuiResetDefault	Restaurar el lanzador por defecto
 lGuiSave	Guardar
+lGuiSaveToUpdateBacklinks	Guardar para actualizar los vínculos de retroceso 
 lGuiSubmenuDropdownLabel	Menú o grupo a editar:
 lGuiTitle	Configuración - ~1~ ~2~
 lHelpTabAddingFavorite	Añadiendo favoritos
 lHelpTabGettingStarted	Primer paso
-lHelpTabQAPFeatures	QAP Características
+lHelpTabQAPFeatures	QAP Funciones
 lHelpTabTipsAndTricks	Consejos y trucos
 lHelpText11	Al iniciar, Quick Access Popup se añade un icono en la barra de tareas y espera sus órdenes. Preparado para iniciar uno de sus favoritos CARPETAS, DOCUMENTOS, APLICACIONES, LINKS WEB o SITIOS FTP, simplemente pulse la tecla de acceso directo QAP [~1~] or [~2~] y, en el menú emergente, selecionar el favorito deseado.
 lHelpText12	Cuando se selecciona una carpeta de favoritos en el Explorador de Windows o un cuadro de diálogo de archivo*, Quick Access Popup  instantaneamente "navega" la ventana actual a esta carpeta! * Esta función debe estar habilitada en las Opciones.
@@ -204,7 +206,7 @@ lHelpText21	Para añadir favoritos, en la ventana "Configuración", haga clic en e
 lHelpText22	En las cuatro fichas del "Añadir favorito" cuadro de diálogo, introduzca los "Ajustes básicos", "Opciones de menú", "Opciones de Ventana" y "Configuración avanzada". Haga clic en "Añadir" para insertar el favorito en su menú y "Guardar" en la ventana Configuración.
 lHelpText23	AÑADIR ESTA CARPETA`n`nPara agregar rápidamente una nueva CARPETA de favoritos al menú emergente:`n1) Ir a carpetas más usadas.`n2) Click en acceso directo QAP [~1~] o [~2~], elija el "Mi QAP Básicos" menú y clic "Añadir esta carpeta".`n3) Dar a la carpeta un nombre corto, clic "Añadir", y "Guardar" en la ventana de Configuración.
 lHelpText31	En mi "Mi QAP Básicos" menú:
-lHelpText32	- Elija la "Carpeta reciente..." menú para mostrar una lista actualizada de las carpetas de Windows recientes.`n- Utilice la opción "Reutilizar una carpeta abierta" Menú para volver a abrir una de las carpetas que ya se abren en una ventana del Explorador (muy útil en cuadros de diálogo de archivo) .`n- acceder a los archivos o direcciones URL en el portapapeles con el menú "Portapapeles".
+lHelpText32	- Pulse el "Cambiar..." menú para cambiar a cualquier otro que ejecuta ventana del explorador o aplicación.`n- Utilice el menú "Volver a abrir una carpeta" para volver a abrir una de las carpetas ya abierta en una ventana del Explorador (muy útil en los cuadros de diálogo de archivos).`n- Elija las "carpetas recientes ..." del menú para mostrar una lista actualizada de las carpetas de Windows recientes.`n- Acceder a los archivos o direcciones URL en el portapapeles con el menú "Portapapeles".`n- Haga clic en el menú "Unidades de disco" para ver la lista de unidades con el espacio de disco actual. 
 lHelpText33	PERSONALIZA TU QAP FUNCIONES DEL MENU
 lHelpText34	Puede mover el "Mi QAP Básico" elementos de menú al menú principal o a otros submenús como desee.`n`n1) Seleccione el menú "Ajustes" (o presione [~1~]).`n2) En el "Menú o grupo para editar:" lista desplegable, seleccione "Principal > Mi QAP Básico".`n3) Seleccione la función QAP para mover y haga clic en "Editar".`n4) En la pestaña "Opciones del menú", seleccione el nuevo menú "Dominante favorito".`n5) Salvar sus cambios.
 lHelpText41	- Utilice el icono de Quick Access Popup en el menú de la bandeja (inferior derecha de la pantalla de Windows) en una de estas tres maneras: `n1) Izquierda-clic en el icono para abrir la ventana emergente menu`n2 QAP) Haga clic en el icono para abrir el QAP menu.`n3 sistema) Haga doble clic en el icono para abrir el cuadro de diálogo "Configuración".
@@ -230,9 +232,11 @@ lMenuCommonStartMenu	Menu De Inicio (común)
 lMenuCommonStartupMenu	Inicio (común)
 lMenuCookies	Cookies
 lMenuCopyLocation	Copiar Ruta o dirección URL favorita
-lMenuCurrentFolders	Carpetas en el explorador
+lMenuCurrentFolders	Vuelva a abrir una carpeta 
 lMenuDesktop	Oficina
 lMenuDownloads	Descarga
+lMenuDrives	Unidades de disco 
+lMenuDrivesSpace	(~1~ GB libre / ~2~ GB) 
 lMenuEditIniFile	Editar ~1~
 lMenuExitApp	Cerrar ~1~
 lMenuFavoritesInternet	Favoritos (Internet)
@@ -260,6 +264,7 @@ lMenuSettings	Configuración
 lMenuStartMenu	Menú de Inicio
 lMenuStartup	Inicio
 lMenuSuspendHotkeys	Suspender atajos de teclado (Hotkeys)
+lMenuSwitchFolderOrApp	Cambiar 
 lMenuSystemCertificates	Certificados de Sistema
 lMenuTemplates	Modelos
 lMenuTemporaryFiles	Ficheros temporales
@@ -270,20 +275,21 @@ lNavigateFileError	Se produjo un error al abrir la carpeta:`n~1~.
 lNavigateSpecialError	Se produjo un error al abrir la carpeta especial #~1~.
 lOopsCannotCopyFavorite	Tipos de favoritos "~1~" cannot be copied.
 lOopsCouldNotOpenSpecialFolder	~1~ no se puede abrir la carpeta especial: "~2~".
+lOopsEmpty	vacio 
 lOopsFtpLocationProtocol	Ubicación FTP debe comenzar con "ftp://".
 lOopsGroup	grupo
 lOopsHotkeyAlreadyUsed	Este atajo "~1~" ya esta siendo usado por ~2~.`n`nPor favor, elija un nuevo atajo para ~3~.
-lOopsHotkeyNotInMenus	Error: la ubicación "~1~" para la tecla de acceso directo "~1~" no se encuentra en los menús.
+lOopsHotkeyNotInMenus	Error: la ubicación "~ 1 ~" para la tecla de acceso directo "~ 1 ~" no se encuentra en los menús.
 lOopsHttpLocationTransformed	La ubicación http (formato URL) ha sido transformado a una ruta de red (formato UNC) para la compatibilidad con el Explorador de Windows:`n`n~1~`n~2~
 lOopsInvalidWindowPosition	Valor de posición de la ventana no válido (s)
-lOopsLaunchWithNotFound	"Lanzar con esta aplicación" no encontrado:`n`n~1~`n`nComprobar configuración avanzada del favoritos.
+lOopsLaunchWithNotFound	"Lanzamiento con este archivo de aplicación "no encontrado:` ~ 1 ~ `n`nComprobar configuración avanzada del n`n favoritos.
 lOopsLocation	ubicación
 lOopsOSVerrsionError	~1~ se requiere Windows 7 o un sistema operativo más reciente. Se invita a los usuarios de Windows Vista y XP de usar Folders Popup que es compatible con estos versions.`n`n¿Quiere visitar el sitio web de Folders Popup?
-lOopsQAPfeature	QAP característica
+lOopsQAPfeature	QAP Función
 lOopsTitle	~1~ (~2~)
 lOopsWriteProtectedError	Parece ser que ~1~ fué lanzado desde una carpeta SOLO DE ESCRITURA de forma que es imposible crear el archivo de configuración "~1~.ini".`n`nMueva el archivo .EXE de ~1~ a una carpeta REGULAR a vuestra elección, a continuación, ejecute de nuevo la aplicación de esta carpeta.`n`n~1~ estará cerrada.
 lOopsWrongThirdPartyPath	Ruta o nombre de archivo incorrecto para ~1~:`n~2~.`n`nVerifique el archivo .exe seleccionado para ~1~ en las "Opciones", pestaña "~3~".
-lOopsWrongThirdPartyPathQAPconnect	Ruta equivocada o nombre de archivo para QAPconnect application`n ~1~: `n ~2~.`n`nCompruebe valores para [~1~] en ~3~. Utilice el botón "~4~" en "Opciones", pestaña "~5~".
+lOopsWrongThirdPartyPathQAPconnect	Ruta equivocada o nombre de archivo para QAPconnect application`n ~ 1 ~: `n ~ 2 ~ .`n`nCompruebe valores para [~ 1 ~] en ~ 3 ~. Utilice el botón "~ 4 ~" en "Opciones", pestaña "~5~".
 lOopsZipFileError	Parece ser que ~1~ se puso en marcha directamente desde un archivo comprimido (ZIP).`n`nDebe extraer el archivo .EXE de ~1~ del comprimido ZIP a una carpeta de su elección, a continuación, ejecute de nuevo la aplicación de esta carpeta.`n`n~1~ será cerrada.
 lOptionsAlternativeMenuFeatures	Alternativa Menú Teclas de acceso rápido
 lOptionsAlternativeMenuFeaturesIntro	Administrar los accesos directos que activará las funciones del menú alternativos.
@@ -294,8 +300,8 @@ lOptionsChangeHotkey	Modificar
 lOptionsCheck4Update	Compruebe Actualización
 lOptionsDisplayIcons	Mostrar los iconos del menú
 lOptionsDisplayMenuShortcuts	Mostrar atajos numéricos
-lOptionsExclusionDetail1	Para bloquear el botón de menú QAP ratón [~1~] en una aplicación, entrar en cualquier parte del título de la ventana de la aplicación. Puede introducir múltiples exclusiones, uno por línea. Por ejemplo, para excluir Chrome y Word, escriba las dos líneas siguientes en la lista de exclusión: `n`nGoogle Chrome`nMicrosoft Word
-lOptionsExclusionDetail2	La tecla de acceso directo QAP se desactivará en estas aplicaciones y de la [~1~] click será enviado a la ventana de destino como si QAP no se estuviese ejecutando. También puede excluir ventanas por su nombre de clase. Usted puede encontrar ayuda y apoyo en esta función <a href="~2~">en el sitio  de QAP</a>.
+lOptionsExclusionDetail1	Para bloquear el botón de menú QAP ratón [~ 1 ~] en una aplicación, entrar en cualquier parte del título de la ventana de la aplicación. Puede introducir múltiples exclusiones, uno por línea. Por ejemplo, para excluir Chrome y Word, escriba las dos líneas siguientes en la lista de exclusión: `n`nGoogle Chrome`nMicrosoft Word
+lOptionsExclusionDetail2	La tecla de acceso directo QAP se desactivará en estas aplicaciones y de la [~ 1 ~] click será enviado a la ventana de destino como si QAP no se estuviese ejecutando. También puede excluir ventanas por su nombre de clase. Usted puede encontrar ayuda y apoyo en esta función <a href="~2~">en el sitio  de QAP</a>.
 lOptionsExclusionList	Lista de exclusiones
 lOptionsExclusionTitle	Lista de Exclusiones de ratón del disparador [~1~]
 lOptionsFtpEncoding	Codificar Nombre de usuario y contraseña FTP (recomendado)
@@ -324,7 +330,7 @@ lOptionsRecentFoldersPrompt	Carpetas recientes:
 lOptionsRememberSettingsPosition	Memorizar la posición de la ventana
 lOptionsRunAtStartup	Ejecutar al inicio
 lOptionsTabFileManagersIntro	Seleccione el administrador de archivos para utilizar para abrir carpetas en una ventana nueva.
-lOptionsTabMouseAndKeyboardIntro	Definir los botones del ratón y las teclas de acceso rápido de teclado que activarán el menú principal ~1~.
+lOptionsTabMouseAndKeyboardIntro	Definir los botones del ratón y las teclas de acceso rápido de teclado que activarán el menú principal ~ 1 ~.
 lOptionsTabOtherOptionsIntro	Adaptar ~1~ a sus preferencias!
 lOptionsTheme	Tema
 lOptionsThirdParty	Gestores de archivos
