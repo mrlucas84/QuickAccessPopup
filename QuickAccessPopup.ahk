@@ -2,7 +2,7 @@
 /*
 
 Quick Access Popup
-Written using AutoHotkey_L v1.1.22+ (http://ahkscript.org/)
+Written using AutoHotkey v1.1.23.00+ (http://ahkscript.org/)
 By Jean Lalonde (JnLlnd on AHKScript.org forum)
 
 Based on FoldersPopup from the same author
@@ -28,11 +28,12 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.5.1 beta (2016-01-??)
+Version: 6.5.1 beta (2016-01-18)
 - compiled with AHK bianry of version 1.1.23.00 (fixing the broken dynamic submenus issue)
 - disabled dynamic menus refresh background task ("Recent folders" and "Drives")
 - reverted "Recent folders" menu to external menu (not integrated) until the refresh background task is fixed
 - changed the "Drives" menu to external menu (not integrated) until the refresh background task is fixed
+- update to Sweeden and Spanish language
 
 Version: 6.4.4 beta (2016-01-10)
 - little changes in the code refreshing the Clipboard menu, trying to find the source of the issue causing a crash of QAP during dynamic menus refresh
@@ -395,7 +396,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.4.4 beta
+;@Ahk2Exe-SetVersion 6.5.1 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -439,7 +440,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.4.4" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.5.1" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
