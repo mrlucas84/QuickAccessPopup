@@ -16,10 +16,9 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- AHK issue: Submenus sometimes empty and without icon - bug in the AHK/Windows interaction confirmed on AhkScript.org (https://autohotkey.com/boards/viewtopic.php?f=14&t=12279&p=64041)
 
 TO-DO
-- check Recent folders with network drives
+- change mouse cursor while refreshing and re-integrate Recent folders and Drives
 - add QAP feature "Add this folder Express" (see this item in wishlist)
 - adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
@@ -29,7 +28,7 @@ HISTORY
 =======
 
 Version: 6.5.1 beta (2016-01-18)
-- compiled with AHK bianry of version 1.1.23.00 (fixing the broken dynamic submenus issue)
+- compiled with AHK binary of version 1.1.23.00 (fixing the broken dynamic submenus issue)
 - disabled dynamic menus refresh background task ("Recent folders" and "Drives")
 - reverted "Recent folders" menu to external menu (not integrated) until the refresh background task is fixed
 - changed the "Drives" menu to external menu (not integrated) until the refresh background task is fixed
@@ -10880,3 +10879,14 @@ REPLY_QAPISRUNNING(wParam, lParam)
 
 
 
+; CHANGE CURSOR
+; https://autohotkey.com/board/topic/5727-hiding-the-mouse-cursor/
+; https://autohotkey.com/board/topic/32608-changing-the-system-cursor/
+/*
+On
+hCurs:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt")
+Off
+DllCall("DestroyCursor","Uint",hCurs)
+hCurs =
+; 32514   Wait
+*/
