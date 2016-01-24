@@ -27,6 +27,11 @@ TO-DO
 HISTORY
 =======
 
+Version: 6.5.2 beta (2016-01-24)
+- change the mouse cursor to the "wait" image during "Recent Folders" and "Drives" submenus refresh
+- make "Recent Folders" and "Drives" submenus back integrated to the main menu (not a separate menu anymore)
+- removed tooltip messages when refreshing Recent Folders and Drives menus
+
 Version: 6.5.1 beta (2016-01-18)
 - compiled with AHK binary of version 1.1.23.00 (fixing the broken dynamic submenus issue)
 - disabled dynamic menus refresh background task ("Recent folders" and "Drives")
@@ -395,7 +400,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.5.1 beta
+;@Ahk2Exe-SetVersion 6.5.2 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -439,7 +444,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.5.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.5.2" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -584,7 +589,7 @@ g_blnMenuReady := true
 
 /* Enable after debugging
 ; Load the cursor and start the "hook" to change mouse cursor in Settings - See WM_MOUSEMOVE function below
-objCursor := DllCall("LoadCursor", "UInt", NULL, "Int", 32649, "UInt") ; IDC_HAND
+objHandCursor := DllCall("LoadCursor", "UInt", NULL, "Int", 32649, "UInt") ; IDC_HAND
 OnMessage(0x200, "WM_MOUSEMOVE")
 */
 
@@ -1512,12 +1517,12 @@ InitQAPFeatures:
 InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", 	"+^C")
 InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuReopenFolder",	"ReopenFolderMenuShortcut",	0,	"iconCurrentFolders",	"+^F")
 InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch",	"+^W")
-; removed ##### InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
-; removed ##### InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
+InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
+InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
 
-; Separated menus ### to remove after background task fixed
-InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", 0, "iconRecentFolders", "+^R")
-InitQAPFeatureObject("Drives", lMenuDrives . "...",	"", "DrivesMenuShortcut", 0, "iconDrives", "+^D")
+; Separated menus in case wait time is too long
+; InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", 0, "iconRecentFolders", "+^R")
+; InitQAPFeatureObject("Drives", lMenuDrives . "...",	"", "DrivesMenuShortcut", 0, "iconDrives", "+^D")
 
 ; Command features
 InitQAPFeatureObject("About",			lGuiAbout . "...",					"", "GuiAbout",							0, "iconAbout")
@@ -2397,7 +2402,7 @@ if (g_blnDiagMode)
 	Diag("Background: Recent/Drives", g_intRecentFoldersMenuTickCount . "`t" . g_intDrivesMenuTickCount)
 	; ToolTip,  % "QAP background refresh: " . g_intRecentFoldersMenuTickCount . " (Recent) + " . g_intDrivesMenuTickCount . " (Drives) = " . g_intRecentFoldersMenuTickCount + g_intDrivesMenuTickCount . " ms", 10, 10
 	; sleep, 5000
-	ToolTip
+	; ToolTip
 }
 
 return
@@ -2609,9 +2614,7 @@ Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
 ; Until background tasks is back...
 Gosub, SetMenuPosition
 
-ToolTip, %lMenuRefreshDrives%...
 Gosub, RefreshDrivesMenu
-ToolTip
 
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
@@ -2631,6 +2634,8 @@ intDrivesMenuStartTickCount := A_TickCount
 
 intShortcutDrivesMenu := 0
 strMenuItemsList := "" ; menu name|menu item name|label|icon
+
+SetWaitCursor(true)
 
 DriveGet, strDrivesList, List
 
@@ -2667,6 +2672,8 @@ Loop, Parse, strMenuItemsList, `n
 	}
 ; Until background tasks is back...
 ; Critical, Off
+
+SetWaitCursor(false)
 
 intShortcutDrivesMenu := ""
 strMenuItemsList := ""
@@ -2716,9 +2723,7 @@ Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
 ; Until background tasks is back...
 Gosub, SetMenuPosition
 
-ToolTip, %lMenuRefreshRecent%...
 Gosub, RefreshRecentFoldersMenu
-ToolTip
 
 CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
 Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
@@ -2740,6 +2745,8 @@ g_objRecentFolders := Object()
 
 g_intRecentFoldersIndex := 0 ; used in PopupMenu... to check if we disable the menu when empty
 strMenuItemsList := "" ; menu name|menu item name|label|icon
+
+SetWaitCursor(true)
 
 RegRead, strRecentsFolder, HKEY_CURRENT_USER, Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders, Recent
 
@@ -2802,6 +2809,8 @@ Loop, Parse, strMenuItemsList, `n
 	}
 ; Until background tasks is back...
 ; Critical, Off
+
+SetWaitCursor(false)
 
 strRecentsFolder := ""
 strDirList := ""
@@ -7688,7 +7697,7 @@ if (g_blnGetWinInfo)
 	gosub, GetWinInfo2Clippoard
 	return
 }
-	
+
 Gosub, SetMenuPosition
 
 g_blnAlternativeMenu := (A_ThisLabel = "LaunchFromAlternativeMenu")
@@ -7722,9 +7731,13 @@ if !(A_IsCompiled)
 }
 
 ; #####
-; refresh only these dynamic menus before showing the main menu
+
+; refresh the five dynamic menus before showing the main menu
+; in order of estimated avverage time required to refresh
+Gosub, RefreshSwitchFolderOrAppMenu ; also refreshes g_menuReopenFolder
 Gosub, RefreshClipboardMenu
-Gosub, RefreshSwitchFolderOrAppMenu
+Gosub, RefreshRecentFoldersMenu ; displays the wait cursor
+Gosub, RefreshDrivesMenu ; displays the wait cursor
 
 if (g_blnDiagMode)
 {
@@ -10786,6 +10799,41 @@ AppIsRunning(strAppPath, ByRef strAppID)
 ;------------------------------------------------------------
 
 
+;------------------------------------------------------------
+SetWaitCursor(blnOnOff)
+; from Gio in https://autohotkey.com/boards/viewtopic.php?f=5&t=13284
+;------------------------------------------------------------
+{
+	static blnCursorWaitAlreadyOn
+	static objWaitCursor
+	
+	if (blnOnOff)
+		if (blnCursorWaitAlreadyOn)
+			return
+		else
+		{
+			; The line of code below loads a cursor from the system set (specifically, the wait cursor - 32514).
+			objWaitCursor :=  DllCall("LoadImage", "Uint", 0, "Uint", 32514, "Uint", 2, "Uint", 0, "Uint", 0, "Uint", 0x8000)
+
+			; And then we set all the default system cursors to be our choosen cursor. CopyImage is necessary as SetSystemCursor destroys the cursor we pass to it after using it.
+			strCursors := "32650,32512,32515,32649,32651,32513,32648,32646,32643,32645,32642,32644,32516,32514"
+			Loop, Parse, strCursors, `,
+				DllCall("SetSystemCursor", "Uint", DllCall("CopyImage", "Uint", objWaitCursor, "Uint", 2, "Int", 0, "Int", 0, "Uint", 0), "Uint", A_LoopField)
+		}
+	else
+	{
+		; And finally, when the action is over, we call the code below to revert the default set of cursors back to its original state.
+		; SystemParametersInfo() (with option 0x0057) changes the set of system cursors to the system defaults. 
+		; We are loading a system cursor, so there is no need to destroy it. Also the copies we are creating with CopyImage() are destroyed by SetSystemCursor() itself.
+		DllCall("SystemParametersInfo", "Uint", 0x0057, "Uint", 0, "Uint", 0, "Uint", 0)
+		
+		objWaitCursor := ""
+		blnCursorWaitAlreadyOn := false
+	}
+}
+;------------------------------------------------------------
+
+
 
 ;========================================================================================================================
 ; END OF VARIOUS_FUNCTIONS
@@ -10803,7 +10851,7 @@ WM_MOUSEMOVE(wParam, lParam)
 ; see http://www.autohotkey.com/board/topic/70261-gui-buttons-hover-cant-change-cursor-to-hand/
 ;------------------------------------------------
 {
-	Global objCursor
+	Global objHandCursor
 	Global lGuiFullTitle
 
 	WinGetTitle, strCurrentWindow, A
@@ -10821,7 +10869,7 @@ WM_MOUSEMOVE(wParam, lParam)
 	else if !InStr(strControl, "Button")
 		return
 
-	DllCall("SetCursor", "UInt", objCursor)
+	DllCall("SetCursor", "UInt", objHandCursor)
 
 	return
 }
@@ -10878,15 +10926,3 @@ REPLY_QAPISRUNNING(wParam, lParam)
 ;------------------------------------------------------------
 
 
-
-; CHANGE CURSOR
-; https://autohotkey.com/board/topic/5727-hiding-the-mouse-cursor/
-; https://autohotkey.com/board/topic/32608-changing-the-system-cursor/
-/*
-On
-hCurs:=DllCall("LoadCursor","UInt",NULL,"Int",32514,"UInt")
-Off
-DllCall("DestroyCursor","Uint",hCurs)
-hCurs =
-; 32514   Wait
-*/
