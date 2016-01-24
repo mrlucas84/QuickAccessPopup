@@ -27,6 +27,9 @@ TO-DO
 HISTORY
 =======
 
+Version: 6.5.3 beta (2016-01-24)
+- addition of German translation
+
 Version: 6.5.2 beta (2016-01-24)
 - change the mouse cursor to the "wait" image during "Recent Folders" and "Drives" submenus refresh
 - make "Recent Folders" and "Drives" submenus back integrated to the main menu (not a separate menu anymore)
@@ -400,7 +403,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.5.2 beta
+;@Ahk2Exe-SetVersion 6.5.3 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -444,7 +447,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.5.2" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.5.3" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 

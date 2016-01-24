@@ -113,7 +113,7 @@ lDialogSelectItemToMove	Por favor, Seleccione la opción para mover.
 lDialogSelectItemToRemove	Por favor seleccione la parte a suprimir.
 lDialogShift	Cambio
 lDialogShortcut	Atajo
-lDialogSpacebarTab	elegir <a id="Espacio">espaciador</a> o <a id="Tab">tabulador</a>
+lDialogSpacebarTab	elegir <a id="Space">espaciador</a> o <a id="Tab">tabulador</a>
 lDialogState	Posición de la ventana:
 lDialogSubmenuNameEmpty	El nombre del sub-menú está vacio. Porfavor indique un nombre corto para esta carpeta.
 lDialogSubmenuParentMenu	Menú contiene este sub-menú
