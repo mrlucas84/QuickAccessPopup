@@ -5,8 +5,8 @@
 #define MyAppExeName "QuickAccessPopup.exe"
 #define FPImportVersionFileName "ImportFPsettings-0_5-BETA-32-bit.exe"
 
-#define MyAppVersion "v6.5.1 BETA"
-#define MyVersionFileName "6_5_1-beta"
+#define MyAppVersion "v6.5.2 BETA"
+#define MyVersionFileName "6_5_2-beta"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -79,7 +79,7 @@ Filename: "{app}\ImportFPsettings.exe"; Flags: runhidden waituntilterminated; Wo
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; WorkingDir: "{commonappdata}\{#MyAppName}"; Flags: waituntilidle postinstall skipifsilent
 
 [Tasks]
-Name: importfpsettings; Description: "Import &Folders Popup settings and favorites (only for Folders Popup users)"; Flags: checkedonce
+Name: importfpsettings; Description: "Import &Folders Popup settings and favorites (only for Folders Popup users)"; Flags: unchecked
 
 [UninstallDelete]
 Type: files; Name: "{userstartup}\{#MyAppName}.lnk"
