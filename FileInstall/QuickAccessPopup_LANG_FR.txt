@@ -204,7 +204,7 @@ lHelpText13	Pour forcer l'ouverture du favori dans une nouvelle fenêtre, appuyez
 lHelpText14	Choisissez "Réglages" pour personnaliser votre menu Quick Access Popup. Vous pouvez ajouter des favoris à votre menu. Vous pouvez les déplacer, renommer, supprimer. Vous pouvez aussi ajouter des SOUS-MENUS ou des GROUPES. Chosissez "Menu ou groupe à modifier:" dans la liste déroulante. Cliquez sur "Enregistrer" pour conserver vos changements.
 lHelpText21	Pour ajouter des favoris, dans la fenêtre "Réglages", cliquez sur le bouton "Ajouter". Sélectionnez le type du nouveau favori et consultez les conseils dans la partie droite de la fenêtre. Cliquez "Poursuivre" pour ouvrir la boîte de dialogue "Ajouter un favori".
 lHelpText22	Dans les quatre onglets de la boîte de dialogue "Ajouter un favori", entrez les "Réglages de base", "Options du menu", "Options de fenêtres" et "Réglages avancés". Cliquez sur "Ajouterpour insérer le favori dans votre menu et sur "Enregistrer" dans la fenêtre "Réglages".
-lHelpText23	AJOUTER CE DOSSIER`n`nPour AJOUTER rapidement un nouveau DOSSIER favori au menu:`n1) Ouvrez un dossier souvent consulté.`n2) Appuyez sur [~1~] ou [~2~], choisissez le menu "Mes Fonctions QAP" et cliquez sur "Ajouter ce dossier".`n3) Donnez au menu un nom court, cliquez sur "Ajouter", puis sur "Enregistrer" dans la fenêtre "Réglages".
+lHelpText23	AJOUTER CE DOSSIER`n`nPour AJOUTER rapidement un nouveau DOSSIER favori au menu:`n1) Ouvrez un dossier souvent consulté.`n2) Appuyez sur [~1~] ou [~2~] et cliquez sur "Ajouter ce dossier".`n3) Donnez au menu un nom court, cliquez sur "Ajouter", puis sur "Enregistrer" dans la fenêtre "Réglages".
 lHelpText31	Dans le menu "Mes Fonctions QAP":
 lHelpText32	- Cliquez "Basculer" pour basculer vers n'importe quelle fenêtre de l'Explorateur ou d'application.`n- Utilisez le menu "Réutiliser un dossier" pour rouvrir un des dossiers déjà ouvert dans l'Explorateur de fichiers (très utilie dans une boîte de dialogue de fichier).`n- Choisissez le menu "Dossiers récents..." pour afficher une liste des dossiers récents de Windows.`n- Ouvrez un emplacement de fichier ou un site web dont l'adresse est dans votre Presse-Papiers avec le menu "Presse-papiers".`n- Cliquez sur le menu "Disques" pour voir la liste des lecteurs et leur capacité actuelle.
 lHelpText33	PERSONNALISEZ VOTRE MENU DES FONCTIONS QAP
@@ -258,7 +258,6 @@ lMenuPublicLibraries	Bibliothèques (public)
 lMenuQuickLaunch	Lancement rapide
 lMenuRecentFolders	Emplacements récents
 lMenuRecentItems	Documents récents
-lMenuRefreshRecent	Actualisation des dossiers récents en cours
 lMenuRunAtStartup	Exécuter au démarrage
 lMenuSettings	Paramètres
 lMenuStartMenu	Menu Démarrer
