@@ -18,14 +18,16 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- change mouse cursor while refreshing and re-integrate Recent folders and Drives
 - add QAP feature "Add this folder Express" (see this item in wishlist)
-- adjust static control occurences showing cursor in WM_MOUSEMOVE
 - review help text
 
 
 HISTORY
 =======
+
+Version: 6.5.4 beta (2016-01-??)
+- enable mouse cursor to hand image when hovering buttons image or text in QAP GUI
+- add error checking if g_strQAPconnectIniPath is missing
 
 Version: 6.5.3 beta (2016-01-24)
 - addition of German translation
@@ -403,7 +405,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.5.3 beta
+;@Ahk2Exe-SetVersion 6.5.4 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -447,7 +449,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.5.3" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.5.4" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -590,11 +592,9 @@ if (g_blnDisplayTrayTip)
 
 g_blnMenuReady := true
 
-/* Enable after debugging
 ; Load the cursor and start the "hook" to change mouse cursor in Settings - See WM_MOUSEMOVE function below
 objHandCursor := DllCall("LoadCursor", "UInt", NULL, "Int", 32649, "UInt") ; IDC_HAND
 OnMessage(0x200, "WM_MOUSEMOVE")
-*/
 
 ; To prevent double-click on image static controls to copy their path to the clipboard - See WM_LBUTTONDBLCLK function below
 ; see http://www.autohotkey.com/board/topic/94962-doubleclick-on-gui-pictures-puts-their-path-in-your-clipboard/#entry682595
@@ -2482,8 +2482,8 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 	Gosub, GetURLsInClipboardLine
 	
 	; #### DEBUGGING CODE NOT COMPILED ONLY
-	if !(A_IsCompiled)
-		FileAppend, RefreshClipboardMenu`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
+	; if !(A_IsCompiled)
+	;	FileAppend, RefreshClipboardMenu`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 
 }
 
@@ -2930,8 +2930,8 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 		
 		; #### DEBUGGING CODE NOT COMPILED ONLY
-		if !(A_IsCompiled)
-			FileAppend, RefreshSwitchFolderOrAppMenu-DOpus`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
+		; if !(A_IsCompiled)
+		;	FileAppend, RefreshSwitchFolderOrAppMenu-DOpus`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
 
 ; #### DEBUGGING CODE NOT COMPILED ONLY
@@ -2962,8 +2962,8 @@ for intIndex, objFolder in objExplorersWindows
 	objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 		
 	; #### DEBUGGING CODE NOT COMPILED ONLY
-	if !(A_IsCompiled)
-		FileAppend, RefreshSwitchFolderOrAppMenu-Explorer`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
+	; if !(A_IsCompiled)
+	;	FileAppend, RefreshSwitchFolderOrAppMenu-Explorer`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 }
 
 ; #### DEBUGGING CODE NOT COMPILED ONLY
@@ -3028,8 +3028,8 @@ if (A_ThisLabel <> "RefreshReopenFolderMenu")
 		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
 		
 		; #### DEBUGGING CODE NOT COMPILED ONLY
-		if !(A_IsCompiled)
-			FileAppend, RefreshSwitchFolderOrAppMenu-Applications`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
+		; if !(A_IsCompiled)
+		;	FileAppend, RefreshSwitchFolderOrAppMenu-Applications`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
 	; #### DEBUGGING CODE NOT COMPILED ONLY
 	if !(A_IsCompiled)
@@ -3078,8 +3078,8 @@ if (intWindowsIdIndex)
 		}
 		
 		; #### DEBUGGING CODE NOT COMPILED ONLY
-		if !(A_IsCompiled)
-			FileAppend, RefreshSwitchFolderOrAppMenu-Build`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
+		; if !(A_IsCompiled)
+		;	FileAppend, RefreshSwitchFolderOrAppMenu-Build`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
 	; #### DEBUGGING CODE NOT COMPILED ONLY
 	if !(A_IsCompiled)
@@ -4300,13 +4300,13 @@ if (g_blnUseColors)
 ; Order of controls important to avoid drawgins gliches when resizing
 
 Gui, 1:Font, % "s12 w700 " . (g_blnUseColors ? "c" . strTextColor : ""), Verdana
-Gui, 1:Add, Text, vf_lblAppName x0 y0, %g_strAppNameText% %g_strAppVersion%
+Gui, 1:Add, Text, vf_lblAppName x0 y0, %g_strAppNameText% %g_strAppVersion% ; Static1
 Gui, 1:Font, s9 w400, Verdana
-Gui, 1:Add, Link, vf_lblAppTagLine, %lAppTagline%
+Gui, 1:Add, Link, vf_lblAppTagLine, %lAppTagline% ; SysLink1
 
-Gui, 1:Add, Picture, vf_picGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static3
-Gui, 1:Add, Picture, vf_picGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static4
-Gui, 1:Add, Picture, vf_picGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static5
+Gui, 1:Add, Picture, vf_picGuiAddFavorite gGuiAddFavoriteSelectType, %g_strTempDir%\add_property-48.png ; Static2
+Gui, 1:Add, Picture, vf_picGuiEditFavorite gGuiEditFavorite x+1 yp, %g_strTempDir%\edit_property-48.png ; Static3
+Gui, 1:Add, Picture, vf_picGuiRemoveFavorite gGuiRemoveFavorite x+1 yp, %g_strTempDir%\delete_property-48.png ; Static4
 Gui, 1:Add, Picture, vf_picGuiCopyFavorite gGuiCopyFavorite x+1 yp, %g_strTempDir%\copy-48.png ; Static5
 Gui, 1:Add, Picture, vf_picGuiHotkeysManage gGuiHotkeysManage x+1 yp, %g_strTempDir%\keyboard-48.png ; Static6
 Gui, 1:Add, Picture, vf_picGuiOptions gGuiOptions x+1 yp, %g_strTempDir%\settings-32.png ; Static7
@@ -4317,30 +4317,30 @@ Gui, 1:Add, Picture, vf_picMoveFavoriteDown gGuiMoveFavoriteDown x+1 yp, %g_strT
 Gui, 1:Add, Picture, vf_picAddSeparator gGuiAddSeparator x+1 yp, %g_strTempDir%\separator-26.png ; Static12
 Gui, 1:Add, Picture, vf_picAddColumnBreak gGuiAddColumnBreak x+1 yp, %g_strTempDir%\column-26.png ; Static13
 ; OUT Gui, 1:Add, Picture, vpicSortFavorites gGuiSortFavorites x+1 yp, %g_strTempDir%\generic_sorting2-26-grey.png ; Static14
-Gui, 1:Add, Picture, vf_picGuiAbout gGuiAbout x+1 yp, %g_strTempDir%\about-32.png ; Static15
-Gui, 1:Add, Picture, vf_picGuiHelp gGuiHelp x+1 yp, %g_strTempDir%\help-32.png ; Static16
+Gui, 1:Add, Picture, vf_picGuiAbout gGuiAbout x+1 yp, %g_strTempDir%\about-32.png ; Static14
+Gui, 1:Add, Picture, vf_picGuiHelp gGuiHelp x+1 yp, %g_strTempDir%\help-32.png ; Static15
 
 Gui, 1:Font, s8 w400, Arial ; button legend
-Gui, 1:Add, Text, vf_lblGuiOptions gGuiOptions x0 y+20, %lGuiOptions% ; Static17
-Gui, 1:Add, Text, vf_lblGuiAddFavorite center gGuiAddFavoriteSelectType x+1 yp, %lGuiAddFavorite% ; Static18
-Gui, 1:Add, Text, vf_lblGuiEditFavorite center gGuiEditFavorite x+1 yp w88, %lGuiEditFavorite% ; Static19, w88 to make room fot when multiple favorites are selected
-Gui, 1:Add, Text, vf_lblGuiRemoveFavorite center gGuiRemoveFavorite x+1 yp, %lGuiRemoveFavorite% ; Static20
+Gui, 1:Add, Text, vf_lblGuiOptions gGuiOptions x0 y+20, %lGuiOptions% ; Static16
+Gui, 1:Add, Text, vf_lblGuiAddFavorite center gGuiAddFavoriteSelectType x+1 yp, %lGuiAddFavorite% ; Static17
+Gui, 1:Add, Text, vf_lblGuiEditFavorite center gGuiEditFavorite x+1 yp w88, %lGuiEditFavorite% ; Static18, w88 to make room fot when multiple favorites are selected
+Gui, 1:Add, Text, vf_lblGuiRemoveFavorite center gGuiRemoveFavorite x+1 yp, %lGuiRemoveFavorite% ; Static19
 Gui, 1:Add, Text, vf_lblGuiCopyFavorite center gGuiCopyFavorite x+1 yp, %lDialogCopy% ; Static20
 Gui, 1:Add, Text, vf_lblGuiHotkeysManage center gGuiHotkeysManage x+1 yp, %lDialogHotkeys% ; Static21
 Gui, 1:Add, Text, vf_lblGuiAbout center gGuiAbout x+1 yp, %lGuiAbout% ; Static22
 Gui, 1:Add, Text, vf_lblGuiHelp center gGuiHelp x+1 yp, %lGuiHelp% ; Static23
 
 Gui, 1:Font, s8 w400 italic, Verdana
-Gui, 1:Add, Link, vf_lnkGuiHotkeysHelpClicked gGuiHotkeysHelpClicked x0 y+1, <a>%lGuiHotkeysHelp%</a> ; center option not working SysLink1
-Gui, 1:Add, Link, vf_lnkGuiDropHelpClicked gGuiDropFilesHelpClicked right x+1 yp, <a>%lGuiDropFilesHelp%</a> ; SysLink2
+Gui, 1:Add, Link, vf_lnkGuiHotkeysHelpClicked gGuiHotkeysHelpClicked x0 y+1, <a>%lGuiHotkeysHelp%</a> ; SysLink2 center option not working SysLink1
+Gui, 1:Add, Link, vf_lnkGuiDropHelpClicked gGuiDropFilesHelpClicked right x+1 yp, <a>%lGuiDropFilesHelp%</a> ; SysLink3
 
 Gui, 1:Font, s8 w400 normal, Verdana
-Gui, 1:Add, Text, vf_lblSubmenuDropdownLabel x+1 yp, %lGuiSubmenuDropdownLabel%
-Gui, 1:Add, DropDownList, vf_drpMenusList gGuiMenusListChanged x0 y+1
+Gui, 1:Add, Text, vf_lblSubmenuDropdownLabel x+1 yp, %lGuiSubmenuDropdownLabel% ; Static24
+Gui, 1:Add, DropDownList, vf_drpMenusList gGuiMenusListChanged x0 y+1 ; ComboBox1
 
 Gui, 1:Add, ListView
 	, % "vf_lvFavoritesList Count32 AltSubmit NoSortHdr LV0x10 " . (g_blnUseColors ? "c" . g_strGuiListviewTextColor . " Background" . g_strGuiListviewBackgroundColor : "") . " gGuiFavoritesListEvents x+1 yp"
-	, %lGuiLvFavoritesHeader%
+	, %lGuiLvFavoritesHeader% ; SysHeader321 / SysListView321
 
 Gui, 1:Font, s9 w600, Verdana
 Gui, 1:Add, Button, vf_btnGuiSaveFavorites Disabled Default gGuiSaveFavorites x200 y400 w100 h50, %lGuiSave% ; Button1
@@ -9367,7 +9367,10 @@ return
 ShowQAPconnectIniFile:
 ;------------------------------------------------------------
 
-Run, %g_strQAPconnectIniPath%
+if FileExist(g_strQAPconnectIniPath)
+	Run, %g_strQAPconnectIniPath%
+else
+	Oops(lOptionsThirdPartyFileNotFound, "QAPconnect", g_strQAPconnectIniPath)
 
 return
 ;------------------------------------------------------------
@@ -10865,8 +10868,8 @@ WM_MOUSEMOVE(wParam, lParam)
 	if InStr(strControl, "Static")
 	{
 		StringReplace, intControl, strControl, Static
-		; 3-23, 25-26
-		if (intControl < 3) or (intControl = 24) or (intControl > 26)
+		; 2-23/25-26
+		if (intControl < 2) or (intControl = 24) or (intControl > 26)
 			return
 	}
 	else if !InStr(strControl, "Button")
