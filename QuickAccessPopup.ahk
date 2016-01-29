@@ -24,8 +24,6 @@ TO-DO
 HISTORY
 =======
 
-put "Drives and "Recent Folders" out of main menu again; add "Add this Folder Express" QAP feature; adjust buttons labels on Settings gui; renamed some variables for Add this folder Express
-
 Version: 6.5.4 beta (2016-01-29)
 - remove "Drives" and "Recent Folders" from the main menu (back to separate menu) until background refresh solution is ready
 - add "Add this Folder Express" QAP feature added
