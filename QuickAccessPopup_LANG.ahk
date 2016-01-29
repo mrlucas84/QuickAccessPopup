@@ -220,6 +220,7 @@ global lMainMenuName := "Main"
 global lMenuAbout := "A&bout"
 global lMenuAddFavorite := "Add Favorite" ; new
 global lMenuAddThisFolder := "Add This Folder"
+global lMenuAddThisFolderXpress := "Add This Folder Express" ; new
 global lMenuAlternativeEditFavorite := "Edit a Favorite" ; new
 global lMenuAlternativeNewWindow := "Open in new window" ; new
 global lMenuAppData := "Application Data"

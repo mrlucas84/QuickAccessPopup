@@ -18,16 +18,20 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- add QAP feature "Add this folder Express" (see this item in wishlist)
 - review help text
 
 
 HISTORY
 =======
 
-Version: 6.5.4 beta (2016-01-??)
+put "Drives and "Recent Folders" out of main menu again; add "Add this Folder Express" QAP feature; adjust buttons labels on Settings gui; renamed some variables for Add this folder Express
+
+Version: 6.5.4 beta (2016-01-29)
+- remove "Drives" and "Recent Folders" from the main menu (back to separate menu) until background refresh solution is ready
+- add "Add this Folder Express" QAP feature added
 - enable mouse cursor to hand image when hovering buttons image or text in QAP GUI
 - add error checking if g_strQAPconnectIniPath is missing
+- fix buttons labels alignment in Settings
 
 Version: 6.5.3 beta (2016-01-24)
 - addition of German translation
@@ -1520,17 +1524,18 @@ InitQAPFeatures:
 InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", 	"+^C")
 InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuReopenFolder",	"ReopenFolderMenuShortcut",	0,	"iconCurrentFolders",	"+^F")
 InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch",	"+^W")
-InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
-InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
+; InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
+; InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
 
 ; Separated menus in case wait time is too long
-; InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", 0, "iconRecentFolders", "+^R")
-; InitQAPFeatureObject("Drives", lMenuDrives . "...",	"", "DrivesMenuShortcut", 0, "iconDrives", "+^D")
+InitQAPFeatureObject("Recent Folders", lMenuRecentFolders . "...", "", "RecentFoldersMenuShortcut", 0, "iconRecentFolders", "+^R")
+InitQAPFeatureObject("Drives", lMenuDrives . "...",	"", "DrivesMenuShortcut", 0, "iconDrives", "+^D")
 
 ; Command features
 InitQAPFeatureObject("About",			lGuiAbout . "...",					"", "GuiAbout",							0, "iconAbout")
 InitQAPFeatureObject("Add Favorite",	lMenuAddFavorite . "...",			"", "GuiAddFavoriteFromQAP",			0, "iconLaunch")
 InitQAPFeatureObject("Add This Folder",	lMenuAddThisFolder . "...",			"", "AddThisFolder",					0, "iconAddThisFolder", "+^A")
+InitQAPFeatureObject("Add This Folder Express",	lMenuAddThisFolderXpress . "...", "", "AddThisFolderXpress",		0, "iconAddThisFolder")
 InitQAPFeatureObject("Exit",			L(lMenuExitApp, g_strAppNameText),	"", "ExitApp",							0, "iconExit")
 InitQAPFeatureObject("Help",			lGuiHelp . "...",					"", "GuiHelp",							0, "iconHelp")
 InitQAPFeatureObject("Hotkeys",			lDialogHotkeys . "...",				"", "GuiHotkeysManageFromQAPFeature",	0, "iconHotkeys")
@@ -1636,9 +1641,9 @@ InsertGuiControlPos("f_btnGuiCancel",				   0,  -90, , true)
 
 InsertGuiControlPos("f_drpMenusList",				  40,   84)
 
-InsertGuiControlPos("f_lblGuiDonate",				  50,  -20, true)
-InsertGuiControlPos("f_lblGuiAbout",				-104,  -20, true)
-InsertGuiControlPos("f_lblGuiHelp",					 -44,  -20, true)
+InsertGuiControlPos("f_lblGuiDonate",				  50,  -27, true)
+InsertGuiControlPos("f_lblGuiAbout",				-104,  -27, true)
+InsertGuiControlPos("f_lblGuiHelp",					 -44,  -27, true)
 InsertGuiControlPos("f_lblAppName",					  10,   10)
 InsertGuiControlPos("f_lblAppTagLine",				  10,   42)
 InsertGuiControlPos("f_lblGuiAddFavorite",			 -44,  168, true) ; 170 - 2
@@ -4230,8 +4235,8 @@ Gosub, BuildAlternativeMenu
 
 ; and rebuild dynamic menus
 Gosub, RefreshClipboardMenu
-Gosub, RefreshDrivesMenu
-Gosub, RefreshRecentFoldersMenu
+; Gosub, RefreshDrivesMenu
+; Gosub, RefreshRecentFoldersMenu
 Gosub, RefreshSwitchFolderOrAppMenu
 
 if (g_blnDiagMode)
@@ -4641,6 +4646,7 @@ return
 
 ;------------------------------------------------------------
 AddThisFolder:
+AddThisFolderXpress:
 ;------------------------------------------------------------
 
 g_strNewLocation := ""
@@ -4701,6 +4707,7 @@ if WindowIsExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass
 			WinGetTitle, strWindowActiveTitle, A ; to check if the window was closed unexpectedly
 		}
 		else ; Explorer or dialog boxes
+		{
 			Loop, %intTries%
 			{
 				Sleep, intWaitTimeIncrement * A_Index
@@ -4708,9 +4715,12 @@ if WindowIsExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass
 				Sleep, intWaitTimeIncrement * A_Index
 				SendInput, ^c ; Copy
 				Sleep, intWaitTimeIncrement * A_Index
-				intTries := A_Index ; for debug only
 				WinGetTitle, strWindowActiveTitle, A ; to check if the window was closed unexpectedly
+				intTriesIndex := A_Index
 			} Until (StrLen(ClipBoard) or (strAddThisFolderWindowTitle <> strWindowActiveTitle))
+			if (A_ThisLabel = "AddThisFolderXpress") ; escape from address bar
+				SendInput, {Esc}
+		}
 
 		g_strNewLocation := ClipBoard
 		Clipboard := objPrevClipboard ; Restore the original clipboard
@@ -4721,6 +4731,7 @@ if WindowIsExplorer(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass
 			Diag("Menu", A_ThisLabel)
 			Diag("Class", g_strTargetClass)
 			Diag("Tries", intTries)
+			Diag("TriesIndex", intTriesIndex)
 			Diag("AddedFolder", g_strNewLocation)
 		}
 		*/
@@ -4751,9 +4762,17 @@ If !StrLen(g_strNewLocation)
 }
 else
 {
-	Gosub, GuiShow
 	g_intOriginalMenuPosition := 0xFFFF
-	Gosub, GuiAddThisFolder
+	if (A_ThisLabel = "AddThisFolder")
+	{
+		Gosub, GuiShow
+		Gosub, GuiAddThisFolder
+	}
+	else
+	{
+		Gosub, GuiAddThisFolderXpress
+		Gosub, GuiSaveFavorites
+	}
 }
 
 objDOpusListers := ""
@@ -4761,6 +4780,7 @@ objPrevClipboard := ""
 strAddThisFolderWindowTitle := ""
 intWaitTimeIncrement := ""
 intTries := ""
+intTriesIndex := ""
 
 return
 ;------------------------------------------------------------
@@ -4778,6 +4798,7 @@ return
 ;------------------------------------------------------------
 GuiAddFavorite:
 GuiAddThisFolder:
+GuiAddThisFolderXpress:
 GuiAddFromDropFiles:
 GuiEditFavorite:
 GuiEditFavoriteFromAlternative:
@@ -4789,8 +4810,15 @@ g_blnAbordEdit := false
 ; ###_V(A_ThisLabel, g_intOriginalMenuPosition)
 
 Gosub, GuiFavoriteInit
+
 if (g_blnAbordEdit)
 {
+	gosub, GuiAddFavoriteCleanup
+	return
+}
+if (strGuiFavoriteLabel = "GuiAddThisFolderXpress")
+{
+	gosub, GuiAddFavoriteSaveXpress
 	gosub, GuiAddFavoriteCleanup
 	return
 }
@@ -4976,7 +5004,7 @@ if InStr(strGuiFavoriteLabel, "GuiEditFavorite") or (strGuiFavoriteLabel = "GuiC
 }
 else ; add favorite
 {
-	if (strGuiFavoriteLabel = "GuiAddThisFolder") and !WindowIsDialog(g_strTargetClass, g_strTargetWinId)
+	if !WindowIsDialog(g_strTargetClass, g_strTargetWinId) and InStr(strGuiFavoriteLabel, "GuiAddThisFolder") ; includes GuiAddThisFolderXpress
 	{
 		WinGetPos, intX, intY, intWidth, intHeight, ahk_id %g_strTargetWinId%
 		WinGet, intMinMax, MinMax, ahk_id %g_strTargetWinId% ; -1: minimized, 1: maximized, 0: neither minimized nor maximized
@@ -4987,9 +5015,9 @@ else ; add favorite
 	else
 		g_strNewFavoriteWindowPosition := ",,,,,,," ; to avoid having phantom values
 
-	if InStr("GuiAddThisFolder|GuiAddFromDropFiles", strGuiFavoriteLabel)
+	if InStr("GuiAddThisFolder|GuiAddThisFolderXpress|GuiAddFromDropFiles", strGuiFavoriteLabel)
 	{
-		; g_strNewLocation is received from AddThisFolder or GuiDropFiles
+		; g_strNewLocation is received from AddThisFolder, AddThisFolderXpress or GuiDropFiles
 		g_objEditedFavorite.FavoriteLocation := g_strNewLocation
 		g_objEditedFavorite.FavoriteName := (StrLen(g_strNewLocationSpecialName) ? g_strNewLocationSpecialName : GetDeepestFolderName(g_strNewLocation))
 	}
@@ -4997,7 +5025,7 @@ else ; add favorite
 
 	if (strGuiFavoriteLabel = "GuiAddFavorite")
 		g_objEditedFavorite.FavoriteType := g_strAddFavoriteType
-	else if (strGuiFavoriteLabel = "GuiAddThisFolder")
+	else if InStr(strGuiFavoriteLabel, "GuiAddThisFolder") ; includes GuiAddThisFolderXpress
 		g_objEditedFavorite.FavoriteType := (StrLen(g_strNewLocationSpecialName) ? "Special" : "Folder")
 	else if (strGuiFavoriteLabel = "GuiAddFromDropFiles")
 	{
@@ -6009,6 +6037,7 @@ return
 
 ;------------------------------------------------------------
 GuiAddFavoriteSave:
+GuiAddFavoriteSaveXpress:
 GuiEditFavoriteSave:
 GuiMoveOneFavoriteSave:
 GuiCopyFavoriteSave:
@@ -6027,8 +6056,24 @@ if InStr("GuiAddFavoriteSave|GuiCopyFavoriteSave", strThisLabel)
 else ; GuiEditFavoriteSave or GuiMoveOneFavoriteSave
 	strOriginalMenu := g_objMenuInGui.MenuPath
 
-; f_drpParentMenu and f_drpParentMenuItems have same field name in 2 gui: GuiAddFavorite and GuiMoveMultipleFavoritesToMenu
-strDestinationMenu := f_drpParentMenu
+if (A_ThisLabel = "GuiAddFavoriteSaveXpress")
+{
+	strNewFavoriteShortName := g_objEditedFavorite.FavoriteName
+	strNewFavoriteLocation := g_objEditedFavorite.FavoriteLocation
+	strNewFavoriteWindowPosition := g_strNewFavoriteWindowPosition
+	
+	; add new favorite in first position of Main menu
+	strDestinationMenu := lMainMenuName
+	g_intNewItemPos := 1
+}
+else
+{
+	strNewFavoriteShortName := f_strFavoriteShortName
+	strNewFavoriteLocation := f_strFavoriteLocation
+
+	; f_drpParentMenu and f_drpParentMenuItems have same field name in 2 gui: GuiAddFavorite and GuiMoveMultipleFavoritesToMenu
+	strDestinationMenu := f_drpParentMenu
+}
 
 ; ###_O("g_objMenusIndex", g_objMenusIndex)
 ; ###_V(A_ThisLabel . 1, g_intNewItemPos, f_drpParentMenuItems, strDestinationMenu)
@@ -6055,42 +6100,42 @@ if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|G
 
 if (strThisLabel <> "GuiMoveOneFavoriteSave")
 {
-	if !StrLen(f_strFavoriteShortName)
+	if !StrLen(strNewFavoriteShortName)
 	{
 		Oops(g_objEditedFavorite.FavoriteType = "Menu" ? lDialogSubmenuNameEmpty : lDialogFavoriteNameEmpty)
 		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
-	if  InStr("Folder|Document|Application|URL|FTP", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
+	if  InStr("Folder|Document|Application|URL|FTP", g_objEditedFavorite.FavoriteType) and !StrLen(strNewFavoriteLocation)
 	{
 		Oops(lDialogFavoriteLocationEmpty)
 		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
-	if (g_objEditedFavorite.FavoriteType = "FTP" and SubStr(f_strFavoriteLocation, 1, 6) <> "ftp://")
+	if (g_objEditedFavorite.FavoriteType = "FTP" and SubStr(strNewFavoriteLocation, 1, 6) <> "ftp://")
 	{
 		Oops(lOopsFtpLocationProtocol)
 		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
-	if  InStr("Special|QAP", g_objEditedFavorite.FavoriteType) and !StrLen(f_strFavoriteLocation)
+	if  InStr("Special|QAP", g_objEditedFavorite.FavoriteType) and !StrLen(strNewFavoriteLocation)
 	{
 		Oops(lDialogFavoriteDropdownEmpty, ReplaceAllInString(g_objFavoriteTypesLabels[g_objEditedFavorite.FavoriteType], "&", ""))
 		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
-	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and InStr(f_strFavoriteShortName, g_strMenuPathSeparator)
+	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and InStr(strNewFavoriteShortName, g_strMenuPathSeparator)
 	{
 		Oops(L(lDialogFavoriteNameNoSeparator, g_strMenuPathSeparator))
 		gosub, GuiAddFavoriteSaveCleanup
 		return
 	}
 
-	if InStr(f_strFavoriteShortName, g_strGroupIndicatorPrefix)
+	if InStr(strNewFavoriteShortName, g_strGroupIndicatorPrefix)
 	{
 		Oops(L(lDialogFavoriteNameNoSeparator, g_strGroupIndicatorPrefix))
 		gosub, GuiAddFavoriteSaveCleanup
@@ -6119,38 +6164,48 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	}
 	
 	if InStr("Folder|Document", g_objEditedFavorite.FavoriteType)
-		and (SubStr(f_strFavoriteLocation, 1, 5) = "http:" or SubStr(f_strFavoriteLocation, 1, 6) = "https:")
+		and (SubStr(strNewFavoriteLocation, 1, 5) = "http:" or SubStr(strNewFavoriteLocation, 1, 6) = "https:")
 	{
 		; Transform from "http:" to "\\", example:
 		; From: http://abc.server.com/folder/subfolder/My Name.doc
 		; to:   \\abc.server.com\folder\subfolder\My%20Name.doc
 		; See: http://stackoverflow.com/questions/1344910/get-the-content-of-a-sharepoint-folder-with-excel-vba
 		
-		StringReplace, strHttpLocationTransformed, f_strFavoriteLocation, /, \, All
+		StringReplace, strHttpLocationTransformed, strNewFavoriteLocation, /, \, All
 		StringReplace, strHttpLocationTransformed, strHttpLocationTransformed, http:
 		StringReplace, strHttpLocationTransformed, strHttpLocationTransformed, https:
-		; not required? StringReplace, f_strFavoriteLocation, f_strFavoriteLocation, %A_Space%, `%20, All
+		; not required? StringReplace, strNewFavoriteLocation, strNewFavoriteLocation, %A_Space%, `%20, All
 		
-		Oops(lOopsHttpLocationTransformed, f_strFavoriteLocation, strHttpLocationTransformed)
-		f_strFavoriteLocation := strHttpLocationTransformed
+		Oops(lOopsHttpLocationTransformed, strNewFavoriteLocation, strHttpLocationTransformed)
+		strNewFavoriteLocation := strHttpLocationTransformed
 	}
 }
 
-if !FolderNameIsNew((strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : f_strFavoriteShortName), g_objMenusIndex[strDestinationMenu])
-	and !InStr("X|K", g_objEditedFavorite.FavoriteType) ; same name OK for separators
-	; we have the same name in the destination menu
-	; if this is the same menu and the same name, this is OK
-	if (strDestinationMenu <> strOriginalMenu) or (f_strFavoriteShortName <> g_objEditedFavorite.FavoriteName)
-	{
-		if (g_objEditedFavorite.FavoriteType = "QAP")
-			Oops(lDialogFavoriteNameNotNewQAPfeature, (strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : f_strFavoriteShortName))
+loop ; loop for Add this Folder Express - if name is not new, add " (2)", " (3)", etc.)
+	if !FavoriteNameIsNew((strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : strNewFavoriteShortName), g_objMenusIndex[strDestinationMenu])
+		and !InStr("X|K", g_objEditedFavorite.FavoriteType) ; same name OK for separators
+		; we have the same name in the destination menu
+		; if this is the same menu and the same name, this is OK
+		if (strDestinationMenu <> strOriginalMenu) or (strNewFavoriteShortName <> g_objEditedFavorite.FavoriteName) or (A_ThisLabel = "GuiAddFavoriteSaveXpress")
+		{
+			if (A_ThisLabel = "GuiAddFavoriteSaveXpress")
+				strNewFavoriteShortName .= " [!]" ; and loop
+			else
+			{
+				if (g_objEditedFavorite.FavoriteType = "QAP")
+					Oops(lDialogFavoriteNameNotNewQAPfeature, (strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : strNewFavoriteShortName))
+				else
+					Oops(lDialogFavoriteNameNotNew, (strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : strNewFavoriteShortName))
+				if (strThisLabel = "GuiMoveOneFavoriteSave")
+					g_intOriginalMenuPosition++
+				gosub, GuiAddFavoriteSaveCleanup
+				return
+			}
+		}
 		else
-			Oops(lDialogFavoriteNameNotNew, (strThisLabel = "GuiMoveOneFavoriteSave" ? g_objEditedFavorite.FavoriteName : f_strFavoriteShortName))
-		if (strThisLabel = "GuiMoveOneFavoriteSave")
-			g_intOriginalMenuPosition++
-		gosub, GuiAddFavoriteSaveCleanup
-		return
-	}
+			break ; name is not new but is OK - exit loop
+	else
+		break ; name is new - exit loop
 
 if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " " . g_objEditedFavorite.FavoriteName) = 1) ; = 1 to check if equal from start only
 	and !InStr("K|X", g_objEditedFavorite.FavoriteType) ; no risk with separators
@@ -6166,7 +6221,7 @@ if (InStr(strDestinationMenu, strOriginalMenu . " " . g_strMenuPathSeparator " "
 if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (strThisLabel = "GuiAddFavoriteSave"))
 {
 	objNewMenu := Object() ; object for the new menu or group
-	objNewMenu.MenuPath := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
+	objNewMenu.MenuPath := strDestinationMenu . " " . g_strMenuPathSeparator . " " . strNewFavoriteShortName
 		. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
 	objNewMenu.MenuType := g_objEditedFavorite.FavoriteType
 
@@ -6185,20 +6240,20 @@ if (InStr("Menu|Group", g_objEditedFavorite.FavoriteType) and (strThisLabel = "G
 
 if (strThisLabel <> "GuiMoveOneFavoriteSave")
 {
-	g_objEditedFavorite.FavoriteName := f_strFavoriteShortName
+	g_objEditedFavorite.FavoriteName := strNewFavoriteShortName
 	
 	; before updating g_objEditedFavorite.FavoriteLocation, check if location was changed and update hotkeys objects
-	; ###_V(A_ThisLabel, g_strNewFavoriteHotkey, g_objEditedFavorite.FavoriteLocation, f_strFavoriteLocation, HasHotkey(g_strNewFavoriteHotkey))
-	if StrLen(g_objEditedFavorite.FavoriteLocation) and (g_objEditedFavorite.FavoriteLocation <> f_strFavoriteLocation)
+	; ###_V(A_ThisLabel, g_strNewFavoriteHotkey, g_objEditedFavorite.FavoriteLocation, strNewFavoriteLocation, HasHotkey(g_strNewFavoriteHotkey))
+	if StrLen(g_objEditedFavorite.FavoriteLocation) and (g_objEditedFavorite.FavoriteLocation <> strNewFavoriteLocation)
 	{
 		g_objHotkeysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
-		if StrLen(f_strFavoriteLocation) and HasHotkey(g_strNewFavoriteHotkey)
-			g_objHotkeysByLocation.Insert(f_strFavoriteLocation, g_strNewFavoriteHotkey) ; if the key already exists, its value is overwritten
+		if StrLen(strNewFavoriteLocation) and HasHotkey(g_strNewFavoriteHotkey)
+			g_objHotkeysByLocation.Insert(strNewFavoriteLocation, g_strNewFavoriteHotkey) ; if the key already exists, its value is overwritten
 	}
 	
 	if InStr("Menu|Group", g_objEditedFavorite.FavoriteType)
 	{
-		strMenuLocation := strDestinationMenu . " " . g_strMenuPathSeparator . " " . f_strFavoriteShortName
+		strMenuLocation := strDestinationMenu . " " . g_strMenuPathSeparator . " " . strNewFavoriteShortName
 			. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
 		RecursiveUpdateMenuPathAndLocation(g_objEditedFavorite, strMenuLocation)
 		
@@ -6225,7 +6280,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 		; ###_V(A_ThisLabel, strMenuLocation, g_objMenuInGui.MenuPath, g_intOriginalMenuPosition, g_objMenuInGui[g_intOriginalMenuPosition].FavoriteLocation, g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath)
 	}
 	else
-		g_objEditedFavorite.FavoriteLocation := f_strFavoriteLocation
+		g_objEditedFavorite.FavoriteLocation := strNewFavoriteLocation
 	
 	Gosub, UpdateHotkeyObjectsFavoriteSave
 
@@ -6337,7 +6392,7 @@ if (strDestinationMenu = g_objMenuInGui.MenuPath) ; add modified to Listview if 
 	if (g_intNewItemPos)
 		LV_Insert(g_intNewItemPos, "Select Focus", g_objEditedFavorite.FavoriteName, g_objFavoriteTypesShortNames[g_objEditedFavorite.FavoriteType], strThisLocation)
 	else
-		LV_Add("Select Focus", g_objEditedFavorite.FavoriteName, g_objFavoriteTypesShortNames[g_objEditedFavorite.FavoriteName], strThisLocation)
+		LV_Add("Select Focus", g_objEditedFavorite.FavoriteName, g_objFavoriteTypesShortNames[g_objEditedFavorite.FavoriteType], strThisLocation)
 
 	LV_Modify(LV_GetNext(), "Vis")
 }
@@ -6375,6 +6430,8 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave") ; do not execute at each favorite 
 	objThisMenu := ""
 	strHttpLocationTransformed := ""
 	strPreviousLocation := ""
+	strNewFavoriteShortName := ""
+	strNewFavoriteLocation := ""
 
 	; make sure all gui variables are flushed before next fav add or edit
 	Gosub, GuiAddFavoriteFlush
@@ -6484,7 +6541,7 @@ ValidateWindowPosition(strPosition)
 
 
 ;------------------------------------------------------------
-FolderNameIsNew(strCandidateName, objMenu)
+FavoriteNameIsNew(strCandidateName, objMenu)
 ;------------------------------------------------------------
 {
 	Loop, % objMenu.MaxIndex()
@@ -9313,6 +9370,9 @@ OpenFavoriteWindowResize:
 ;------------------------------------------------------------
 
 ; ###_V(A_ThisLabel, g_strNewWindowId, g_strQAPconnectWindowID)
+
+; WinGetActiveStats, Title, Width, Height, X, Y
+; ###_V("",  Title, Width, Height, X, Y)
 
 if (g_arrFavoriteWindowPosition1 and StrLen(g_strNewWindowId))
 {
