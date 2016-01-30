@@ -24,12 +24,13 @@ TO-DO
 HISTORY
 =======
 
-Version: 6.5.4 beta (2016-01-29)
+Version: 6.5.4.1 beta (2016-01-30)
 - remove "Drives" and "Recent Folders" from the main menu (back to separate menu) until background refresh solution is ready
 - add "Add this Folder Express" QAP feature added
 - enable mouse cursor to hand image when hovering buttons image or text in QAP GUI
 - add error checking if g_strQAPconnectIniPath is missing
 - fix buttons labels alignment in Settings
+- v6.5.4.1 fix an error slowing down the menu display
 
 Version: 6.5.3 beta (2016-01-24)
 - addition of German translation
@@ -407,7 +408,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 6.5.4 beta
+;@Ahk2Exe-SetVersion 6.5.4.1 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -451,7 +452,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.5.4" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "6.5.4.1" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -7794,8 +7795,8 @@ if !(A_IsCompiled)
 ; in order of estimated avverage time required to refresh
 Gosub, RefreshSwitchFolderOrAppMenu ; also refreshes g_menuReopenFolder
 Gosub, RefreshClipboardMenu
-Gosub, RefreshRecentFoldersMenu ; displays the wait cursor
-Gosub, RefreshDrivesMenu ; displays the wait cursor
+; Gosub, RefreshRecentFoldersMenu ; displays the wait cursor
+; Gosub, RefreshDrivesMenu ; displays the wait cursor
 
 if (g_blnDiagMode)
 {
