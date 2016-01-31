@@ -258,7 +258,6 @@ lMenuPublicLibraries	Bibliotecas Públicas
 lMenuQuickLaunch	Inicialização Rápida
 lMenuRecentFolders	Pastas Recentes
 lMenuRecentItems	Itens Recentes
-lMenuRefreshRecent	Atualizando menu de pastas Recente
 lMenuRunAtStartup	Executa&r na Inicialização
 lMenuSettings	Configurações
 lMenuStartMenu	Menu Iniciar
@@ -313,7 +312,7 @@ lOptionsHotkeyRemindersPrompt	Lembretes de tecla de atalho no menu:
 lOptionsHotkeyRemindersShort	Exibir nomes abreviados
 lOptionsIconSize	Tamanho dos ícones no menu
 lOptionsLanguage	Idioma
-lOptionsLanguageLabels	Inglês|Francês|Alemão|Holandês|Coreano|Sueco|Italiano|Espanhol|Português (Brasil)
+lOptionsLanguageLabels	Inglês|Francês|Alemão|Sueco|Espanhol|Português (Brasil)
 lOptionsMenuActiveWindow	Canto superior esquerdo da janela ativa
 lOptionsMenuFixPosition	Em uma posição fixa
 lOptionsMenuNearMouse	Próximo do ponteiro do mouse

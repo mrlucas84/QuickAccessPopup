@@ -258,7 +258,6 @@ lMenuPublicLibraries	Bibliotecas (publico)
 lMenuQuickLaunch	Lanzador rápido
 lMenuRecentFolders	Ubicaciones recientes
 lMenuRecentItems	Documentos recientes
-lMenuRefreshRecent	Actualización de carpetas recientes en curso
 lMenuRunAtStartup	Ejecutar al Inicio
 lMenuSettings	Configuración
 lMenuStartMenu	Menú de Inicio
@@ -313,7 +312,7 @@ lOptionsHotkeyRemindersPrompt	Recordatorios teclas de acceso directo en el menú:
 lOptionsHotkeyRemindersShort	Mostrar nombres abreviados
 lOptionsIconSize	Tamaño de iconos del menú
 lOptionsLanguage	Idioma
-lOptionsLanguageLabels	Inglés|Francés|Alemán|Holandés|Coreano|Sueco|Italiano|Español|Portugués brasileño
+lOptionsLanguageLabels	Inglés|Francés|Alemán|Sueco|Español|Portugués brasileño
 lOptionsMenuActiveWindow	En la ventana activa
 lOptionsMenuFixPosition	En una posición fija
 lOptionsMenuNearMouse	Cerca del puntero del ratón

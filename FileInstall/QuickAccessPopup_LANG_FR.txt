@@ -220,6 +220,7 @@ lMainMenuName	Principal
 lMenuAbout	À propos
 lMenuAddFavorite	Ajouter un favori
 lMenuAddThisFolder	Ajouter ce dossier au menu
+lMenuAddThisFolderXpress	Ajouter ce dossier Express
 lMenuAlternativeEditFavorite	Modifier un favori
 lMenuAlternativeNewWindow	Ouvrir dans une nouvelle fenêtre
 lMenuAppData	Application Data
@@ -312,7 +313,7 @@ lOptionsHotkeyRemindersPrompt	Rappel des raccourcis dans les menus:
 lOptionsHotkeyRemindersShort	Afficher les noms abrégés
 lOptionsIconSize	Taille des icones de menu
 lOptionsLanguage	Langue
-lOptionsLanguageLabels	Anglais|Français|Allemand|Néerlandais|Coréen|Suédois|Italien|Espagnol|Portugais brésilien
+lOptionsLanguageLabels	Anglais|Français|Allemand|Suédois|Espagnol|Portugais brésilien
 lOptionsMenuActiveWindow	Dans la fenêtre active
 lOptionsMenuFixPosition	À une position fixe
 lOptionsMenuNearMouse	Près du pointeur de la souris

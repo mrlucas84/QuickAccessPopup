@@ -258,7 +258,6 @@ lMenuPublicLibraries	Öffentliche Bibliotheken
 lMenuQuickLaunch	Schnellstart
 lMenuRecentFolders	Kürzlich verwendete Ordner
 lMenuRecentItems	Zuletzt verwendet
-lMenuRefreshRecent	Menü der kürzlich verwendeten Ordner wird aktualisiert
 lMenuRunAtStartup	&Beim Start von Windows ausführen
 lMenuSettings	Einstellungen
 lMenuStartMenu	Startmenü
@@ -313,7 +312,7 @@ lOptionsHotkeyRemindersPrompt	Hotkey-Erinnerungen im Menü:
 lOptionsHotkeyRemindersShort	Zeige abgekürzte Namen
 lOptionsIconSize	Symbolgröße im Menü
 lOptionsLanguage	Sprache
-lOptionsLanguageLabels	Englisch|Französisch|Deutsch|Holländisch|Koreanisch|Schwedisch|Italienisch|Spanisch|Brasilianisch Portugiesisch
+lOptionsLanguageLabels	Englisch|Französisch|Deutsch|Schwedisch|Spanisch|Brasilianisch Portugiesisch
 lOptionsMenuActiveWindow	Im aktiven Fenster
 lOptionsMenuFixPosition	An fester Position
 lOptionsMenuNearMouse	Nahe des Mauszeigers
