@@ -18,11 +18,13 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- review help text
-
 
 HISTORY
 =======
+
+Version: 7.0.1 (2016-??-??)
+- remove languages not yet adapted from Folders Popup (Dutch, Corean and Italian)
+- remove favorite windows options for document, application and link favorite types
 
 Version: 6.5.4.1 beta (2016-01-30)
 - remove "Drives" and "Recent Folders" from the main menu (back to separate menu) until background refresh solution is ready
@@ -452,8 +454,8 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "6.5.4.1" ; "major.minor.bugs" or "major.minor.beta.release"
-g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
+g_strCurrentVersion := "7.0.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
 g_blnDiagMode := False
@@ -819,12 +821,12 @@ FileCreateDir, %g_strTempDir%
 
 FileInstall, FileInstall\QuickAccessPopup_LANG_DE.txt, %g_strTempDir%\QuickAccessPopup_LANG_DE.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_FR.txt, %g_strTempDir%\QuickAccessPopup_LANG_FR.txt, 1
-FileInstall, FileInstall\QuickAccessPopup_LANG_NL.txt, %g_strTempDir%\QuickAccessPopup_LANG_NL.txt, 1
-FileInstall, FileInstall\QuickAccessPopup_LANG_KO.txt, %g_strTempDir%\QuickAccessPopup_LANG_KO.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_SV.txt, %g_strTempDir%\QuickAccessPopup_LANG_SV.txt, 1
-FileInstall, FileInstall\QuickAccessPopup_LANG_IT.txt, %g_strTempDir%\QuickAccessPopup_LANG_IT.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_ES.txt, %g_strTempDir%\QuickAccessPopup_LANG_ES.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_PT-BR.txt, %g_strTempDir%\QuickAccessPopup_LANG_PT-BR.txt, 1
+; FileInstall, FileInstall\QuickAccessPopup_LANG_NL.txt, %g_strTempDir%\QuickAccessPopup_LANG_NL.txt, 1
+; FileInstall, FileInstall\QuickAccessPopup_LANG_KO.txt, %g_strTempDir%\QuickAccessPopup_LANG_KO.txt, 1
+; FileInstall, FileInstall\QuickAccessPopup_LANG_IT.txt, %g_strTempDir%\QuickAccessPopup_LANG_IT.txt, 1
 
 FileInstall, FileInstall\default_browser_icon.html, %g_strTempDir%\default_browser_icon.html, 1
 
@@ -986,7 +988,7 @@ InitLanguages:
 ;------------------------------------------------------------
 
 strDebugLanguageFile := A_WorkingDir . "\" . g_strAppNameFile . "_LANG_ZZ.txt"
-if (g_strBranch <> "prod") and FileExist(strDebugLanguageFile)
+if (g_strCurrentBranch <> "prod") and FileExist(strDebugLanguageFile)
 {
 	strLanguageFile := strDebugLanguageFile
 	g_strLanguageCode := "EN"
@@ -1045,7 +1047,7 @@ InitLanguageArrays:
 ; ----------------------
 ; OPTIONS
 StringSplit, g_arrOptionsPopupHotkeyTitles, lOptionsPopupHotkeyTitles, |
-strOptionsLanguageCodes := "EN|FR|DE|NL|KO|SV|IT|ES|PT-BR"
+strOptionsLanguageCodes := "EN|FR|DE|SV|ES|PT-BR" ; removed NL, KO and IT - edit lOptionsLanguageLabels in all languages
 StringSplit, g_arrOptionsLanguageCodes, strOptionsLanguageCodes, |
 StringSplit, g_arrOptionsLanguageLabels, lOptionsLanguageLabels, |
 
@@ -4833,7 +4835,10 @@ Gui, 2:+OwnDialogs
 if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
-g_strTypesForTabWindowOptions := "Folder|Document|Application|Special|Link|FTP"
+if (g_strCurrentBranch <> "prod")
+	g_strTypesForTabWindowOptions := "Folder|Document|Application|Special|Link|FTP"
+else ; prod
+	g_strTypesForTabWindowOptions := "Folder|Special|FTP"
 g_strTypesForTabAdvancedOptions := "Folder|Document|Application|Special|URL|FTP|Group"
 
 Gui, 2:Add, Tab2, vf_intAddFavoriteTab w520 h380 gGuiAddFavoriteTabChanged AltSubmit, % " " . BuildTabsList(g_objEditedFavorite.FavoriteType) . " "
