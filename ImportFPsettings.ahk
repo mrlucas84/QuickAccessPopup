@@ -11,6 +11,9 @@ Convert favorites and import options from Folders Popup (folderspopup.ini) to Qu
 Do not import groups. If it does not exist, the QuickAccessPopup.ini file is created in ths program's directory. If it
 already exists, this program will OVERWRITE the existing options and REPLACE ALL existing favorites in this file.
 
+Version: 1.0 (2016-01-31)
+- ready for official release
+
 Version: 0.5 beta (2015-11-08)
 - renumbered and adapted for beta test phase
 - same features as v0.4
@@ -41,7 +44,7 @@ Version: 0.1 alpha (2015-09-15)
 
 ;@Ahk2Exe-SetName ImportFPsettings
 ;@Ahk2Exe-SetDescription Import settings from Folders Popup to Quick Access Popup
-;@Ahk2Exe-SetVersion 0.5 alpha
+;@Ahk2Exe-SetVersion 1.0
 ;@Ahk2Exe-SetOrigFilename ImportFPsettings.exe
 
 
@@ -65,8 +68,8 @@ ListLines, On
 
 global g_strAppNameFile := "ImportFPsettings"
 global g_strAppNameText := "Import Settings - FP to QAP"
-global g_strCurrentVersion := "0.5" ; "major.minor.bugs" or "major.minor.beta.release"
-global g_strCurrentBranch := "alpha" ; "prod", "beta" or "alpha", always lowercase for filename
+global g_strCurrentVersion := "1.0" ; "major.minor.bugs" or "major.minor.beta.release"
+global g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 global g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
 global g_strQAPAppNameFile := "QuickAccessPopup"
