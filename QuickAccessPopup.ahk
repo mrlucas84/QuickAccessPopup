@@ -22,6 +22,9 @@ TO-DO
 HISTORY
 =======
 
+Version: 7.0.2 (2016-02-01)
+- temporarily removed code supporting PATH in Clipboard menu refresh causing slow down or crash when Clipboard contains URL
+
 Version: 7.0.1 (2016-02-01)
 - first production release
 - removed languages not yet adapted from Folders Popup (Dutch, Corean and Italian)
@@ -2467,7 +2470,26 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 {
 	strClipboardLineExpanded := A_LoopField ; only for FileExistInPath - will not be displayed in menu
 
+/* #####
 	if FileExistInPath(strClipboardLineExpanded) ; rerturn strClipboardLineExpanded with expanded relative path and envvars, and search in PATH
+	{
+		strContentsInClipboard .= "`n" . A_LoopField
+		
+		if (g_blnDisplayIcons)
+		{
+			if LocationIsDocument(strClipboardLineExpanded)
+			{
+				GetIcon4Location(strClipboardLineExpanded, strThisIconFile, intThisIconIndex)
+				strContentsInClipboard .= "`t" . strThisIconFile . "," . intThisIconIndex
+			}
+			else
+			{
+				strContentsInClipboard .= "`t" . "iconFolder"
+			}
+		}
+	}
+*/
+if FileExist(A_LoopField)
 	{
 		strContentsInClipboard .= "`n" . A_LoopField
 		
