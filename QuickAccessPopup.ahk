@@ -22,9 +22,11 @@ TO-DO
 HISTORY
 =======
 
-Version: 7.0.1 (2016-??-??)
-- remove languages not yet adapted from Folders Popup (Dutch, Corean and Italian)
-- remove favorite windows options for document, application and link favorite types
+Version: 7.0.1 (2016-02-01)
+- first production release
+- removed languages not yet adapted from Folders Popup (Dutch, Corean and Italian)
+- removed favorite windows options for document, application and link favorite types
+- refresh dynamic menus "Drives" and "Recent Folders" after Options saved
 
 Version: 6.5.4.1 beta (2016-01-30)
 - remove "Drives" and "Recent Folders" from the main menu (back to separate menu) until background refresh solution is ready
@@ -4236,8 +4238,8 @@ Gosub, BuildAlternativeMenu
 
 ; and rebuild dynamic menus
 Gosub, RefreshClipboardMenu
-; Gosub, RefreshDrivesMenu
-; Gosub, RefreshRecentFoldersMenu
+Gosub, RefreshDrivesMenu
+Gosub, RefreshRecentFoldersMenu
 Gosub, RefreshSwitchFolderOrAppMenu
 
 if (g_blnDiagMode)
@@ -4836,7 +4838,7 @@ if (g_blnUseColors)
 	Gui, 2:Color, %g_strGuiWindowColor%
 
 if (g_strCurrentBranch <> "prod")
-	g_strTypesForTabWindowOptions := "Folder|Document|Application|Special|Link|FTP"
+	g_strTypesForTabWindowOptions := "Folder|Document|Application|Special|URL|FTP"
 else ; prod
 	g_strTypesForTabWindowOptions := "Folder|Special|FTP"
 g_strTypesForTabAdvancedOptions := "Folder|Document|Application|Special|URL|FTP|Group"
