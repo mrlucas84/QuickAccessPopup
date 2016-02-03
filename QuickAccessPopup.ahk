@@ -22,6 +22,11 @@ TO-DO
 HISTORY
 =======
 
+Version: 7.0.3 (2016-02-02)
+- fix a typo in Paypal code making QAP donation being sent as Folders Popup donation
+- support negative window positions which are normal in multi monitor workspaces
+- updated translation tool for production version
+
 Version: 7.0.2 (2016-02-01)
 - temporarily removed code supporting PATH in Clipboard menu refresh causing slow down or crash when Clipboard contains URL
 
@@ -415,7 +420,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.2
+;@Ahk2Exe-SetVersion 7.0.3
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -459,7 +464,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.2" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "7.0.3" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -993,7 +998,7 @@ InitLanguages:
 ;------------------------------------------------------------
 
 strDebugLanguageFile := A_WorkingDir . "\" . g_strAppNameFile . "_LANG_ZZ.txt"
-if (g_strCurrentBranch <> "prod") and FileExist(strDebugLanguageFile)
+if FileExist(strDebugLanguageFile)
 {
 	strLanguageFile := strDebugLanguageFile
 	g_strLanguageCode := "EN"
@@ -6560,8 +6565,9 @@ ValidateWindowPosition(strPosition)
 	else
 		blnOK := true
 
-	if (blnOK)
-		blnOK := (arrPosition3 >= 0) and (arrPosition4 >= 0) and (arrPosition5 > 0) and (arrPosition6 > 0) and (arrPosition7 >= 0)
+	; removed because negative window positions are normal in multi monitor workspaces
+	; if (blnOK)
+	; 	blnOK := (arrPosition3 >= 0) and (arrPosition4 >= 0) and (arrPosition5 > 0) and (arrPosition6 > 0) and (arrPosition7 >= 0)
 	
 	return blnOK
 }
@@ -9821,7 +9827,7 @@ ButtonDonate2:
 ButtonDonate3:
 ;------------------------------------------------------------
 
-strDonatePlatformUrl1 := "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=AJNCXKWKYAXLCV"
+strDonatePlatformUrl1 := "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=TE8TR28QKM3Z8"
 strDonatePlatformUrl2 := "http://www.shareit.com/product.html?productid=300628012"
 strDonatePlatformUrl3 := "http://code.jeanlalonde.ca/?flattrss_redirect&id=19&md5=e1767c143c9bde02b4e7f8d9eb362b71"
 
