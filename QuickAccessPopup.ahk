@@ -22,6 +22,12 @@ TO-DO
 HISTORY
 =======
 
+Version: 7.0.4 (2016-02-03)
+- run at startup option enabled by default only when using the setup install mode (not enabled in portable install mode)
+- enable check for updates option enabled by default only when using the setup install mode (not enabled in portable install mode)
+- allow top and left positions to be negative in Add/Edit favorite dialog box, Window Options
+- fixes in English text and German translation
+
 Version: 7.0.3 (2016-02-02)
 - fix a typo in Paypal code making QAP donation being sent as Folders Popup donation
 - support negative window positions which are normal in multi monitor workspaces
@@ -420,7 +426,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.3
+;@Ahk2Exe-SetVersion 7.0.4
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -464,7 +470,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.3" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "7.0.4" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -774,7 +780,7 @@ In Portable mode, A_WorkingDir is what the user decided. In Setup mode, A_Workin
 
 ; Now, step-by-step...
 
-; Check if what mode QAP is running:
+; Check in what mode QAP is running:
 ; - if the file "_do_not_remove_or_rename.txt" is in A_ScriptDir, we are in Setup mode
 ; - else we are in Portable mode.
 
@@ -782,7 +788,12 @@ In Portable mode, A_WorkingDir is what the user decided. In Setup mode, A_Workin
 
 ; If we are in Portable mode, we keep the A_WorkingDir and return. It is equal to A_ScriptDir except if the user set the "Start In" folder in a shortcut.
 if !FileExist(A_ScriptDir . "\_do_not_remove_or_rename.txt")
+{
+	g_blnPortableMode := true ; set this variable for use later during init
 	return
+}
+else
+	g_blnPortableMode := false ; set this variable for use later during init
 
 ; Now we are in Setup mode
 
@@ -1722,8 +1733,9 @@ g_objMainMenu.MenuType := "Menu" ; main menu is not a group
 
 IfNotExist, %g_strIniFile% ; if it exists, it was created by ImportFavoritesFP2QAP.ahk during install
 {
-	; create the startup shortcut at first execution of LoadIniFile (if ini file does not exist)
-	FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
+	; if not in portable mode, create the startup shortcut at first execution of LoadIniFile (if ini file does not exist)
+	if !(g_blnPortableMode)
+		FileCreateShortcut, %A_ScriptFullPath%, %A_Startup%\%g_strAppNameFile%.lnk, %A_WorkingDir%
 	
 	strNavigateOrLaunchHotkeyMouseDefault := g_arrPopupHotkeyDefaults1 ; "MButton"
 	strNavigateOrLaunchHotkeyKeyboardDefault := g_arrPopupHotkeyDefaults2 ; "W"
@@ -1794,7 +1806,7 @@ Gosub, LoadIniPopupHotkeys
 ; Load Options Tab 1 General
 
 IniRead, g_blnDisplayTrayTip, %g_strIniFile%, Global, DisplayTrayTip, 1
-IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, 1
+IniRead, g_blnCheck4Update, %g_strIniFile%, Global, Check4Update, % (g_blnPortableMode ? 0 : 1) ; enable by default only in setup install mode
 IniRead, g_blnRememberSettingsPosition, %g_strIniFile%, Global, RememberSettingsPosition, 1
 IniRead, g_intRecentFoldersMax, %g_strIniFile%, Global, RecentFoldersMax, 10
 
@@ -5262,7 +5274,7 @@ if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 		. (arrNewFavoriteWindowPosition1 ? "" : " hidden") . (arrNewFavoriteWindowPosition2 = -1 ? " checked" : ""), %lDialogMinimized%
 
 	Gui, 2:Add, Text, % "y+20 x20 vf_lblWindowPositionDelayLabel " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionDelay%
-	Gui, 2:Add, Edit, % "yp x+20 w36 center vf_lblWindowPositionDelay " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), % (arrNewFavoriteWindowPosition7 = "" ? 200 : arrNewFavoriteWindowPosition7)
+	Gui, 2:Add, Edit, % "yp x+20 w36 center number limit5 vf_lblWindowPositionDelay " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), % (arrNewFavoriteWindowPosition7 = "" ? 200 : arrNewFavoriteWindowPosition7)
 	Gui, 2:Add, Text, % "x+10 yp vf_lblWindowPositionMillisecondsLabel " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lGuiGroupRestoreDelayMilliseconds%
 	Gui, 2:Add, Text, % "y+20 x20 vf_lblWindowPositionMayFail " . (arrNewFavoriteWindowPosition1 ? "" : "hidden"), %lDialogWindowPositionMayFail%
 	
@@ -5273,8 +5285,8 @@ if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 	Gui, 2:Add, Text, % "ys+60 xs vf_lblWindowPositionW " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionW%
 	Gui, 2:Add, Text, % "ys+80 xs vf_lblWindowPositionH " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %lDialogWindowPositionH%
 	
-	Gui, 2:Add, Edit, % "ys+20 xs+72 w36 h17 vf_intWindowPositionX center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition3%
-	Gui, 2:Add, Edit, % "ys+40 xs+72 w36 h17 vf_intWindowPositionY center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition4%
+	Gui, 2:Add, Edit, % "ys+20 xs+72 w36 h17 vf_intWindowPositionX center limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition3%
+	Gui, 2:Add, Edit, % "ys+40 xs+72 w36 h17 vf_intWindowPositionY center limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition4%
 	Gui, 2:Add, Edit, % "ys+60 xs+72 w36 h17 vf_intWindowPositionW center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition5%
 	Gui, 2:Add, Edit, % "ys+80 xs+72 w36 h17 vf_intWindowPositionH center number limit5 " . (arrNewFavoriteWindowPosition1 and arrNewFavoriteWindowPosition2 = 0 ? "" : "hidden"), %arrNewFavoriteWindowPosition6%
 }
@@ -6565,9 +6577,8 @@ ValidateWindowPosition(strPosition)
 	else
 		blnOK := true
 
-	; removed because negative window positions are normal in multi monitor workspaces
-	; if (blnOK)
-	; 	blnOK := (arrPosition3 >= 0) and (arrPosition4 >= 0) and (arrPosition5 > 0) and (arrPosition6 > 0) and (arrPosition7 >= 0)
+	if (blnOK)
+	 	blnOK := (arrPosition5 > 0) and (arrPosition6 > 0) and (arrPosition7 >= 0) ; Width, Height and Delay must be positive
 	
 	return blnOK
 }
