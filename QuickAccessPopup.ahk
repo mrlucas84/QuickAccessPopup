@@ -22,11 +22,12 @@ TO-DO
 HISTORY
 =======
 
-Version: 7.0.4 (2016-02-03)
+Version: 7.0.4/7.0.5 (2016-02-03)
 - run at startup option enabled by default only when using the setup install mode (not enabled in portable install mode)
 - enable check for updates option enabled by default only when using the setup install mode (not enabled in portable install mode)
 - allow top and left positions to be negative in Add/Edit favorite dialog box, Window Options
 - fixes in English text and German translation
+- in v7.0.5 only version number was incremented
 
 Version: 7.0.3 (2016-02-02)
 - fix a typo in Paypal code making QAP donation being sent as Folders Popup donation
@@ -426,7 +427,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.4
+;@Ahk2Exe-SetVersion 7.0.5
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -470,7 +471,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.4" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "7.0.5" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
