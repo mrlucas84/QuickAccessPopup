@@ -121,7 +121,7 @@ lDialogTabNext	Nächste
 lDialogThirdPartyDetected	~1~ hat festgestellt, dass ~2~ auf diesem System installiert ist.`n`nWollen Sie die ~2~ Integration einschalten?
 lDialogTriggerFor	Trigger for:
 lDialogUseDefaultWindowPosition	Verwende die Standard-Fensterposition
-lDialogWin	Fenster
+lDialogWin	Windows
 lDialogWindowPosition	Fensterposition:
 lDialogWindowPositionDelay	Verzögerung
 lDialogWindowPositionH	Höhe
@@ -132,12 +132,12 @@ lDialogWindowPositionW	Breite
 lDialogWindowPositionX	Links
 lDialogWindowPositionY	Oben
 lDialogWindowsFolderIconCreate	erzeugen
-lDialogWindowsFolderIconNoRoot	Das Ordnersymbol des Fensters kann nicht im Hauptverzeichnis des Verzeichnisses gesetzt werden (~1~).
-lDialogWindowsFolderIconPrompt	Dieser Befehl wird die Systemdatei ~2~ ~1~`n`nDas Ordnersymbol dieses Fensters wird auf das aktuell gewählte Favoritensymbol gesetzt. Wollen Sie fortfahren?
-lDialogWindowsFolderIconRemove	Ordnersymbol dieses Fensters entfernen
+lDialogWindowsFolderIconNoRoot	Das Windows Ordnersymbol kann nicht im Hauptverzeichnis des Verzeichnisses gesetzt werden (~1~).
+lDialogWindowsFolderIconPrompt	Dieser Befehl wird die Systemdatei ~2~ ~1~`n`nDas Windows Ordnersymbol wird auf das aktuell gewählte Favoritensymbol gesetzt. Wollen Sie fortfahren?
+lDialogWindowsFolderIconRemove	Windows Ordnersymbol entfernen
 lDialogWindowsFolderIconRemoveFile	Dieser Befehl kann auch die Systemdatei:`n~1~ LÖSCHEN`n`nWollen Sie diesen Ordner in dessen Ursprungszustand versetzen?
 lDialogWindowsFolderIconReset	Das Ordnersymbol wird auf den Standard zurückgesetzt. `n`nWollen Sie fortfahren?
-lDialogWindowsFolderIconSet	Ordnersymbol des Fensters setzen
+lDialogWindowsFolderIconSet	Windows Ordnersymbol setzen
 lDialogWindowsFolderIconUpdate	Update
 lDialogWinShort	Win
 lDialogWorkingDirLabel	Starte in
@@ -206,7 +206,7 @@ lHelpText21	Um Favoriten hinzuzufügen klicken Sie im Fenster "Einstellungen" auf
 lHelpText22	In den vier Registerkarten der Dialogbox "Favoriten hinzufügen" werden "Grundeinstellungen", "Menü-Optionen", "Fenster-Optionen" und "Erweiterte Optionen" eingegeben. Klicken Sie auf "Hinzufügen" um den Favoriten in Ihr Menü einzutragen und "Speichern" im Menü Einstellungen.
 lHelpText23	DIESEN ORDNER HINZUFÜGEN`n`nUm schnell einen neuen Favoriten-Ordnerzum Popup-Menü HINZUZUFÜGEN:`n1) Öffnen Sie einen häufig benutzten Ordner.`n2) Klicken Sie den QAP Hotkey [~1~] oder [~2~], wählen Sie das Menü "Meine QAP Grundlagen" und klicken auf "Diesen Ordner hinzufügen".`n3) Vergeben Sie einen Kurznamen, klicken Sie "Hinzufügen" und dann "Speichern" im Einstellungsfenster.
 lHelpText31	Im Menü "Meine QAP Grundlagen":
-lHelpText32	- Klicken Sie auf das "Umschalten..." MenÃ¼, um auf ein beliebiges anderes Explorer- oder Anwendungsfenster zu wechseln.`n- Nutzen Sie das "Ordner erneut Ã¶ffnen" MenÃ¼ um einen bereits im Explorer geÃ¶ffneten Ordner erneut zu Ã¶ffnen (sehr nÃ¼tzlich in Dateidialogen).`n- WÃ¤hlen Sie das "KÃ¼rzliche Ordner..." MenÃ¼ um eine aktualisierte Liste der kÃ¼rzlichen Ordner anzuzeigen.`n- Verwenden Sie Dateien oder URLs ihrer Zwischenablage mit dem "Zwischenablage" MenÃ¼.`n- Klicken Sie das MenÃ¼ "Laufwerke" um eine Liste der Laufwerke inkl. LaufwerksgrÃ¶ÃŸe anzuzeigen.
+lHelpText32	- Klicken Sie auf das "Umschalten..." Men, um auf ein beliebiges anderes Explorer- oder Anwendungsfenster zu wechseln.`n- Nutzen Sie das "Ordner erneut ffnen" Menum einen bereits im Explorer geffneten Ordner erneut zu ffnen (sehr nÃ¼tzlich in Dateidialogen).`n- Whlen Sie das "Krzliche Ordner..." Men um eine aktualisierte Liste der krzlichen Ordner anzuzeigen.`n- Verwenden Sie Dateien oder URLs ihrer Zwischenablage mit dem "Zwischenablage" Men.`n- Klicken Sie das Men "Laufwerke" um eine Liste der Laufwerke inkl. Laufwerksgre anzuzeigen.
 lHelpText33	PASSEN SIE IHR QAP FUNKTIONEN MENÜ AN
 lHelpText34	Sie können die "Meine QAP Grundlagen" Menüelemente ins Hauptmenü oder andere Untermenüs verschieben.`n`n1) Wählen Sie das Menü "Einstellungen" (oder drücken Sie [~1~]).`n2) In "Menü oder Gruppen bearbeiten:" Drop-Down Liste, wählen Sie "Haupt > Meine QAP Grundlagen".`n3) Wählen Sie die zu verschiebende QAP-Funktion und klicken "Bearbeiten".`n4) Im Menü "Optionen" wählen Sie das neue "Favoriten Elternmenü".`n5) Speichern Sie Ihre Änderungen.
 lHelpText41	- Verwenden Sie das Quick Access Popup Symbol im Tray (rechts unten in Windows) auf eine von drei Möglichkeiten:`n1) Klicken Sie mit Links um das QAP Popup-Menü zu öffnen`n2) Klicken Sie mit rechts um das QAP Systemmenü zu öffnen.`n3) Doppelklicken Sie für "Einstellungen".
