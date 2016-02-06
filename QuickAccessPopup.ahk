@@ -22,6 +22,9 @@ TO-DO
 HISTORY
 =======
 
+Version: 7.0.6 (2016-02-??)
+- add a Restart QAP menu item to the Tray menu to reload QA after changes in the ini file
+
 Version: 7.0.4/7.0.5 (2016-02-03)
 - run at startup option enabled by default only when using the setup install mode (not enabled in portable install mode)
 - enable check for updates option enabled by default only when using the setup install mode (not enabled in portable install mode)
@@ -427,7 +430,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.5
+;@Ahk2Exe-SetVersion 7.0.6
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -471,7 +474,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.5" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "7.0.6" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -2382,6 +2385,8 @@ Menu, Tray, Add
 ;@Ahk2Exe-IgnoreEnd
 Menu, Tray, Add, % lMenuSettings . "...", GuiShow
 Menu, Tray, Add, % L(lMenuEditIniFile, g_strAppNameFile . ".ini"), ShowSettingsIniFile
+Menu, Tray, Add, % L(lMenuReload, g_strAppNameText), ReloadQAP
+Menu, Tray, Add
 Menu, Tray, Add, % L(lMenuEditIniFile, "QAPconnect.ini"), ShowQAPconnectIniFile
 Menu, Tray, Add
 Menu, Tray, Add, %lMenuRunAtStartup%, RunAtStartup
@@ -9468,6 +9473,23 @@ Run, %g_strIniFile%
 return
 ;------------------------------------------------------------
 
+
+;------------------------------------------------------------
+ReloadQAP:
+;------------------------------------------------------------
+
+; Do not use the Reload command: Any command-line parameters passed to the original script are not passed to the new instance.
+; To pass such parameters, do not use Reload. Instead, use Run in conjunction with A_AhkPath and A_ScriptFullPath
+; (and A_IsCompiled if the script is ever used in compiled form). Also, include the string /restart as the first parameter
+; (i.e. after the name of the executable), which tells the program to use the same behavior as Reload.
+
+if (A_IsCompiled)
+	Run, %A_ScriptFullPath% /restart %1% %2% %3% ; in case parameters are used in the future, max three
+else
+	Run, %A_AhkPath% /restart %A_ScriptFullPath% %1% %2% %3% ; in case parameters are used in the future, max three
+
+return
+;------------------------------------------------------------
 
 ;------------------------------------------------------------
 ShowQAPconnectIniFile:
