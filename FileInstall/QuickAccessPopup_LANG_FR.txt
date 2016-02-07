@@ -313,7 +313,7 @@ lOptionsHotkeyRemindersPrompt	Rappel des raccourcis dans les menus:
 lOptionsHotkeyRemindersShort	Afficher les noms abrégés
 lOptionsIconSize	Taille des icones de menu
 lOptionsLanguage	Langue
-lOptionsLanguageLabels	Anglais|Français|Allemand|Suédois|Espagnol|Portugais brésilien
+lOptionsLanguageLabels	Anglais|Français|Allemand|Suédois|Espagnol|Portugais brésilien|Italien
 lOptionsMenuActiveWindow	Dans la fenêtre active
 lOptionsMenuFixPosition	À une position fixe
 lOptionsMenuNearMouse	Près du pointeur de la souris
