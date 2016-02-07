@@ -121,7 +121,7 @@ lDialogTabNext	Próximo
 lDialogThirdPartyDetected	O ~1~ detectou que o ~2~ está instalado no sistema.`n`nDeseja habilitar a integração do ~2~?
 lDialogTriggerFor	Disparador para:
 lDialogUseDefaultWindowPosition	Usar posição padrão da janela
-lDialogWin	Tecla Windows
+lDialogWin	Windows
 lDialogWindowPosition	Posição da janela
 lDialogWindowPositionDelay	Atraso
 lDialogWindowPositionH	Altura

@@ -259,6 +259,7 @@ lMenuPublicLibraries	Bibliothèques (public)
 lMenuQuickLaunch	Lancement rapide
 lMenuRecentFolders	Emplacements récents
 lMenuRecentItems	Documents récents
+lMenuReload	Redémarrer ~1~
 lMenuRunAtStartup	Exécuter au démarrage
 lMenuSettings	Paramètres
 lMenuStartMenu	Menu Démarrer
@@ -274,6 +275,7 @@ lMenuUserPinned	Epinglé par l'utilisateur
 lNavigateFileError	Une erreur s'est produite lors de l'ouverture du dossier:`n~1~.
 lNavigateSpecialError	Une erreur s'est produite lors de l'ouverture du dossier spécial #~1~.
 lOopsCannotCopyFavorite	Les favoris de type "~1~" ne peuvent pas être copiés.
+lOopsChangeFolderInDialogAlert	Vouliez-vous changer de dossier dans cette boîte de dialogue? Pour pouvoir naviguer dans une boîte de dialogue, vous devez activer une option (première case à cocher dans l'onglet "Général").`n`nVoulez-vous ouvrir la fenêtre des Options?
 lOopsCouldNotOpenSpecialFolder	~1~ ne peut ouvrir le dossier spécial: "~2~".
 lOopsEmpty	vide
 lOopsFtpLocationProtocol	L'emplacement d'un site FTP doit débuter par "ftp://".
@@ -293,7 +295,7 @@ lOopsWrongThirdPartyPathQAPconnect	Fichier de l'application invalide dans QAPcon
 lOopsZipFileError	Il semble que ~1~ a été lancé directement depuis un fichier compressé (ZIP).`n`nVous devez extraire le fichier .EXE de ~1~ du fichier ZIP dans un dossier de votre choix, puis exécuter l'application à nouveau depuis ce dossier.`n`n~1~ va être fermé.
 lOptionsAlternativeMenuFeatures	Menu Alternatif
 lOptionsAlternativeMenuFeaturesIntro	Choisisez les raccourcis des fonctionnalités du menu Alternatif.
-lOptionsChangeFolderInDialog	Changer de dossier dans les boîtes de dialogue`navec les raccourcis QAP
+lOptionsChangeFolderInDialog	Changer de dossier dans les boîtes de dialogue avec les raccourcis QAP pour la souris et le clavier
 lOptionsChangeFolderInDialogCheckbox	Cliquez cette case à cocher pour confirmer que vous comprenez les conséquences d'essayer de changer de dossier dans une boîte de dialogue inappropriée.
 lOptionsChangeFolderInDialogText	Activez cette option pour permettre le changement de dossier dans les boîtes de dialogue (Ouvrir, Enregistrer sous, etc.) mais veuillez lire cet avertissement.`n`nVous devez utiliser cette fonction SEULEMENT dans les boîtes de dialogue de sélection de fichier. Si vous l'utilisez dans d'autres types de boîtes de dialogue, par exemple dans une fenêtre "Options", essayer de changer de dossier pourrait modifier et enregistrer des valeurs sans préavis.
 lOptionsChangeHotkey	Modifier

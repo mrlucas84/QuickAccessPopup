@@ -18,12 +18,17 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
+- add QAP feature for ReloadQAP
+- enable ReloadQAP
+
+Version: 7.1 (2016-02-??)
+- add a Restart QAP menu item to the Tray menu to reload QA after changes in the ini file
+
 
 HISTORY
 =======
 
-Version: 7.0.6 (2016-02-??)
-- add a Restart QAP menu item to the Tray menu to reload QA after changes in the ini file
+Version: 7.0.6 (2016-02-07)
 - added Italian translation (thanks to Riccardo Leone!) and fixes to German translation
 - add a one-time message informing users who open the QAP menu in a dialog box that an option has to be enabled in order to change folder in a dialog box
 
@@ -2387,7 +2392,7 @@ Menu, Tray, Add
 ;@Ahk2Exe-IgnoreEnd
 Menu, Tray, Add, % lMenuSettings . "...", GuiShow
 Menu, Tray, Add, % L(lMenuEditIniFile, g_strAppNameFile . ".ini"), ShowSettingsIniFile
-Menu, Tray, Add, % L(lMenuReload, g_strAppNameText), ReloadQAP
+; Menu, Tray, Add, % L(lMenuReload, g_strAppNameText), ReloadQAP
 Menu, Tray, Add
 Menu, Tray, Add, % L(lMenuEditIniFile, "QAPconnect.ini"), ShowQAPconnectIniFile
 Menu, Tray, Add
@@ -9505,6 +9510,7 @@ else
 
 return
 ;------------------------------------------------------------
+
 
 ;------------------------------------------------------------
 ShowQAPconnectIniFile:
