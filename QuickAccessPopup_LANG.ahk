@@ -275,6 +275,7 @@ global lMenuUserPinned := "User Pinned"
 global lNavigateFileError := "An error occurred while opening the folder:`n~1~."
 global lNavigateSpecialError := "An error occurred while opening the special folder #~1~."
 global lOopsCannotCopyFavorite := "Favorites of type ""~1~"" cannot be copied." ; new
+global lOopsChangeFolderInDialogAlert := "Did you want to change folder in this dialog box? In order to navigate inside a dialog box, you have to enable an option (first checkbox in tab ""General"").`n`nDo you want to open the Options window?" ; new
 global lOopsCouldNotOpenSpecialFolder := "~1~ could not open the special folder: ""~2~""."
 global lOopsEmpty := "empty" ; new (no capital)
 global lOopsFtpLocationProtocol := "FTP location must start with ""ftp://""." ; new

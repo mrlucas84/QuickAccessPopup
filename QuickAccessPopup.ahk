@@ -24,6 +24,8 @@ HISTORY
 
 Version: 7.0.6 (2016-02-??)
 - add a Restart QAP menu item to the Tray menu to reload QA after changes in the ini file
+- added Italian translation (thanks to Riccardo Leone!) and fixes to German translation
+- add a one-time message informing users who open the QAP menu in a dialog box that an option has to be enabled in order to change folder in a dialog box
 
 Version: 7.0.4/7.0.5 (2016-02-03)
 - run at startup option enabled by default only when using the setup install mode (not enabled in portable install mode)
@@ -849,9 +851,9 @@ FileInstall, FileInstall\QuickAccessPopup_LANG_FR.txt, %g_strTempDir%\QuickAcces
 FileInstall, FileInstall\QuickAccessPopup_LANG_SV.txt, %g_strTempDir%\QuickAccessPopup_LANG_SV.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_ES.txt, %g_strTempDir%\QuickAccessPopup_LANG_ES.txt, 1
 FileInstall, FileInstall\QuickAccessPopup_LANG_PT-BR.txt, %g_strTempDir%\QuickAccessPopup_LANG_PT-BR.txt, 1
+FileInstall, FileInstall\QuickAccessPopup_LANG_IT.txt, %g_strTempDir%\QuickAccessPopup_LANG_IT.txt, 1
 ; FileInstall, FileInstall\QuickAccessPopup_LANG_NL.txt, %g_strTempDir%\QuickAccessPopup_LANG_NL.txt, 1
 ; FileInstall, FileInstall\QuickAccessPopup_LANG_KO.txt, %g_strTempDir%\QuickAccessPopup_LANG_KO.txt, 1
-; FileInstall, FileInstall\QuickAccessPopup_LANG_IT.txt, %g_strTempDir%\QuickAccessPopup_LANG_IT.txt, 1
 
 FileInstall, FileInstall\default_browser_icon.html, %g_strTempDir%\default_browser_icon.html, 1
 
@@ -1072,7 +1074,7 @@ InitLanguageArrays:
 ; ----------------------
 ; OPTIONS
 StringSplit, g_arrOptionsPopupHotkeyTitles, lOptionsPopupHotkeyTitles, |
-strOptionsLanguageCodes := "EN|FR|DE|SV|ES|PT-BR" ; removed NL, KO and IT - edit lOptionsLanguageLabels in all languages
+strOptionsLanguageCodes := "EN|FR|DE|SV|ES|PT-BR|IT" ; removed NL, KO and IT - edit lOptionsLanguageLabels in all languages
 StringSplit, g_arrOptionsLanguageCodes, strOptionsLanguageCodes, |
 StringSplit, g_arrOptionsLanguageLabels, lOptionsLanguageLabels, |
 
@@ -7933,6 +7935,19 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 		or (g_intActiveFileManager = 4 and WindowIsQAPconnect(g_strTargetWinId))
 		or WindowIsQuickAccessPopup(g_strTargetClass)
 
+	if (!g_blnChangeFolderInDialog and WindowIsDialog(g_strTargetClass, g_strTargetWinId))
+	{
+		IniRead, blnChangeFolderInDialogAlertRead, %g_strIniFile%, Global, ChangeFolderInDialogAlertRead, 0
+		if (!blnChangeFolderInDialogAlertRead)
+		{
+			MsgBox, 52, %g_strAppNameFile%, %lOopsChangeFolderInDialogAlert%
+			IfMsgBox, Yes
+				gosub, GuiOptions
+			IfMsgBox, No
+				IniWrite, 1, %g_strIniFile%, Global, ChangeFolderInDialogAlertRead
+		}
+	}
+	
 	return blnCanNavigate
 }
 ;------------------------------------------------------------
@@ -9484,9 +9499,9 @@ ReloadQAP:
 ; (i.e. after the name of the executable), which tells the program to use the same behavior as Reload.
 
 if (A_IsCompiled)
-	Run, %A_ScriptFullPath% /restart %1% %2% %3% ; in case parameters are used in the future, max three
+	Run, %A_ScriptFullPath% /restart ; review if parameters are used in the future
 else
-	Run, %A_AhkPath% /restart %A_ScriptFullPath% %1% %2% %3% ; in case parameters are used in the future, max three
+	Run, %A_AhkPath% /restart %A_ScriptFullPath% ; review if parameters are used in the future
 
 return
 ;------------------------------------------------------------
