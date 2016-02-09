@@ -21,10 +21,12 @@ TO-DO
 - add QAP feature for ReloadQAP
 - enable ReloadQAP
 
-Version: 7.1 (2016-02-??)
-- add a Restart QAP menu item to the Tray menu to reload QA after changes in the ini file
+Version: 7.0.9/7.1 (2016-02-??)
+- add a Restart QAP menu item to the Tray menu to reload QAP after changes in the ini file
 - fix a bug with check for update, not remembering when user want to skip the new version
 - more friendly upgrade process with dialog box, direct download links and easy access to change log
+- add Shutdown and Restart QAP features (select in "Add favorite" dialog box, favorite type "QAP Feature")
+- create QAPconnect.ini file from a default master only if it does not exist in the working directory (not overwritten anymore when installing a new version)
 
 HISTORY
 =======
@@ -438,7 +440,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.7
+;@Ahk2Exe-SetVersion 7.0.9.1 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -475,6 +477,7 @@ ListLines, On
 OnExit, CleanUpBeforeExit ; must be positioned before InitFileInstall to ensure deletion of temporary files
 
 Gosub, InitFileInstall
+Gosub, InitQAPconnectFile
 
 Gosub, InitLanguageVariables
 
@@ -482,8 +485,8 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.7" ; "major.minor.bugs" or "major.minor.beta.release" #####
-g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
+g_strCurrentVersion := "7.0.9.1" ; "major.minor.bugs" or "major.minor.beta.release" #####
+g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
 g_blnDiagMode := False
@@ -761,9 +764,8 @@ If A_WorkingDir equals A_ScriptDir and we are Setup mode, it means that QAP has 
 instead of using the Start menu or Startup shortcuts. In this situation, we know that the working directory has not been set properly.
 We change it to "{commonappdata}\Quick Access Popup".
 
-In "{commonappdata}\Quick Access Popup", setup program created or saved the files:
+In "{commonappdata}\Quick Access Popup", setup program created or saved the file:
 - "{commonappdata}\{#MyAppName}" the files quickaccesspopup-setup.ini" (used to set initial QAP language to setup program language)
-- "QAPconnect.ini" (used by QAP for custom file managers).
 
 If, during setup, the user selected the "Import Folders Popup settings and favorites" option, the setup program will import the FP settings
 and create the file "quickaccesspopup.ini" in "{commonappdata}\Quick Access Popup". An administrator could also create this file that will
@@ -773,14 +775,20 @@ Normally, when the user starts QAP with the Start Group shortcut, A_WorkingDir i
 If not, keep the A_WorkingDir set by the user and return.
 
 If A_WorkingDir is "{commonappdata}\Quick Access Popup", check if "{userappdata}\Quick Access Popup" exists. If not, create it.
-If the files "quickaccesspopup-setup.ini", "QAPconnect.ini" and "quickaccesspopup.ini" do not exist in "{userappdata}\Quick Access Popup",
-copy them from "{commonappdata}\Quick Access Popup".
+If the files "quickaccesspopup-setup.ini" and "quickaccesspopup.ini" do not exist in "{userappdata}\Quick Access Popup", copy them
+from "{commonappdata}\Quick Access Popup".
 
 Then, set A_WorkingDir to "{userappdata}\Quick Access Popup" and return.
 
 AFTER A_WORKINGDIR IS SET (PORTABLE OR SETUP)
 
-QAP check if quickaccesspopup.ini exists in A_WorkingDir. If not, it creates a new one, etc. (as in previous versions of FP and QAP).
+- QAP copy the FileInstall temporary icon and localisation files.
+
+- QAP check if QAPconnect.ini exists in A_WorkingDir. If not, it creates a fresh one from the FileInstall file QAPconnect-default.ini.
+If QAPconnect.ini already exists, it is not overwritten. Instead, a fresh copy of FileInstall file QAPconnect-default.ini is written to
+A_WorkingDir where user can check if new file managers are supported.
+
+- QAP check if quickaccesspopup.ini exists in A_WorkingDir. If not, it creates a new one, etc. (as in previous versions of FP and QAP).
 If yes, it continues initialization with this file.
 
 STARTUP SHORTCUT
@@ -828,12 +836,10 @@ if (A_WorkingDir <> A_AppDataCommon . "\Quick Access Popup")
 if !FileExist(A_AppData . "\Quick Access Popup")
 	FileCreateDir, %A_AppData%\Quick Access Popup
 
-; If the files "quickaccesspopup-setup.ini", "QAPconnect.ini" and "quickaccesspopup.ini" do not exist in "{userappdata}\Quick Access Popup",
+; If the files "quickaccesspopup-setup.ini" and "quickaccesspopup.ini" do not exist in "{userappdata}\Quick Access Popup",
 ; copy them from "{commonappdata}\Quick Access Popup".
 if !FileExist(A_AppData . "\Quick Access Popup\quickaccesspopup-setup.ini")
 	FileCopy, %A_AppDataCommon%\Quick Access Popup\quickaccesspopup-setup.ini, %A_AppData%\Quick Access Popup
-if !FileExist(A_AppData . "\Quick Access Popup\QAPconnect.ini")
-	FileCopy, %A_AppDataCommon%\Quick Access Popup\QAPconnect.ini, %A_AppData%\Quick Access Popup
 if !FileExist(A_AppData . "\Quick Access Popup\quickaccesspopup.ini")
 	FileCopy, %A_AppDataCommon%\Quick Access Popup\quickaccesspopup.ini, %A_AppData%\Quick Access Popup
 
@@ -885,6 +891,19 @@ FileInstall, FileInstall\handshake-32.png, %g_strTempDir%\handshake-32.png
 FileInstall, FileInstall\conference-32.png, %g_strTempDir%\conference-32.png
 FileInstall, FileInstall\gift-32.png, %g_strTempDir%\gift-32.png
 
+return
+;-----------------------------------------------------------
+
+
+;-----------------------------------------------------------
+InitQAPconnectFile:
+;-----------------------------------------------------------
+
+if FileExist(A_WorkingDir . "\QAPconnect.ini")
+	FileInstall, FileInstall\QAPconnect-default.ini, %A_WorkingDir%\QAPconnect-default.ini, 1 ; overwrite
+else
+	FileInstall, FileInstall\QAPconnect-default.ini, %A_WorkingDir%\QAPconnect.ini ; no overwrite required
+	
 return
 ;-----------------------------------------------------------
 
@@ -1577,6 +1596,8 @@ InitQAPFeatureObject("Options",			lGuiOptions . "...",				"", "GuiOptionsFromQAP
 InitQAPFeatureObject("Settings",		lMenuSettings . "...",				"", "SettingsHotkey",					0, "iconSettings", "+^S")
 InitQAPFeatureObject("Support",			lGuiDonate . "...",					"", "GuiDonate",						0, "iconDonate")
 InitQAPFeatureObject("GetWinInfo",		lMenuGetWinInfo . "...",			"", "GetWinInfo",						0, "iconAbout")
+InitQAPFeatureObject("ShutDown",		lMenuComputerShutdown . "...",		"", "ShutdownComputer",					0, "iconExit")
+InitQAPFeatureObject("Restart",			lMenuComputerRestart . "...",		"", "RestartComputer",					0, "iconExit")
 
 ; Alernative Menu features
 InitQAPFeatureObject("Open in New Window",		lMenuAlternativeNewWindow,	"", "", 1, "iconFolder")
@@ -8923,6 +8944,22 @@ IfMsgBox, Yes
 return
 ;------------------------------------------------------------
 
+
+;------------------------------------------------------------
+ShutdownComputer:
+RestartComputer:
+;------------------------------------------------------------
+
+MsgBox, 4, %g_strAppNameText%, % (A_ThisLabel = "ShutdownComputer" ? lMenuComputerShutdown : lMenuComputerRestart) . "?"
+IfMsgBox, Yes
+	Shutdown, % (A_ThisLabel = "ShutdownComputer" ? 1+8 : 2) ; Logoff 0, Shutdown 1, Reboot 2, Force 4, Power down 8 
+
+return
+;------------------------------------------------------------
+
+
+InitQAPFeatureObject("ShutDown",		lMenuShutdown . "...",				"", "ShutdownComputer",					0, "iconExit")
+InitQAPFeatureObject("Restart",			lMenuRestart . "...",				"", "RestartComputer",					0, "iconExit")
 
 
 ;========================================================================================================================
