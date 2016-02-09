@@ -18,8 +18,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 BUGS
 
 TO-DO
-- add QAP feature for ReloadQAP
-- enable ReloadQAP
 
 Version: 7.0.9/7.1 (2016-02-??)
 - add a Restart QAP menu item to the Tray menu to reload QAP after changes in the ini file
@@ -947,7 +945,7 @@ strIconsMenus := "iconControlPanel|iconNetwork|iconRecycleBin|iconPictures|iconC
 	. "|iconTemporary|iconHotkeys|iconUnknown|iconLaunch|iconExit"
 	. "|iconAbout|iconHistory|iconClipboard|iconGroupSave|iconSubmenu"
 	. "|iconOptions|iconApplication|iconWinver|iconSwitch|iconDrives"
-	. "|iconRemovable|iconNetwork|iconCDROM|iconRAMDisk"
+	. "|iconRemovable|iconNetwork|iconCDROM|iconRAMDisk|iconReload"
 
 if (GetOsVersion() = "WIN_10")
 {
@@ -960,7 +958,7 @@ if (GetOsVersion() = "WIN_10")
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|winver|shell32|shell32"
-		. "|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32|shell32"
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
@@ -970,7 +968,7 @@ if (GetOsVersion() = "WIN_10")
 		. "|153|174|176|215|216"
 		. "|222|240|261|299|300"
 		. "|319|324|1|325|9"
-		. "|7|10|12|13"
+		. "|7|10|12|13|239"
 }
 else
 {
@@ -983,7 +981,7 @@ else
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|winver|shell32|shell32"
-		. "|shell32|shell32|shell32|shell32"
+		. "|shell32|shell32|shell32|shell32|shell32"
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
@@ -993,7 +991,7 @@ else
 		. "|153|174|176|215|216"
 		. "|222|240|261|297|298"
 		. "|301|304|1|305|9"
-		. "|7|10|12|13"
+		. "|7|10|12|13|239"
 }
 
 StringSplit, arrIconsFile, strIconsFile, |
@@ -1597,7 +1595,8 @@ InitQAPFeatureObject("Settings",		lMenuSettings . "...",				"", "SettingsHotkey"
 InitQAPFeatureObject("Support",			lGuiDonate . "...",					"", "GuiDonate",						0, "iconDonate")
 InitQAPFeatureObject("GetWinInfo",		lMenuGetWinInfo . "...",			"", "GetWinInfo",						0, "iconAbout")
 InitQAPFeatureObject("ShutDown",		lMenuComputerShutdown . "...",		"", "ShutdownComputer",					0, "iconExit")
-InitQAPFeatureObject("Restart",			lMenuComputerRestart . "...",		"", "RestartComputer",					0, "iconExit")
+InitQAPFeatureObject("Restart",			lMenuComputerRestart . "...",		"", "RestartComputer",					0, "iconReload")
+InitQAPFeatureObject("Reload",			L(lMenuReload, g_strAppNameText),	"", "ReloadQAP",						0, "iconReload")
 
 ; Alernative Menu features
 InitQAPFeatureObject("Open in New Window",		lMenuAlternativeNewWindow,	"", "", 1, "iconFolder")
@@ -2414,7 +2413,7 @@ Menu, Tray, Add
 ;@Ahk2Exe-IgnoreEnd
 Menu, Tray, Add, % lMenuSettings . "...", GuiShow
 Menu, Tray, Add, % L(lMenuEditIniFile, g_strAppNameFile . ".ini"), ShowSettingsIniFile
-; Menu, Tray, Add, % L(lMenuReload, g_strAppNameText), ReloadQAP
+Menu, Tray, Add, % L(lMenuReload, g_strAppNameText), ReloadQAP
 Menu, Tray, Add
 Menu, Tray, Add, % L(lMenuEditIniFile, "QAPconnect.ini"), ShowQAPconnectIniFile
 Menu, Tray, Add
@@ -8957,9 +8956,6 @@ IfMsgBox, Yes
 return
 ;------------------------------------------------------------
 
-
-InitQAPFeatureObject("ShutDown",		lMenuShutdown . "...",				"", "ShutdownComputer",					0, "iconExit")
-InitQAPFeatureObject("Restart",			lMenuRestart . "...",				"", "RestartComputer",					0, "iconExit")
 
 
 ;========================================================================================================================
