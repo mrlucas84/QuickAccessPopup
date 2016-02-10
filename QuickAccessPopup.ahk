@@ -16,6 +16,7 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- fix bug in searh file in path
 
 TO-DO
 
@@ -25,6 +26,9 @@ Version: 7.0.9/7.1 (2016-02-??)
 - more friendly upgrade process with dialog box, direct download links and easy access to change log
 - add Shutdown and Restart QAP features (select in "Add favorite" dialog box, favorite type "QAP Feature")
 - create QAPconnect.ini file from a default master only if it does not exist in the working directory (not overwritten anymore when installing a new version)
+- add TC Directory hotlist QAP feature showing the hotlist content a hierarchical submenu
+- adding TC Directory hotlist menu to QAP main at first QAP launch if Total Commander is activated
+- removed Edit QAPconnect.ini item in tray menu
 
 HISTORY
 =======
@@ -594,6 +598,8 @@ Gosub, BuildClipboardMenuInit ; will be refreshed at each popup menu call
 Gosub, BuildDrivesMenuInit ; show in separate menu until... ##### will be refreshed by a background task and after each popup menu call
 Gosub, BuildRecentFoldersMenuInit ; show in separate menu until... ##### will be refreshed by a background task and after each popup menu call
 Gosub, SetTimerRefreshDynamicMenus ; Drives, Recent Folders
+
+Gosub, BuildTotalCommanderHotlist
 
 Gosub, BuildMainMenu
 Gosub, BuildAlternativeMenu
@@ -1572,9 +1578,10 @@ InitQAPFeatures:
 ; InitQAPFeatureObject(strQAPFeatureCode, strThisDefaultName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeatureAlternativeOrder, strThisDefaultIcon, strDefaultHotkey)
 
 ; Submenus features
-InitQAPFeatureObject("Clipboard",		lMenuClipboard . "...",				"g_menuClipboard",		"ClipboardMenuShortcut",		0, "iconClipboard", 	"+^C")
-InitQAPFeatureObject("Current Folders",	lMenuCurrentFolders . "...",		"g_menuReopenFolder",	"ReopenFolderMenuShortcut",	0,	"iconCurrentFolders",	"+^F")
-InitQAPFeatureObject("Switch Folder or App", lMenuSwitchFolderOrApp . "...", "g_menuSwitchFolderOrApp", "SwitchFolderOrAppMenuShortcut", 0, "iconSwitch",	"+^W")
+InitQAPFeatureObject("Clipboard",				lMenuClipboard . "...",				"g_menuClipboard",			"ClipboardMenuShortcut",				0, 		"iconClipboard", 		"+^C")
+InitQAPFeatureObject("Current Folders",			lMenuCurrentFolders . "...",		"g_menuReopenFolder",		"ReopenFolderMenuShortcut",				0,		"iconCurrentFolders",	"+^F")
+InitQAPFeatureObject("Switch Folder or App",	lMenuSwitchFolderOrApp . "...",		"g_menuSwitchFolderOrApp",	"SwitchFolderOrAppMenuShortcut",		0, 		"iconSwitch",			"+^W")
+InitQAPFeatureObject("TC Directory hotlist",	lTCMenuName . "...",				lTCMenuName,				"TotalCommanderHotlistMenuShortcut", 	0,		"iconSubmenu",			"+^T")
 ; InitQAPFeatureObject("Drives",			lMenuDrives . "...",				"g_menuDrives",			"DrivesMenuShortcut",			0, "iconDrives",		"+^D")
 ; InitQAPFeatureObject("Recent Folders",	lMenuRecentFolders . "...",			"g_menuRecentFolders",	"RecentFoldersMenuShortcut",	0, "iconRecentFolders", "+^R")
 
@@ -1610,6 +1617,7 @@ g_strQAPFeaturesList := ""
 for strQAPFeatureName, strThisQAPFeatureCode in g_objQAPFeaturesCodeByDefaultName
 	if !(g_objQAPFeatures[strThisQAPFeatureCode].QAPFeatureAlternativeOrder) ; exclude Alternative menu features
 		g_strQAPFeaturesList .= strQAPFeatureName . "|"
+
 StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1
 
 strQAPFeatureName := ""
@@ -1644,6 +1652,7 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	global g_objQAPFeaturesDefaultNameByCode
 	global g_objQAPFeaturesAlternativeCodeByOrder
 	
+	; ###_V("", strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeatureAlternativeOrder, strThisDefaultIcon, strDefaultHotkey)
 	objOneQAPFeature := Object()
 	
 	objOneQAPFeature.LocalizedName := strThisLocalizedName
@@ -1904,7 +1913,9 @@ else if (g_intActiveFileManager > 1) ; 2 DirectoryOpus or 3 TotalCommander
 }
 if (g_intActiveFileManager > 1) ; 2 DirectoryOpus, 3 TotalCommander or 4 QAPconnect
 	if (blnActiveFileManangerOK)
+		
 		Gosub, SetActiveFileManager
+		
 	else
 	{
 		if (g_intActiveFileManager = 4) ; QAPconnect
@@ -1980,7 +1991,7 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 	global g_objQAPFeaturesDefaultNameByCode
 	
 	g_objMenusIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
-	intMenuItemPos := 0
+	; intMenuItemPos := 0
 
 	Loop
 	{
@@ -2057,8 +2068,8 @@ RecursiveLoadMenuFromIni(objCurrentMenu)
 		; update the current menu object
 		objCurrentMenu.Insert(objLoadIniFavorite)
 		
-		if !InStr("X|K", objLoadIniFavorite.FavoriteType) ; menu separators and column breaks do not use a item position numeric shortcut number
-			intMenuItemPos++
+		; if !InStr("X|K", objLoadIniFavorite.FavoriteType) ; menu separators and column breaks do not use a item position numeric shortcut number
+		;	intMenuItemPos++
 	}
 }
 ;-----------------------------------------------------------
@@ -2069,7 +2080,7 @@ AddToIniDefaultMenu:
 ;------------------------------------------------------------
 
 strThisMenuName := lMenuMyQAPMenu
-Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if Special menu name exists
+Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if strThisMenuName menu name exists
 g_intNextFavoriteNumber -= 1 ; minus one to overwrite the existing end of main menu marker
 
 AddToIniOneDefaultMenu("", "", "X")
@@ -2084,7 +2095,7 @@ AddToIniOneDefaultMenu("{Drives}", lMenuDrives . "...", "QAP")
 AddToIniOneDefaultMenu("", "", "Z") ; close QAP menu
 
 strThisMenuName := lMenuMySpecialMenu
-Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
+Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if strThisMenuName menu name exists
 
 AddToIniOneDefaultMenu(g_strMenuPathSeparator . " " . strDefaultMenu, strDefaultMenu, "Menu")
 AddToIniOneDefaultMenu(A_Desktop, lMenuDesktop, "Special") ; Desktop
@@ -2100,12 +2111,23 @@ AddToIniOneDefaultMenu("{645FF040-5081-101B-9F08-00AA002F954E}", "", "Special") 
 AddToIniOneDefaultMenu("", "", "Z") ; close special menu
 
 strThisMenuName := lMenuSettings . "..."
-Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if QAP menu name exists
+Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if strThisMenuName menu name exists
 if (strThisMenuName = lMenuSettings . "...") ; if equal, it means that this menu is not already there
-	; (we cannot have this menu twice with "+" because QAP features always have the same menu name)
+; (we cannot have this menu twice with "+" because, as all QAP features, lMenuSettings always have the same menu name)
 {
 	AddToIniOneDefaultMenu("", "", "X")
 	AddToIniOneDefaultMenu("{Settings}", lMenuSettings . "...", "QAP") ; back in main menu
+}
+if (g_intActiveFileManager = 3) ; TotalCommander
+{
+	strThisMenuName := lTCMenuName . "..."
+	Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if strThisMenuName menu name exists
+	if (strThisMenuName = lTCMenuName . "...") ; if equal, it means that this menu is not already there
+	; (we cannot have this menu twice with "+" because, as all QAP features, lTCMenuName always have the same menu name)
+	{
+		AddToIniOneDefaultMenu("", "", "X")
+		AddToIniOneDefaultMenu("{TC Directory hotlist}", lTCMenuName . "...", "QAP")
+	}
 }
 AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu("{Add This Folder}", lMenuAddThisFolder . "...", "QAP")
@@ -2414,8 +2436,6 @@ Menu, Tray, Add
 Menu, Tray, Add, % lMenuSettings . "...", GuiShow
 Menu, Tray, Add, % L(lMenuEditIniFile, g_strAppNameFile . ".ini"), ShowSettingsIniFile
 Menu, Tray, Add, % L(lMenuReload, g_strAppNameText), ReloadQAP
-Menu, Tray, Add
-Menu, Tray, Add, % L(lMenuEditIniFile, "QAPconnect.ini"), ShowQAPconnectIniFile
 Menu, Tray, Add
 Menu, Tray, Add, %lMenuRunAtStartup%, RunAtStartup
 Menu, Tray, Add, %lMenuSuspendHotkeys%, SuspendHotkeys
@@ -3337,6 +3357,154 @@ CollectExplorers(pExplorers)
 
 
 ;------------------------------------------------------------
+BuildTotalCommanderHotlist:
+;------------------------------------------------------------
+
+Menu, %lTCMenuName%, Add 
+Menu, %lTCMenuName%, DeleteAll
+if (g_blnUseColors)
+    Menu, %lTCMenuName%, Color, %g_strMenuBackgroundColor%
+AddMenuIcon(lTCMenuName, lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+
+RegRead, g_strWinCmdIniFile, HKEY_CURRENT_USER, Software\Ghisler\Total Commander\, IniFileName
+If !StrLen(g_strWinCmdIniFile)
+	RegRead, g_strWinCmdIniFile, HKEY_LOCAL_MACHINE, Software\Ghisler\Total Commander\, IniFileName
+g_strWinCmdIniFile := EnvVars(g_strWinCmdIniFile)
+
+g_blnWinCmdIniFileExist := StrLen(g_strWinCmdIniFile) and FileExist(g_strWinCmdIniFile) ; TotalCommander settings file exists
+
+if !(g_blnWinCmdIniFileExist)
+{
+	g_strQAPFeaturesList .= "|" ; in case lTCMenuName is last item without separator
+	StringReplace, g_strQAPFeaturesList, g_strQAPFeaturesList, %lTCMenuName%...| ; remove lTCMenuName item from list
+	StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1 ; remove last separator
+}
+
+Gosub, RefreshTotalCommanderHotlist
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RefreshTotalCommanderHotlist:
+;------------------------------------------------------------
+
+; Init TC Directory hotlist if wincmd.ini file exists
+
+If (g_blnWinCmdIniFileExist) ; TotalCommander settings file exists
+{
+	Menu, %lTCMenuName%, Add 
+	Menu, %lTCMenuName%, DeleteAll
+	
+	g_objTCMenu := Object() ; object of menu structure entry point
+	g_objTCMenu.MenuPath := lTCMenuName ; localized name of the TC menu
+	g_objTCMenu.MenuType := "Menu"
+	
+	g_intIniLine := 1
+	
+	if (RecursiveLoadTotalCommanderHotlistFromIni(g_objTCMenu) <> "EOM") ; build menu tree
+		Oops("An error occurred while reading the Total Commander Directory hotlist in the ini file.")
+	
+	RecursiveBuildOneMenu(g_objTCMenu) ; recurse for submenus
+}
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+RecursiveLoadTotalCommanderHotlistFromIni(objCurrentMenu)
+; see http://www.quickaccesspopup.com/add-total-commander-hotlist-menu-to-fp-menu/
+;------------------------------------------------------------
+{
+	global g_objMenusIndex
+	global g_strWinCmdIniFile
+	global g_intIniLine
+	global g_strMenuPathSeparator
+	
+	g_objMenusIndex.Insert(objCurrentMenu.MenuPath, objCurrentMenu) ; update the menu index
+	; intMenuItemPos := 0
+
+	Loop
+	{
+		IniRead, strWinCmdItemName, %g_strWinCmdIniFile%, DirMenu, menu%g_intIniLine%
+		if (strWinCmdItemName = "ERROR")
+			Return, "EOM" ; end of file, last menu item
+	
+		IniRead, strWinCmdItemCommand, %g_strWinCmdIniFile%, DirMenu, cmd%g_intIniLine%, %A_Space% ; empty by default
+		; not used IniRead, strWinCmdPathLine, %g_strWinCmdIniFile%, DirMenu, path%g_intIniLine%, %A_Space% ; empty by default
+        g_intIniLine++
+	
+		if (strWinCmdItemName = "--")
+			return, "EOM" ; end of menu
+		
+		blnItemIsMenu := SubStr(strWinCmdItemName, 1, 1) = "-" and StrLen(strWinCmdItemName) > 1 ; begin a submenu "-MenuName", not "-"
+
+		if (blnItemIsMenu)
+		{
+			strWinCmdItemName := SubStr(strWinCmdItemName, 2)
+			objNewMenu := Object() ; create the submenu object
+			objNewMenu.MenuPath := objCurrentMenu.MenuPath . " " . g_strMenuPathSeparator . " " . strWinCmdItemName
+			objNewMenu.MenuType := "Menu"
+			
+			; create a navigation entry to navigate to the parent menu
+			; (not used in Settings for this menu - but keep for code reusability)
+			objNewMenuBack := Object()
+			objNewMenuBack.FavoriteType := "B" ; for Back link to parent menu
+			objNewMenuBack.FavoriteName := "(" . GetDeepestMenuPath(objCurrentMenu.MenuPath) . ")"
+			objNewMenuBack.SubMenu := objCurrentMenu ; this is the link to the parent menu
+			objNewMenu.Insert(objNewMenuBack)
+			
+			; build the submenu
+			strResult := RecursiveLoadTotalCommanderHotlistFromIni(objNewMenu) ; RECURSIVE
+			
+			if (strResult = "EOF") ; end of file was encountered while building this submenu, exit recursive function
+				Return, %strResult%
+		}
+		else if (SubStr(strWinCmdItemCommand, 1, 3) <> "cd ")
+			
+			continue ; not a menu and not a change directory command (folder)
+		
+		objLoadIniFavorite := Object() ; new favorite item
+		
+		if (strWinCmdItemName = "-") ; menu separator
+			objLoadIniFavorite.FavoriteType := "X" ; see Favorite Types
+		else ; regular favorite
+		{
+			objLoadIniFavorite.FavoriteType := (blnItemIsMenu ? "Menu" : "Folder") ; see Favorite Types
+			objLoadIniFavorite.FavoriteName := strWinCmdItemName ; display name of this menu item
+			if !(blnItemIsMenu)
+				objLoadIniFavorite.FavoriteLocation := ReplaceAllInString(strWinCmdItemCommand, "cd ", "") ; path
+		}
+		
+		; this is a submenu, link to the submenu object
+		if (blnItemIsMenu)
+			objLoadIniFavorite.SubMenu := objNewMenu
+		
+		; update the current menu object
+		objCurrentMenu.Insert(objLoadIniFavorite)
+		
+		;	if (objLoadIniFavorite.FavoriteType <> "X") ; menu separators does not use a item position numeric shortcut number
+		;	intMenuItemPos++
+	}
+}
+;-----------------------------------------------------------
+
+
+;------------------------------------------------------------
+TotalCommanderHotlistMenuShortcut:
+;------------------------------------------------------------
+
+Gosub, SetMenuPosition
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+Menu, %lTCMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
 BuildAlternativeMenu:
 ;------------------------------------------------------------
 
@@ -3429,7 +3597,6 @@ RecursiveBuildOneMenu(objCurrentMenu)
 	global g_intHotkeyReminders
 	global g_objHotkeysByLocation
 
-	
 	intShortcut := 0
 	
 	; try because at first execution the strMenu menu does not exist and produces an error,
@@ -4314,6 +4481,7 @@ Gosub, RefreshClipboardMenu
 Gosub, RefreshDrivesMenu
 Gosub, RefreshRecentFoldersMenu
 Gosub, RefreshSwitchFolderOrAppMenu
+Gosub, RefreshTotalCommanderHotlist
 
 if (g_blnDiagMode)
 {
@@ -8659,7 +8827,7 @@ if (g_strOpenFavoriteLabel = "OpenFavoriteGroup")
 
 if InStr("OpenFavorite|OpenFavoriteGroup", g_strOpenFavoriteLabel)
 {
-	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName ? 0 : 1)
+	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName or A_ThisMenu = lTCMenuName ? 0 : 1)
 			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
 	g_objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
 }
@@ -10143,7 +10311,9 @@ if (blnFileExist)
 		g_intActiveFileManager := intFileManager
 		IniWrite, %g_intActiveFileManager%, %g_strIniFile%, Global, ActiveFileManager
 		g_str%strFileManagerSystemName%Path := strCheckPath
+		
 		Gosub, SetActiveFileManager
+		
 		IniWrite, % g_str%strFileManagerSystemName%Path, %g_strIniFile%, Global, %strFileManagerSystemName%Path
 		g_bln%strFileManagerSystemName%UseTabs := true
 		IniWrite, % g_bln%strFileManagerSystemName%UseTabs, %g_strIniFile%, Global, %strFileManagerSystemName%UseTabs
