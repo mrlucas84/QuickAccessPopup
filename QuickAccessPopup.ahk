@@ -442,7 +442,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.9.1 beta
+;@Ahk2Exe-SetVersion 7.0.9.2 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -487,7 +487,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.9.1" ; "major.minor.bugs" or "major.minor.beta.release" #####
+g_strCurrentVersion := "7.0.9.2" ; "major.minor.bugs" or "major.minor.beta.release" #####
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -9766,11 +9766,6 @@ strUrlCheck4Update := "http://quickaccesspopup.com/latest/latest-version-4.php"
 strBetaLandingPage := "http://quickaccesspopup.com/latest/check4update-beta-redirect.html"
 strAlphaLandingPage := "http://quickaccesspopup.com/latest/check4update-alpha-redirect.html"
 
-strUrlAppLandingPage := "http://quickaccesspopup.com"
-strUrlChangeLog := "http://www.quickaccesspopup.com/change-log/"
-strUrlDownloadSetup := "http://www.quickaccesspopup.com/latest/check4update-download-setup-redirect.html"
-strUrlDownloadPortable:= "http://www.quickaccesspopup.com/latest/check4update-download-portable-redirect.html"
-
 IniRead, strLatestSkippedProd, %g_strIniFile%, Global, LatestVersionSkipped, 0.0
 IniRead, strLatestSkippedBeta, %g_strIniFile%, Global, LatestVersionSkippedBeta, 0.0
 IniRead, strLatestUsedProd, %g_strIniFile%, Global, LastVersionUsedProd, 0.0
@@ -9975,32 +9970,35 @@ strChangeLog := SubStr(strChangeLog, intPos)
 intPos := InStr(strChangeLog, "`n`n")
 strChangeLog := SubStr(strChangeLog, 1, intPos - 1)
 
-Gui, New, , % L(lUpdateTitle, g_strAppNameText)
+Gui, Update:New, , % L(lUpdateTitle, g_strAppNameText)
 
 if (g_blnUseColors)
-	Gui, Color, %g_strAppNameText%
-Gui, Font, s10 w700, Verdana
-Gui, Add, Text, x10 y10 w640, % L(lUpdateTitle, g_strAppNameText)
-Gui, Font
-Gui, Add, Text, x10 w640, % l(lUpdatePrompt, g_strAppNameText, g_strCurrentVersion, strLatestVersionProd)
-Gui, Add, Text, x8 y+10 w640, %strChangeLog%
-Gui, Font
+	Gui, Update:Color, %g_strAppNameText%
+Gui, Update:Font, s10 w700, Verdana
+Gui, Update:Add, Text, x10 y10 w640, % L(lUpdateTitle, g_strAppNameText)
+Gui, Update:Font
+Gui, Update:Add, Text, x10 w640, % l(lUpdatePrompt, g_strAppNameText, g_strCurrentVersion, strLatestVersionProd)
+Gui, Update:Add, Text, x8 y+10 w640, %strChangeLog%
+Gui, Update:Font
 
-Gui, Add, Button, y+20 x10 vf_btnCheck4UpdateDialogDownloadSetup gButtonCheck4UpdateDialogDownloadSetup, %lUpdateButtonDownloadSetup%
-Gui, Add, Button, yp x+20 vf_btnCheck4UpdateDialogDownloadPortable gButtonCheck4UpdateDialogDownloadPortable, %lUpdateButtonDownloadPortable%
+Gui, Update:Add, Button, y+20 x10 vf_btnCheck4UpdateDialogChangeLog gButtonCheck4UpdateDialogChangeLog, %lUpdateButtonChangeLog%
+Gui, Update:Add, Button, yp x+20 vf_btnCheck4UpdateDialogVisit gButtonCheck4UpdateDialogVisit, %lUpdateButtonDownloadVisit%
+
+GuiCenterButtons(L(lUpdateTitle, g_strAppNameText), 10, 5, 20, "f_btnCheck4UpdateDialogChangeLog", "f_btnCheck4UpdateDialogVisit")
+
+Gui, Update:Add, Button, y+20 x10 vf_btnCheck4UpdateDialogDownloadSetup gButtonCheck4UpdateDialogDownloadSetup, %lUpdateButtonDownloadSetup%
+Gui, Update:Add, Button, yp x+20 vf_btnCheck4UpdateDialogDownloadPortable gButtonCheck4UpdateDialogDownloadPortable, %lUpdateButtonDownloadPortable%
 
 GuiCenterButtons(L(lUpdateTitle, g_strAppNameText), 10, 5, 20, "f_btnCheck4UpdateDialogDownloadSetup", "f_btnCheck4UpdateDialogDownloadPortable")
 
-Gui, Add, Button, y+20 x10 vf_btnCheck4UpdateDialogChangeLog gButtonCheck4UpdateDialogChangeLog, %lUpdateButtonChangeLog%
-Gui, Add, Button, yp x+20 vf_btnCheck4UpdateDialogVisit gButtonCheck4UpdateDialogVisit, %lUpdateButtonDownloadVisit%
-Gui, Add, Button, yp x+20 vf_btnCheck4UpdateDialogSkipVersion gButtonCheck4UpdateDialogSkipVersion, %lUpdateButtonSkipVersion%
-Gui, Add, Button, yp x+20 vf_btnCheck4UpdateDialogRemind gButtonCheck4UpdateDialogRemind, %lUpdateButtonRemind%
-Gui, Add, Text
+Gui, Update:Add, Button, y+20 x10 vf_btnCheck4UpdateDialogSkipVersion gButtonCheck4UpdateDialogSkipVersion, %lUpdateButtonSkipVersion%
+Gui, Update:Add, Button, yp x+20 vf_btnCheck4UpdateDialogRemind gButtonCheck4UpdateDialogRemind, %lUpdateButtonRemind%
+Gui, Update:Add, Text
 
-GuiCenterButtons(L(lUpdateTitle, g_strAppNameText), 10, 5, 20, "f_btnCheck4UpdateDialogChangeLog", "f_btnCheck4UpdateDialogVisit", "f_btnCheck4UpdateDialogSkipVersion", "f_btnCheck4UpdateDialogRemind")
+GuiCenterButtons(L(lUpdateTitle, g_strAppNameText), 10, 5, 20, "f_btnCheck4UpdateDialogSkipVersion", "f_btnCheck4UpdateDialogRemind")
 
 GuiControl, Focus, f_btnCheck4UpdateDialogDownloadSetup
-Gui, Show, AutoSize Center
+Gui, Update:Show, AutoSize Center
 
 return
 ;------------------------------------------------------------
@@ -10013,22 +10011,41 @@ ButtonCheck4UpdateDialogDownloadPortable:
 ButtonCheck4UpdateDialogVisit:
 ButtonCheck4UpdateDialogRemind:
 ButtonCheck4UpdateDialogSkipVersion:
+UpdateGuiClose:
+UpdateGuiEscape:
 ;------------------------------------------------------------
 
-Gui, Destroy
+strUrlChangeLog := "http://www.quickaccesspopup.com/change-log/"
+strUrlAppLandingPage := "http://quickaccesspopup.com"
 
-if (A_ThisLabel = "ButtonCheck4UpdateDialogChangeLog")
-	Run, %strUrlChangeLog%
-else if (A_ThisLabel = "ButtonCheck4UpdateDialogDownloadSetup")
-	Run, %strUrlDownloadSetup%
-else if (A_ThisLabel = "ButtonCheck4UpdateDialogDownloadPortable")
-	Run, %strUrlDownloadPortable%
-else if (A_ThisLabel = "ButtonCheck4UpdateDialogVisit")
-	Run, %strUrlAppLandingPage%
-else if (A_ThisLabel = "ButtonCheck4UpdateDialogRemind")
-	IniWrite, 0.0, %g_strIniFile%, Global, LatestVersionSkipped ; do not add "Prod" to ini variable for backward compatibility
-else ; ButtonCheck4UpdateDialogSkipVersion
-	IniWrite, %strLatestVersionProd%, %g_strIniFile%, Global, LatestVersionSkipped ; do not add "Prod" to ini variable for backward compatibility
+strUrlDownloadSetup := "http://www.quickaccesspopup.com/latest/check4update-download-setup-redirect.html"
+strUrlDownloadPortable:= "http://www.quickaccesspopup.com/latest/check4update-download-portable-redirect.html"
+
+if InStr("ButtonCheck4UpdateDialogChangeLog|ButtonCheck4UpdateDialogVisit", A_ThisLabel)
+{
+	if (A_ThisLabel = "ButtonCheck4UpdateDialogChangeLog")
+		Run, %strUrlChangeLog%
+	else if (A_ThisLabel = "ButtonCheck4UpdateDialogVisit")
+		Run, %strUrlAppLandingPage%
+}
+else if InStr("ButtonCheck4UpdateDialogDownloadSetup|ButtonCheck4UpdateDialogDownloadPortable", A_ThisLabel)
+{
+	if (A_ThisLabel = "ButtonCheck4UpdateDialogDownloadSetup")
+		Run, %strUrlDownloadSetup%
+	else if (A_ThisLabel = "ButtonCheck4UpdateDialogDownloadPortable")
+		Run, %strUrlDownloadPortable%
+	
+	ExitApp
+}
+else ; UpdateGuiClose, UpdateGuiEscape, ButtonCheck4UpdateDialogRemind or ButtonCheck4UpdateDialogSkipVersion
+{
+	if (A_ThisLabel = "ButtonCheck4UpdateDialogSkipVersion")
+		IniWrite, %strLatestVersionProd%, %g_strIniFile%, Global, LatestVersionSkipped ; do not add "Prod" to ini variable for backward compatibility
+	else ; ButtonCheck4UpdateDialogRemind, UpdateGuiClose or UpdateGuiEscape
+		IniWrite, 0.0, %g_strIniFile%, Global, LatestVersionSkipped ; do not add "Prod" to ini variable for backward compatibility
+
+	Gui, Destroy
+}
 
 Check4UpdateDialogCleanup:
 strChangelog := ""
