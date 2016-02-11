@@ -30,6 +30,7 @@ Version: 7.0.9/7.1 (2016-02-??)
 - adding TC Directory hotlist menu to QAP main at first QAP launch if Total Commander is activated
 - removed Edit QAPconnect.ini item in tray menu
 
+
 HISTORY
 =======
 
@@ -7299,6 +7300,7 @@ Gosub, SaveHotkeysToIni
 	
 Gosub, LoadFavoriteHotkeys
 Gosub, ReloadIniFile
+Gosub, RefreshTotalCommanderHotlist ; because ReloadIniFile resets g_objMenusIndex
 Gosub, SetTimerRefreshDynamicMenus
 Gosub, BuildMainMenuWithStatus ; only here we load hotkeys, when user save favorites
 
@@ -8614,7 +8616,7 @@ if (g_objThisFavorite.FavoriteType = "Application") and (g_objThisFavorite.Favor
 
 ; Boolean,MinMax,Left,Top,Width,Height,Delay,RestoreSide (comma delimited) (7)
 ; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay (default 200 ms), L Left / R Right; for example: "1,0,100,50,640,480,200" or "0,,,,,,,L"
-strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition
+strFavoriteWindowPosition := g_objThisFavorite.FavoriteWindowPosition . ",,,,,,,,,," ; additional "," to avoid ghost values if FavoriteWindowPosition is empty
 StringSplit, g_arrFavoriteWindowPosition, strFavoriteWindowPosition, `,
 
 ; === ACTIONS ===
