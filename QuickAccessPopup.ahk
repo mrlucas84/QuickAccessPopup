@@ -20,19 +20,20 @@ BUGS
 
 TO-DO
 
-Version: 7.0.9/7.1 (2016-02-??)
-- add a Restart QAP menu item to the Tray menu to reload QAP after changes in the ini file
-- fix a bug with check for update, not remembering when user want to skip the new version
-- more friendly upgrade process with dialog box, direct download links and easy access to change log
-- add Shutdown and Restart QAP features (select in "Add favorite" dialog box, favorite type "QAP Feature")
-- create QAPconnect.ini file from a default master only if it does not exist in the working directory (not overwritten anymore when installing a new version)
-- add TC Directory hotlist QAP feature showing the hotlist content a hierarchical submenu
-- adding TC Directory hotlist menu to QAP main at first QAP launch if Total Commander is activated
-- removed Edit QAPconnect.ini item in tray menu
-
 
 HISTORY
 =======
+
+Version: 7.0.9.3 (2016-02-11)
+- add a Restart QAP menu item to the Tray menu to reload QAP after changes in the ini file
+- fix a bug in check for update, not remembering when user want to skip the new version
+- more friendly upgrade process with dialog box, direct download links and easy access to change log
+- add Shutdown and Restart QAP features (select in "Add favorite" dialog box, favorite type "QAP Feature")
+- create QAPconnect.ini file from a default master only if it does not exist in the working directory (not overwritten anymore when installing a new version)
+- add TC Directory hotlist QAP feature showing the hotlist content a hierarchical submenu (add a QAP feature favorite and select "TC Directory Hotlist")
+- adding "TC Directory Hotlist" menu to QAP main menu at first QAP launch if Total Commander is activated
+- removed Edit QAPconnect.ini item in tray menu
+- fix bug found in v7.0.1 in code refreshing Clipboard menu
 
 Version: 7.0.6 (2016-02-07)
 - added Italian translation (thanks to Riccardo Leone!) and fixes to German translation
@@ -443,7 +444,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.9.2 beta
+;@Ahk2Exe-SetVersion 7.0.9.3 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -488,7 +489,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.9.2" ; "major.minor.bugs" or "major.minor.beta.release" #####
+g_strCurrentVersion := "7.0.9.3" ; "major.minor.bugs" or "major.minor.beta.release" #####
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -2542,26 +2543,7 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 {
 	strClipboardLineExpanded := A_LoopField ; only for FileExistInPath - will not be displayed in menu
 
-/* #####
 	if FileExistInPath(strClipboardLineExpanded) ; rerturn strClipboardLineExpanded with expanded relative path and envvars, and search in PATH
-	{
-		strContentsInClipboard .= "`n" . A_LoopField
-		
-		if (g_blnDisplayIcons)
-		{
-			if LocationIsDocument(strClipboardLineExpanded)
-			{
-				GetIcon4Location(strClipboardLineExpanded, strThisIconFile, intThisIconIndex)
-				strContentsInClipboard .= "`t" . strThisIconFile . "," . intThisIconIndex
-			}
-			else
-			{
-				strContentsInClipboard .= "`t" . "iconFolder"
-			}
-		}
-	}
-*/
-if FileExist(A_LoopField)
 	{
 		strContentsInClipboard .= "`n" . A_LoopField
 		
@@ -11138,13 +11120,16 @@ LocationIsHTTP(strLocation)
 FileExistInPath(ByRef strFile)
 ;------------------------------------------------------------
 {
+	if !StrLen(strFile) or InStr(strFile, "://") ; this is not a file - caution some URLs in WhereIs cause an infinite loop
+		return, False
+	
 	strFile := EnvVars(strFile) ; expand environment variables like %APPDATA% or %USERPROFILE%
 	
 	if !InStr(strFile, "\") ; if no path in filename
 		strFile := WhereIs(strFile) ; search if file exists in path env variable or registry app paths
 	else
 		strFile := PathCombine(A_WorkingDir, strFile) ; make relative path absolute
-
+	
 	return, FileExist(strFile) ; returns the file's attributes if file exists or empty (false) is not
 }
 ;------------------------------------------------------------
