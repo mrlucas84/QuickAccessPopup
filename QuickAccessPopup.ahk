@@ -23,22 +23,25 @@ TO-DO
 HISTORY
 =======
 
-Version: 7.0.9.7 (2016-02-13)
+Version 7.1 (2016-02-13)
+- make Total Commander and Directory Opus application paths saved in ini file as portable values (including environment variables)
+
+Version: 7.0.9.7 BETA (2016-02-13)
 - add Total Commander icon to QAP feature "TC Directory hotlist"
 - support for special folders (starting with "::") in TC Directory hotlist, incuding Windows default icon
 - if WinCmd.ini file is not found, give an error message when user try to add the QAP feature "TC Directory Hotlist"
 - support relative path and environment variables for WinCmd.ini path
 - support Windows environment variables in TC Directory hotlist locations
 
-Version: 7.0.9.6 (2016-02-12)
+Version: 7.0.9.6 BETA (2016-02-12)
 - add an option in Options, File Managers tab, to remember the TotalCommander WinCmd.ini file location
 - save/retrieve option to/from QAP ini file
 
-Version: 7.0.9.5 (2016-02-12)
+Version: 7.0.9.5 BETA (2016-02-12)
 - add diagnostic code to investigate TC hotlist not opening favorite for some users
 - remove/comment unused diagnostic code
 
-Version: 7.0.9.3/7.0.9.4 (2016-02-11)
+Version: 7.0.9.3/7.0.9.4 BETA (2016-02-11)
 - add a Restart QAP menu item to the Tray menu to reload QAP after changes in the ini file
 - fix a bug in check for update, not remembering when user want to skip the new version
 - more friendly upgrade process with dialog box, direct download links and easy access to change log
@@ -1909,9 +1912,11 @@ if (g_intActiveFileManager = "ERROR") ; no selection
 IniRead, g_strQAPconnectFileManager, %g_strIniFile%, Global, QAPconnectFileManager, %A_Space% ; empty string if not found
 Gosub, LoadIniQAPconnectValues
 
-IniRead, g_strDirectoryOpusPath, %g_strIniFile%, Global, DirectoryOpusPath, %A_Space% ; empty string if not found
+IniRead, g_strDirectoryOpusPathBeforeEnvVars, %g_strIniFile%, Global, DirectoryOpusPath, %A_Space% ; empty string if not found
+g_strDirectoryOpusPath := EnvVars(g_strDirectoryOpusPathBeforeEnvVars)
 IniRead, g_blnDirectoryOpusUseTabs, %g_strIniFile%, Global, DirectoryOpusUseTabs, 1 ; use tabs by default
-IniRead, g_strTotalCommanderPath, %g_strIniFile%, Global, TotalCommanderPath, %A_Space% ; empty string if not found
+IniRead, g_strTotalCommanderPathBeforeEnvVars, %g_strIniFile%, Global, TotalCommanderPath, %A_Space% ; empty string if not found
+g_strTotalCommanderPath := EnvVars(g_strTotalCommanderPathBeforeEnvVars)
 IniRead, g_blnTotalCommanderUseTabs, %g_strIniFile%, Global, TotalCommanderUseTabs, 1 ; use tabs by default
 IniRead, g_strWinCmdIniFile, %g_strIniFile%, Global, TotalCommanderWinCmd, %A_Space%
 
@@ -4078,7 +4083,7 @@ if !(f_radActiveFileManager1) ; DirectoryOpus, TotalCommander or QAPconnect
 	
 	GuiControl, , f_lnkFileManagerHelp, % L(lOptionsThirdPartySelectedHelp, g_arrActiveFileManagerDisplayNames%g_intClickedFileManager%, strHelpUrl, lGuiHelp)
 	GuiControl, , f_lblFileManagerDetail, % (f_radActiveFileManager4 ? L(lOptionsThirdPartyDetailQAPconnect, "QAPconnect.ini") : L(lOptionsThirdPartyDetail, g_arrActiveFileManagerDisplayNames%g_intClickedFileManager%))
-	GuiControl, , f_strFileManagerPath, % g_str%strClickedFileManagerSystemNames%Path
+	GuiControl, , f_strFileManagerPath, % g_str%strClickedFileManagerSystemNames%PathBeforeEnvVars
 	if (f_radActiveFileManager4) ; QAPconnect
 	{
 		IniRead, strQAPconnectFileManagersList, %g_strQAPconnectIniPath%, , , %A_Space% ; list of QAPconnect.ini applications, empty by default
