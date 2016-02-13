@@ -23,6 +23,9 @@ TO-DO
 HISTORY
 =======
 
+Version: 7.0.9.7 (2016-02-??)
+- if WinCmd.ini file is not found, give an error message when user try to add the QAP feature "TC Directory Hotlist"
+
 Version: 7.0.9.6 (2016-02-12)
 - add an option in Options, File Managers tab, to remember the TotalCommander WinCmd.ini file location
 - save/retrieve option to/from QAP ini file
@@ -451,7 +454,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.9.6 beta
+;@Ahk2Exe-SetVersion 7.0.9.7 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -496,7 +499,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.9.6" ; "major.minor.bugs" or "major.minor.beta.release" #####
+g_strCurrentVersion := "7.0.9.7" ; "major.minor.bugs" or "major.minor.beta.release" #####
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -3361,13 +3364,6 @@ AddMenuIcon(lTCMenuName, lDialogNone, "GuiShow", "iconNoContent", false) ; will 
 
 g_strWinCmdIniFileExpanded := EnvVars(g_strWinCmdIniFile)
 g_blnWinCmdIniFileExist := StrLen(g_strWinCmdIniFileExpanded) and FileExist(g_strWinCmdIniFileExpanded) ; TotalCommander settings file exists
-
-if !(g_blnWinCmdIniFileExist)
-{
-	g_strQAPFeaturesList .= "|" ; in case lTCMenuName is last item without separator
-	StringReplace, g_strQAPFeaturesList, g_strQAPFeaturesList, %lTCMenuName%...| ; remove lTCMenuName item from list
-	StringTrimRight, g_strQAPFeaturesList, g_strQAPFeaturesList, 1 ; remove last separator
-}
 
 Gosub, RefreshTotalCommanderHotlist
 
@@ -6464,6 +6460,14 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 		Oops(lOopsHttpLocationTransformed, strNewFavoriteLocation, strHttpLocationTransformed)
 		strNewFavoriteLocation := strHttpLocationTransformed
 	}
+	
+	if (g_objEditedFavorite.FavoriteType = "QAP" and !g_blnWinCmdIniFileExist)
+	{
+		Oops(lOopsInvalidWinCmdIni)
+		gosub, GuiAddFavoriteSaveCleanup
+		return
+	}
+	
 }
 
 loop ; loop for Add this Folder Express - if name is not new, add " (2)", " (3)", etc.)
