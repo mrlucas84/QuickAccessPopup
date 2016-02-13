@@ -23,8 +23,12 @@ TO-DO
 HISTORY
 =======
 
-Version: 7.0.9.7 (2016-02-??)
+Version: 7.0.9.7 (2016-02-13)
+- add Total Commander icon to QAP feature "TC Directory hotlist"
+- support for special folders (starting with "::") in TC Directory hotlist, incuding Windows default icon
 - if WinCmd.ini file is not found, give an error message when user try to add the QAP feature "TC Directory Hotlist"
+- support relative path and environment variables for WinCmd.ini path
+- support Windows environment variables in TC Directory hotlist locations
 
 Version: 7.0.9.6 (2016-02-12)
 - add an option in Options, File Managers tab, to remember the TotalCommander WinCmd.ini file location
@@ -3386,8 +3390,9 @@ If (g_blnWinCmdIniFileExist) ; TotalCommander settings file exists
 	g_objTCMenu.MenuPath := lTCMenuName ; localized name of the TC menu
 	g_objTCMenu.MenuType := "Menu"
 	
+	g_objQAPFeatures["{TC Directory hotlist}"].DefaultIcon := g_objIconsFile["TotalCommander"] . "," . g_objIconsIndex["TotalCommander"]
+
 	g_intIniLine := 1
-	
 	if (RecursiveLoadTotalCommanderHotlistFromIni(g_objTCMenu) <> "EOM") ; build menu tree
 		Oops("An error occurred while reading the Total Commander Directory hotlist in the ini file.")
 	
@@ -3406,6 +3411,7 @@ RecursiveLoadTotalCommanderHotlistFromIni(objCurrentMenu)
 ;------------------------------------------------------------
 {
 	global g_objMenusIndex
+	global g_objSpecialFolders
 	global g_strWinCmdIniFileExpanded
 	global g_intIniLine
 	global g_strMenuPathSeparator
@@ -3457,12 +3463,18 @@ RecursiveLoadTotalCommanderHotlistFromIni(objCurrentMenu)
 		
 		if (strWinCmdItemName = "-") ; menu separator
 			objLoadIniFavorite.FavoriteType := "X" ; see Favorite Types
-		else ; regular favorite
+		else ; regular favorite or menu
 		{
 			objLoadIniFavorite.FavoriteType := (blnItemIsMenu ? "Menu" : "Folder") ; see Favorite Types
 			objLoadIniFavorite.FavoriteName := strWinCmdItemName ; display name of this menu item
 			if !(blnItemIsMenu)
 				objLoadIniFavorite.FavoriteLocation := ReplaceAllInString(strWinCmdItemCommand, "cd ", "") ; path
+			if (SubStr(objLoadIniFavorite.FavoriteLocation, 1, 2) = "::")
+			{
+				objLoadIniFavorite.FavoriteLocation := SubStr(objLoadIniFavorite.FavoriteLocation, 3)
+				objLoadIniFavorite.FavoriteIconResource := g_objSpecialFolders[objLoadIniFavorite.FavoriteLocation].DefaultIcon
+				objLoadIniFavorite.FavoriteType := "Special"
+			}
 		}
 		
 		; this is a submenu, link to the submenu object
@@ -8995,7 +9007,6 @@ blnLocationFound := ""
 strThisHotkeyLocation := ""
 strMenuPath := ""
 objMenu := ""
-
 
 return
 ;------------------------------------------------------------
