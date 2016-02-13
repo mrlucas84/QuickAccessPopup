@@ -16,7 +16,6 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- fix bug in searh file in path
 
 TO-DO
 
@@ -24,7 +23,15 @@ TO-DO
 HISTORY
 =======
 
-Version: 7.0.9.3 (2016-02-11)
+Version: 7.0.9.6 (2016-02-12)
+- add an option in Options, File Managers tab, to remember the TotalCommander WinCmd.ini file location
+- save/retrieve option to/from QAP ini file
+
+Version: 7.0.9.5 (2016-02-12)
+- add diagnostic code to investigate TC hotlist not opening favorite for some users
+- remove/comment unused diagnostic code
+
+Version: 7.0.9.3/7.0.9.4 (2016-02-11)
 - add a Restart QAP menu item to the Tray menu to reload QAP after changes in the ini file
 - fix a bug in check for update, not remembering when user want to skip the new version
 - more friendly upgrade process with dialog box, direct download links and easy access to change log
@@ -444,7 +451,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.9.3 beta
+;@Ahk2Exe-SetVersion 7.0.9.6 beta
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -489,7 +496,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.9.3" ; "major.minor.bugs" or "major.minor.beta.release" #####
+g_strCurrentVersion := "7.0.9.6" ; "major.minor.bugs" or "major.minor.beta.release" #####
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -1899,6 +1906,7 @@ IniRead, g_strDirectoryOpusPath, %g_strIniFile%, Global, DirectoryOpusPath, %A_S
 IniRead, g_blnDirectoryOpusUseTabs, %g_strIniFile%, Global, DirectoryOpusUseTabs, 1 ; use tabs by default
 IniRead, g_strTotalCommanderPath, %g_strIniFile%, Global, TotalCommanderPath, %A_Space% ; empty string if not found
 IniRead, g_blnTotalCommanderUseTabs, %g_strIniFile%, Global, TotalCommanderUseTabs, 1 ; use tabs by default
+IniRead, g_strWinCmdIniFile, %g_strIniFile%, Global, TotalCommanderWinCmd, %A_Space%
 
 strActiveFileManagerSystemName := g_arrActiveFileManagerSystemNames%g_intActiveFileManager%
 if (g_intActiveFileManager = 4) ; QAPconnect connected File Manager
@@ -2484,6 +2492,7 @@ RefreshBackgroundDynamicMenus:
 Gosub, RefreshRecentFoldersMenu
 Gosub, RefreshDrivesMenu
 
+/*
 if (g_blnDiagMode)
 {
 	Diag("Background: Recent/Drives", g_intRecentFoldersMenuTickCount . "`t" . g_intDrivesMenuTickCount)
@@ -2491,6 +2500,7 @@ if (g_blnDiagMode)
 	; sleep, 5000
 	; ToolTip
 }
+*/
 
 return
 ;------------------------------------------------------------
@@ -2504,7 +2514,7 @@ Menu, g_menuClipboard, Add
 Menu, g_menuClipboard, DeleteAll
 if (g_blnUseColors)
     Menu, g_menuClipboard, Color, %g_strMenuBackgroundColor%
-AddMenuIcon("g_menuClipboard", lMenuNoClipboard, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+AddMenuIcon("g_menuClipboard", lMenuNoClipboard, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
 return
 ;------------------------------------------------------------
@@ -2679,7 +2689,7 @@ Menu, g_menuDrives, Add
 Menu, g_menuDrives, DeleteAll
 if (g_blnUseColors)
     Menu, g_menuDrives, Color, %g_strMenuBackgroundColor%
-AddMenuIcon("g_menuDrives", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+AddMenuIcon("g_menuDrives", lDialogNone, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
 return
 ;------------------------------------------------------------
@@ -2788,7 +2798,7 @@ Menu, g_menuRecentFolders, Add
 Menu, g_menuRecentFolders, DeleteAll
 if (g_blnUseColors)
     Menu, g_menuRecentFolders, Color, %g_strMenuBackgroundColor%
-AddMenuIcon("g_menuRecentFolders", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+AddMenuIcon("g_menuRecentFolders", lDialogNone, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
 return
 ;------------------------------------------------------------
@@ -2927,8 +2937,8 @@ if (g_blnUseColors)
     Menu, g_menuReopenFolder, Color, %g_strMenuBackgroundColor%
     Menu, g_menuSwitchFolderOrApp, Color, %g_strMenuBackgroundColor%
 }
-AddMenuIcon("g_menuReopenFolder", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
-AddMenuIcon("g_menuSwitchFolderOrApp", lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+AddMenuIcon("g_menuReopenFolder", lDialogNone, "GuiShow", "iconNoContent", false) ; will never be called because disabled
+AddMenuIcon("g_menuSwitchFolderOrApp", lDialogNone, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
 return
 ;------------------------------------------------------------
@@ -3347,14 +3357,10 @@ Menu, %lTCMenuName%, Add
 Menu, %lTCMenuName%, DeleteAll
 if (g_blnUseColors)
     Menu, %lTCMenuName%, Color, %g_strMenuBackgroundColor%
-AddMenuIcon(lTCMenuName, lDialogNone, "GuiShow", "iconNoContent", false)	; will never be called because disabled
+AddMenuIcon(lTCMenuName, lDialogNone, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
-RegRead, g_strWinCmdIniFile, HKEY_CURRENT_USER, Software\Ghisler\Total Commander\, IniFileName
-If !StrLen(g_strWinCmdIniFile)
-	RegRead, g_strWinCmdIniFile, HKEY_LOCAL_MACHINE, Software\Ghisler\Total Commander\, IniFileName
-g_strWinCmdIniFile := EnvVars(g_strWinCmdIniFile)
-
-g_blnWinCmdIniFileExist := StrLen(g_strWinCmdIniFile) and FileExist(g_strWinCmdIniFile) ; TotalCommander settings file exists
+g_strWinCmdIniFileExpanded := EnvVars(g_strWinCmdIniFile)
+g_blnWinCmdIniFileExist := StrLen(g_strWinCmdIniFileExpanded) and FileExist(g_strWinCmdIniFileExpanded) ; TotalCommander settings file exists
 
 if !(g_blnWinCmdIniFileExist)
 {
@@ -3375,11 +3381,11 @@ RefreshTotalCommanderHotlist:
 
 ; Init TC Directory hotlist if wincmd.ini file exists
 
+Menu, %lTCMenuName%, Add 
+Menu, %lTCMenuName%, DeleteAll
+
 If (g_blnWinCmdIniFileExist) ; TotalCommander settings file exists
 {
-	Menu, %lTCMenuName%, Add 
-	Menu, %lTCMenuName%, DeleteAll
-	
 	g_objTCMenu := Object() ; object of menu structure entry point
 	g_objTCMenu.MenuPath := lTCMenuName ; localized name of the TC menu
 	g_objTCMenu.MenuType := "Menu"
@@ -3391,6 +3397,8 @@ If (g_blnWinCmdIniFileExist) ; TotalCommander settings file exists
 	
 	RecursiveBuildOneMenu(g_objTCMenu) ; recurse for submenus
 }
+else
+	AddMenuIcon(lTCMenuName, lDialogNone, "GuiShow", "iconNoContent", false) ; will never be called because disabled
 
 return
 ;------------------------------------------------------------
@@ -3402,7 +3410,7 @@ RecursiveLoadTotalCommanderHotlistFromIni(objCurrentMenu)
 ;------------------------------------------------------------
 {
 	global g_objMenusIndex
-	global g_strWinCmdIniFile
+	global g_strWinCmdIniFileExpanded
 	global g_intIniLine
 	global g_strMenuPathSeparator
 	
@@ -3411,12 +3419,12 @@ RecursiveLoadTotalCommanderHotlistFromIni(objCurrentMenu)
 
 	Loop
 	{
-		IniRead, strWinCmdItemName, %g_strWinCmdIniFile%, DirMenu, menu%g_intIniLine%
+		IniRead, strWinCmdItemName, %g_strWinCmdIniFileExpanded%, DirMenu, menu%g_intIniLine%
 		if (strWinCmdItemName = "ERROR")
 			Return, "EOM" ; end of file, last menu item
 	
-		IniRead, strWinCmdItemCommand, %g_strWinCmdIniFile%, DirMenu, cmd%g_intIniLine%, %A_Space% ; empty by default
-		; not used IniRead, strWinCmdPathLine, %g_strWinCmdIniFile%, DirMenu, path%g_intIniLine%, %A_Space% ; empty by default
+		IniRead, strWinCmdItemCommand, %g_strWinCmdIniFileExpanded%, DirMenu, cmd%g_intIniLine%, %A_Space% ; empty by default
+		; not used IniRead, strWinCmdPathLine, %g_strWinCmdIniFileExpanded%, DirMenu, path%g_intIniLine%, %A_Space% ; empty by default
         g_intIniLine++
 	
 		if (strWinCmdItemName = "--")
@@ -3652,7 +3660,10 @@ RecursiveBuildOneMenu(objCurrentMenu)
 			else if (objCurrentMenu[A_Index].FavoriteType = "Group")
 				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavoriteGroup
 			else
-				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, OpenFavorite
+			{
+				blnIsTotalCommanderHotlist := (SubStr(objCurrentMenu.MenuPath, 1, StrLen(lTCMenuName)) = lTCMenuName)
+				Menu, % objCurrentMenu.MenuPath, Add, %strMenuName%, % (blnIsTotalCommanderHotlist ? "OpenFavoriteHotlist" : "OpenFavorite")
+			}
 
 			if (g_blnDisplayIcons)
 			{
@@ -3986,6 +3997,9 @@ if StrLen(g_strQAPconnectFileManager)
 Gui, 2:Add, Button, x+10 yp vf_btnFileManagerPath gButtonSelectFileManagerPath hidden, %lDialogBrowseButton%
 Gui, 2:Add, Checkbox, y+10 x32 w590 vf_blnFileManagerUseTabs hidden, %lOptionsThirdPartyUseTabs%
 Gui, 2:Add, Button, xp yp vf_btnQAPconnectEdit gShowQAPconnectIniFile hidden, % L(lMenuEditIniFile, "QAPconnect.ini")
+Gui, 2:Add, Text, y+10 xp vf_lblTotalCommanderWinCmdPrompt hidden, %lTCWinCmdLocation%
+Gui, 2:Add, Edit, yp x+10 w300 h20 vf_strTotalCommanderWinCmd hidden
+Gui, 2:Add, Button, x+10 yp vf_btnTotalCommanderWinCmd gButtonSelectTotalCommanderWinCmd hidden, %lDialogBrowseButton%
 
 Gosub, ActiveFileManagerClicked ; init visible fields
 
@@ -4024,6 +4038,10 @@ GuiControl, % (!f_radActiveFileManager4 ? "Hide" : "Show"), f_drpQAPconnectFileM
 GuiControl, % (f_radActiveFileManager1 or f_radActiveFileManager4 ? "Hide" : "Show"), f_btnFileManagerPath
 GuiControl, % (!f_radActiveFileManager4 ? "Hide" : "Show"), f_btnQAPconnectEdit
 GuiControl, % (f_radActiveFileManager1 or f_radActiveFileManager4 ? "Hide" : "Show"), f_blnFileManagerUseTabs
+
+GuiControl, % (!f_radActiveFileManager3 ? "Hide" : "Show"), f_lblTotalCommanderWinCmdPrompt
+GuiControl, % (!f_radActiveFileManager3 ? "Hide" : "Show"), f_strTotalCommanderWinCmd
+GuiControl, % (!f_radActiveFileManager3 ? "Hide" : "Show"), f_btnTotalCommanderWinCmd
 
 if (f_radActiveFileManager2) ; DirectoryOpus
 {
@@ -4071,6 +4089,8 @@ if !(f_radActiveFileManager1) ; DirectoryOpus, TotalCommander or QAPconnect
 			IniRead, g_bln%strClickedFileManagerSystemNames%UseTabs, %g_strIniFile%, Global, %strClickedFileManagerSystemNames%UseTabs, %A_Space% ; empty if error
 		GuiControl, , f_blnFileManagerUseTabs, % (g_bln%strClickedFileManagerSystemNames%UseTabs ? 1 : 0)
 	}
+	if (f_radActiveFileManager3) ; TotalCommander
+		GuiControl, , f_strTotalCommanderWinCmd, %g_strWinCmdIniFile%
 }
 
 strClickedFileManagerSystemNames := ""
@@ -4253,6 +4273,32 @@ GuiControl, 2:, f_strFileManagerPath, %strNewLocation%
 
 strActiveFileManagerSystemName := ""
 strCurrentLocation := ""
+strNewLocation := ""
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ButtonSelectTotalCommanderWinCmd:
+;------------------------------------------------------------
+
+strCurrentLocation := g_strWinCmdIniFile
+if !StrLen(strCurrentLocation)
+{
+	RegRead, strCurrentLocation, HKEY_CURRENT_USER, Software\Ghisler\Total Commander\, IniFileName
+	If !StrLen(strCurrentLocation)
+		RegRead, strCurrentLocation, HKEY_LOCAL_MACHINE, Software\Ghisler\Total Commander\, IniFileName
+}
+FileSelectFile, strNewLocation, 3, %strCurrentLocation%, %lDialogAddFolderSelect%
+
+if !(StrLen(strNewLocation))
+	return
+
+GuiControl, 2:, f_strTotalCommanderWinCmd, %strNewLocation%
+
+strCurrentLocation := ""
+strNewLocation := ""
 
 return
 ;------------------------------------------------------------
@@ -4423,16 +4469,23 @@ else if (g_intActiveFileManager > 1) ; 2 DirectoryOpus or 3 TotalCommander
 	
 	g_bln%strActiveFileManagerSystemName%UseTabs := f_blnFileManagerUseTabs
 	IniWrite, % g_bln%strActiveFileManagerSystemName%UseTabs, %g_strIniFile%, Global, %strActiveFileManagerSystemName%UseTabs
-	if (g_intActiveFileManager = 2)
+	if (g_intActiveFileManager = 2) ; DirectoryOpus
 		if (g_blnDirectoryOpusUseTabs)
 			g_strDirectoryOpusNewTabOrWindow := "NEWTAB" ; open new folder in a new lister tab
 		else
 			g_strDirectoryOpusNewTabOrWindow := "NEW" ; open new folder in a new DOpus lister (instance)
 	else ; TotalCommander
+	{
 		if (g_blnTotalCommanderUseTabs)
 			g_strTotalCommanderNewTabOrWindow := "/O /T" ; open new folder in a new tab
 		else
 			g_strTotalCommanderNewTabOrWindow := "/N" ; open new folder in a new window (TC instance)
+		
+		IniWrite, %f_strTotalCommanderWinCmd%, %g_strIniFile%, Global, TotalCommanderWinCmd
+		g_strWinCmdIniFile := f_strTotalCommanderWinCmd
+		g_strWinCmdIniFileExpanded := EnvVars(g_strWinCmdIniFile)
+		g_blnWinCmdIniFileExist := StrLen(g_strWinCmdIniFileExpanded) and FileExist(g_strWinCmdIniFileExpanded) ; TotalCommander settings file exists
+	}
 	IniWrite, % g_str%strActiveFileManagerSystemName%NewTabOrWindow, %g_strIniFile%, Global, %strActiveFileManagerSystemName%NewTabOrWindow
 }
 if (g_intActiveFileManager > 1) ; 2 DirectoryOpus, 3 TotalCommander or 4 QAPconnect
@@ -4466,12 +4519,14 @@ Gosub, RefreshRecentFoldersMenu
 Gosub, RefreshSwitchFolderOrAppMenu
 Gosub, RefreshTotalCommanderHotlist
 
+/*
 if (g_blnDiagMode)
 {
 	Diag("Save Options: Recent/Drives/Clipboard/Switch", g_intRecentFoldersMenuTickCount . "`t" . g_intDrivesMenuTickCount . "`t" . g_intClipboardMenuTickCount . "`t" . g_intSwitchReopenMenuTickCount)
 	; TrayTip, Recent/Drives/Clipboard/Switch menus refresh, % g_intRecentFoldersMenuTickCount . " ms + " . g_intDrivesMenuTickCount . " ms + " . g_intClipboardMenuTickCount . " ms + " . g_intSwitchReopenMenuTickCount
 	;	. " = " . g_intRecentFoldersMenuTickCount + g_intDrivesMenuTickCount + g_intClipboardMenuTickCount + g_intSwitchReopenMenuTickCount . " ms"
 }
+*/
 
 Gosub, 2GuiClose
 
@@ -8030,12 +8085,14 @@ Gosub, RefreshClipboardMenu
 ; Gosub, RefreshRecentFoldersMenu ; displays the wait cursor
 ; Gosub, RefreshDrivesMenu ; displays the wait cursor
 
+/*
 if (g_blnDiagMode)
 {
 	Diag("Popup menu: Clipboard/Switch",  "`t`t" . g_intClipboardMenuTickCount . "`t" . g_intSwitchReopenMenuTickCount)
 	; TrayTip, Clipboard/Switch menus refresh, % g_intClipboardMenuTickCount . " ms + " . g_intSwitchReopenMenuTickCount
 	;	. " = " . g_intClipboardMenuTickCount + g_intSwitchReopenMenuTickCount . " ms"
 }
+*/
 
 Gosub, InsertColumnBreaks
 
@@ -8518,6 +8575,7 @@ OpenRecentFolder:
 OpenReopenFolder:
 OpenClipboard:
 OpenDrives:
+OpenFavoriteHotlist:
 ;------------------------------------------------------------
 
 ; if (A_ThisLabel = "OpenFavoriteFromGroup")
@@ -8525,11 +8583,19 @@ OpenDrives:
 ; ###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strAlternativeMenu, g_blnAlternativeMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
+if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
+	Diag("OpenFavoriteHotlist", "---------")
 
 if (A_ThisLabel = "OpenFavoriteFromGroup") ; object already set by OpenGroupOfFavorites
 	g_strHokeyTypeDetected := "Launch" ; all favorites in group are for Launch (no Navigate)
 else
 	gosub, OpenFavoriteGetFavoriteObject ; define g_objThisFavorite
+
+if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
+{
+	Diag("g_objThisFavorite.FavoriteName", g_objThisFavorite.FavoriteName)
+	Diag("g_objThisFavorite.FavoriteLocation", g_objThisFavorite.FavoriteLocation)
+}
 
 if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
 {
@@ -8567,8 +8633,12 @@ if (g_blnAlternativeMenu) and (g_strAlternativeMenu = lMenuAlternativeNewWindow)
 	g_strHokeyTypeDetected := "Launch"
 
 gosub, SetTargetName ; sets g_strTargetAppName, can change g_strHokeyTypeDetected to "Launch"
+if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
+	Diag("g_strTargetAppName", g_strTargetAppName)
 
 gosub, OpenFavoriteGetFullLocation ; sets g_strFullLocation
+if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
+	Diag("g_strFullLocation", g_strFullLocation)
 
 if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 {
@@ -8809,11 +8879,19 @@ if (g_strOpenFavoriteLabel = "OpenFavoriteGroup")
 	strThisMenuItem .=  " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix ; add empty indicators to retrieve fav name in objects
 }
 
-if InStr("OpenFavorite|OpenFavoriteGroup", g_strOpenFavoriteLabel)
+if InStr("OpenFavorite|OpenFavoriteHotlist|OpenFavoriteGroup", g_strOpenFavoriteLabel)
 {
 	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName or A_ThisMenu = lTCMenuName ? 0 : 1)
 			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
 	g_objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
+	if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
+	{
+		Diag("strThisMenuItem", strThisMenuItem)
+		Diag("A_ThisMenu", A_ThisMenu)
+		Diag("A_ThisMenuItemPos", A_ThisMenuItemPos)
+		Diag("NumberOfColumnBreaksBeforeThisItem", NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos))
+		Diag("intMenuItemPos", intMenuItemPos)
+	}
 }
 else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 {
