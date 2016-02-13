@@ -482,14 +482,12 @@ ComObjError(False) ; we will do our own error handling
 DllCall("SetErrorMode", "uint", SEM_FAILCRITICALERRORS := 1)
 
 Gosub, SetQAPWorkingDirectory
-; ###_V("AFTER SetQAPWorkingDirectory", A_WorkingDir)
 
 ; Force A_WorkingDir to A_ScriptDir if uncomplied (development environment)
 ;@Ahk2Exe-IgnoreBegin
 ; Start of code for development environment only - won't be compiled
 ; see http://fincs.ahk4.net/Ahk2ExeDirectives.htm
 SetWorkingDir, %A_ScriptDir%
-; ###_V("DEV A_WorkingDir", A_WorkingDir)
 ListLines, On
 ; to test user data directory: SetWorkingDir, %A_AppData%\Quick Access Popup
 ; / End of code for developement enviuronment only - won't be compiled
@@ -506,7 +504,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.9.7" ; "major.minor.bugs" or "major.minor.beta.release" #####
+g_strCurrentVersion := "7.0.9.7" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -827,8 +825,6 @@ In Portable mode, A_WorkingDir is what the user decided. In Setup mode, A_Workin
 ; - if the file "_do_not_remove_or_rename.txt" is in A_ScriptDir, we are in Setup mode
 ; - else we are in Portable mode.
 
-; ###_V("A_ScriptDir\_do_not_remove_or_rename.txt exists?", FileExist(A_ScriptDir . "\_do_not_remove_or_rename.txt"), A_ScriptDir, A_WorkingDir)
-
 ; If we are in Portable mode, we keep the A_WorkingDir and return. It is equal to A_ScriptDir except if the user set the "Start In" folder in a shortcut.
 if !FileExist(A_ScriptDir . "\_do_not_remove_or_rename.txt")
 {
@@ -1080,7 +1076,6 @@ else
 }
 	
 strReplacementForSemicolon := "!r4nd0mt3xt!" ; for non-comment semi-colons ";" escaped as ";;"
-; ###_V("", strLanguageFile)
 
 if FileExist(strLanguageFile)
 {
@@ -1132,7 +1127,6 @@ loop, %g_arrOptionsLanguageCodes0%
 			g_strLanguageLabel := g_arrOptionsLanguageLabels%A_Index%
 			break
 		}
-; ###_V("", g_arrOptionsLanguageCodes%A_Index%, g_strLanguageCode, g_strLanguageLabel)
 
 lDialogMouseButtonsText := lDialogNone . "|" . lDialogMouseButtonsText ; use lDialogNone because this is displayed
 StringSplit, g_arrMouseButtonsText, lDialogMouseButtonsText, |
@@ -1671,7 +1665,6 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	global g_objQAPFeaturesDefaultNameByCode
 	global g_objQAPFeaturesAlternativeCodeByOrder
 	
-	; ###_V("", strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuName, strQAPFeatureCommand, intQAPFeatureAlternativeOrder, strThisDefaultIcon, strDefaultHotkey)
 	objOneQAPFeature := Object()
 	
 	objOneQAPFeature.LocalizedName := strThisLocalizedName
@@ -1680,7 +1673,6 @@ InitQAPFeatureObject(strQAPFeatureCode, strThisLocalizedName, strQAPFeatureMenuN
 	objOneQAPFeature.QAPFeatureCommand := strQAPFeatureCommand
 	objOneQAPFeature.QAPFeatureAlternativeOrder := intQAPFeatureAlternativeOrder
 	objOneQAPFeature.DefaultHotkey := strDefaultHotkey
-	; ###_O("objOneQAPFeature", objOneQAPFeature)
 	
 	g_objQAPFeatures.Insert("{" . strQAPFeatureCode . "}", objOneQAPFeature)
 	g_objQAPFeaturesCodeByDefaultName.Insert(strThisLocalizedName, "{" . strQAPFeatureCode . "}")
@@ -2586,17 +2578,7 @@ Loop, parse, Clipboard, `n, `r%A_Space%%A_Tab%/?:*`"><|
 	; Parse Clipboard line for URLs (anywhere on the line)
 	strURLSearchString := A_LoopField
 	Gosub, GetURLsInClipboardLine
-	
-	; #### DEBUGGING CODE NOT COMPILED ONLY
-	; if !(A_IsCompiled)
-	;	FileAppend, RefreshClipboardMenu`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
-
 }
-
-; #### DEBUGGING CODE NOT COMPILED ONLY
-if !(A_IsCompiled)
-	if (A_TickCount > intClipboardMenuStartTickCount + 500)
-		Oops("Error while refreshing the Clipboard menu. Check Clipboard content...")
 
 if StrLen(strContentsInClipboard)
 {
@@ -2756,7 +2738,6 @@ Loop, parse, strDrivesList
 	DriveSpaceFree, intFreeSpace,  %strPath%
 	DriveGet, strLabel, Label, %strPath%
 	DriveGet, strType, Type, %strPath% ; Unknown, Removable, Fixed, Network, CDROM, RAMDisk
-	; ###_V(A_ThisLabel, strDrivesList, strPath, intCapacity, intFreeSpace, strLabel, strType)
 	
 	strMenuItemName := strPath . " " . strLabel
 	if StrLen(intFreeSpace) and StrLen(intCapacity)
@@ -3034,16 +3015,7 @@ if (g_intActiveFileManager = 2) ; DirectoryOpus
 		objFolderOrApp.WindowType := "DO"
 		
 		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
-		
-		; #### DEBUGGING CODE NOT COMPILED ONLY
-		; if !(A_IsCompiled)
-		;	FileAppend, RefreshSwitchFolderOrAppMenu-DOpus`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
-
-; #### DEBUGGING CODE NOT COMPILED ONLY
-if !(A_IsCompiled)
-	if (A_TickCount > intSwitchReopenMenuStartTickCount + 500)
-		Oops("Error while refreshing the Switch menu (DOpus).")
 
 ; Process Explorer windows
 
@@ -3066,16 +3038,7 @@ for intIndex, objFolder in objExplorersWindows
 	objFolderOrApp.WindowType := "EX"
 
 	objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
-		
-	; #### DEBUGGING CODE NOT COMPILED ONLY
-	; if !(A_IsCompiled)
-	;	FileAppend, RefreshSwitchFolderOrAppMenu-Explorer`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 }
-
-; #### DEBUGGING CODE NOT COMPILED ONLY
-if !(A_IsCompiled)
-	if (A_TickCount > intSwitchReopenMenuStartTickCount + 500)
-		Oops("Error while refreshing the Switch menu (Process Explorer windows).")
 
 if (A_ThisLabel <> "RefreshReopenFolderMenu")
 	and g_objQAPfeaturesInMenus.HasKey("{Switch Folder or App}") ; we have this QAP features in at least one menu
@@ -3132,15 +3095,7 @@ if (A_ThisLabel <> "RefreshReopenFolderMenu")
 		objFolderOrApp.WindowType := "APP"
 
 		objFoldersAndAppsList.Insert(intWindowsIdIndex, objFolderOrApp)
-		
-		; #### DEBUGGING CODE NOT COMPILED ONLY
-		; if !(A_IsCompiled)
-		;	FileAppend, RefreshSwitchFolderOrAppMenu-Applications`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
-	; #### DEBUGGING CODE NOT COMPILED ONLY
-	if !(A_IsCompiled)
-		if (A_TickCount > intSwitchReopenMenuStartTickCount + 500)
-			Oops("Error while refreshing the Switch menu (Applications).")
 }
 
 ; Build menu
@@ -3164,7 +3119,6 @@ if (intWindowsIdIndex)
 {
 	for intIndex, objFolderOrApp in objFoldersAndAppsList
 	{
-		; ###_O("objFolderOrApp", objFolderOrApp)
 		if !StrLen(objFolderOrApp.Name)
 			Menu, g_menuSwitchFolderOrApp, Add
 		else
@@ -3175,22 +3129,13 @@ if (intWindowsIdIndex)
 				g_objReopenFolderLocationUrlByName.Insert(strMenuName, objFolderOrApp.LocationURL) ; strMenuName can include the numeric shortcut
 				AddMenuIcon("g_menuReopenFolder", strMenuName, "OpenReopenFolder", "iconFolder")
 			}
-			; ###_V("", strMenuName, objFolderOrApp.WindowType . "|" . objFolderOrApp.WindowId)
 			g_objSwitchWindowIdsByName.Insert(strMenuName, objFolderOrApp.WindowType . "|" . objFolderOrApp.WindowId)
 			AddMenuIcon("g_menuSwitchFolderOrApp", strMenuName, "OpenSwitchFolderOrApp"
 				, (objFolderOrApp.WindowType = "EX" ? "iconChangeFolder"
 					: (objFolderOrApp.WindowType = "DO" ?  g_strDirectoryOpusRtPath . ",1"
 					: objFolderOrApp.LocationURL . ",1")))
 		}
-		
-		; #### DEBUGGING CODE NOT COMPILED ONLY
-		; if !(A_IsCompiled)
-		;	FileAppend, RefreshSwitchFolderOrAppMenu-Build`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 	}
-	; #### DEBUGGING CODE NOT COMPILED ONLY
-	if !(A_IsCompiled)
-		if (A_TickCount > intSwitchReopenMenuStartTickCount + 500)
-			Oops("Error while refreshing the Switch menu (Build).")
 }
 else
 	AddMenuIcon("g_menuSwitchFolderOrApp", lMenuNoCurrentFolder, "GuiShow", "iconNoContent", false) ; will never be called because disabled
@@ -3689,7 +3634,7 @@ RecursiveBuildOneMenu(objCurrentMenu)
 					else
 						GetIcon4Location(g_strTempDir . "\default_browser_icon.html", strThisIconFile, intThisIconIndex)
 						; not sure it is required to have a physical file with .html extension - but keep it as is by safety
-				else ; this is a document or application, ### or Special / FTP / QAP that must have FavoriteIconResource ?)
+				else ; this is a document, application, Special, FTP or QAP
 					if StrLen(objCurrentMenu[A_Index].FavoriteIconResource)
 						ParseIconResource(objCurrentMenu[A_Index].FavoriteIconResource, strThisIconFile, intThisIconIndex)
 					else
@@ -3840,7 +3785,6 @@ loop, 4
 g_objQAPFeaturesNewHotkeys := Object() ; re-init
 for intOrder, strAlternativeCode in g_objQAPFeaturesAlternativeCodeByOrder
 	if HasHotkey(g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
-		; ###_V("strAlternativeCode", strAlternativeCode, g_objQAPFeatures[strAlternativeCode].LocalizedName, g_objQAPFeatures[strAlternativeCode].Hotkey)
 		; g_objQAPFeaturesNewHotkeys will be saved to ini file and g_objQAPFeatures will be used to turn off previous hotkeys
 		g_objQAPFeaturesNewHotkeys.Insert(strAlternativeCode, g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
 
@@ -3963,8 +3907,6 @@ Gui, 2:Add, Text, x10 y+10 w595 center, % L(lOptionsAlternativeMenuFeaturesIntro
 
 for intOrder, strAlternativeCode in g_objQAPFeaturesAlternativeCodeByOrder
 {
-	; ###_V("g_objQAPFeaturesAlternativeCodeByOrder", intOrder, strAlternativeCode, g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
-	; ###_V("strAlternativeCode", strAlternativeCode, g_objQAPFeatures[strAlternativeCode].LocalizedName, g_objQAPFeatures[strAlternativeCode].CurrentHotkey)
 	Gui, 2:Font, s8 w700
 	Gui, 2:Add, Text, x15 y+10 w240, % g_objQAPFeatures[strAlternativeCode].LocalizedName
 	Gui, 2:Font, s9 w500, Courier New
@@ -4188,13 +4130,11 @@ Gui, 2:Submit, NoHide
 intAlternativeOrder := A_GuiControl
 StringReplace, intAlternativeOrder, intAlternativeOrder, f_lblAlternativeHotkeyText
 StringReplace, intAlternativeOrder, intAlternativeOrder, f_btnChangeAlternativeHotkey
-; ###_V(intAlternativeOrder, g_objQAPFeaturesAlternativeCodeByOrder[intAlternativeOrder], g_objQAPFeatures[g_objQAPFeaturesAlternativeCodeByOrder[intAlternativeOrder]].Hotkey)
 
 strThisAlternativeCode := g_objQAPFeaturesAlternativeCodeByOrder[intAlternativeOrder]
 objThisAlternative := g_objQAPFeatures[strThisAlternativeCode]
 g_objQAPFeaturesNewHotkeys[strThisAlternativeCode] := SelectHotkey(objThisAlternative.CurrentHotkey, objThisAlternative.LocalizedName, lDialogHotkeysManageAlternative
 	, "", 3, objThisAlternative.DefaultHotkey)
-; ###_D(Hotkey2Text(g_objQAPFeaturesNewHotkeys[strThisAlternativeCode]))
 
 if StrLen(g_objQAPFeaturesNewHotkeys[strThisAlternativeCode])
 	GuiControl, 2:, f_lblAlternativeHotkeyText%intAlternativeOrder%, % Hotkey2Text(g_objQAPFeaturesNewHotkeys[strThisAlternativeCode])
@@ -4351,7 +4291,6 @@ else if (g_intClickedFileManager > 1) ; 2 DirectoryOpus or 3 TotalCommander
 		blnActiveFileManangerOK := FileExistInPath(strTempLocation) ; return strTempLocation with expanded relative path and envvars, and absolute location if in PATH
 	}
 }
-; ###_V(A_ThisLabel, g_intClickedFileManager, f_drpQAPconnectFileManager, blnActiveFileManangerOK, g_strQAPconnectFileManager, g_strQAPconnectCompanionPath)
 if (g_intClickedFileManager > 1 and !blnActiveFileManangerOK)
 {
 	if (g_intClickedFileManager = 4)
@@ -4365,8 +4304,6 @@ if (g_intClickedFileManager > 1 and !blnActiveFileManangerOK)
 	return
 }
 ; from here, we know that we have valid file manager path values
-
-; ###_V(A_ThisLabel, g_intClickedFileManager, g_strQAPconnectFileManager, g_strQAPconnectAppPath, strActiveFileManagerDisplayName, f_strFileManagerPath)
 
 ;---------------------------------------
 ; Save Tab 1: General options
@@ -4461,7 +4398,6 @@ Loop, Parse, strExclusionCleanup, |
 	if StrLen(A_LoopField)
 		g_strExclusionMouseList .= Trim(A_LoopField) . "|"
 StringTrimRight, g_strExclusionMouseList, g_strExclusionMouseList, 1 ; remove last |
-; ###_V(A_ThisLabel, f_strExclusionMouseList, strExclusionCleanup, g_strExclusionMouseList)
 IniWrite, %g_strExclusionMouseList%, %g_strIniFile%, Global, ExclusionMouseList
 
 ;---------------------------------------
@@ -4711,7 +4647,6 @@ GuiControl, , f_drpMenusList, % "|" . RecursiveBuildMenuTreeDropDown(g_objMainMe
 
 GuiControl, Focus, f_lvFavoritesList
 
-; ###_V("Loaded " . g_objMenuInGui.MenuPath, g_objMenuInGui[1].SubMenu.MenuPath, g_intOriginalMenuPosition)
 return
 ;------------------------------------------------------------
 
@@ -5102,7 +5037,6 @@ GuiCopyFavorite:
 
 strGuiFavoriteLabel := A_ThisLabel
 g_blnAbordEdit := false
-; ###_V(A_ThisLabel, g_intOriginalMenuPosition)
 
 Gosub, GuiFavoriteInit
 
@@ -5507,7 +5441,6 @@ return
 GuiFavoriteTabWindowOptions:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, g_objEditedFavorite.FavoriteType)
 if InStr(g_strTypesForTabWindowOptions, g_objEditedFavorite.FavoriteType)
 {
 	Gui, 2:Tab, % ++intTabNumber
@@ -6053,19 +5986,6 @@ if (A_ThisLabel = "GuiMenusListChanged")
 	}
 }
 
-/*
-###_D(A_ThisLabel . "`n"
-	. "intCurrentLastPosition: " . intCurrentLastPosition . "`n"
-	. "g_intOriginalMenuPosition: " . g_intOriginalMenuPosition . "`n"
-	. "strNewDropdownMenu: " . strNewDropdownMenu . "`n"
-	. "g_objMenuInGui.MenuPath: " . g_objMenuInGui.MenuPath . "`n"
-	. "g_objMenusIndex[strNewDropdownMenu].MenuPath: " . g_objMenusIndex[strNewDropdownMenu].MenuPath . "`n"
-	. "g_objMenuInGui[1].SubMenu.MenuPath: " . g_objMenuInGui[1].SubMenu.MenuPath . "`n"
-	. "g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath: " . g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath . "`n"
-	. ": " . "`n"
-	. "")
-*/
-
 if (A_ThisLabel = "GuiGotoPreviousMenu")
 {
 	g_objMenuInGui := g_objMenusIndex[g_arrSubmenuStack[1]] ; pull the top menu from the left arrow stack
@@ -6081,7 +6001,6 @@ else
 	if (A_ThisLabel = "GuiMenusListChanged")
 		g_objMenuInGui := g_objMenusIndex[strNewDropdownMenu]
 	else if (A_ThisLabel = "GuiGotoUpMenu")
-		; ###_V("", g_objMenuInGui[1].SubMenu.MenuPath)
 		g_objMenuInGui := g_objMenuInGui[1].SubMenu
 	else if (A_ThisLabel = "OpenMenuFromEditForm") or (A_ThisLabel = "OpenMenuFromGuiHotkey")
 		g_objMenuInGui := g_objMenuInGui[g_intOriginalMenuPosition].SubMenu
@@ -6202,8 +6121,6 @@ strDesktopIniAttrib := FileExist(strFolderDesktopIni)
 blnDesktopIniExist := StrLen(strDesktopIniAttrib)
 SplitPath, strFolderDesktopIni, , strDir, , , strDrive
 blnFolderIsRoot := (strDir = strDrive . "\")
-
-; ###_V(A_ThisLabel, (blnSet ? "Set" : "Remove"), strFolderDesktopIni, strDesktopIniAttrib, (blnDesktopIniExist ? "Exist" : "Not found"), (blnFolderIsRoot ? "Folder ir root" : "Folder is OK"), g_strNewFavoriteIconResource)
 
 if (blnSet)
 {
@@ -6373,11 +6290,8 @@ else
 	strDestinationMenu := f_drpParentMenu
 }
 
-; ###_O("g_objMenusIndex", g_objMenusIndex)
-; ###_V(A_ThisLabel . 1, g_intNewItemPos, f_drpParentMenuItems, strDestinationMenu)
 if (!g_intNewItemPos) ; if in GuiMoveOneFavoriteSave g_intNewItemPos may be already set
 	g_intNewItemPos := f_drpParentMenuItems + (g_objMenusIndex[strDestinationMenu][1].FavoriteType = "B" ? 1 : 0)
-; ###_V(A_ThisLabel . 2, g_intNewItemPos, f_drpParentMenuItems)
 
 ; validation to avoid unauthorized favorite types in groups
 if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|Group", g_objEditedFavorite.FavoriteType))
@@ -6388,11 +6302,6 @@ if (g_objMenusIndex[strDestinationMenu].MenuType = "Group" and InStr("QAP|Menu|G
 	gosub, GuiAddFavoriteSaveCleanup
 	return
 }
-/*
-###_D("g_objEditedFavorite.FavoriteType: " . g_objEditedFavorite.FavoriteType 
-	. "`ng_objMenusIndex[strDestinationMenu].MenuPath: " . g_objMenusIndex[strDestinationMenu].MenuPath 
-	. "`ng_objMenusIndex[strDestinationMenu].MenuType: " . g_objMenusIndex[strDestinationMenu].MenuType)
-*/
 
 ; validation (not required for GuiMoveOneFavoriteSave because info in g_objEditedFavorite is not changed)
 
@@ -6549,7 +6458,6 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	g_objEditedFavorite.FavoriteName := strNewFavoriteShortName
 	
 	; before updating g_objEditedFavorite.FavoriteLocation, check if location was changed and update hotkeys objects
-	; ###_V(A_ThisLabel, g_strNewFavoriteHotkey, g_objEditedFavorite.FavoriteLocation, strNewFavoriteLocation, HasHotkey(g_strNewFavoriteHotkey))
 	if StrLen(g_objEditedFavorite.FavoriteLocation) and (g_objEditedFavorite.FavoriteLocation <> strNewFavoriteLocation)
 	{
 		g_objHotkeysByLocation.Remove(g_objEditedFavorite.FavoriteLocation)
@@ -6583,7 +6491,6 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 						g_objMenusIndex.Remove(A_LoopField)
 					
 		}
-		; ###_V(A_ThisLabel, strMenuLocation, g_objMenuInGui.MenuPath, g_intOriginalMenuPosition, g_objMenuInGui[g_intOriginalMenuPosition].FavoriteLocation, g_objMenuInGui[g_intOriginalMenuPosition].SubMenu.MenuPath)
 	}
 	else
 		g_objEditedFavorite.FavoriteLocation := strNewFavoriteLocation
@@ -6618,15 +6525,12 @@ else ; GuiMoveOneFavoriteSave
 			. (g_objEditedFavorite.FavoriteType = "Group" ? " " . g_strGroupIndicatorPrefix . g_strGroupIndicatorSuffix : "")
 		RecursiveUpdateMenuPathAndLocation(g_objEditedFavorite, strMenuLocation)
 
-		; ###_O("g_objHotkeysByLocation-1", g_objHotkeysByLocation)
-		; ###_V("before hotkeys update", strPreviousLocation, g_objEditedFavorite.FavoriteLocation, g_objHotkeysByLocation[strPreviousLocation])
 		if g_objHotkeysByLocation.HasKey(strPreviousLocation)
 		{
 			StringReplace, strMenuLocation, strMenuLocation, %lMainMenuName%%A_Space% ; menu path without main menu localized name
 			g_objHotkeysByLocation.Insert(strMenuLocation, g_objHotkeysByLocation[strPreviousLocation])
 			g_objHotkeysByLocation.Remove(strPreviousLocation) ; must be after the g_objHotkeysByLocation.Insert
 		}
-		; ###_O("g_objHotkeysByLocation-2", g_objHotkeysByLocation)
 		
 		; update g_objMenusIndex
 		strIndexToRemove := ""
@@ -6656,23 +6560,6 @@ if (g_intNewItemPos)
 	g_objMenusIndex[strDestinationMenu].Insert(g_intNewItemPos, g_objEditedFavorite)
 else
 	g_objMenusIndex[strDestinationMenu].Insert(g_objEditedFavorite) ; if no item is selected, add to the end of menu
-
-; ###_O("g_objMenusIndex[strDestinationMenu]", g_objMenusIndex[strDestinationMenu], "FavoriteName")
-
-/*
-###_D(""
-	. "strOriginalMenu: " . strOriginalMenu . "`n"
-	. "g_intNewItemPos: " . g_intNewItemPos . "`n"
-	. "g_objEditedFavorite.FavoriteType : " . g_objEditedFavorite.FavoriteType . "`n"
-	. "g_objEditedFavorite.FavoriteName : " . g_objEditedFavorite.FavoriteName . "`n"
-	. "g_objEditedFavorite.FavoriteLocation: " . g_objEditedFavorite.FavoriteLocation . "`n"
-	. "g_objEditedFavorite.Submenu.MenuPath: " . g_objEditedFavorite.Submenu.MenuPath . "`n"
-	. "g_objEditedFavorite.Submenu.MenuType: " . g_objEditedFavorite.Submenu.MenuType . "`n"
-	. "`n"
-	. "g_objEditedFavorite.Submenu[1].FavoriteName: " . g_objEditedFavorite.Submenu[1].FavoriteName . "`n"
-	. "g_objEditedFavorite.Submenu[1].Submenu.MenuPath: " . g_objEditedFavorite.Submenu[1].Submenu.MenuPath . "`n"
-	. "")
-*/
 
 ; updating listview
 
@@ -7156,7 +7043,7 @@ if (A_GuiEvent = "DoubleClick")
 			GuiControl, Choose, f_intOptionsTab, 2
 		}
 	}
-	else if (strHotkeyType = lDialogHotkeysManageAlternative) ; this is Alternative menu feature, ### go to Options, Menu hotkeys
+	else if (strHotkeyType = lDialogHotkeysManageAlternative) ; this is Alternative menu feature, go to Options, Menu hotkeys
 	{
 		MsgBox, 35, %g_strAppNameText%!, % L(lDialogChangeHotkeyAlternative, lOptionsAlternativeMenuFeatures, lGuiOptions)
 		IfMsgBox, Yes
@@ -7168,16 +7055,6 @@ if (A_GuiEvent = "DoubleClick")
 	else
 	{
 		g_objEditedFavorite := g_objMenusIndex[strMenuPath][strFavoritePosition]
-		/*
-		###_V(A_ThisLabel
-			, strMenuPath . " / " . strFavoritePosition
-			, g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation]
-			, g_objEditedFavorite.FavoriteName
-			, g_objEditedFavorite.FavoriteType
-			, g_objEditedFavorite.FavoriteLocation
-			, g_objQAPFeatures[g_objEditedFavorite.FavoriteLocation].DefaultHotkey
-			, g_objEditedFavorite)
-		*/
 		
 		strBackupFavoriteHotkey := g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation]
 		g_strNewFavoriteHotkey := SelectHotkey(g_objHotkeysByLocation[g_objEditedFavorite.FavoriteLocation]
@@ -7415,11 +7292,7 @@ RecursiveSaveFavoritesToIniFile(objCurrentMenu)
 		}
 		
 		if InStr("Menu|Group", objCurrentMenu[A_Index].FavoriteType) and !(blnIsBackMenu)
-		{
-			; ###_V("Going down in:", objCurrentMenu[A_Index].SubMenu.MenuPath, objCurrentMenu[A_Index].FavoriteType)
 			RecursiveSaveFavoritesToIniFile(objCurrentMenu[A_Index].SubMenu) ; RECURSIVE
-			; ###_V("Going up back in", objCurrentMenu.MenuPath, objCurrentMenu[A_Index].FavoriteType)
-		}
 	}
 		
 	IniWrite, Z, %g_strIniFile%, Favorites, Favorite%g_intIniLine% ; end of menu marker
@@ -7451,7 +7324,6 @@ SelectHotkey(strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocat
 	; safer than declaring individual variables (see "Common source of confusion" in https://www.autohotkey.com/docs/Functions.htm#Locals)
 	global
 
-	; ###_V("SelectHotkey", strActualHotkey, strFavoriteName, strFavoriteType, strFavoriteLocation, intHotkeyType, strDefaultHotkey, strDescription)
 	SplitHotkey(strActualHotkey, strActualModifiers, strActualKey, strActualMouseButton, strActualMouseButtonsWithDefault)
 
 	intGui2WinID := WinExist("A")
@@ -7835,11 +7707,9 @@ RecursiveHotkeyNotNeeded(strHotkeyLocation, objCurrentMenu)
 		}
 			
 		if (objCurrentMenu[A_Index].FavoriteLocation = strHotkeyLocation)
-			; ###_V("Hotkey NEEDED", objCurrentMenu[A_Index].FavoriteName, strHotkeyLocation, objCurrentMenu[A_Index].FavoriteLocation)
 			return false
 	}
 	
-	; ###_V("Hotkey NOT NEEDED in menu", objCurrentMenu.MenuPath)
 	return true
 }
 ;------------------------------------------------------------
@@ -7853,10 +7723,8 @@ GetHotkeyLocation(strHotkey)
 	
 	for strLocation, strThisHotkey in g_objHotkeysByLocation
 		if (strHotkey = strThisHotkey)
-			; ###_V("GetHotkeyLocation FOUND", strHotkey, strLocation)
 			return strLocation
 	
-	; ###_V("GetHotkeyLocation NOT FOUND", strHotkey)
 	return ""
 }
 
@@ -8081,20 +7949,11 @@ else if (A_ThisLabel = "LaunchFromAlternativeMenu")
 else
 	g_strHokeyTypeDetected := SubStr(A_ThisLabel, 1, InStr(A_ThisLabel, "Hotkey") - 1) ; "Navigate" or "Launch"
 
-; ###_V(A_ThisLabel, g_strTargetClass, g_strTargetWinId)
-
 if (WindowIsDirectoryOpus(g_strTargetClass) or WindowIsTotalCommander(g_strTargetClass) or WindowIsQAPconnect(g_strTargetWinId)
 	and InStr(A_ThisLabel, "Mouse") and (g_strHokeyTypeDetected = "Navigate"))
 {
 	Click ; to make sure the DOpus lister or TC pane under the mouse become active
 	Sleep, 20
-}
-
-; #### DEBUGGING CODE NOT COMPILED ONLY
-if !(A_IsCompiled)
-{
-	FileDelete, %A_WorkingDir%\debug.txt
-	FileAppend, BEGIN-Refresh-Menus`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 }
 
 ; #####
@@ -8116,10 +7975,6 @@ if (g_blnDiagMode)
 */
 
 Gosub, InsertColumnBreaks
-
-; #### DEBUGGING CODE NOT COMPILED ONLY
-if !(A_IsCompiled)
-	FileAppend, FINISH-After-InsertColumnBreaks`t%A_TickCount%`n, %A_WorkingDir%\debug.txt
 
 Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
@@ -8183,7 +8038,6 @@ CanNavigate(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Express
 	; Mouse hotkey (g_arrPopupHotkeys1 is NavigateOrLaunchHotkeyMouse value in ini file)
 	SetTargetWinInfo(strMouseOrKeyboard = g_arrPopupHotkeys1)
 
-	; ###_V("CanNavigate", g_intActiveFileManager, g_strTargetWinId, WindowIsQAPconnect(g_strTargetWinId))
 	blnCanNavigate := WindowIsExplorer(g_strTargetClass) or WindowIsDesktop(g_strTargetClass) or WindowIsConsole(g_strTargetClass)
 		or (g_blnChangeFolderInDialog and WindowIsDialog(g_strTargetClass, g_strTargetWinId))
 		or (g_intActiveFileManager = 2 and WindowIsDirectoryOpus(g_strTargetClass))
@@ -8217,7 +8071,6 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 
 	; g_arrPopupHotkeys1 is mouse hotkey
 	SetTargetWinInfo(strMouseOrKeyboard = g_arrPopupHotkeys1)
-	; ###_V("CanLaunch", strExclusionList, g_strTargetClass, g_strTargetWinTitle)
 
 	; strExclusionList := (strMouseOrKeyboard = g_arrPopupHotkeys1 ? g_strExclusionMouseList : g_strExclusionKeyboardList)
 	; Loop, Parse, strExclusionList, |
@@ -8465,7 +8318,6 @@ OpenGroupOfFavorites:
 ;------------------------------------------------------------
 
 objThisGroupFavorite := g_objThisFavorite
-; ###_V("objThisGroupFavorite", objThisGroupFavorite.FavoriteGroupSettings)
 
 ; g_arrGroupSettingsOpen1: boolean value (replace existing Explorer windows if true, add to existing Explorer Windows if false)
 ; g_arrGroupSettingsOpen2: restore folders with "Explorer" or "Other" (Directory Opus, Total Commander or QAPconnect)
@@ -8482,7 +8334,6 @@ objThisGroupFavoritesList := g_objMenusIndex[lMainMenuName . " " . objThisGroupF
 loop, % objThisGroupFavoritesList.MaxIndex() - 1 ; skip first item backlink
 {
 	g_objThisFavorite := objThisGroupFavoritesList[A_Index + 1] ; skip first item backlink
-	; ###_O("g_objThisFavorite", g_objThisFavorite)
 	
 	Sleep, % g_arrGroupSettingsOpen3 + 200 ; add 200 ms as minimal default delay
 	
@@ -8568,7 +8419,6 @@ OpenSwitchFolderOrApp:
 strThisMenuItem :=  A_ThisMenuItem
 strWindowId := g_objSwitchWindowIdsByName[strThisMenuItem]
 StringSplit, arrFolderWindowId, strWindowId, |
-; ###_V(A_ThisLabel, strThisMenuItem, strWindowId, arrFolderWindowId2)
 
 if (g_blnDisplayNumericShortcuts)
 	StringTrimLeft, strThisMenuItem, strThisMenuItem, 3 ; remove "&1 " from menu item
@@ -8598,10 +8448,6 @@ OpenClipboard:
 OpenDrives:
 OpenFavoriteHotlist:
 ;------------------------------------------------------------
-
-; if (A_ThisLabel = "OpenFavoriteFromGroup")
-;	###_O("objThisGroupFavoritesList", objThisGroupFavoritesList)
-; ###_V(A_ThisLabel . "-1", A_ThisMenu, A_ThisMenuItem, A_ThisHotkey, g_strAlternativeMenu, g_blnAlternativeMenu, g_strHokeyTypeDetected)
 
 g_strOpenFavoriteLabel := A_ThisLabel
 if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
@@ -8667,8 +8513,6 @@ if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 	return
 }
 
-blnShiftPressed := GetKeyState("Shift") ; ### use this approach? if yes, do not take into account if keyboard shortcut
-
 if (g_objThisFavorite.FavoriteType = "Application") and (g_objThisFavorite.FavoriteLaunchWith = 1) ; 1 activate existing if running
 	and AppIsRunning(g_strFullLocation, strAppID) ; g_strFullLocation includes optional parameter
 {
@@ -8682,10 +8526,6 @@ if (g_objThisFavorite.FavoriteType = "Application") and (g_objThisFavorite.Favor
 	gosub, OpenFavoriteCleanup
 	return
 }
-
-; if (A_ThisLabel = "OpenFavoriteFromGroup")
-; ###_V(A_ThisLabel . "-2", g_strHokeyTypeDetected, g_strTargetAppName, g_strTargetWinId, g_strTargetControl, g_strTargetClass, g_strFullLocation)
-; ###_O("g_strOpenFavoriteLabel: " A_ThisLabel . "`ng_strHokeyTypeDetected: " . g_strHokeyTypeDetected . "`nShift: " . (blnShiftPressed ? "PRESSED" : "not pressed") . "`ng_strFullLocation: " . g_strFullLocation . "`ng_strTargetAppName: " . g_strTargetAppName, g_objThisFavorite)
 
 ; Boolean,MinMax,Left,Top,Width,Height,Delay,RestoreSide (comma delimited) (7)
 ; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay (default 200 ms), L Left / R Right; for example: "1,0,100,50,640,480,200" or "0,,,,,,,L"
@@ -8762,7 +8602,6 @@ if (g_objThisFavorite.FavoriteType = "Menu")
 
 if (g_objThisFavorite.FavoriteType = "Application")
 {
-	; ###_V("Application", g_strFullLocation, g_objThisFavorite.FavoriteAppWorkingDir)
 	Run, %g_strFullLocation%, % g_objThisFavorite.FavoriteAppWorkingDir, , intPid
 	if (intPid)
 	{
@@ -8778,9 +8617,7 @@ if (g_objThisFavorite.FavoriteType = "Application")
 
 if InStr("OpenFavorite|OpenFavoriteFromHotkey", g_strOpenFavoriteLabel) and (g_objThisFavorite.FavoriteType = "QAP") and StrLen(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand)
 {
-	; ###_O(g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand, g_objThisFavorite)
 	Gosub, % g_objQAPFeatures[g_objThisFavorite.FavoriteLocation].QAPFeatureCommand
-	
 	gosub, OpenFavoriteCleanup
 	return
 }
@@ -8789,9 +8626,7 @@ if InStr("OpenFavorite|OpenFavoriteFromHotkey", g_strOpenFavoriteLabel) and (g_o
 
 if (InStr("Folder|FTP", g_objThisFavorite.FavoriteType) and g_strHokeyTypeDetected = "Navigate")
 {
-	; ###_O("Navigate Folder: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
 	gosub, OpenFavoriteNavigate%g_strTargetAppName%
-	
 	gosub, OpenFavoriteCleanup
 	return
 }
@@ -8800,9 +8635,7 @@ if (InStr("Folder|FTP", g_objThisFavorite.FavoriteType) and g_strHokeyTypeDetect
 
 if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "Navigate")
 {
-	; ###_O("Navigate Special: " . g_strFullLocation . "`nIn target: " . g_strTargetAppName, g_objThisFavorite)
 	gosub, OpenFavoriteNavigate%g_strTargetAppName%
-	
 	gosub, OpenFavoriteCleanup
 	return
 }
@@ -8812,8 +8645,6 @@ if (g_objThisFavorite.FavoriteType = "Special") and (g_strHokeyTypeDetected = "N
 if (g_strHokeyTypeDetected = "Launch")
 	or !StrLen(g_strTargetClass) or (g_strTargetWinId = 0) ; for situations where the target window could not be detected
 {
-	; ###_O("OpenFavorite: " . g_strFullLocation . "`nNew Window in target: " . g_strTargetAppName, g_objThisFavorite, g_objThisFavorite.FavoriteWindowPosition)
-	
 	gosub, OpenFavoriteInNewWindow%g_strTargetAppName%
 	gosub, OpenFavoriteWindowResize
 }
@@ -8969,7 +8800,6 @@ else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 }
 else if (g_strOpenFavoriteLabel = "OpenReopenFolder")
 {
-	; ###_O(strThisMenuItem . " / " . g_objReopenFolderLocationUrlByName[strThisMenuItem], g_objReopenFolderLocationUrlByName)
 	If (InStr(g_objReopenFolderLocationUrlByName[strThisMenuItem], "::") = 1) ; A_ThisMenuItem can include the numeric shortcut
 	{
 		strThisMenuItem := SubStr(g_objReopenFolderLocationUrlByName[strThisMenuItem], 3) ; remove "::" from beginning
@@ -9023,7 +8853,6 @@ OpenFavoriteGetFullLocation:
 
 g_strFullLocation := g_objThisFavorite.FavoriteLocation
 
-; ###_V(A_ThisLabel, g_strTargetAppName, g_strFullLocation)
 if (g_objThisFavorite.FavoriteType = "FTP")
 {
 	; ftp://username:password@ftp.domain.ext/public_ftp/incoming/
@@ -9141,7 +8970,6 @@ GetSpecialFolderLocation(ByRef strHokeyTypeDetected, ByRef strTargetName, objFav
 		Oops(lOopsCouldNotOpenSpecialFolder, strTargetName, strLocation)
 		strLocation := ""
 	}
-	; ###_O("GetSpecialFolderLocation`n`nstrLocation: " . strLocation . "`nstrTargetName: " . strTargetName . "`nstrUse: " . strUse, objSpecialFolder)
 	
 	return strLocation
 }
@@ -9290,8 +9118,6 @@ return
 OpenFavoriteNavigateTotalCommander:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, g_strTotalCommanderPath, g_strFullLocation)
-
 if g_strFullLocation is integer
 {
 	SendMessage, 0x433, %g_strFullLocation%, , , ahk_class TTOTAL_CMD
@@ -9321,8 +9147,6 @@ if InStr(g_strFullLocation, " ")
 StringReplace, strQAPconnectParamString, g_strQAPconnectCommandLine, % "%Path%", %g_strFullLocation%
 StringReplace, strQAPconnectParamString, strQAPconnectParamString, % "%NewTabSwitch%"
 
-; ###_V(A_ThisLabel, g_strFullLocation, strQAPconnectParamString, g_strQAPconnectWindowID, g_strQAPconnectAppPath, g_strQAPconnectCommandLine, g_strQAPconnectNewTabSwitch, g_strQAPconnectAppFilename, g_strTargetWinId)
-
 if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
 {
 	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
@@ -9339,8 +9163,6 @@ return
 ;------------------------------------------------------------
 OpenFavoriteNavigateConsole:
 ;------------------------------------------------------------
-
-; ###_V("OpenFavoriteNavigateConsole", g_strTargetWinId, g_strFullLocation)
 
 if (WinExist("A") <> g_strTargetWinId) ; in case that some window just popped out, and initialy active window lost focus
 	WinActivate, ahk_id %g_strTargetWinId% ; we'll activate initialy active window
@@ -9404,7 +9226,6 @@ if (WinExist("A") <> g_strTargetWinId) ; sometimes initialy active window loses 
 	WinActivate, ahk_id %g_strTargetWinId%
 
 OpenFavoriteNavigateDialogCleanUp:
-; ###_V(A_ThisLabel, g_strTargetWinId, strEditControl, strPrevControlText, strControlTextAfterNavigation)
 strEditControl := ""
 strPrevControlText := ""
 blnWasSuspended := ""
@@ -9499,7 +9320,6 @@ if (g_arrFavoriteWindowPosition1)
 	strExplorerIDsBefore := g_strExplorerIDs ;  save the list before launching this new Explorer
 }
 
-; ###_V(A_ThisLabel, strTempLocation, g_strTargetAppName, g_strFullLocation, g_strTargetClass)
 Run, % "Explorer """ . g_strFullLocation . """" ; there was a bug prior to v3.3.1 because the lack of double-quotes
 
 if (g_arrFavoriteWindowPosition1)
@@ -9515,7 +9335,6 @@ if (g_arrFavoriteWindowPosition1)
 		}
 		Sleep, %g_arrFavoriteWindowPosition7%
 		gosub, SetExplorersIDs ;  refresh the list of existing Explorer windows g_strExplorerIDs
-		; ###_V("strExplorerIDsBefore", strExplorerIDsBefore, g_strExplorerIDs)
 		Loop, Parse, g_strExplorerIDs, |
 			if !InStr(strExplorerIDsBefore, A_LoopField . "|")
 			{
@@ -9525,7 +9344,6 @@ if (g_arrFavoriteWindowPosition1)
 		If StrLen(g_strNewWindowId)
 			Break ; we have a new window
 	}
-	; ###_V("g_strNewWindowId ", g_strNewWindowId)
 }
 
 strExplorerIDsBefore := ""
@@ -9585,7 +9403,6 @@ else
 	arrFavoriteWindowPosition8 := ""
 }
 
-; ###_V("", g_strFullLocation, strTabParameter)
 RunDOpusRt("/acmd Go ", g_strFullLocation, " " . strTabParameter) ; open in a new lister or tab, left or right
 WinWait, ahk_class dopus.lister, , 10
 WinActivate, ahk_class dopus.lister
@@ -9603,7 +9420,6 @@ return
 OpenFavoriteInNewWindowTotalCommander:
 ;------------------------------------------------------------
 
-; ###_V(A_ThisLabel, g_strTotalCommanderPath, g_strTotalCommanderNewTabOrWindow)
 if (g_strOpenFavoriteLabel = "OpenFavoriteFromGroup")
 {
 	; 0 for use default / 1 for remember, -1 Minimized / 0 Normal / 1 Maximized, Left (X), Top (Y), Width, Height, Delay, RestoreSide; for example: "0,,,,,,,L"
@@ -9662,7 +9478,6 @@ else ; normal folder
 		strSideParameter := "L" ; /L= left pane of the new window
 	}
 
-	; ###_V("", g_strFullLocation, strTabParameter, strSideParameter)
 	; g_strTotalCommanderNewTabOrWindow in ini file should contain "/O /T" to open in an new tab of the existing file list (default), or "/N" to open in a new file list
 	; was Run, %g_strTotalCommanderPath% %strTabParameter% /S "/%strSideParameter%=%g_strFullLocation%"
 	Run, %g_strTotalCommanderPath% %strTabParameter% "/%strSideParameter%=%g_strFullLocation%"
@@ -9691,12 +9506,9 @@ if InStr(g_strFullLocation, " ")
 	g_strFullLocation := """" . g_strFullLocation . """"
 StringReplace, strQAPconnectParamString, g_strQAPconnectCommandLine, % "%Path%", %g_strFullLocation%
 StringReplace, strQAPconnectParamString, strQAPconnectParamString, % "%NewTabSwitch%", %g_strQAPconnectNewTabSwitch%
-; ###_V(A_ThisLabel, g_strQAPconnectPath, g_strFullLocation, g_strQAPconnectWindowID, g_strQAPconnectAppPath, g_strQAPconnectCommandLine, g_strQAPconnectNewTabSwitch, strQAPconnectParamString, g_strQAPconnectAppFilename)
 
-; Run, % g_strQAPconnectAppPath . " """ . strQAPconnectParamString . """"
 Run, %g_strQAPconnectAppPath% %strQAPconnectParamString%
 
-; ###_V(A_ThisLabel, g_strQAPconnectPath, g_strFullLocation, g_strQAPconnectWindowID, g_strNewWindowId, intPid)
 if StrLen(g_strQAPconnectWindowID)
 ; g_strQAPconnectWindowID is read in the QAPconnect.ini file for the connected file manager.
 ; It must contain at least some characters of the connected app title, and enough to be specific to this window.
@@ -9723,8 +9535,6 @@ return
 ;------------------------------------------------------------
 OpenFavoriteWindowResize:
 ;------------------------------------------------------------
-
-; ###_V(A_ThisLabel, g_strNewWindowId, g_strQAPconnectWindowID)
 
 ; WinGetActiveStats, Title, Width, Height, X, Y
 ; ###_V("",  Title, Width, Height, X, Y)
@@ -10437,7 +10247,6 @@ return
 
 ;------------------------------------------------------------
 GetTotalCommanderPath()
-; ### used - do not remove
 ;------------------------------------------------------------
 {
 	RegRead, strPath, HKEY_CURRENT_USER, Software\Ghisler\Total Commander\, InstallDir
@@ -10475,8 +10284,6 @@ if StrLen(g_strQAPconnectCompanionPath)
 	blnFileExist := FileExistInPath(g_strQAPconnectCompanionPath) ; return g_strQAPconnectCompanionPath expanded and searched in PATH
 SplitPath, g_strQAPconnectCompanionPath, g_strQAPconnectCompanionFilename
 
-; ###_V(A_ThisLabel, g_strQAPconnectAppPath, g_strQAPconnectCommandLine, g_strQAPconnectNewTabSwitch, g_strQAPconnectCompanionPath)
-
 blnFileExist := ""
 
 return
@@ -10491,8 +10298,6 @@ if (g_intActiveFileManager = 4) ; QAPconnect
 {
 	SplitPath, g_strQAPconnectAppPath, g_strQAPconnectAppFilename
 	g_strQAPconnectWindowID := "ahk_exe " . g_strQAPconnectAppFilename ; ahk_exe worked with filename only, not with full exe path
-	
-	; ###_V(A_ThisLabel, g_strQAPconnectAppPath, g_strQAPconnectAppFilename, g_strQAPconnectWindowID, g_strQAPconnectCompanionPath)
 }
 else ; DirectoryOpus or TotalCommander
 {
