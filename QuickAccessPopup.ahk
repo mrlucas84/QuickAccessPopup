@@ -8469,19 +8469,21 @@ OpenFavoriteHotlist:
 ;------------------------------------------------------------
 
 g_strOpenFavoriteLabel := A_ThisLabel
-if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
-	Diag("OpenFavoriteHotlist", "---------")
+; if (g_blnDiagMode)
+;	Diag("OpenFavoriteHotlist", "---------")
 
 if (A_ThisLabel = "OpenFavoriteFromGroup") ; object already set by OpenGroupOfFavorites
 	g_strHokeyTypeDetected := "Launch" ; all favorites in group are for Launch (no Navigate)
 else
 	gosub, OpenFavoriteGetFavoriteObject ; define g_objThisFavorite
 
-if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
+/*
+if (g_blnDiagMode)
 {
 	Diag("g_objThisFavorite.FavoriteName", g_objThisFavorite.FavoriteName)
 	Diag("g_objThisFavorite.FavoriteLocation", g_objThisFavorite.FavoriteLocation)
 }
+*/
 
 if !IsObject(g_objThisFavorite) ; OpenFavoriteGetFavoriteObject was aborted
 {
@@ -8519,12 +8521,12 @@ if (g_blnAlternativeMenu) and (g_strAlternativeMenu = lMenuAlternativeNewWindow)
 	g_strHokeyTypeDetected := "Launch"
 
 gosub, SetTargetName ; sets g_strTargetAppName, can change g_strHokeyTypeDetected to "Launch"
-if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
-	Diag("g_strTargetAppName", g_strTargetAppName)
+; if (g_blnDiagMode)
+;	Diag("g_strTargetAppName", g_strTargetAppName)
 
 gosub, OpenFavoriteGetFullLocation ; sets g_strFullLocation
-if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
-	Diag("g_strFullLocation", g_strFullLocation)
+; if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
+;	Diag("g_strFullLocation", g_strFullLocation)
 
 if !StrLen(g_strFullLocation) ; OpenFavoriteGetFullLocation was aborted
 {
@@ -8755,7 +8757,8 @@ if InStr("OpenFavorite|OpenFavoriteHotlist|OpenFavoriteGroup", g_strOpenFavorite
 	intMenuItemPos := A_ThisMenuItemPos + (A_ThisMenu = lMainMenuName or A_ThisMenu = lTCMenuName ? 0 : 1)
 			+ NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos)
 	g_objThisFavorite := g_objMenusIndex[A_ThisMenu][intMenuItemPos]
-	if (g_strOpenFavoriteLabel = "OpenFavoriteHotlist")
+	/*
+	if (g_blnDiagMode)
 	{
 		Diag("strThisMenuItem", strThisMenuItem)
 		Diag("A_ThisMenu", A_ThisMenu)
@@ -8763,6 +8766,7 @@ if InStr("OpenFavorite|OpenFavoriteHotlist|OpenFavoriteGroup", g_strOpenFavorite
 		Diag("NumberOfColumnBreaksBeforeThisItem", NumberOfColumnBreaksBeforeThisItem(g_objMenusIndex[A_ThisMenu], A_ThisMenuItemPos))
 		Diag("intMenuItemPos", intMenuItemPos)
 	}
+	*/
 }
 else if (g_strOpenFavoriteLabel = "OpenFavoriteFromHotkey")
 {
