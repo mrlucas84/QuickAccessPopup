@@ -23,7 +23,26 @@ TO-DO
 HISTORY
 =======
 
-Version 7.1 (2016-02-13)
+Version: 7.1 (2016-02-14)
+ 
+NEW FEATURES:
+- more friendly upgrade process with dialog box, direct download links and easy access to change log (will be visible when upgrading from 7.1 to next version)
+- add "Shutdown Computer" and "Restart Computer" QAP features (existing users, select in "Add favorite" dialog box, and select favorite type "QAP Feature")
+- add a "Restart Quick Access Popup" menu in the QAP system menu (right-click on the QAP icon in the Notification Area) to reload QAP after changes to the ini file
+- create the QAPconnect.ini file from a default master if it does not already exist in the working directory (QAPconnect.ini will not be overwritten anymore when installing a new version)
+ 
+TOTAL COMMANDER USERS:
+- add the "TC Directory Hotlist" QAP feature showing the TC hotlist content in a hierarchical submenu
+  > for new users, "TC Directory Hotlist" menu is added to QAP main menu at the very first use of QAP if Total Commander is detected during installation
+  > existig users select in "Add favorite" dialog box, and select favorite type "QAP Feature" and choose "TC Directory Hotlist"
+- add an option in "Options", "File Managers" tab, to set the TotalCommander WinCmd.ini file location
+- support relative path and environment variables for WinCmd.ini path
+- support Windows environment variables in TC Directory hotlist locations
+ 
+BUG FIXES
+- fix a bug in code refreshing Clipboard menu causing crash in some situations
+- fix a bug in check for update, not remembering when user want to skip the new version
+- make Total Commander and Directory Opus application paths saved in ini file as portable values (relative path including environment variables)
 - make Total Commander and Directory Opus application paths saved in ini file as portable values (including environment variables)
 
 Version: 7.0.9.7 BETA (2016-02-13)
@@ -461,7 +480,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.0.9.7 beta
+;@Ahk2Exe-SetVersion 7.1
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -504,8 +523,8 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.0.9.7" ; "major.minor.bugs" or "major.minor.beta.release"
-g_strCurrentBranch := "beta" ; "prod", "beta" or "alpha", always lowercase for filename
+g_strCurrentVersion := "7.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
 g_blnDiagMode := False
