@@ -23,6 +23,10 @@ TO-DO
 HISTORY
 =======
 
+Version: 7.1.1 (2016-02-15)
+- fix black background bug on check for update screen
+- fix wincmd.ini validation bug when adding a QAP feature
+
 Version: 7.1 (2016-02-14)
  
 NEW FEATURES:
@@ -480,7 +484,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.1
+;@Ahk2Exe-SetVersion 7.1.1
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -523,7 +527,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "7.1.1" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -6405,8 +6409,8 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 		Oops(lOopsHttpLocationTransformed, strNewFavoriteLocation, strHttpLocationTransformed)
 		strNewFavoriteLocation := strHttpLocationTransformed
 	}
-	
-	if (g_objEditedFavorite.FavoriteType = "QAP" and !g_blnWinCmdIniFileExist)
+
+	if (strNewFavoriteLocation = "{TC Directory hotlist}" and !g_blnWinCmdIniFileExist)
 	{
 		Oops(lOopsInvalidWinCmdIni)
 		gosub, GuiAddFavoriteSaveCleanup
@@ -9887,8 +9891,6 @@ strChangeLog := SubStr(strChangeLog, 1, intPos - 1)
 
 Gui, Update:New, , % L(lUpdateTitle, g_strAppNameText)
 
-if (g_blnUseColors)
-	Gui, Update:Color, %g_strAppNameText%
 Gui, Update:Font, s10 w700, Verdana
 Gui, Update:Add, Text, x10 y10 w640, % L(lUpdateTitle, g_strAppNameText)
 Gui, Update:Font
