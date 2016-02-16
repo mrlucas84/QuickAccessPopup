@@ -23,6 +23,10 @@ TO-DO
 HISTORY
 =======
 
+Version: 7.1.2 (2016-02-??)
+- stop quitting QAP before downloading the new setup or portable install file (let user quit QAP during install)
+- fix website landing plage URL if user checks for update, is already at the current version and visit site
+
 Version: 7.1.1 (2016-02-15)
 - fix black background bug on check for update screen
 - fix wincmd.ini validation bug when adding a QAP feature
@@ -484,7 +488,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.1.1
+;@Ahk2Exe-SetVersion 7.1.2
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -527,7 +531,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.1.1" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "7.1.2" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -9682,6 +9686,7 @@ Check4Update:
 
 strUrlCheck4Update := "http://quickaccesspopup.com/latest/latest-version-4.php"
 
+g_strUrlAppLandingPage := "http://quickaccesspopup.com" ; must be here if user select Check for update from tray menu
 strBetaLandingPage := "http://quickaccesspopup.com/latest/check4update-beta-redirect.html"
 strAlphaLandingPage := "http://quickaccesspopup.com/latest/check4update-alpha-redirect.html"
 
@@ -9818,7 +9823,7 @@ else if (A_ThisMenuItem = lMenuUpdate)
 {
 	MsgBox, 4, % l(lUpdateTitle, g_strAppNameText), % l(lUpdateYouHaveLatest, g_strAppVersion, g_strAppNameText)
 	IfMsgBox, Yes
-		Run, %strUrlAppLandingPage%
+		Run, %g_strUrlAppLandingPage%
 }
 
 Check4UpdateCleanup:
@@ -9890,6 +9895,7 @@ intPos := InStr(strChangeLog, "`n`n")
 strChangeLog := SubStr(strChangeLog, 1, intPos - 1)
 
 Gui, Update:New, , % L(lUpdateTitle, g_strAppNameText)
+; Do not use g_strMenuBackgroundColor here because it is not set yet
 
 Gui, Update:Font, s10 w700, Verdana
 Gui, Update:Add, Text, x10 y10 w640, % L(lUpdateTitle, g_strAppNameText)
@@ -9899,7 +9905,7 @@ Gui, Update:Add, Text, x8 y+10 w640, %strChangeLog%
 Gui, Update:Font
 
 Gui, Update:Add, Button, y+20 x10 vf_btnCheck4UpdateDialogChangeLog gButtonCheck4UpdateDialogChangeLog, %lUpdateButtonChangeLog%
-Gui, Update:Add, Button, yp x+20 vf_btnCheck4UpdateDialogVisit gButtonCheck4UpdateDialogVisit, %lUpdateButtonDownloadVisit%
+Gui, Update:Add, Button, yp x+20 vf_btnCheck4UpdateDialogVisit gButtonCheck4UpdateDialogVisit, %lUpdateButtonVisit%
 
 GuiCenterButtons(L(lUpdateTitle, g_strAppNameText), 10, 5, 20, "f_btnCheck4UpdateDialogChangeLog", "f_btnCheck4UpdateDialogVisit")
 
@@ -9923,36 +9929,29 @@ return
 
 ;------------------------------------------------------------
 ButtonCheck4UpdateDialogChangeLog:
+ButtonCheck4UpdateDialogVisit:
 ButtonCheck4UpdateDialogDownloadSetup:
 ButtonCheck4UpdateDialogDownloadPortable:
-ButtonCheck4UpdateDialogVisit:
-ButtonCheck4UpdateDialogRemind:
 ButtonCheck4UpdateDialogSkipVersion:
+ButtonCheck4UpdateDialogRemind:
 UpdateGuiClose:
 UpdateGuiEscape:
 ;------------------------------------------------------------
 
 strUrlChangeLog := "http://www.quickaccesspopup.com/change-log/"
-strUrlAppLandingPage := "http://quickaccesspopup.com"
-
 strUrlDownloadSetup := "http://www.quickaccesspopup.com/latest/check4update-download-setup-redirect.html"
 strUrlDownloadPortable:= "http://www.quickaccesspopup.com/latest/check4update-download-portable-redirect.html"
 
-if InStr("ButtonCheck4UpdateDialogChangeLog|ButtonCheck4UpdateDialogVisit", A_ThisLabel)
+if InStr("ButtonCheck4UpdateDialogChangeLog|ButtonCheck4UpdateDialogVisit|ButtonCheck4UpdateDialogDownloadSetup|ButtonCheck4UpdateDialogDownloadPortable", A_ThisLabel)
 {
 	if (A_ThisLabel = "ButtonCheck4UpdateDialogChangeLog")
 		Run, %strUrlChangeLog%
 	else if (A_ThisLabel = "ButtonCheck4UpdateDialogVisit")
-		Run, %strUrlAppLandingPage%
-}
-else if InStr("ButtonCheck4UpdateDialogDownloadSetup|ButtonCheck4UpdateDialogDownloadPortable", A_ThisLabel)
-{
-	if (A_ThisLabel = "ButtonCheck4UpdateDialogDownloadSetup")
+		Run, %g_strUrlAppLandingPage%
+	else if (A_ThisLabel = "ButtonCheck4UpdateDialogDownloadSetup")
 		Run, %strUrlDownloadSetup%
 	else if (A_ThisLabel = "ButtonCheck4UpdateDialogDownloadPortable")
 		Run, %strUrlDownloadPortable%
-	
-	ExitApp
 }
 else ; UpdateGuiClose, UpdateGuiEscape, ButtonCheck4UpdateDialogRemind or ButtonCheck4UpdateDialogSkipVersion
 {
@@ -9966,7 +9965,6 @@ else ; UpdateGuiClose, UpdateGuiEscape, ButtonCheck4UpdateDialogRemind or Button
 
 Check4UpdateDialogCleanup:
 strChangelog := ""
-strUrlAppLandingPage := ""
 strUrlChangeLog := ""
 strUrlDownloadSetup := ""
 strUrlDownloadPortable:= ""
