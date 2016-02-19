@@ -11121,15 +11121,6 @@ EnvVars(str)
 ; from Lexikos http://www.autohotkey.com/board/topic/40115-func-envvars-replace-environment-variables-in-text/#entry310601
 ;------------------------------------------------------------
 {
-	; removed because value not confirmed by users yet
-	; in file locations, expand Total Commander variable %COMMANDER_PATH% and %COMMANDER_INI%
-	; global g_strTotalCommanderPathBeforeEnvVars
-	; global g_strWinCmdIniFile
-	
-	; SplitPath, g_strTotalCommanderPathBeforeEnvVars, , strTCPath
-	; StringReplace, str, str, `%COMMANDER_PATH`%, %strTCPath%, All
-	; StringReplace, str, str, `%COMMANDER_INI`%, %g_strWinCmdIniFile%, All
-	
     if sz:=DllCall("ExpandEnvironmentStrings", "uint", &str
                     , "uint", 0, "uint", 0)
     {
