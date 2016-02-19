@@ -25,7 +25,6 @@ HISTORY
 
 Version: 7.1.2 (2016-02-??)
 - stop quitting QAP before downloading the new setup or portable install file (let user quit QAP during install)
-- in file locations, expand Total Commander variable %COMMANDER_PATH% and %COMMANDER_INI%
 - fix website landing plage URL if user checks for update, is already at the current version and visit site
 
 Version: 7.1.1 (2016-02-15)
@@ -11122,12 +11121,14 @@ EnvVars(str)
 ; from Lexikos http://www.autohotkey.com/board/topic/40115-func-envvars-replace-environment-variables-in-text/#entry310601
 ;------------------------------------------------------------
 {
-	global g_strTotalCommanderPathBeforeEnvVars
-	global g_strWinCmdIniFile
+	; removed because value not confirmed by users yet
+	; in file locations, expand Total Commander variable %COMMANDER_PATH% and %COMMANDER_INI%
+	; global g_strTotalCommanderPathBeforeEnvVars
+	; global g_strWinCmdIniFile
 	
-	SplitPath, g_strTotalCommanderPathBeforeEnvVars, , strTCPath
-	StringReplace, str, str, `%COMMANDER_PATH`%, %strTCPath%, All
-	StringReplace, str, str, `%COMMANDER_INI`%, %g_strWinCmdIniFile%, All
+	; SplitPath, g_strTotalCommanderPathBeforeEnvVars, , strTCPath
+	; StringReplace, str, str, `%COMMANDER_PATH`%, %strTCPath%, All
+	; StringReplace, str, str, `%COMMANDER_INI`%, %g_strWinCmdIniFile%, All
 	
     if sz:=DllCall("ExpandEnvironmentStrings", "uint", &str
                     , "uint", 0, "uint", 0)
