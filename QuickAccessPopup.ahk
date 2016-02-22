@@ -26,6 +26,7 @@ HISTORY
 Version: 7.1.2 (2016-02-??)
 - stop quitting QAP before downloading the new setup or portable install file (let user quit QAP during install)
 - fix website landing plage URL if user checks for update, is already at the current version and visit site
+- fix bug disable Display icons checkbox in Option when running on a server OS (icons are only supported on workstations)
 
 Version: 7.1.1 (2016-02-15)
 - fix black background bug on check for update screen
@@ -3892,13 +3893,11 @@ GuiControl, , f_blnDisplayNumericShortcuts, %g_blnDisplayNumericShortcuts%
 Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnTaskbar%
 GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
 
-if !OSVersionIsWorkstation()
-{
-	g_blnDisplayIcons := false
-	GuiControl, Disable, f_blnDisplayIcons
-}
 Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnDisplayIcons gDisplayIconsClicked, %lOptionsDisplayIcons%
-GuiControl, , f_blnDisplayIcons, %g_blnDisplayIcons%
+GuiControl, , f_blnDisplayIcons, % (!OSVersionIsWorkstation() ? g_blnDisplayIcons : false) 
+; on server
+if !OSVersionIsWorkstation()
+	GuiControl, Disable, f_blnDisplayIcons
 
 Gui, 2:Add, Text, % "y+10 xs vf_drpIconSizeLabel " . (g_blnDisplayIcons ? "" : "Disabled"), %lOptionsIconSize%
 Gui, 2:Add, DropDownList, % "yp x+10 w40 vf_drpIconSize Sort " . (g_blnDisplayIcons ? "" : "Disabled"), 16|24|32|48|64
