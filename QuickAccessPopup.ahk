@@ -23,7 +23,7 @@ TO-DO
 HISTORY
 =======
 
-Version: 7.1.2 (2016-02-??)
+Version: 7.1.2 (2016-02-21)
 - stop quitting QAP before downloading the new setup or portable install file (let user quit QAP during install)
 - fix website landing plage URL if user checks for update, is already at the current version and visit site
 - fix bug disable Display icons checkbox in Option when running on a server OS (icons are only supported on workstations)
