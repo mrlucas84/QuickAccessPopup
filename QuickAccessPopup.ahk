@@ -16,12 +16,17 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
+- if dialog box is treeview, do not show popup menu
 
 TO-DO
 
 
 HISTORY
 =======
+
+Version: 7.1.3/7.1.4 (2016-03-14)
+- fix bug menu icons being unchecked be error after saving options
+- fix bug mouse pointer staying in "wait" state by error when saving options
 
 Version: 7.1.2 (2016-02-21)
 - stop quitting QAP before downloading the new setup or portable install file (let user quit QAP during install)
@@ -489,7 +494,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.1.2
+;@Ahk2Exe-SetVersion 7.1.4
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -508,6 +513,9 @@ ComObjError(False) ; we will do our own error handling
 ; avoid error message when shortcut destination is missing
 ; see http://ahkscript.org/boards/viewtopic.php?f=5&t=4477&p=25239#p25236
 DllCall("SetErrorMode", "uint", SEM_FAILCRITICALERRORS := 1)
+
+; make sure the default system mouse pointer are used after a QAP reload
+SetWaitCursor(false)
 
 Gosub, SetQAPWorkingDirectory
 
@@ -532,7 +540,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.1.2" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "7.1.4" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -3894,7 +3902,7 @@ Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnOpenMenuOnTaskbar, %lOptionsOpenMenuOnT
 GuiControl, , f_blnOpenMenuOnTaskbar, %g_blnOpenMenuOnTaskbar%
 
 Gui, 2:Add, CheckBox, y+10 xs w300 vf_blnDisplayIcons gDisplayIconsClicked, %lOptionsDisplayIcons%
-GuiControl, , f_blnDisplayIcons, % (!OSVersionIsWorkstation() ? g_blnDisplayIcons : false) 
+GuiControl, , f_blnDisplayIcons, % (OSVersionIsWorkstation() ? g_blnDisplayIcons : false) 
 ; on server
 if !OSVersionIsWorkstation()
 	GuiControl, Disable, f_blnDisplayIcons
@@ -6399,7 +6407,7 @@ if (strThisLabel <> "GuiMoveOneFavoriteSave")
 	if InStr("Folder|Document", g_objEditedFavorite.FavoriteType)
 		and (SubStr(strNewFavoriteLocation, 1, 5) = "http:" or SubStr(strNewFavoriteLocation, 1, 6) = "https:")
 	{
-		; Transform from "http:" to "\\", example:
+		; Transform from "http:" to "\\" (WevDAV to UNC), example:
 		; From: http://abc.server.com/folder/subfolder/My Name.doc
 		; to:   \\abc.server.com\folder\subfolder\My%20Name.doc
 		; See: http://stackoverflow.com/questions/1344910/get-the-content-of-a-sharepoint-folder-with-excel-vba
@@ -11173,6 +11181,8 @@ SetWaitCursor(blnOnOff)
 			strCursors := "32650,32512,32515,32649,32651,32513,32648,32646,32643,32645,32642,32644,32516,32514"
 			Loop, Parse, strCursors, `,
 				DllCall("SetSystemCursor", "Uint", DllCall("CopyImage", "Uint", objWaitCursor, "Uint", 2, "Int", 0, "Int", 0, "Uint", 0), "Uint", A_LoopField)
+			
+			blnCursorWaitAlreadyOn := true
 		}
 	else
 	{

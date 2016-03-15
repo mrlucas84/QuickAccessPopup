@@ -5,8 +5,8 @@
 #define MyAppExeName "QuickAccessPopup.exe"
 #define FPImportVersionFileName "ImportFPsettings-1_0-32-bit.exe"
 
-#define MyAppVersion "v7.1.2"
-#define MyVersionFileName "7_1_2"
+#define MyAppVersion "v7.1.4"
+#define MyVersionFileName "7_1_4"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
