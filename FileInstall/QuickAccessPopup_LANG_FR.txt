@@ -231,6 +231,8 @@ lMenuCommonAppData	Application Data (commun)
 lMenuCommonDesktop	Bureau (commun)
 lMenuCommonStartMenu	Menu Démarrer (commun)
 lMenuCommonStartupMenu	Démarrage (commun)
+lMenuComputerRestart	Redémarrer l'ordinateur
+lMenuComputerShutdown	Éteindre l'ordinateur
 lMenuCookies	Cookies
 lMenuCopyLocation	Copier l'emplacement d'un favori
 lMenuCurrentFolders	Réutiliser un dossier
@@ -275,7 +277,7 @@ lMenuUserPinned	Epinglé par l'utilisateur
 lNavigateFileError	Une erreur s'est produite lors de l'ouverture du dossier:`n~1~.
 lNavigateSpecialError	Une erreur s'est produite lors de l'ouverture du dossier spécial #~1~.
 lOopsCannotCopyFavorite	Les favoris de type "~1~" ne peuvent pas être copiés.
-lOopsChangeFolderInDialogAlert	Vouliez-vous changer de dossier dans cette boîte de dialogue? Pour pouvoir naviguer dans une boîte de dialogue, vous devez activer une option (première case à cocher dans l'onglet "Général").`n`nVoulez-vous ouvrir la fenêtre des Options?
+lOopsChangeFolderInDialogAlert	Vouliez-vous changer de dossier dans cette boîte de dialogue? Afin de pouvoir naviguer à l'intérieur d'une boîte de dialogue, vous devez activer une option (première case à cocher de l'onglet "Général").`n`nVoulez-vous ouvrir la fenêtre "Options"?
 lOopsCouldNotOpenSpecialFolder	~1~ ne peut ouvrir le dossier spécial: "~2~".
 lOopsEmpty	vide
 lOopsFtpLocationProtocol	L'emplacement d'un site FTP doit débuter par "ftp://".
@@ -283,6 +285,7 @@ lOopsGroup	groupe
 lOopsHotkeyAlreadyUsed	Le raccourci "~1~" est déjà utilisé pour l'emplacement ~2~.`n`nVeuillez choisis un autre raccourci pour ~3~.
 lOopsHotkeyNotInMenus	Erreur: l'emplacement "~1~" pour le raccourci "~1~" est introuvable dans les menus.
 lOopsHttpLocationTransformed	L'emplacement HTTP (format URL) a été converti en chemin réseau (format UNC) afin d'être compatible avec l'Explorateur Windows:`n`n~1~`n~2~
+lOopsInvalidWinCmdIni	Le fichier des paramêtres "wincmd.ini" de Total Commander est introuvable.`n`nSélectionnez "Options" et l'onglet "Gestionnaires de fichiers".
 lOopsInvalidWindowPosition	Valeur(s) de position de la fenêtre invalide
 lOopsLaunchWithNotFound	Le fichier de l'application "Lancer avec cette application" est introuvable:`n`n~1~`n`nVérifiez les réglages avancés ce ce favori.
 lOopsLocation	emplacement
@@ -295,7 +298,7 @@ lOopsWrongThirdPartyPathQAPconnect	Fichier de l'application invalide dans QAPcon
 lOopsZipFileError	Il semble que ~1~ a été lancé directement depuis un fichier compressé (ZIP).`n`nVous devez extraire le fichier .EXE de ~1~ du fichier ZIP dans un dossier de votre choix, puis exécuter l'application à nouveau depuis ce dossier.`n`n~1~ va être fermé.
 lOptionsAlternativeMenuFeatures	Menu Alternatif
 lOptionsAlternativeMenuFeaturesIntro	Choisisez les raccourcis des fonctionnalités du menu Alternatif.
-lOptionsChangeFolderInDialog	Changer de dossier dans les boîtes de dialogue avec les raccourcis QAP pour la souris et le clavier
+lOptionsChangeFolderInDialog	Change folders in dialog box with main QAP mouse and keyboard hotkeys
 lOptionsChangeFolderInDialogCheckbox	Cliquez cette case à cocher pour confirmer que vous comprenez les conséquences d'essayer de changer de dossier dans une boîte de dialogue inappropriée.
 lOptionsChangeFolderInDialogText	Activez cette option pour permettre le changement de dossier dans les boîtes de dialogue (Ouvrir, Enregistrer sous, etc.) mais veuillez lire cet avertissement.`n`nVous devez utiliser cette fonction SEULEMENT dans les boîtes de dialogue de sélection de fichier. Si vous l'utilisez dans d'autres types de boîtes de dialogue, par exemple dans une fenêtre "Options", essayer de changer de dossier pourrait modifier et enregistrer des valeurs sans préavis.
 lOptionsChangeHotkey	Modifier
@@ -345,12 +348,19 @@ lOptionsThirdPartyUseTabs	Utiliser les onglets au lieu d'ouvrir dans une nouvell
 lOptionsTrayTip	Afficher la notification au démarrage
 lPickIconNoLocation	Veuillez d'abord choisisr un favori avant de sélectionner une icône.
 lReloadPrompt	Changement de ~1~ enregistré: ~2~. Voulez-vous relancer ~3~ en ~2~ maintenant? Les changements non sauvegardés dans le menu des dossiers seront perdus.
+lTCMenuName	TC Directory Hotlist
+lTCWinCmdLocation	Emplacement de WinCmd.ini
 lTrayTipInstalledDetail	~1~ ou ~2~ pour lancer vos favoris
 lTrayTipInstalledTitle	~1~ ~2~ est prêt!
 lTrayTipWorkingDetail	Préparation des menus
 lTrayTipWorkingDetailFinished	Le menu a été mis à jour.
 lTrayTipWorkingTitle	~1~ ~2~ se prépare...
+lUpdateButtonChangeLog	Voir le registre des changements
+lUpdateButtonDownloadPortable	Télécharger la version portable (fichier ZIP)
+lUpdateButtonDownloadSetup	Télécharger le fichier d'installation (setup)
 lUpdateButtonRemind	Rappelez-moi
+lUpdateButtonSkipVersion	Sauter cette version
+lUpdateButtonVisit	Visiter le site web
 lUpdateError	Une erreur est survenue lors de la vérification du numéro de la plus récente version. La vérification de la mise à jour est interrompue.
 lUpdatePrompt	Mettre à jour ~1~ de la version v~2~ à la version v~3~?
 lUpdatePromptAlpha	Il y a une nouvelle version ALPHA de ~1~.`n`nMettre à jour ~1~ de la version v~2~ à la version v~3~?

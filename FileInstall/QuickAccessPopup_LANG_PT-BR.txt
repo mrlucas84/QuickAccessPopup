@@ -220,6 +220,7 @@ lMainMenuName	Principal
 lMenuAbout	So&bre
 lMenuAddFavorite	Adicionar Favorito
 lMenuAddThisFolder	Adicionar esta Pasta
+lMenuAddThisFolderXpress	Adicionar Esta Pasta Expressa
 lMenuAlternativeEditFavorite	Editar um Favorito
 lMenuAlternativeNewWindow	Abrir em uma nova janela
 lMenuAppData	Dados de Aplicativos
@@ -230,6 +231,8 @@ lMenuCommonAppData	Dados de Aplicativos Comuns
 lMenuCommonDesktop	Área de Trabalho Comum
 lMenuCommonStartMenu	Menu Iniciar Comum
 lMenuCommonStartupMenu	Menu Inicializar Comum
+lMenuComputerRestart	Reiniciar Computador
+lMenuComputerShutdown	Desligar Computador
 lMenuCookies	Cookies
 lMenuCopyLocation	Copiar Caminho ou URL do Favorite
 lMenuCurrentFolders	Reabrir Pasta
@@ -258,6 +261,7 @@ lMenuPublicLibraries	Bibliotecas Públicas
 lMenuQuickLaunch	Inicialização Rápida
 lMenuRecentFolders	Pastas Recentes
 lMenuRecentItems	Itens Recentes
+lMenuReload	Reiniciar
 lMenuRunAtStartup	Executa&r na Inicialização
 lMenuSettings	Configurações
 lMenuStartMenu	Menu Iniciar
@@ -273,6 +277,7 @@ lMenuUserPinned	Fixado pelo Usuário
 lNavigateFileError	Ocorreu um erro ao abrir a pasta:`n~1~.
 lNavigateSpecialError	Ocorreu um erro ao abrir a pasta especial #~1~.
 lOopsCannotCopyFavorite	Favoritos do tipo "~1~" não podem ser copiados.
+lOopsChangeFolderInDialogAlert	Deseja alterar a pasta nesta caixa de diálogo? Para poder navegar dentro de uma caixa de diálogo, você precisa habilitar esta opção (primeira caixa de seleção na aba "Geral").`n`nDeseja abrir a janela de opções?
 lOopsCouldNotOpenSpecialFolder	O ~1~ não pôde abrir a pasta especial: "~2~".
 lOopsEmpty	vazio
 lOopsFtpLocationProtocol	O local FTP deve começar com "ftp://".
@@ -280,6 +285,7 @@ lOopsGroup	grupo
 lOopsHotkeyAlreadyUsed	A tecla de atalho "~1~" já está em uso por ~2~.`n`nPor favor, escolha outra tecla para ~3~.
 lOopsHotkeyNotInMenus	Erro: o local "~1~" da tecla de atalho "~1~" não foi encontardo nos menus.
 lOopsHttpLocationTransformed	O local HTTP (formato URL) foi transformado em um caminho de rede (formato UNC) para compatibilidade com o Windows Explorer:`n`n~1~`n~2~
+lOopsInvalidWinCmdIni	Arquivo de configuração "wincmd.ini" do Total Commander não encontrado.`n`nSelecione o arquivo em "Opções", aba "Gerenciadores de arquivos".
 lOopsInvalidWindowPosition	Valor(es) inválido(s) da posição da janela
 lOopsLaunchWithNotFound	Arquivo "Iniciar com este aplicativo" não encontrado:`n`n~1~`n`nVerifique as configurações avançadas do favorito.
 lOopsLocation	local
@@ -292,7 +298,7 @@ lOopsWrongThirdPartyPathQAPconnect	Caminho ou nome de arquivo incorreto para apl
 lOopsZipFileError	Parece que o ~1~ está sendo executado a partir do arquivo ZIP.`n`nVocê deve extrair o executável EXE do ~1~ no arquivo ZIP para uma pasta de sua escolha antes de executá-lo.`n`nO ~1~ irá fechar.
 lOptionsAlternativeMenuFeatures	Teclas de Atalho do Menu Alternativo
 lOptionsAlternativeMenuFeaturesIntro	Gerencie os atalhos que irão disparar os recursos do menu Alternativo.
-lOptionsChangeFolderInDialog	Altere pastas na caixa de diálogo com as teclas de atalho principais do QAP
+lOptionsChangeFolderInDialog	Altere as pastas na caixa de diálogo com as teclas de atalho principais do mouse e teclado do QAP
 lOptionsChangeFolderInDialogCheckbox	Clique nesta caixa de marcação para confirmar as possíveis consequências do mau uso do recurso 'alterar pasta' nas caixas de diálogo "não-arquivo".
 lOptionsChangeFolderInDialogText	ATIVE esta opção para habilitar a navegação por pastas em caixas de diálogo (Abrir, Salvar Como, etc.) mas, por favor, leia o seguinte aviso.`n`nVocê deve usar este recurso SOMENTE em caixas de diálogo de "arquivo". Se você usá-lo em outros tipos de caixas de diálogo, por exemplo, em uma caixa de diálogo "Opções", tentar alterar a pasta pode modificar e salvar valores na caixa de diálogo sem nenhuma notificação.
 lOptionsChangeHotkey	Alterar
@@ -342,12 +348,19 @@ lOptionsThirdPartyUseTabs	Use abas em vez de abrir em uma nova janela
 lOptionsTrayTip	Exibir &Dicas na Inicialização
 lPickIconNoLocation	Selecione primeiro um favorito antes de escolher um ícone.
 lReloadPrompt	~1~ foi alterado para ~2~. Deseja reiniciar ~3~ em ~2~ agora? Alterações não salvas no menu de pastas serão perdidas.
+lTCMenuName	Lista de Acesso de Pastas do TC
+lTCWinCmdLocation	Local do WinCmd.ini
 lTrayTipInstalledDetail	~1~ ou ~2~ para iniciar favoritos
 lTrayTipInstalledTitle	~1~ ~2~ pronto!
 lTrayTipWorkingDetail	Criando menus
 lTrayTipWorkingDetailFinished	O menu foi atualizado.
 lTrayTipWorkingTitle	~1~ ~2~ trabalhando...
+lUpdateButtonChangeLog	Ver log de alterações
+lUpdateButtonDownloadPortable	Baixar arquivo ZIP portátil
+lUpdateButtonDownloadSetup	Baixar arquivo de Instalação
 lUpdateButtonRemind	Lembrar
+lUpdateButtonSkipVersion	Pular esta versão
+lUpdateButtonVisit	Visitar site
 lUpdateError	Ocorreu um erro ao acessar o número da última versão. Verificação de atualização interrompida.
 lUpdatePrompt	Atualizar o ~1~ da v~2~ para v~3~?
 lUpdatePromptAlpha	Há uma nova versão ALPHA do ~1~ .`n`nAtualizar o ~1~ da v~2~ para v~3~?

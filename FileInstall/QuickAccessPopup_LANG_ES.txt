@@ -220,6 +220,7 @@ lMainMenuName	Principal
 lMenuAbout	Acerca de
 lMenuAddFavorite	Añadir Favorito
 lMenuAddThisFolder	Añadir esta carpeta al menú
+lMenuAddThisFolderXpress	Añadir esta carpeta Express 
 lMenuAlternativeEditFavorite	Editar un Favorito
 lMenuAlternativeNewWindow	Abrir en nueva ventana
 lMenuAppData	Datos de la aplicación
@@ -230,6 +231,8 @@ lMenuCommonAppData	Datos de la aplicación (común)
 lMenuCommonDesktop	Oficina (común)
 lMenuCommonStartMenu	Menu De Inicio (común)
 lMenuCommonStartupMenu	Inicio (común)
+lMenuComputerRestart	Reiniciar Ordenador 
+lMenuComputerShutdown	Apagar Ordenador 
 lMenuCookies	Cookies
 lMenuCopyLocation	Copiar Ruta o dirección URL favorita
 lMenuCurrentFolders	Vuelva a abrir una carpeta 
@@ -258,6 +261,7 @@ lMenuPublicLibraries	Bibliotecas (publico)
 lMenuQuickLaunch	Lanzador rápido
 lMenuRecentFolders	Ubicaciones recientes
 lMenuRecentItems	Documentos recientes
+lMenuReload	Reiniciar ~1~ 
 lMenuRunAtStartup	Ejecutar al Inicio
 lMenuSettings	Configuración
 lMenuStartMenu	Menú de Inicio
@@ -273,6 +277,7 @@ lMenuUserPinned	Adherido al Usuario
 lNavigateFileError	Se produjo un error al abrir la carpeta:`n~1~.
 lNavigateSpecialError	Se produjo un error al abrir la carpeta especial #~1~.
 lOopsCannotCopyFavorite	Tipos de favoritos "~1~" cannot be copied.
+lOopsChangeFolderInDialogAlert	¿Usted desea cambiar la carpeta en este cuadro de diálogo? Para navegar dentro de una caja de diálogo, tiene que habilitar una opción (primera casilla de verificación en la pestaña "General") .`n`nDo desea abrir la ventana Opciones?
 lOopsCouldNotOpenSpecialFolder	~1~ no se puede abrir la carpeta especial: "~2~".
 lOopsEmpty	vacio 
 lOopsFtpLocationProtocol	Ubicación FTP debe comenzar con "ftp://".
@@ -280,6 +285,7 @@ lOopsGroup	grupo
 lOopsHotkeyAlreadyUsed	Este atajo "~1~" ya esta siendo usado por ~2~.`n`nPor favor, elija un nuevo atajo para ~3~.
 lOopsHotkeyNotInMenus	Error: la ubicación "~ 1 ~" para la tecla de acceso directo "~ 1 ~" no se encuentra en los menús.
 lOopsHttpLocationTransformed	La ubicación http (formato URL) ha sido transformado a una ruta de red (formato UNC) para la compatibilidad con el Explorador de Windows:`n`n~1~`n~2~
+lOopsInvalidWinCmdIni	Archivo de configuración de Total Commander "wincmd.ini" no encontrado.`n`nSeleccione el archivo en "Opciones", "Gestores de archivos" tab. 
 lOopsInvalidWindowPosition	Valor de posición de la ventana no válido (s)
 lOopsLaunchWithNotFound	"Lanzamiento con este archivo de aplicación "no encontrado:` ~ 1 ~ `n`nComprobar configuración avanzada del n`n favoritos.
 lOopsLocation	ubicación
@@ -292,7 +298,7 @@ lOopsWrongThirdPartyPathQAPconnect	Ruta equivocada o nombre de archivo para QAPc
 lOopsZipFileError	Parece ser que ~1~ se puso en marcha directamente desde un archivo comprimido (ZIP).`n`nDebe extraer el archivo .EXE de ~1~ del comprimido ZIP a una carpeta de su elección, a continuación, ejecute de nuevo la aplicación de esta carpeta.`n`n~1~ será cerrada.
 lOptionsAlternativeMenuFeatures	Alternativa Menú Teclas de acceso rápido
 lOptionsAlternativeMenuFeaturesIntro	Administrar los accesos directos que activará las funciones del menú alternativos.
-lOptionsChangeFolderInDialog	Cambie las carpetas en el cuadro de diálogo con las principales teclas de acceso rápido QAP
+lOptionsChangeFolderInDialog	Cambiar las carpetas en la caja de diálogo con los principales QAP ratón y teclado teclas de acceso rápido
 lOptionsChangeFolderInDialogCheckbox	Haga clic en esta casilla de verificación para confirmar que usted entiende la posible consecuencia de mal uso de la función de carpeta de cambio en los cuadros de diálogo "no de archivos".
 lOptionsChangeFolderInDialogText	Active esta opción para permitir la navegación carpeta en los cuadros de diálogo (Abrir, Guardar como, etc.), pero, por favor, lea las siguientes Atención.`n`nUsted debe utilizar esta función sólo en los cuadros de diálogo "Archivo". Si lo usa en otro tipo de cuadro de diálogo, por ejemplo en un cuadro de diálogo "Opciones", tratando de cambiar la carpeta podría modificar y guardar los valores en el cuadro de diálogo sin ninguna notificación.
 lOptionsChangeHotkey	Modificar
@@ -342,12 +348,19 @@ lOptionsThirdPartyUseTabs	Utilice las pestañas en lugar de abrir una nueva venta
 lOptionsTrayTip	Mostrar notificación al inicio
 lPickIconNoLocation	Por favor, primero elegir un favorito antes de seleccionar un icono.
 lReloadPrompt	Cambio ~1~ guardado: ~2~. Desea reiniciar ~3~ en ~2~ ahora? Se perderán los cambios no guardados en el menú de carpetas.
+lTCMenuName	TC Lista de sitios Favoritos 
+lTCWinCmdLocation	WinCmd.ini ubicación 
 lTrayTipInstalledDetail	~1~ or ~2~ para lanzar favoritos
 lTrayTipInstalledTitle	~1~ ~2~ Listo!
 lTrayTipWorkingDetail	Preparación de los menús
 lTrayTipWorkingDetailFinished	El menú ha sido actualizado.
 lTrayTipWorkingTitle	~1~ ~2~ en preparación...
+lUpdateButtonChangeLog	Ver registro de cambios 
+lUpdateButtonDownloadPortable	Descargar Portable en archivo zip
+lUpdateButtonDownloadSetup	Descargar archivo de instalación 
 lUpdateButtonRemind	Recordarme
+lUpdateButtonSkipVersion	Saltar esta versión 
+lUpdateButtonVisit	Visitar sitio web 
 lUpdateError	Se produjo un error al verificar el número de la última versión. La verificación de la actualización se ha interrumpido.
 lUpdatePrompt	Actualizar ~1~ de la versión v~2~ à la versión v~3~?
 lUpdatePromptAlpha	Hay una nueva ~1~ versión ALPHA.`n`nActualizar ~1~ desde v~2~ a v~3~?

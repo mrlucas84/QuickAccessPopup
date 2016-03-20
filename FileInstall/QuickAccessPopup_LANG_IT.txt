@@ -220,6 +220,7 @@ lMainMenuName	Principale
 lMenuAbout	C&rediti
 lMenuAddFavorite	Aggiungi Preferito
 lMenuAddThisFolder	Aggiungi Questa Cartella
+lMenuAddThisFolderXpress	Aggiungi questa Cartella Express ; new
 lMenuAlternativeEditFavorite	Modifica un Preferito
 lMenuAlternativeNewWindow	Apri in una nuova finestra
 lMenuAppData	Dati Applicazioni
@@ -230,6 +231,8 @@ lMenuCommonAppData	Dati Applicazioni (pubblica)
 lMenuCommonDesktop	Desktop pubblico
 lMenuCommonStartMenu	Menù Avvio (pubblico)
 lMenuCommonStartupMenu	Esecuzione Automatica (pubblico)
+lMenuComputerRestart	Riavvia il Computer ; new
+lMenuComputerShutdown	Spegni il Computer ; new
 lMenuCookies	Cookies
 lMenuCopyLocation	Copia URL o Percorso del Preferito
 lMenuCurrentFolders	Cartelle Correnti
@@ -258,6 +261,7 @@ lMenuPublicLibraries	Raccolte Pubbliche
 lMenuQuickLaunch	Avvio veloce
 lMenuRecentFolders	Cartelle Recenti
 lMenuRecentItems	Oggetti Recenti
+lMenuReload	Riavvia ~1~ ; new
 lMenuRunAtStartup	&Esegui all'Avvio
 lMenuSettings	Impostazioni
 lMenuStartMenu	Menù Avvio
@@ -273,6 +277,7 @@ lMenuUserPinned	Collegamenti evidenziati dall'utente
 lNavigateFileError	C'è stato un errore nell'aprire la cartella:`n~1~.
 lNavigateSpecialError	C'è stato un errore nell'aprire la cartella speciale #~1~.
 lOopsCannotCopyFavorite	Preferiti di tipo "~1~" non possono essere copiati.
+lOopsChangeFolderInDialogAlert	Hai intenzione di cambiare cartella in questa casella di dialogo? Per poter navigare da una casella di dialogo, è necessario abilitare un'opzione (prima casella di selezione nel tab "Generale").`n`nVuoi aprire la finestra delle Opzioni? ; new
 lOopsCouldNotOpenSpecialFolder	~1~ non è riuscito ad aprire la Cartella Speciale: "~2~".
 lOopsEmpty	vuoto
 lOopsFtpLocationProtocol	L'indirizzo di un sito FTP deve iniziare con "ftp://".
@@ -280,6 +285,7 @@ lOopsGroup	Gruppo
 lOopsHotkeyAlreadyUsed	La combinazione di tasti "~1~" è già usata per ~2~.`n`nE' necessario scegliere un altra combinazione per ~3~.
 lOopsHotkeyNotInMenus	Errore: la destinazione "~1~" per la combinazione "~1~" non è presente in alcun menù.
 lOopsHttpLocationTransformed	La destinazione http (in formato URL) è stato convertito in un percorso di rete (formato UNC) per compatibilità con Windows Explorer:`n`n~1~`n~2~
+lOopsInvalidWinCmdIni	File delle impostazioni di Total Commander ("wincmd.ini") non trovato.`n`nSelezionalo in "Opzioni" > "File manager". ; new
 lOopsInvalidWindowPosition	Valori non validi per la posizione della finestra
 lOopsLaunchWithNotFound	File dell'applicazione non trovato per "Esegui con questa applicazione":`n`n~1~`n`nControlla le impostazioni avanzate del Preferito.
 lOopsLocation	Destinazione
@@ -292,7 +298,7 @@ lOopsWrongThirdPartyPathQAPconnect	Wrong percorso o nome del file per l'applicaz
 lOopsZipFileError	Sembra che ~1~ sia stato eseguito direttamente da un archivio .ZIP .`n`nE' necessario dapprima estrarre il file ~1~ .EXE dall'archivio .ZIP in una cartella di tua scelta prima di eseguirlo.`n`n~1~ verrà chiuso.
 lOptionsAlternativeMenuFeatures	Combinazioni di tasti per il Menù Alternativo
 lOptionsAlternativeMenuFeaturesIntro	Gestisci le scorciatoie che lanciano le funzionalità del Menù Alternativo.
-lOptionsChangeFolderInDialog	Cambia le cartelle nella casella di dialogo con le combinazioni da tastiera principali di QAP
+lOptionsChangeFolderInDialog	Cambia cartella da casella di dialogo con gli hotkeys principali di QAP (mouse e tastiera) ; changed
 lOptionsChangeFolderInDialogCheckbox	Spunta questa casella per confermare che capisci le possibili conseguenze di usare erroneamente la funzionalità per cambiare cartella da caselle di dialogo non di tipo "file".
 lOptionsChangeFolderInDialogText	Attiva questa opzione per abilitare la navigazione delle cartelle in caselle di dialogo (Apri, Salva come, ecc.) ma sei pregato di leggere il seguente avvertimento.`n`nDevi usare questa funzione SOLTANTO in caselle di dialogo per "file". Se la usi in altri tipi di caselle di dialogo, per esempio in una casella di dialogo "Impostazioni", provare a cambiare cartella potrebbe modificare e salvare valori nella casella di dialogo senza alcun preavviso.
 lOptionsChangeHotkey	Cambia
@@ -342,12 +348,19 @@ lOptionsThirdPartyUseTabs	Usa i tab invece di aprire (in) una nuova finestra
 lOptionsTrayTip	All'avvio, &Mostra popup dall'area notifiche
 lPickIconNoLocation	Seleziona il preferito prima di scegliere un'icona.
 lReloadPrompt	~1~ cambiato in ~2~. Vuoi ricaricare ~3~ in ~2~ ora? Le modifiche non salvate al menù delle cartelle verranno perse.
+lTCMenuName	Hotlist Cartelle di TC ; new
+lTCWinCmdLocation	posizione di WinCmd.ini ; new
 lTrayTipInstalledDetail	~1~ o ~2~ per aprire Preferiti
 lTrayTipInstalledTitle	~1~ ~2~ è pronto!
 lTrayTipWorkingDetail	Menù in costruzione...
 lTrayTipWorkingDetailFinished	Il menù è stato aggiornato.
 lTrayTipWorkingTitle	~1~ ~2~ in esecuzione...
+lUpdateButtonChangeLog	Vedi il log delle modifiche ; new
+lUpdateButtonDownloadPortable	Download del file zip Portabile ; new
+lUpdateButtonDownloadSetup	Download del file di Setup ; new
 lUpdateButtonRemind	Ricordamelo più tardi
+lUpdateButtonSkipVersion	Salta questa versione ; new
+lUpdateButtonVisit	Vai al sito web di QAP ; new
 lUpdateError	C'è stato un errore nell'accesso al numero di versione più recente. Ricerca aggiornamenti interrotta.
 lUpdatePrompt	Aggiornare ~1~ dalla v~2~ alla v~3~?
 lUpdatePromptAlpha	C'è una nuova ver sione ALPHA ~1~.`n`nVuoi aggiornare ~1~ dalla v~2~ alla v~3~?
