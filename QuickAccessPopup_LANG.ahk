@@ -226,6 +226,7 @@ global lMenuAlternativeNewWindow := "Open in new window" ; new
 global lMenuAppData := "Application Data"
 global lMenuCache := "Cache"
 global lMenuClipboard := "Clipboard"
+global lMenuCloseThisMenu := "Close this menu"
 global lMenuColumnBreak := "column"
 global lMenuCommonAppData := "Common Application Data"
 global lMenuCommonDesktop := "Common Desktop"

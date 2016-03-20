@@ -16,13 +16,21 @@ http://www.autohotkey.com/board/topic/13392-folder-menu-a-popup-menu-to-quickly-
 
 
 BUGS
-- if dialog box is treeview, do not show popup menu
 
 TO-DO
 
 
 HISTORY
 =======
+
+Version: 7.1.5 (2016-03-??)
+- safety code to keep the focus on the popup menu, preventing the issue where, in some situations, the menu was not closing when clicking elsewhere or hitting Escape
+- add the QAP feature "Close this menu" to force closing the menu if the issue mentionned above is still present
+- add the "Close this menu" to the default menu created at first QAP execution (actual users must add it manually - Settings, Add buton, QAP Feature, Close this menu)
+- keep command line parameters when reloading after changing language or theme in options
+- stop display the popup menu on unsupported "Select Folder" dialog boxes (with TreeView)
+- additional code to fix bug mouse pointer staying in "wait" state by error when saving options
+- group calls to show popup menu in a centralized command ShowMenu
 
 Version: 7.1.3/7.1.4 (2016-03-14)
 - fix bug menu icons being unchecked be error after saving options
@@ -494,7 +502,7 @@ f_typNameOfVariable
 
 ;@Ahk2Exe-SetName Quick Access Popup
 ;@Ahk2Exe-SetDescription Quick Access Popup (freeware)
-;@Ahk2Exe-SetVersion 7.1.4
+;@Ahk2Exe-SetVersion 7.1.5
 ;@Ahk2Exe-SetOrigFilename QuickAccessPopup.exe
 
 
@@ -540,7 +548,7 @@ Gosub, InitLanguageVariables
 
 g_strAppNameFile := "QuickAccessPopup"
 g_strAppNameText := "Quick Access Popup"
-g_strCurrentVersion := "7.1.4" ; "major.minor.bugs" or "major.minor.beta.release"
+g_strCurrentVersion := "7.1.5" ; "major.minor.bugs" or "major.minor.beta.release"
 g_strCurrentBranch := "prod" ; "prod", "beta" or "alpha", always lowercase for filename
 g_strAppVersion := "v" . g_strCurrentVersion . (g_strCurrentBranch <> "prod" ? " " . g_strCurrentBranch : "")
 
@@ -1003,6 +1011,7 @@ strIconsMenus := "iconControlPanel|iconNetwork|iconRecycleBin|iconPictures|iconC
 	. "|iconAbout|iconHistory|iconClipboard|iconGroupSave|iconSubmenu"
 	. "|iconOptions|iconApplication|iconWinver|iconSwitch|iconDrives"
 	. "|iconRemovable|iconNetwork|iconCDROM|iconRAMDisk|iconReload"
+	. "|iconClose"
 
 if (GetOsVersion() = "WIN_10")
 {
@@ -1016,6 +1025,7 @@ if (GetOsVersion() = "WIN_10")
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|winver|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|imageres"
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
@@ -1026,6 +1036,7 @@ if (GetOsVersion() = "WIN_10")
 		. "|222|240|261|299|300"
 		. "|319|324|1|325|9"
 		. "|7|10|12|13|239"
+		. "|94"
 }
 else
 {
@@ -1039,6 +1050,7 @@ else
 		. "|shell32|shell32|shell32|shell32|shell32"
 		. "|shell32|shell32|winver|shell32|shell32"
 		. "|shell32|shell32|shell32|shell32|shell32"
+		. "|imageres"
 	strIconsIndex := "23|29|50|68|96"
 		. "|104|105|106|110|113"
 		. "|113|115|176|177|179"
@@ -1049,6 +1061,7 @@ else
 		. "|222|240|261|297|298"
 		. "|301|304|1|305|9"
 		. "|7|10|12|13|239"
+		. "|94"
 }
 
 StringSplit, arrIconsFile, strIconsFile, |
@@ -1653,6 +1666,7 @@ InitQAPFeatureObject("GetWinInfo",		lMenuGetWinInfo . "...",			"", "GetWinInfo",
 InitQAPFeatureObject("ShutDown",		lMenuComputerShutdown . "...",		"", "ShutdownComputer",					0, "iconExit")
 InitQAPFeatureObject("Restart",			lMenuComputerRestart . "...",		"", "RestartComputer",					0, "iconReload")
 InitQAPFeatureObject("Reload",			L(lMenuReload, g_strAppNameText),	"", "ReloadQAP",						0, "iconReload")
+InitQAPFeatureObject("CloseMenu",		lMenuCloseThisMenu,					"", "DoNothing",						0, "iconClose")
 
 ; Alernative Menu features
 InitQAPFeatureObject("Open in New Window",		lMenuAlternativeNewWindow,	"", "", 1, "iconFolder")
@@ -2181,6 +2195,16 @@ if (g_intActiveFileManager = 3) ; TotalCommander
 }
 AddToIniOneDefaultMenu("", "", "X")
 AddToIniOneDefaultMenu("{Add This Folder}", lMenuAddThisFolder . "...", "QAP")
+
+strThisMenuName := lMenuCloseThisMenu
+Gosub, AddToIniGetMenuName ; find next favorite number in ini file and check if strThisMenuName menu name exists
+if (strThisMenuName = lMenuCloseThisMenu) ; if equal, it means that this menu is not already there
+; (we cannot have this menu twice with "+" because, as all QAP features, lMenuSettings always have the same menu name)
+{
+	AddToIniOneDefaultMenu("", "", "X")
+	AddToIniOneDefaultMenu("{CloseMenu}", lMenuCloseThisMenu, "QAP") ; back in main menu
+}
+
 AddToIniOneDefaultMenu("", "", "Z") ; restore end of main menu marker
 
 IniWrite, 1, %g_strIniFile%, Global, DefaultMenuBuilt
@@ -2284,7 +2308,7 @@ Hotkey, If, CanNavigate(A_ThisHotkey)
 		Oops(lDialogInvalidHotkey, g_arrPopupHotkeys2, g_arrOptionsTitles2)
 Hotkey, If
 
-; Second, if we can't navigate but can launch, launch with QAP hotkey s(1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
+; Second, if we can't navigate but can launch, launch with QAP hotkeys (1 NavigateOrLaunchHotkeyMouse and 2 NavigateOrLaunchHotkeyKeyboard) 
 Hotkey, If, CanLaunch(A_ThisHotkey)
 	if HasHotkey(g_arrPopupHotkeysPrevious1)
 		Hotkey, % g_arrPopupHotkeysPrevious1, , Off
@@ -2566,9 +2590,8 @@ ClipboardMenuShortcut:
 
 Gosub, RefreshClipboardMenu
 
-Gosub, SetMenuPosition
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuClipboard, Show, %g_intMenuPosX%, %g_intMenuPosY%
+g_strMenuToShow := "g_menuClipboard"
+Gosub, ShowMenu
 
 return
 ;------------------------------------------------------------
@@ -2733,18 +2756,16 @@ DrivesMenuShortcut:
 /*
 Gosub, RefreshDrivesMenu ; refreshed by SetTimer but also just before when called by the shortcut
 
-Gosub, SetMenuPosition
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
+g_strMenuToShow := "g_menuDrives"
+Gosub, ShowMenu
+
 */
 
 ; Until background tasks is back...
-Gosub, SetMenuPosition
-
 Gosub, RefreshDrivesMenu
 
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuDrives, Show, %g_intMenuPosX%, %g_intMenuPosY%
+g_strMenuToShow := "g_menuDrives"
+Gosub, ShowMenu
 
 return
 ;------------------------------------------------------------
@@ -2841,18 +2862,15 @@ RecentFoldersMenuShortcut:
 /*
 Gosub, RefreshRecentFoldersMenu ; refreshed by SetTimer but also just before when called by the shortcut
 
-Gosub, SetMenuPosition
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+g_strMenuToShow := "g_menuRecentFolders"
+Gosub, ShowMenu
 */
 
 ; Until background tasks is back...
-Gosub, SetMenuPosition
-
 Gosub, RefreshRecentFoldersMenu
 
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuRecentFolders, Show, %g_intMenuPosX%, %g_intMenuPosY%
+g_strMenuToShow := "g_menuRecentFolders"
+Gosub, ShowMenu
 
 return
 ;------------------------------------------------------------
@@ -2979,9 +2997,8 @@ ReopenFolderMenuShortcut:
 
 Gosub, RefreshReopenFolderMenu
 
-Gosub, SetMenuPosition
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuReopenFolder, Show, %g_intMenuPosX%, %g_intMenuPosY%
+g_strMenuToShow := "g_menuReopenFolder"
+Gosub, ShowMenu
 
 return
 ;------------------------------------------------------------
@@ -2993,9 +3010,8 @@ SwitchFolderOrAppMenuShortcut:
 
 Gosub, RefreshSwitchFolderOrAppMenu
 
-Gosub, SetMenuPosition
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, g_menuSwitchFolderOrApp, Show, %g_intMenuPosX%, %g_intMenuPosY%
+g_strMenuToShow := "g_menuSwitchFolderOrApp"
+Gosub, ShowMenu
 
 return
 ;------------------------------------------------------------
@@ -3481,9 +3497,8 @@ RecursiveLoadTotalCommanderHotlistFromIni(objCurrentMenu)
 TotalCommanderHotlistMenuShortcut:
 ;------------------------------------------------------------
 
-Gosub, SetMenuPosition
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-Menu, %lTCMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY%
+g_strMenuToShow := lTCMenuName
+Gosub, ShowMenu
 
 return
 ;------------------------------------------------------------
@@ -4482,7 +4497,7 @@ if (strLanguageCodePrev <> g_strLanguageCode) or (strThemePrev <> g_strTheme)
 {
 	MsgBox, 52, %g_strAppNameText%, % L(lReloadPrompt, (strLanguageCodePrev <> g_strLanguageCode ? lOptionsLanguage : lOptionsTheme), (strLanguageCodePrev <> g_strLanguageCode ? g_strLanguageLabel : g_strTheme), g_strAppNameText)
 	IfMsgBox, Yes
-		Reload
+		Gosub, ReloadQAP
 }	
 
 ; rebuild Folders menus w/ or w/o optional folders and shortcuts
@@ -7967,8 +7982,6 @@ if (g_blnGetWinInfo)
 	return
 }
 
-Gosub, SetMenuPosition
-
 g_blnAlternativeMenu := (A_ThisLabel = "LaunchFromAlternativeMenu")
 if !(g_blnAlternativeMenu)
 	g_strAlternativeMenu := "" ; delete from previous call to Alternative key, else keep what was set in OpenAlternativeMenu
@@ -8010,7 +8023,8 @@ if (g_blnDiagMode)
 
 Gosub, InsertColumnBreaks
 
-Menu, %lMainMenuName%, Show, %g_intMenuPosX%, %g_intMenuPosY% ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
+g_strMenuToShow := lMainMenuName
+Gosub, ShowMenu ; at mouse pointer if option 1, 20x20 offset of active window if option 2 and fix location if option 3
 
 ; Gosub, SetTimerRefreshDynamicMenus ; after showing the menu THIS COMMAND BREAKS THE SUBMENU QAP ESSENTIALS !!!
 
@@ -8026,32 +8040,8 @@ AlternativeHotkeyKeyboard:
 g_blnAlternativeMenu := true
 g_strHokeyTypeDetected := "Alternative"
 
-Menu, g_menuAlternative, Show
-
-return
-;------------------------------------------------------------
-
-
-;------------------------------------------------------------
-SetMenuPosition:
-;------------------------------------------------------------
-
-; relative to active window if option g_intPopupMenuPosition = 2
-CoordMode, Mouse, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
-
-if (g_intPopupMenuPosition = 1) ; display menu near mouse pointer location
-	MouseGetPos, g_intMenuPosX, g_intMenuPosY
-else if (g_intPopupMenuPosition = 2) ; display menu at an offset of 20x20 pixel from top-left of active window area
-{
-	g_intMenuPosX := 20
-	g_intMenuPosY := 20
-}
-else ; (g_intPopupMenuPosition =  3) - fix position - use the g_intMenuPosX and g_intMenuPosY values from the ini file
-{
-	g_intMenuPosX := g_arrPopupFixPosition1
-	g_intMenuPosY := g_arrPopupFixPosition2
-}
+g_strMenuToShow := "g_menuAlternative"
+Gosub, ShowMenu
 
 return
 ;------------------------------------------------------------
@@ -8111,8 +8101,9 @@ CanLaunch(strMouseOrKeyboard) ; SEE HotkeyIfWin.ahk to use Hotkey, If, Expressio
 	Loop, Parse, g_strExclusionMouseList, |
 		if StrLen(A_Loopfield) and (InStr(g_strTargetClass, A_LoopField) or InStr(g_strTargetWinTitle, A_LoopField))
 			return false
-	; if not excluded
-	return true
+		
+	; if not excluded, return true except if dialog box is a Select Folder (TreeView)
+	return % !WindowIsTreeview(g_strTargetWinId)
 }
 ;------------------------------------------------------------
 
@@ -8628,7 +8619,8 @@ if InStr("Document|URL", g_objThisFavorite.FavoriteType)
 
 if (g_objThisFavorite.FavoriteType = "Menu")
 {
-	Menu, %lMainMenuName% %g_strFullLocation%, Show
+	g_strMenuToShow := lMainMenuName . " " . g_strFullLocation
+	Gosub, ShowMenu
 
 	gosub, OpenFavoriteCleanup
 	return
@@ -9068,6 +9060,14 @@ RestartComputer:
 MsgBox, 4, %g_strAppNameText%, % (A_ThisLabel = "ShutdownComputer" ? lMenuComputerShutdown : lMenuComputerRestart) . "?"
 IfMsgBox, Yes
 	Shutdown, % (A_ThisLabel = "ShutdownComputer" ? 1+8 : 2) ; Logoff 0, Shutdown 1, Reboot 2, Force 4, Power down 8 
+
+return
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+DoNothing:
+;------------------------------------------------------------
 
 return
 ;------------------------------------------------------------
@@ -9634,6 +9634,9 @@ ReloadQAP:
 ; To pass such parameters, do not use Reload. Instead, use Run in conjunction with A_AhkPath and A_ScriptFullPath
 ; (and A_IsCompiled if the script is ever used in compiled form). Also, include the string /restart as the first parameter
 ; (i.e. after the name of the executable), which tells the program to use the same behavior as Reload.
+
+; make sure the default system mouse pointer are reset before reloading QAP
+SetWaitCursor(false)
 
 if (A_IsCompiled)
 	Run, %A_ScriptFullPath% /restart ; review if parameters are used in the future
@@ -11195,6 +11198,38 @@ SetWaitCursor(blnOnOff)
 		blnCursorWaitAlreadyOn := false
 	}
 }
+;------------------------------------------------------------
+
+
+;------------------------------------------------------------
+ShowMenu:
+;------------------------------------------------------------
+
+; SetMenuPosition:
+; relative to active window if option g_intPopupMenuPosition = 2
+CoordMode, Mouse, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+CoordMode, Menu, % (g_intPopupMenuPosition = 2 ? "Window" : "Screen")
+
+if (g_intPopupMenuPosition = 1) ; display menu near mouse pointer location
+	MouseGetPos, g_intMenuPosX, g_intMenuPosY
+else if (g_intPopupMenuPosition = 2) ; display menu at an offset of 20x20 pixel from top-left of active window area
+{
+	g_intMenuPosX := 20
+	g_intMenuPosY := 20
+}
+else ; (g_intPopupMenuPosition =  3) - fix position - use the g_intMenuPosX and g_intMenuPosY values from the ini file
+{
+	g_intMenuPosX := g_arrPopupFixPosition1
+	g_intMenuPosY := g_arrPopupFixPosition2
+}
+
+; keep focus on scripts hidden window and on script's popup menu
+; see https://autohotkey.com/boards/viewtopic.php?f=5&t=15006
+WinActivate, ahk_id %A_ScriptHwnd%
+
+Menu, %g_strMenuToShow%, Show, %g_intMenuPosX%, %g_intMenuPosY%
+
+return
 ;------------------------------------------------------------
 
 
