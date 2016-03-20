@@ -23,7 +23,7 @@ TO-DO
 HISTORY
 =======
 
-Version: 7.1.5 (2016-03-??)
+Version: 7.1.5 (2016-03-20)
 - safety code to keep the focus on the popup menu, preventing the issue where, in some situations, the menu was not closing when clicking elsewhere or hitting Escape
 - add the QAP feature "Close this menu" to force closing the menu if the issue mentionned above is still present
 - add the "Close this menu" to the default menu created at first QAP execution (actual users must add it manually - Settings, Add buton, QAP Feature, Close this menu)
@@ -31,6 +31,7 @@ Version: 7.1.5 (2016-03-??)
 - stop display the popup menu on unsupported "Select Folder" dialog boxes (with TreeView)
 - additional code to fix bug mouse pointer staying in "wait" state by error when saving options
 - group calls to show popup menu in a centralized command ShowMenu
+- update of Spanish, French, Italian and Portuguese language files
 
 Version: 7.1.3/7.1.4 (2016-03-14)
 - fix bug menu icons being unchecked be error after saving options
